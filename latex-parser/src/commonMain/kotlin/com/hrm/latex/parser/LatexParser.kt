@@ -67,9 +67,32 @@ class LatexParser {
     }
 
     /**
-     * 解析表达式
+     * 解析表达式（处理上标下标）
      */
     private fun parseExpression(): LatexNode? {
+        var node = parseFactor() ?: return null
+
+        while (true) {
+            val token = peek()
+            if (token is LatexToken.Superscript) {
+                advance()
+                val exponent = parseScriptContent()
+                node = LatexNode.Superscript(node, exponent)
+            } else if (token is LatexToken.Subscript) {
+                advance()
+                val index = parseScriptContent()
+                node = LatexNode.Subscript(node, index)
+            } else {
+                break
+            }
+        }
+        return node
+    }
+
+    /**
+     * 解析基本因子（不含上标下标）
+     */
+    private fun parseFactor(): LatexNode? {
         when (val token = peek()) {
             is LatexToken.Text -> {
                 advance()
@@ -89,7 +112,8 @@ class LatexParser {
             }
 
             is LatexToken.Superscript, is LatexToken.Subscript -> {
-                // 上标下标需要有基础部分，这里可能是单独出现的情况
+                // 如果直接遇到上标下标，说明没有 Base，可能是语法错误
+                // 这里我们跳过它以避免死循环，并返回 null
                 advance()
                 return null
             }
@@ -124,7 +148,7 @@ class LatexParser {
         return when (cmdName) {
             // 分数
             "frac", "dfrac", "tfrac", "cfrac" -> parseFraction()
-            
+
             // 二项式系数
             "binom" -> parseBinomial(LatexNode.Binomial.BinomialStyle.NORMAL)
             "tbinom" -> parseBinomial(LatexNode.Binomial.BinomialStyle.TEXT)
@@ -132,7 +156,7 @@ class LatexParser {
 
             // 根号
             "sqrt" -> parseRoot()
-            
+
             // 文本模式
             "text", "mbox" -> parseTextMode()
 
@@ -205,7 +229,7 @@ class LatexParser {
         val content = parseArgument() ?: LatexNode.Text("")
         return LatexNode.Root(content, index)
     }
-    
+
     /**
      * 解析二项式系数 \binom{n}{k}
      */
@@ -214,7 +238,7 @@ class LatexParser {
         val bottom = parseArgument() ?: LatexNode.Text("")
         return LatexNode.Binomial(top, bottom, style)
     }
-    
+
     /**
      * 解析文本模式 \text{...}
      */
@@ -227,11 +251,12 @@ class LatexParser {
                 // 从 Group 中提取所有文本
                 extractText(content.children)
             }
+
             else -> ""
         }
         return LatexNode.TextMode(text)
     }
-    
+
     /**
      * 从节点列表中提取纯文本
      */
@@ -385,7 +410,11 @@ class LatexParser {
         HLog.d(TAG, "解析环境: $envName")
 
         return when (envName) {
-            "matrix", "pmatrix", "bmatrix", "Bmatrix", "vmatrix", "Vmatrix" -> parseMatrix(envName, isSmall = false)
+            "matrix", "pmatrix", "bmatrix", "Bmatrix", "vmatrix", "Vmatrix" -> parseMatrix(
+                envName,
+                isSmall = false
+            )
+
             "smallmatrix" -> parseMatrix("matrix", isSmall = true)
             "array" -> parseArray()
             "align", "aligned", "gather", "gathered" -> parseAligned()
