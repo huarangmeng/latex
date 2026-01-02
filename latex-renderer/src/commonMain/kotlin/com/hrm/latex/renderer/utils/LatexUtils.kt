@@ -119,7 +119,7 @@ fun DrawScope.drawBracket(
             val x0 = if (side == Side.LEFT) x + width else x
             val x1 = if (side == Side.LEFT) x else x + width
             path.moveTo(x0, y)
-            path.quadraticBezierTo(x1, y + height / 2, x0, y + height)
+            path.quadraticTo(x1, y + height / 2, x0, y + height)
         }
 
         LatexNode.Matrix.MatrixType.BRACKET -> {
@@ -132,11 +132,41 @@ fun DrawScope.drawBracket(
         }
 
         LatexNode.Matrix.MatrixType.BRACE -> {
-            val x0 = if (side == Side.LEFT) x + width else x
-            val xMid = if (side == Side.LEFT) x else x + width
-            path.moveTo(x0, y)
-            path.quadraticBezierTo(x0, y + height * 0.25f, xMid, y + height * 0.5f)
-            path.quadraticBezierTo(x0, y + height * 0.75f, x0, y + height)
+            // 花括号: { 或 }
+            // 分为三段：上半部分、中间尖端、下半部分
+            val midY = y + height / 2
+            val tipX = if (side == Side.LEFT) x else x + width
+            val baseX = if (side == Side.LEFT) x + width else x
+            val controlOffset = width * 0.4f
+            
+            // 上半部分（顶部到中间）
+            path.moveTo(baseX, y)
+            path.quadraticTo(
+                baseX - (if (side == Side.LEFT) controlOffset else -controlOffset),
+                y + height * 0.2f,
+                baseX,
+                y + height * 0.4f
+            )
+            path.quadraticTo(
+                baseX + (if (side == Side.LEFT) -controlOffset else controlOffset),
+                midY - height * 0.1f,
+                tipX,
+                midY
+            )
+            
+            // 下半部分（中间到底部）
+            path.quadraticTo(
+                baseX + (if (side == Side.LEFT) -controlOffset else controlOffset),
+                midY + height * 0.1f,
+                baseX,
+                y + height * 0.6f
+            )
+            path.quadraticTo(
+                baseX - (if (side == Side.LEFT) controlOffset else -controlOffset),
+                y + height * 0.8f,
+                baseX,
+                y + height
+            )
         }
 
         LatexNode.Matrix.MatrixType.VBAR -> {

@@ -67,6 +67,7 @@ internal fun measureNode(
         is LatexNode.Matrix -> measureMatrix(node, style, measurer, density)
         is LatexNode.Array -> measureMatrixLike(node.rows, style, measurer, density)
         is LatexNode.Delimited -> measureDelimited(node, style, measurer, density)
+        is LatexNode.ManualSizedDelimiter -> measureManualSizedDelimiter(node, style, measurer, density)
         is LatexNode.Cases -> measureCases(node, style, measurer, density)
         is LatexNode.Aligned -> measureAligned(node, style, measurer, density)
         is LatexNode.BigOperator -> measureBigOperator(node, style, measurer, density)
@@ -663,6 +664,60 @@ private fun measureDelimited(
         } else if (rightType != null) {
             drawBracket(rightType, Side.RIGHT, curX, y, rightW, height, strokeWidth, style.color)
         }
+    }
+}
+
+/**
+ * 测量手动大小分隔符节点
+ * 
+ * 将分隔符渲染为指定大小的独立符号，不包裹内容
+ * 
+ * @param node 手动大小分隔符节点
+ * @param style 渲染样式
+ * @param measurer 文本测量器
+ * @param density 密度信息
+ */
+private fun measureManualSizedDelimiter(
+    node: LatexNode.ManualSizedDelimiter,
+    style: RenderStyle,
+    measurer: TextMeasurer,
+    density: Density
+): NodeLayout {
+    val delimiter = node.delimiter
+    val scaleFactor = node.size
+    
+    // 根据分隔符类型选择渲染方式
+    val bracketType = when (delimiter) {
+        "(", ")" -> LatexNode.Matrix.MatrixType.PAREN
+        "[", "]" -> LatexNode.Matrix.MatrixType.BRACKET
+        "{", "}" -> LatexNode.Matrix.MatrixType.BRACE
+        "|" -> LatexNode.Matrix.MatrixType.VBAR
+        "||" -> LatexNode.Matrix.MatrixType.DOUBLE_VBAR
+        else -> null
+    }
+    
+    // 计算分隔符的尺寸
+    val baseHeight = with(density) { (style.fontSize * 1.2f).toPx() }
+    val height = baseHeight * scaleFactor
+    val bracketWidth = with(density) { (style.fontSize * 0.4f).toPx() }
+    val strokeWidth = with(density) { (style.fontSize * 0.05f).toPx() }
+    
+    // 基线位置：基于数学轴对齐（与周围内容在同一水平线上）
+    // 数学轴通常位于 x-height 的中心，约为字体大小的 0.25
+    val axisHeight = with(density) { (style.fontSize * 0.25f).toPx() }
+    val baseline = height / 2 + axisHeight
+    
+    return if (bracketType != null) {
+        // 使用绘图渲染括号
+        val side = if (delimiter in listOf("(", "[", "{")) Side.LEFT else Side.RIGHT
+        
+        NodeLayout(bracketWidth, height, baseline) { x, y ->
+            drawBracket(bracketType, side, x, y, bracketWidth, height, strokeWidth, style.color)
+        }
+    } else {
+        // 使用文本渲染其他分隔符（如角括号、特殊符号）
+        val delimiterStyle = style.grow(scaleFactor)
+        measureText(delimiter, delimiterStyle, measurer)
     }
 }
 

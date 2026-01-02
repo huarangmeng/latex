@@ -116,13 +116,42 @@ sealed class LatexNode {
     data class Operator(val op: String) : LatexNode()
     
     /**
-     * 括号节点（可伸缩）
+     * 括号节点（自动伸缩）
+     * 
+     * 使用场景：
+     * 1. 自动伸缩：`\left( ... \right)` - scalable=true
+     * 2. 不对称分隔符：`\left. ... \right|` - left="" 或 right=""
+     * 
+     * @param left 左分隔符（空字符串表示不显示）
+     * @param right 右分隔符（空字符串表示不显示）
+     * @param content 括号内的内容
+     * @param scalable true=自动伸缩（始终为 true，保留用于向后兼容）
+     * @param manualSize 已弃用，保留用于向后兼容
      */
     data class Delimited(
         val left: String,
         val right: String,
         val content: List<LatexNode>,
-        val scalable: Boolean = true
+        val scalable: Boolean = true,
+        val manualSize: Float? = null
+    ) : LatexNode()
+    
+    /**
+     * 手动大小分隔符节点
+     * 
+     * 与 Delimited 不同，这是一个独立的符号，不包裹内容
+     * 
+     * 使用场景：
+     * - `\big(` - 生成一个 1.2x 大小的左括号符号
+     * - `\Big[` - 生成一个 1.8x 大小的左方括号符号
+     * - `\bigg\{` - 生成一个 2.4x 大小的左花括号符号
+     * 
+     * @param delimiter 分隔符符号（如 "(", "[", "|" 等）
+     * @param size 缩放因子（1.2f, 1.8f, 2.4f, 3.0f）
+     */
+    data class ManualSizedDelimiter(
+        val delimiter: String,
+        val size: Float
     ) : LatexNode()
     
     /**

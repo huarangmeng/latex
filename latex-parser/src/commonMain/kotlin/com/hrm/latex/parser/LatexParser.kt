@@ -166,8 +166,14 @@ class LatexParser {
             "bigcup", "bigcap", "bigvee", "bigwedge",
             "lim", "max", "min", "sup", "inf", "limsup", "liminf" -> parseBigOperator(cmdName)
 
-            // 括号
+            // 括号（自动伸缩）
             "left" -> parseDelimited()
+            
+            // 括号（手动大小控制）
+            "big", "Big", "bigg", "Bigg",
+            "bigl", "Bigl", "biggl", "Biggl",
+            "bigr", "Bigr", "biggr", "Biggr",
+            "bigm", "Bigm", "biggm", "Biggm" -> parseManualSizedDelimiter(cmdName)
 
             // 字体样式
             "mathbf", "textbf", "bf" -> parseStyle(LatexNode.Style.StyleType.BOLD)
@@ -304,18 +310,31 @@ class LatexParser {
 
     /**
      * 解析可伸缩括号
+     * 
+     * 支持：
+     * - `\left( ... \right)` - 普通括号
+     * - `\left. ... \right|` - 不对称分隔符（左侧不显示）
+     * - `\left[ ... \right.` - 不对称分隔符（右侧不显示）
+     * 
+     * 其中 `.` 表示不显示该侧的分隔符
      */
     private fun parseDelimited(): LatexNode.Delimited {
         // 读取左括号
         val leftToken = advance()
         val left = when (leftToken) {
-            is LatexToken.Text -> leftToken.content
+            is LatexToken.Text -> {
+                // 处理 . 表示不显示分隔符
+                if (leftToken.content == ".") "" else leftToken.content
+            }
             is LatexToken.LeftBrace -> "{"
+            is LatexToken.LeftBracket -> "["
             is LatexToken.Command -> {
                 when (leftToken.name) {
                     "langle" -> "⟨"
                     "lfloor" -> "⌊"
                     "lceil" -> "⌈"
+                    "{" -> "{"
+                    "." -> ""  // \. 也表示不显示
                     else -> leftToken.name
                 }
             }
@@ -344,13 +363,19 @@ class LatexParser {
         val rightToken = if (!isEOF()) advance() else null
         val right = when (rightToken) {
             null -> ")"
-            is LatexToken.Text -> rightToken.content
+            is LatexToken.Text -> {
+                // 处理 . 表示不显示分隔符
+                if (rightToken.content == ".") "" else rightToken.content
+            }
             is LatexToken.RightBrace -> "}"
+            is LatexToken.RightBracket -> "]"
             is LatexToken.Command -> {
                 when (rightToken.name) {
                     "rangle" -> "⟩"
                     "rfloor" -> "⌋"
                     "rceil" -> "⌉"
+                    "}" -> "}"
+                    "." -> ""  // \. 也表示不显示
                     else -> rightToken.name
                 }
             }
@@ -359,6 +384,72 @@ class LatexParser {
         }
 
         return LatexNode.Delimited(left, right, content, true)
+    }
+
+    /**
+     * 解析手动大小控制的分隔符
+     * 
+     * 支持的命令：
+     * - `\big(`, `\Big[`, `\bigg\{`, `\Bigg|`
+     * - `\bigl(` + `\bigr)` 配对使用（l=left, r=right, m=middle）
+     * 
+     * 大小级别：
+     * - `\big` - 1.2x 大小
+     * - `\Big` - 1.8x 大小
+     * - `\bigg` - 2.4x 大小
+     * - `\Bigg` - 3.0x 大小
+     * 
+     * 示例：
+     * ```latex
+     * \big( \frac{1}{2} \big)
+     * \Big[ x + y \Big]
+     * ```
+     * 
+     * 注意：手动大小分隔符是独立的符号，不包裹内容（区别于 \left...\right）
+     */
+    private fun parseManualSizedDelimiter(sizeCmd: String): LatexNode {
+        // 提取基础大小命令（去除 l/r/m 后缀）
+        val baseSizeCmd = when {
+            sizeCmd.endsWith("l") || sizeCmd.endsWith("r") || sizeCmd.endsWith("m") -> 
+                sizeCmd.dropLast(1)
+            else -> sizeCmd
+        }
+        
+        // 读取分隔符
+        val delimiterToken = if (!isEOF()) advance() else null
+        val delimiter = when (delimiterToken) {
+            is LatexToken.Text -> delimiterToken.content
+            is LatexToken.LeftBrace -> "{"
+            is LatexToken.RightBrace -> "}"
+            is LatexToken.LeftBracket -> "["
+            is LatexToken.RightBracket -> "]"
+            is LatexToken.Command -> {
+                when (delimiterToken.name) {
+                    "langle" -> "⟨"
+                    "rangle" -> "⟩"
+                    "lfloor" -> "⌊"
+                    "rfloor" -> "⌋"
+                    "lceil" -> "⌈"
+                    "rceil" -> "⌉"
+                    "|" -> "|"
+                    "\\" -> "\\"
+                    "{" -> "{"
+                    "}" -> "}"
+                    else -> delimiterToken.name
+                }
+            }
+            else -> "("
+        }
+        
+        // 计算缩放因子
+        val scaleFactor = when (baseSizeCmd) {
+            "big", "bigg" -> if (baseSizeCmd == "bigg") 2.4f else 1.2f
+            "Big", "Bigg" -> if (baseSizeCmd == "Bigg") 3.0f else 1.8f
+            else -> 1.0f
+        }
+        
+        // 返回 ManualSizedDelimiter 节点（包含分隔符和大小信息）
+        return LatexNode.ManualSizedDelimiter(delimiter, scaleFactor)
     }
 
     /**
