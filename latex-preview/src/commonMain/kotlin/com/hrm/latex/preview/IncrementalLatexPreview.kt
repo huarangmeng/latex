@@ -19,8 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.hrm.latex.parser.IncrementalLatexParser
-import com.hrm.latex.renderer.IncrementalLatex
+import com.hrm.latex.parser.LatexParser
 import com.hrm.latex.renderer.Latex
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -35,7 +34,7 @@ fun Preview_Demo_RealTimeInput() {
     PreviewCard("实际应用: 实时输入预览 (Debug)") {
         var userInput by remember { mutableStateOf("") }
         var debugInfo by remember { mutableStateOf("") }
-        
+
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("模拟用户输入:", style = MaterialTheme.typography.bodyMedium)
             Text(
@@ -43,7 +42,7 @@ fun Preview_Demo_RealTimeInput() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Text(
                 text = debugInfo,
                 style = MaterialTheme.typography.labelSmall,
@@ -51,30 +50,30 @@ fun Preview_Demo_RealTimeInput() {
             )
 
             Divider()
-            
+
             Text("实时渲染结果:", style = MaterialTheme.typography.bodyMedium)
-            IncrementalLatex(
+            Latex(
                 latex = userInput,
                 isDarkTheme = false
             )
-            
+
             // 模拟用户逐步输入
             LaunchedEffect(Unit) {
                 // 验证基础解析器
                 try {
-                    val parser = com.hrm.latex.parser.LatexParser()
+                    val parser = LatexParser()
                     parser.parse("\\int_{-\\infty}^{\\infty}")
                     debugInfo = "Base Parser Check: OK"
-                } catch(e: Exception) {
+                } catch (e: Exception) {
                     debugInfo = "Base Parser Check Failed: ${e.message}"
                 }
-            
+
                 val fullFormula = "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}"
                 userInput = ""
                 delay(500)
 
                 fullFormula.forEach { char ->
-                    delay(150) 
+                    delay(150)
                     userInput += char
                 }
             }
@@ -86,9 +85,9 @@ fun Preview_Demo_RealTimeInput() {
 @Composable
 fun Preview_Demo_ProgressTracking() {
     PreviewCard("实际应用: 解析进度追踪") {
-        val parser = remember { IncrementalLatexParser() }
-        var progress by remember { mutableStateOf(0f) }
         var currentText by remember { mutableStateOf("") }
+        val formula = "\\sum_{n=0}^{\\infty} \\frac{x^n}{n!} = e^x"
+        val progress = if (formula.isEmpty()) 0f else currentText.length.toFloat() / formula.length
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             // 进度条
@@ -105,22 +104,17 @@ fun Preview_Demo_ProgressTracking() {
             Divider()
 
             // 渲染结果
-            IncrementalLatex(
+            Latex(
                 latex = currentText,
                 isDarkTheme = false
             )
 
             // 模拟流式输入并更新进度
             LaunchedEffect(Unit) {
-                val formula = "\\sum_{n=0}^{\\infty} \\frac{x^n}{n!} = e^x"
                 currentText = ""
-
-                formula.forEachIndexed { index, char ->
-                    delay(120) // 增加延迟
+                formula.forEach { char ->
+                    delay(120)
                     currentText += char
-                    parser.clear()
-                    parser.append(currentText)
-                    progress = parser.getProgress()
                 }
             }
         }
@@ -159,7 +153,7 @@ fun Preview_Demo_ErrorRecovery() {
                         shape = MaterialTheme.shapes.small
                     ) {
                         Box(modifier = Modifier.padding(8.dp)) {
-                            IncrementalLatex(
+                            Latex(
                                 latex = latex,
                                 isDarkTheme = false
                             )
@@ -197,7 +191,7 @@ fun Preview_Demo_MultipleFormulas() {
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    IncrementalLatex(
+                    Latex(
                         latex = fullFormula.substring(0, currentIndices[index]),
                         isDarkTheme = false
                     )
@@ -270,7 +264,7 @@ fun Preview_Demo_ComparisonWithStandard() {
                     shape = MaterialTheme.shapes.small
                 ) {
                     Box(modifier = Modifier.padding(8.dp)) {
-                        IncrementalLatex(
+                        Latex(
                             latex = incrementalText,
                             isDarkTheme = false
                         )

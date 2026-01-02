@@ -4,40 +4,42 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
-import com.hrm.latex.parser.LatexParser
+import com.hrm.latex.base.log.HLog
+import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.measureGroup
 import com.hrm.latex.renderer.model.RenderStyle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+private const val TAG = "Latex"
 
 /**
  * Latex 渲染组件
  *
- * @param latex LaTeX 字符串
+ * 自动支持增量解析能力，可以安全处理不完整的 LaTeX 输入
+ *
+ * @param latex LaTeX 字符串（支持增量输入，会自动解析可解析部分）
  * @param modifier 修饰符
  * @param style 渲染样式（包含颜色、背景色、深浅色模式配置、字体大小等）
  * @param isDarkTheme 是否为深色模式（默认跟随系统）
- * @param parser Latex 解析器
  */
 @Composable
 fun Latex(
     latex: String,
     modifier: Modifier = Modifier,
     style: RenderStyle = RenderStyle(),
-    isDarkTheme: Boolean = isSystemInDarkTheme(),
-    parser: LatexParser = remember { LatexParser() }
+    isDarkTheme: Boolean = isSystemInDarkTheme()
 ) {
     // 确定最终文本颜色
     val resolvedTextColor = if (isDarkTheme) {
@@ -59,42 +61,45 @@ fun Latex(
         backgroundColor = resolvedBackgroundColor
     )
 
-    // 异步解析状态
-    var document by remember { mutableStateOf<LatexNode.Document?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
+    // 使用 State 来保存解析结果
+    var document by remember { mutableStateOf(LatexNode.Document(emptyList())) }
+    // 记录上次解析的内容，避免重复解析
+    var lastParsedLatex by remember { mutableStateOf("") }
 
-    // 当 latex 变化时，在后台线程解析
-    LaunchedEffect(latex, parser) {
-        withContext(Dispatchers.Default) {
-            try {
-                val result = parser.parse(latex)
-                withContext(Dispatchers.Main) {
-                    document = result
-                    error = null
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    error = e.message
-                    // 解析失败时，如果之前有结果，可以保留显示，或者置空
-                    // 这里选择置空以反馈错误
-                    document = null 
+    // 当 latex 变化时更新解析（在后台线程执行，避免阻塞主线程）
+    LaunchedEffect(latex) {
+        // 防抖：如果内容没变，跳过
+        if (latex == lastParsedLatex) {
+            return@LaunchedEffect
+        }
+
+        // 再次检查是否有新的更新
+        if (latex != lastParsedLatex) {
+            lastParsedLatex = latex
+
+            // 切换到 Default 调度器执行解析
+            val result = withContext(Dispatchers.Default) {
+                try {
+                    // 使用增量解析器，能够处理不完整的 LaTeX 输入
+                    val parser = IncrementalLatexParser()
+                    parser.append(latex)
+                    parser.getCurrentDocument()
+                } catch (e: Exception) {
+                    HLog.e(TAG, "IncrementalLatexParser 解析失败", e)
+                    // 解析失败时返回空文档
+                    LatexNode.Document(emptyList())
                 }
             }
+            // 回到主线程更新 UI
+            document = result
         }
     }
 
-    if (document != null) {
-        LatexDocument(
-            modifier = modifier,
-            children = document!!.children,
-            style = resolvedStyle
-        )
-    } else if (error != null) {
-        Text(text = "Error: $error", color = Color.Red, modifier = modifier)
-    } else {
-        // 解析中或空状态
-        // 可以选择显示一个占位符，或者什么都不显示
-    }
+    LatexDocument(
+        modifier = modifier,
+        children = document.children,
+        style = resolvedStyle
+    )
 }
 
 /**
