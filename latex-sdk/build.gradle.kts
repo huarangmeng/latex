@@ -1,5 +1,3 @@
-import com.android.build.api.dsl.androidLibrary
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
@@ -7,17 +5,16 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.composeHotReload)
 }
 
 kotlin {
     jvmToolchain(21)
 
     androidLibrary {
-        namespace = "com.hrm.latex"
+        namespace = "com.hrm.latex.sdk"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
 
-        withJava() // enable java compilation support
+        withJava()
         withHostTestBuilder {}.configure {}
         withDeviceTestBuilder {
             sourceSetTreeName = "test"
@@ -26,13 +23,12 @@ kotlin {
         compilerOptions {}
     }
 
-
     listOf(
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "ComposeApp"
+            baseName = "LatexSDK"
             isStatic = true
         }
     }
@@ -51,12 +47,10 @@ kotlin {
     }
 
     sourceSets {
-        androidMain.dependencies {
-            implementation(compose.preview)
-            implementation(libs.androidx.activity.compose)
-        }
         commonMain.dependencies {
-            implementation(projects.latexSdk)
+            api(projects.latexBase)
+            api(projects.latexParser)
+            api(projects.latexRenderer)
 
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -64,28 +58,12 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
-            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.kotlinx.coroutines.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-        }
-        jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
-        }
-    }
-}
-
-compose.desktop {
-    application {
-        mainClass = "com.hrm.latex.MainKt"
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.hrm.latex"
-            packageVersion = "1.0.0"
         }
     }
 }

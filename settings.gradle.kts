@@ -13,6 +13,9 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    plugins {
+        kotlin("jvm") version "2.2.0"
+    }
 }
 
 dependencyResolutionManagement {
@@ -34,3 +37,9 @@ plugins {
 
 include(":composeApp")
 include(":androidapp")
+
+// SDK 模块
+include(":latex-base")
+include(":latex-parser")
+include(":latex-renderer")
+include(":latex-sdk")
