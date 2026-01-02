@@ -887,6 +887,35 @@ val previewGroups = listOf(
             ),
         )
     ),
+    PreviewGroup(
+        id = "accents",
+        title = "8. 装饰符号专题",
+        description = "上标装饰、箭头、帽子等",
+        items = listOf(
+            PreviewItem("56", "简单帽子", "\\hat{x}"),
+            PreviewItem("57", "波浪线", "\\tilde{y}"),
+            PreviewItem("58", "上划线", "\\overline{AB}"),
+            PreviewItem("59", "下划线", "\\underline{text}"),
+            PreviewItem("60", "向量箭头", "\\vec{v}"),
+            PreviewItem("61", "单点", "\\dot{x}"),
+            PreviewItem("62", "双点", "\\ddot{x}"),
+            PreviewItem("63", "上大括号", "\\overbrace{a+b+c}"),
+            PreviewItem("64", "下大括号", "\\underbrace{x+y+z}"),
+            PreviewItem("65", "宽帽子", "\\widehat{ABC}"),
+            PreviewItem("66", "右箭头", "\\overrightarrow{AB}"),
+            PreviewItem("67", "左箭头", "\\overleftarrow{BA}"),
+            PreviewItem(
+                "68",
+                "复杂装饰组合",
+                "\\widehat{ABC} + \\overrightarrow{PQ} + \\overleftarrow{XY}"
+            ),
+            PreviewItem(
+                "69",
+                "物理学中的应用",
+                "\\vec{F} = m\\vec{a} \\quad \\widehat{H}\\psi = E\\psi"
+            ),
+        )
+    ),
 )
 
 // ========== 主界面 ==========

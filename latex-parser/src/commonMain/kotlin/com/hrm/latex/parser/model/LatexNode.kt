@@ -162,7 +162,8 @@ sealed class LatexNode {
         val accentType: AccentType
     ) : LatexNode() {
         enum class AccentType {
-            HAT, TILDE, BAR, DOT, DDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE
+            HAT, TILDE, BAR, DOT, DDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE,
+            WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW
         }
     }
     

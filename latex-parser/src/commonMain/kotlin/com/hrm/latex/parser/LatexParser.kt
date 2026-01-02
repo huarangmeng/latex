@@ -197,6 +197,9 @@ class LatexParser {
             "vec" -> parseAccent(LatexNode.Accent.AccentType.VEC)
             "overbrace" -> parseAccent(LatexNode.Accent.AccentType.OVERBRACE)
             "underbrace" -> parseAccent(LatexNode.Accent.AccentType.UNDERBRACE)
+            "widehat" -> parseAccent(LatexNode.Accent.AccentType.WIDEHAT)
+            "overrightarrow" -> parseAccent(LatexNode.Accent.AccentType.OVERRIGHTARROW)
+            "overleftarrow" -> parseAccent(LatexNode.Accent.AccentType.OVERLEFTARROW)
 
             // 空格
             "," -> LatexNode.Space(LatexNode.Space.SpaceType.THIN)

@@ -259,4 +259,25 @@ class SimpleFormulaTest {
         val accent = doc.children[0] as LatexNode.Accent
         assertEquals(LatexNode.Accent.AccentType.DDOT, accent.accentType)
     }
+    
+    @Test
+    fun testWidehat() {
+        val doc = parser.parse("\\widehat{ABC}")
+        val accent = doc.children[0] as LatexNode.Accent
+        assertEquals(LatexNode.Accent.AccentType.WIDEHAT, accent.accentType)
+    }
+    
+    @Test
+    fun testOverrightarrow() {
+        val doc = parser.parse("\\overrightarrow{AB}")
+        val accent = doc.children[0] as LatexNode.Accent
+        assertEquals(LatexNode.Accent.AccentType.OVERRIGHTARROW, accent.accentType)
+    }
+    
+    @Test
+    fun testOverleftarrow() {
+        val doc = parser.parse("\\overleftarrow{BA}")
+        val accent = doc.children[0] as LatexNode.Accent
+        assertEquals(LatexNode.Accent.AccentType.OVERLEFTARROW, accent.accentType)
+    }
 }

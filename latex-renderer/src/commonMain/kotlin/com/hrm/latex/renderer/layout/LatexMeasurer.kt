@@ -764,16 +764,29 @@ private fun measureAccent(
     node: LatexNode.Accent, style: RenderStyle, measurer: TextMeasurer, density: Density
 ): NodeLayout {
     val contentLayout = measureGroup(listOf(node.content), style, measurer, density)
+    
+    // 对于宽装饰（需要根据内容宽度拉伸的装饰），使用特殊绘制逻辑
+    val isWideAccent = when (node.accentType) {
+        AccentType.WIDEHAT, AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW,
+        AccentType.OVERLINE, AccentType.UNDERLINE,
+        AccentType.OVERBRACE, AccentType.UNDERBRACE -> true
+        else -> false
+    }
+    
+    if (isWideAccent) {
+        return measureWideAccent(node, contentLayout, style, measurer, density)
+    }
+    
     val accentChar = when (node.accentType) {
         AccentType.HAT -> "^"
         AccentType.TILDE -> "~"
-        AccentType.BAR, AccentType.OVERLINE -> "¯"
-        AccentType.UNDERLINE -> "_"
+        AccentType.BAR -> "¯"
         AccentType.VEC -> "→"
         AccentType.DOT -> "˙"
         AccentType.DDOT -> "¨"
-        AccentType.OVERBRACE -> "⏞"
-        AccentType.UNDERBRACE -> "⏟"
+        AccentType.OVERLINE, AccentType.UNDERLINE,
+        AccentType.OVERBRACE, AccentType.UNDERBRACE,
+        AccentType.WIDEHAT, AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW -> ""
     }
 
     // 如果是下划线/下括号，画在下方
@@ -798,6 +811,248 @@ private fun measureAccent(
             accentLayout.draw(this, accentX, y)
             contentLayout.draw(this, contentX, y + accentLayout.height)
         }
+    }
+}
+
+/**
+ * 测量宽装饰（widehat, overrightarrow, overleftarrow, overline, underline, overbrace, underbrace）
+ * 这些装饰需要根据内容宽度进行拉伸绘制
+ */
+private fun measureWideAccent(
+    node: LatexNode.Accent,
+    contentLayout: NodeLayout,
+    style: RenderStyle,
+    measurer: TextMeasurer,
+    density: Density
+): NodeLayout {
+    // 判断是否是下方装饰
+    val isUnder = node.accentType == AccentType.UNDERLINE || 
+                  node.accentType == AccentType.UNDERBRACE
+    
+    // 装饰高度和间距
+    val accentHeight = when (node.accentType) {
+        AccentType.OVERLINE, AccentType.UNDERLINE -> with(density) { 2f.dp.toPx() } // 线条只需要很薄
+        else -> with(density) { (style.fontSize * 0.3f).toPx() }
+    }
+    val gap = with(density) { (style.fontSize * 0.08f).toPx() }
+    
+    val width = contentLayout.width
+    val totalHeight = contentLayout.height + accentHeight + gap
+    
+    return NodeLayout(
+        width, 
+        totalHeight, 
+        contentLayout.baseline + (if (isUnder) 0f else accentHeight + gap)
+    ) { x, y ->
+        // 根据装饰类型确定位置
+        val accentY = if (isUnder) y + contentLayout.height + gap else y
+        val contentY = if (isUnder) y else y + accentHeight + gap
+        
+        // 绘制装饰
+        when (node.accentType) {
+            AccentType.OVERLINE -> {
+                // 绘制上划线：横线
+                drawLine(
+                    color = style.color,
+                    start = Offset(x, accentY),
+                    end = Offset(x + width, accentY),
+                    strokeWidth = with(density) { 1.5f.dp.toPx() }
+                )
+            }
+            
+            AccentType.UNDERLINE -> {
+                // 绘制下划线：横线
+                drawLine(
+                    color = style.color,
+                    start = Offset(x, accentY),
+                    end = Offset(x + width, accentY),
+                    strokeWidth = with(density) { 1.5f.dp.toPx() }
+                )
+            }
+            
+            AccentType.OVERBRACE -> {
+                // 绘制上大括号：标准的 LaTeX 样式（中间有尖角）
+                val path = Path().apply {
+                    val leftX = x
+                    val rightX = x + width
+                    val centerX = x + width / 2
+                    val topY = accentY
+                    val bottomY = accentY + accentHeight
+                    
+                    // 计算关键尺寸
+                    // 尖角的高度占比
+                    val tipHeight = accentHeight * 0.25f
+                    // 肩膀（横线部分）的Y坐标
+                    val shoulderY = topY + tipHeight
+                    // 弯曲部分的宽度，限制为高度的一倍，且不超过总宽度的一半
+                    val curveWidth = min(width / 2, accentHeight)
+                    
+                    // 1. 左脚起笔
+                    moveTo(leftX, bottomY)
+                    // 2. 左侧上升曲线：从垂直变为水平
+                    // CP1 在起点的上方，CP2 在终点的左侧
+                    cubicTo(
+                        leftX, bottomY - (bottomY - shoulderY) * 0.6f,
+                        leftX + curveWidth * 0.4f, shoulderY,
+                        leftX + curveWidth, shoulderY
+                    )
+                    // 3. 左侧横线
+                    lineTo(centerX - curveWidth, shoulderY)
+                    // 4. 中间尖角左半边：从水平变为向上
+                    cubicTo(
+                        centerX - curveWidth * 0.4f, shoulderY,
+                        centerX, shoulderY - tipHeight * 0.6f,
+                        centerX, topY
+                    )
+                    // 5. 中间尖角右半边：从向上变为水平
+                    cubicTo(
+                        centerX, shoulderY - tipHeight * 0.6f,
+                        centerX + curveWidth * 0.4f, shoulderY,
+                        centerX + curveWidth, shoulderY
+                    )
+                    // 6. 右侧横线
+                    lineTo(rightX - curveWidth, shoulderY)
+                    // 7. 右侧下降曲线：从水平变为垂直
+                    cubicTo(
+                        rightX - curveWidth * 0.4f, shoulderY,
+                        rightX, bottomY - (bottomY - shoulderY) * 0.6f,
+                        rightX, bottomY
+                    )
+                }
+                drawPath(
+                    path = path,
+                    color = style.color,
+                    style = Stroke(width = with(density) { 1.2f.dp.toPx() }) // 稍微细一点，显得更精致
+                )
+            }
+            
+            AccentType.UNDERBRACE -> {
+                // 绘制下大括号：标准的 LaTeX 样式
+                val path = Path().apply {
+                    val leftX = x
+                    val rightX = x + width
+                    val centerX = x + width / 2
+                    val topY = accentY
+                    val bottomY = accentY + accentHeight
+                    
+                    // 计算关键尺寸
+                    val tipHeight = accentHeight * 0.25f
+                    // 肩膀（横线部分）的Y坐标
+                    val shoulderY = bottomY - tipHeight
+                    val curveWidth = min(width / 2, accentHeight)
+                    
+                    // 1. 左脚起笔
+                    moveTo(leftX, topY)
+                    // 2. 左侧下降曲线
+                    cubicTo(
+                        leftX, topY + (shoulderY - topY) * 0.6f,
+                        leftX + curveWidth * 0.4f, shoulderY,
+                        leftX + curveWidth, shoulderY
+                    )
+                    // 3. 左侧横线
+                    lineTo(centerX - curveWidth, shoulderY)
+                    // 4. 中间尖角左半边
+                    cubicTo(
+                        centerX - curveWidth * 0.4f, shoulderY,
+                        centerX, shoulderY + tipHeight * 0.6f,
+                        centerX, bottomY
+                    )
+                    // 5. 中间尖角右半边
+                    cubicTo(
+                        centerX, shoulderY + tipHeight * 0.6f,
+                        centerX + curveWidth * 0.4f, shoulderY,
+                        centerX + curveWidth, shoulderY
+                    )
+                    // 6. 右侧横线
+                    lineTo(rightX - curveWidth, shoulderY)
+                    // 7. 右侧上升曲线
+                    cubicTo(
+                        rightX - curveWidth * 0.4f, shoulderY,
+                        rightX, topY + (shoulderY - topY) * 0.6f,
+                        rightX, topY
+                    )
+                }
+                drawPath(
+                    path = path,
+                    color = style.color,
+                    style = Stroke(width = with(density) { 1.2f.dp.toPx() })
+                )
+            }
+            
+            AccentType.WIDEHAT -> {
+                // 绘制宽帽子：倒V形状
+                val path = Path().apply {
+                    val leftX = x
+                    val rightX = x + width
+                    val bottomY = accentY + accentHeight
+                    val topY = accentY
+                    
+                    moveTo(leftX, bottomY)
+                    lineTo(x + width / 2, topY)
+                    lineTo(rightX, bottomY)
+                }
+                drawPath(
+                    path = path,
+                    color = style.color,
+                    style = Stroke(width = with(density) { 1.5f.dp.toPx() })
+                )
+            }
+            
+            AccentType.OVERRIGHTARROW -> {
+                // 绘制右箭头
+                val arrowY = accentY + accentHeight / 2
+                val arrowEndX = x + width
+                val arrowStartX = x
+                
+                // 箭头线
+                drawLine(
+                    color = style.color,
+                    start = Offset(arrowStartX, arrowY),
+                    end = Offset(arrowEndX, arrowY),
+                    strokeWidth = with(density) { 1.5f.dp.toPx() }
+                )
+                
+                // 箭头头部
+                val arrowHeadSize = with(density) { 4f.dp.toPx() }
+                val path = Path().apply {
+                    moveTo(arrowEndX, arrowY)
+                    lineTo(arrowEndX - arrowHeadSize, arrowY - arrowHeadSize / 2)
+                    lineTo(arrowEndX - arrowHeadSize, arrowY + arrowHeadSize / 2)
+                    close()
+                }
+                drawPath(path = path, color = style.color)
+            }
+            
+            AccentType.OVERLEFTARROW -> {
+                // 绘制左箭头
+                val arrowY = accentY + accentHeight / 2
+                val arrowStartX = x
+                val arrowEndX = x + width
+                
+                // 箭头线
+                drawLine(
+                    color = style.color,
+                    start = Offset(arrowStartX, arrowY),
+                    end = Offset(arrowEndX, arrowY),
+                    strokeWidth = with(density) { 1.5f.dp.toPx() }
+                )
+                
+                // 箭头头部
+                val arrowHeadSize = with(density) { 4f.dp.toPx() }
+                val path = Path().apply {
+                    moveTo(arrowStartX, arrowY)
+                    lineTo(arrowStartX + arrowHeadSize, arrowY - arrowHeadSize / 2)
+                    lineTo(arrowStartX + arrowHeadSize, arrowY + arrowHeadSize / 2)
+                    close()
+                }
+                drawPath(path = path, color = style.color)
+            }
+            
+            else -> {}
+        }
+        
+        // 绘制内容
+        contentLayout.draw(this, x, contentY)
     }
 }
 
