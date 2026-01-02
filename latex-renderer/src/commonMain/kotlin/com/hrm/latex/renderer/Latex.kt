@@ -29,6 +29,11 @@ private const val TAG = "Latex"
  *
  * 自动支持增量解析能力，可以安全处理不完整的 LaTeX 输入
  *
+ * 性能优化：
+ * - 复用解析器实例，避免重复创建
+ * - 异步解析，不阻塞主线程
+ * - 防抖机制，避免重复解析相同内容
+ *
  * @param latex LaTeX 字符串（支持增量输入，会自动解析可解析部分）
  * @param modifier 修饰符
  * @param style 渲染样式（包含颜色、背景色、深浅色模式配置、字体大小等）
@@ -61,8 +66,12 @@ fun Latex(
         backgroundColor = resolvedBackgroundColor
     )
 
+    // 复用解析器实例以支持真正的增量解析
+    val parser = remember { IncrementalLatexParser() }
+    
     // 使用 State 来保存解析结果
     var document by remember { mutableStateOf(LatexNode.Document(emptyList())) }
+    
     // 记录上次解析的内容，避免重复解析
     var lastParsedLatex by remember { mutableStateOf("") }
 
@@ -73,26 +82,34 @@ fun Latex(
             return@LaunchedEffect
         }
 
-        // 再次检查是否有新的更新
-        if (latex != lastParsedLatex) {
-            lastParsedLatex = latex
+        lastParsedLatex = latex
 
-            // 切换到 Default 调度器执行解析
-            val result = withContext(Dispatchers.Default) {
-                try {
-                    // 使用增量解析器，能够处理不完整的 LaTeX 输入
-                    val parser = IncrementalLatexParser()
+        // 切换到 Default 调度器执行解析
+        val result = withContext(Dispatchers.Default) {
+            try {
+                // 优化：计算增量部分
+                val currentInput = parser.getCurrentInput()
+                
+                if (latex.startsWith(currentInput) && latex.length > currentInput.length) {
+                    // 增量追加：只解析新增部分
+                    val delta = latex.substring(currentInput.length)
+                    parser.append(delta)
+                } else {
+                    // 完全替换：清空后重新解析
+                    parser.clear()
                     parser.append(latex)
-                    parser.getCurrentDocument()
-                } catch (e: Exception) {
-                    HLog.e(TAG, "IncrementalLatexParser 解析失败", e)
-                    // 解析失败时返回空文档
-                    LatexNode.Document(emptyList())
                 }
+                
+                parser.getCurrentDocument()
+            } catch (e: Exception) {
+                HLog.e(TAG, "增量解析失败", e)
+                // 解析失败时返回空文档
+                LatexNode.Document(emptyList())
             }
-            // 回到主线程更新 UI
-            document = result
         }
+        
+        // 回到主线程更新 UI
+        document = result
     }
 
     LatexDocument(

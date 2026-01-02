@@ -97,7 +97,6 @@ fun parseColor(color: String): Color? {
 }
 
 // 括号绘制相关
-
 enum class Side { LEFT, RIGHT }
 
 /**

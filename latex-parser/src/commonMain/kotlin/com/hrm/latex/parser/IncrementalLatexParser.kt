@@ -1,5 +1,6 @@
 package com.hrm.latex.parser
 
+import com.hrm.latex.base.LatexConstants
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.model.LatexNode
 
@@ -96,12 +97,14 @@ class IncrementalLatexParser {
         }
 
         // 快速路径：如果输入很短，直接尝试解析
-        if (input.length <= 5) {
+        if (input.length <= LatexConstants.INCREMENTAL_PARSE_FAST_PATH_MAX_LENGTH) {
             try {
                 cachedDocument = baseParser.parse(input)
                 lastSuccessfulPosition = input.length
+                HLog.d(TAG, "快速路径解析成功")
                 return
             } catch (e: Exception) {
+                HLog.w(TAG, "快速路径解析失败: ${e.message}")
                 cachedDocument = LatexNode.Document(emptyList())
                 return
             }
@@ -121,46 +124,57 @@ class IncrementalLatexParser {
 
     /**
      * 部分解析：处理不完整的 LaTeX 内容
-     * 策略：从最长开始线性回退，找到最长可解析前缀
+     * 
+     * 策略：两阶段回退算法
+     * 1. 精细回退阶段（最近 N 字符）：逐字符回退，适合处理末尾的增量输入错误
+     * 2. 快速回退阶段（之前所有字符）：步进回退，牺牲精度换性能
+     * 
+     * 时间复杂度：O(n) 最坏情况，O(1) 平均情况（增量输入通常错误在末尾）
+     * 
+     * 注意：解析有效性不是单调的，不能使用二分查找
+     * 示例：`\int_{` 解析失败，但 `\int` 解析成功
+     * 
+     * @param input 待解析的不完整 LaTeX 字符串
+     * @return 可解析部分的文档节点
      */
     private fun parsePartial(input: String): LatexNode.Document {
         HLog.d(TAG, "开始部分解析，输入长度: ${input.length}")
 
-        // 策略：从末尾开始逐字符回退，找到最长可解析前缀
-        // 这种方式比二分查找更可靠，因为解析有效性不是单调的
-        // 示例：\int_{ 失败，但 \int 成功
-
-        // 第一阶段：精细回退 (最近 100 字符)
-        // 通常增量输入时，错误点就在末尾附近
         var length = input.length
-        val firstStageLimit = maxOf(1, input.length - 100)
+        val firstStageLimit = maxOf(
+            1, 
+            input.length - LatexConstants.INCREMENTAL_PARSE_FINE_BACKTRACK_RANGE
+        )
 
+        // 第一阶段：精细回退（逐字符）
         while (length >= firstStageLimit) {
             try {
                 val testInput = input.substring(0, length)
                 val doc = baseParser.parse(testInput)
                 lastSuccessfulPosition = length
+                HLog.d(TAG, "部分解析成功，解析到位置: $length")
                 return doc
             } catch (e: Exception) {
+                // 预期的解析错误，继续回退
                 length--
             }
         }
 
-        // 第二阶段：快速回退 (如果错误在很前面)
-        // 步进加大，牺牲一点精度换取性能
+        // 第二阶段：快速回退（步进）
         while (length > 0) {
             try {
                 val testInput = input.substring(0, length)
                 val doc = baseParser.parse(testInput)
                 lastSuccessfulPosition = length
+                HLog.d(TAG, "快速回退解析成功，解析到位置: $length")
                 return doc
             } catch (e: Exception) {
-                length -= 5 // 步进 5
+                length -= LatexConstants.INCREMENTAL_PARSE_FAST_BACKTRACK_STEP
                 if (length < 0) length = 0
             }
         }
 
-        HLog.w(TAG, "部分解析失败，返回空文档")
+        HLog.w(TAG, "部分解析完全失败，返回空文档")
         return LatexNode.Document(emptyList())
     }
 

@@ -771,5 +771,76 @@ class LatexParser {
         return nodes
     }
 
+    /**
+     * 通用表格结构解析器
+     * 
+     * 抽象了 matrix、array、aligned 等表格类环境的通用解析逻辑
+     * 
+     * 解析模式：
+     * - `&` 分隔列（单元格）
+     * - `\\` 或 NewLine 分隔行
+     * - `\end{环境名}` 结束表格
+     * 
+     * @param envName 环境名称（用于匹配结束标记）
+     * @return 二维列表，表示表格的行和列
+     */
+    private fun parseTableStructure(envName: String): List<List<LatexNode>> {
+        val rows = mutableListOf<List<LatexNode>>()
+        var currentRow = mutableListOf<LatexNode>()
+        var currentCell = mutableListOf<LatexNode>()
+        
+        while (!isEOF()) {
+            when (val token = peek()) {
+                is LatexToken.EndEnvironment -> {
+                    if (token.name == envName) {
+                        // 保存最后一个单元格
+                        if (currentCell.isNotEmpty()) {
+                            currentRow.add(LatexNode.Group(currentCell))
+                        }
+                        // 保存最后一行
+                        if (currentRow.isNotEmpty()) {
+                            rows.add(currentRow)
+                        }
+                        advance() // 消费 \end{...}
+                        break
+                    } else {
+                        // 不匹配的环境结束标记，继续解析
+                        advance()
+                    }
+                }
+                
+                is LatexToken.Ampersand -> {
+                    // 列分隔符：保存当前单元格，开始新单元格
+                    currentRow.add(LatexNode.Group(currentCell))
+                    currentCell = mutableListOf()
+                    advance()
+                }
+                
+                is LatexToken.NewLine -> {
+                    // 行分隔符：保存当前单元格和行，开始新行
+                    if (currentCell.isNotEmpty()) {
+                        currentRow.add(LatexNode.Group(currentCell))
+                    }
+                    if (currentRow.isNotEmpty()) {
+                        rows.add(currentRow)
+                    }
+                    currentRow = mutableListOf()
+                    currentCell = mutableListOf()
+                    advance()
+                }
+                
+                else -> {
+                    // 解析单元格内容
+                    val node = parseExpression()
+                    if (node != null) {
+                        currentCell.add(node)
+                    }
+                }
+            }
+        }
+        
+        return rows
+    }
+
     class ParseException(message: String) : Exception(message)
 }

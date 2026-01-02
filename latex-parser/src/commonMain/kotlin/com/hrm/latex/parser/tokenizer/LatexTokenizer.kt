@@ -187,29 +187,54 @@ class LatexTokenizer(private val input: String) {
     }
 
     private fun handleWhitespace() {
-        val whitespace = buildString {
-            while (position < input.length) {
-                val char = peek() ?: break
-                if (char != ' ' && char != '\t') break
-                append(char)
-                advance()
-            }
+        // 跳过所有连续的空格和制表符
+        while (position < input.length) {
+            val char = peek() ?: break
+            if (char != ' ' && char != '\t') break
+            advance()
         }
-        tokens.add(LatexToken.Whitespace(whitespace))
+        
+        // 将所有连续空白符合并为单个空格
+        tokens.add(LatexToken.Whitespace(" "))
     }
 
+    /**
+     * 处理普通换行符 (\n, \r)
+     * 
+     * 注意：区别于 LaTeX 命令 `\\`（在 handleBackslash 中处理）
+     * 
+     * 根据 LaTeX 规范：
+     * - 单个换行符 → 视为空格
+     * - 连续换行符（空行）→ 段落分隔（但在数学模式下通常被忽略）
+     * 
+     * 当前实现：**将所有连续换行符转换为单个空格**
+     * 
+     * 示例：
+     * ```latex
+     * x + y
+     * + z     → 解析为 "x + y + z"（换行变空格）
+     * 
+     * a=1
+     * 
+     * b=2     → 解析为 "a=1 b=2"（空行也变单个空格）
+     * ```
+     * 
+     * 优点：
+     * - 符合 LaTeX 标准：换行视为空格
+     * - 避免文本模式下空格丢失（如 "x\ny" 正确解析为 "x y"）
+     * - 简化逻辑，由解析器统一处理空格
+     */
     private fun handleNewLine() {
-        val newline = buildString {
-            while (position < input.length) {
-                val char = peek() ?: break
-                if (char != '\n' && char != '\r') break
-                append(char)
-                advance()
-            }
+        // 跳过所有连续的换行符
+        while (position < input.length) {
+            val char = peek() ?: break
+            if (char != '\n' && char != '\r') break
+            advance()
         }
-        // 暂时不生成 token，跳过换行符
-        // 如果需要保留换行信息，可以取消注释：
-        // tokens.add(LatexToken.Whitespace(newline))
+        
+        // 将换行符转换为单个空格 token
+        // 这样 "x\ny" 会正确解析为 "x y" 而不是 "xy"
+        tokens.add(LatexToken.Whitespace(" "))
     }
 
     private fun skipWhitespace() {

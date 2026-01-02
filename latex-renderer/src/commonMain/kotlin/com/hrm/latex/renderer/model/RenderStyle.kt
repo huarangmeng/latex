@@ -33,8 +33,6 @@ data class RenderStyle(
     val fontFamily: FontFamily? = null
 )
 
-// 扩展函数
-
 internal fun RenderStyle.textStyle(): TextStyle = TextStyle(
     color = color,
     fontSize = fontSize,
@@ -58,6 +56,7 @@ fun RenderStyle.applyStyle(styleType: LatexNode.Style.StyleType): RenderStyle =
             fontStyle = FontStyle.Normal,
             fontFamily = FontFamily.Serif
         )
+
         LatexNode.Style.StyleType.SANS_SERIF -> copy(fontFamily = FontFamily.SansSerif)
         LatexNode.Style.StyleType.MONOSPACE -> copy(fontFamily = FontFamily.Monospace)
         LatexNode.Style.StyleType.BLACKBOARD_BOLD -> copy(fontWeight = FontWeight.Bold)
