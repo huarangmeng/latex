@@ -48,8 +48,21 @@ val chemicalPreviewGroups = listOf(
         )
     ),
     PreviewGroup(
+        id = "chemical_reversible",
+        title = "4. 可逆反应",
+        description = "化学平衡、可逆反应",
+        items = listOf(
+            PreviewItem("rev1", "氮气与氢气", "\\ce{N2 + 3H2 <-> 2NH3}"),
+            PreviewItem("rev2", "酯化反应", "\\ce{CH3COOH + C2H5OH <=> CH3COOC2H5 + H2O}"),
+            PreviewItem("rev3", "水的电离", "\\ce{H2O <-> H+ + OH-}"),
+            PreviewItem("rev4", "弱酸电离", "\\ce{CH3COOH <-> CH3COO- + H+}"),
+            PreviewItem("rev5", "二氧化碳溶解", "\\ce{CO2 + H2O <-> H2CO3}"),
+            PreviewItem("rev6", "硫酸铜水合", "\\ce{CuSO4 + 5H2O <-> CuSO4*5H2O}"),
+        )
+    ),
+    PreviewGroup(
         id = "chemical_complex",
-        title = "4. 复杂结构",
+        title = "5. 复杂结构",
         description = "配合物、有机物",
         items = listOf(
             PreviewItem("comp1", "配合物", "\\ce{[Cu(NH3)4]^{2+}}"),

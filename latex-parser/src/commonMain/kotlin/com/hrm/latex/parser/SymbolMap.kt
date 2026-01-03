@@ -93,6 +93,7 @@ object SymbolMap {
         // 箭头
         "leftarrow" to "←",
         "rightarrow" to "→",
+        "to" to "→",  // \to 是 \rightarrow 的简写
         "leftrightarrow" to "↔",
         "Leftarrow" to "⇐",
         "Rightarrow" to "⇒",

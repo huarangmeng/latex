@@ -284,7 +284,7 @@ val basicLatexPreviewGroups = listOf(
     PreviewGroup(
         id = "accents",
         title = "8. 装饰符号专题",
-        description = "上标装饰、箭头、帽子等",
+        description = "上标装饰、箭头、帽子、取消线等",
         items = listOf(
             PreviewItem("56", "简单帽子", "\\hat{x}"),
             PreviewItem("57", "波浪线", "\\tilde{y}"),
@@ -298,15 +298,19 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("65", "宽帽子", "\\widehat{ABC}"),
             PreviewItem("66", "右箭头", "\\overrightarrow{AB}"),
             PreviewItem("67", "左箭头", "\\overleftarrow{BA}"),
+            PreviewItem("68", "取消线", "\\cancel{x+y}"),
+            PreviewItem("69", "可扩展右箭头", "\\xrightarrow{f}"),
+            PreviewItem("70", "可扩展左箭头", "\\xleftarrow{g}"),
+            PreviewItem("71", "带下标箭头", "\\xrightarrow[n\\to\\infty]{\\text{极限}}"),
             PreviewItem(
-                "68",
+                "72",
                 "复杂装饰组合",
-                "\\widehat{ABC} + \\overrightarrow{PQ} + \\overleftarrow{XY}"
+                "\\widehat{ABC} + \\overrightarrow{PQ} + \\cancel{X}"
             ),
             PreviewItem(
-                "69",
+                "73",
                 "物理学中的应用",
-                "\\vec{F} = m\\vec{a} \\quad \\widehat{H}\\psi = E\\psi"
+                "\\vec{F} = m\\vec{a} \\quad \\cancel{E_1} + E_2"
             ),
         )
     ),

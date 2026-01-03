@@ -280,4 +280,52 @@ class SimpleFormulaTest {
         val accent = doc.children[0] as LatexNode.Accent
         assertEquals(LatexNode.Accent.AccentType.OVERLEFTARROW, accent.accentType)
     }
+
+    @Test
+    fun testCancel() {
+        val doc = parser.parse("\\cancel{x}")
+        val accent = doc.children[0] as LatexNode.Accent
+        assertEquals(LatexNode.Accent.AccentType.CANCEL, accent.accentType)
+        // parseArgument() 返回 Group 节点
+        assertTrue(accent.content is LatexNode.Group)
+        val group = accent.content as LatexNode.Group
+        assertTrue(group.children.isNotEmpty())
+        assertTrue(group.children[0] is LatexNode.Text)
+        assertEquals("x", (group.children[0] as LatexNode.Text).content)
+    }
+
+    @Test
+    fun testXrightarrow() {
+        val doc = parser.parse("\\xrightarrow{f}")
+        val arrow = doc.children[0] as LatexNode.ExtensibleArrow
+        assertEquals(LatexNode.ExtensibleArrow.Direction.RIGHT, arrow.direction)
+        // parseArgument() 返回 Group 节点
+        assertTrue(arrow.content is LatexNode.Group)
+        val group = arrow.content as LatexNode.Group
+        assertTrue(group.children.isNotEmpty())
+        assertTrue(group.children[0] is LatexNode.Text)
+        assertEquals("f", (group.children[0] as LatexNode.Text).content)
+        assertEquals(null, arrow.below)
+    }
+
+    @Test
+    fun testXleftarrow() {
+        val doc = parser.parse("\\xleftarrow{g}")
+        val arrow = doc.children[0] as LatexNode.ExtensibleArrow
+        assertEquals(LatexNode.ExtensibleArrow.Direction.LEFT, arrow.direction)
+        // parseArgument() 返回 Group 节点
+        assertTrue(arrow.content is LatexNode.Group)
+        val group = arrow.content as LatexNode.Group
+        assertTrue(group.children.isNotEmpty())
+        assertTrue(group.children[0] is LatexNode.Text)
+        assertEquals("g", (group.children[0] as LatexNode.Text).content)
+    }
+
+    @Test
+    fun testXrightarrowWithBelowText() {
+        val doc = parser.parse("\\xrightarrow[n\\to\\infty]{\\text{极限}}")
+        val arrow = doc.children[0] as LatexNode.ExtensibleArrow
+        assertEquals(LatexNode.ExtensibleArrow.Direction.RIGHT, arrow.direction)
+        assertTrue(arrow.below != null, "Below text should not be null")
+    }
 }

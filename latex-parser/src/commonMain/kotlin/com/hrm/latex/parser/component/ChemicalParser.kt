@@ -64,6 +64,36 @@ class ChemicalParser(private val context: LatexParserContext) {
                         }
                     }
                     
+                    // 特殊处理: 检查 "<" 后面是否跟着 "->" 或 "=>"
+                    if (token.content == "<" && !tokenStream.isEOF()) {
+                        val nextToken = tokenStream.peek()
+                        if (nextToken is LatexToken.Text) {
+                            if (nextToken.content.startsWith("->") || nextToken.content.startsWith("=>")) {
+                                // 合并 "<->" 或 "<=>"
+                                tokenStream.advance()
+                                val arrowText = "<" + nextToken.content
+                                parseChemicalText(arrowText, nodes, expectCoefficient)
+                                expectCoefficient = false
+                                continue
+                            } else if (nextToken.content.startsWith("-") || nextToken.content.startsWith("=")) {
+                                // 处理 "<-" 或 "<=" 后面可能跟 ">" 的情况
+                                tokenStream.advance()
+                                var arrowText = "<" + nextToken.content
+                                // 继续检查下一个 token 是否为 ">"
+                                if (!tokenStream.isEOF()) {
+                                    val thirdToken = tokenStream.peek()
+                                    if (thirdToken is LatexToken.Text && thirdToken.content.startsWith(">")) {
+                                        tokenStream.advance()
+                                        arrowText += thirdToken.content
+                                    }
+                                }
+                                parseChemicalText(arrowText, nodes, expectCoefficient)
+                                expectCoefficient = false
+                                continue
+                            }
+                        }
+                    }
+                    
                     parseChemicalText(token.content, nodes, expectCoefficient)
                     expectCoefficient = false
                 }
@@ -144,9 +174,44 @@ class ChemicalParser(private val context: LatexParserContext) {
         while (i < text.length) {
             val char = text[i]
             
-            // 1. 检查箭头 ->
+            // 1. 检查箭头
+            // 1.1 可逆箭头 <-> 或 <=>
+            if (char == '<') {
+                if (i + 2 < text.length) {
+                    val twoChars = text.substring(i + 1, i + 3)
+                    if (twoChars == "->") {
+                        nodes.add(LatexNode.Symbol("leftrightarrow", "↔"))
+                        i += 3
+                        expectCoef = true
+                        continue
+                    } else if (twoChars == "=>") {
+                        nodes.add(LatexNode.Symbol("Leftrightarrow", "⇔"))
+                        i += 3
+                        expectCoef = true
+                        continue
+                    }
+                }
+                // 如果不是可逆箭头，继续处理 <-(左箭头)
+                if (i + 1 < text.length && text[i + 1] == '-') {
+                    nodes.add(LatexNode.Symbol("leftarrow", "←"))
+                    i += 2
+                    expectCoef = true
+                    continue
+                }
+                // 否则作为普通字符处理（不太常见）
+            }
+            
+            // 1.2 单向箭头 ->
             if (char == '-' && i + 1 < text.length && text[i+1] == '>') {
                 nodes.add(LatexNode.Symbol("rightarrow", "→"))
+                i += 2
+                expectCoef = true
+                continue
+            }
+            
+            // 1.3 双线箭头 =>
+            if (char == '=' && i + 1 < text.length && text[i+1] == '>') {
+                nodes.add(LatexNode.Symbol("Rightarrow", "⇒"))
                 i += 2
                 expectCoef = true
                 continue

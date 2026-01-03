@@ -169,7 +169,22 @@ sealed class LatexNode {
     ) : LatexNode() {
         enum class AccentType {
             HAT, TILDE, BAR, DOT, DDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE,
-            WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW
+            WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW, CANCEL
+        }
+    }
+    
+    /**
+     * 可扩展箭头节点（箭头上方或下方可显示文字）
+     */
+    data class ExtensibleArrow(
+        val content: LatexNode,  // 箭头上方的文字
+        val below: LatexNode?,   // 箭头下方的文字（可选）
+        val direction: Direction
+    ) : LatexNode() {
+        enum class Direction {
+            RIGHT,   // \xrightarrow
+            LEFT,    // \xleftarrow
+            BOTH     // \xleftrightarrow
         }
     }
     

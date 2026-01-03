@@ -143,6 +143,15 @@ class BasicSymbolsTest {
     }
     
     @Test
+    fun testTo() {
+        // \to 是 \rightarrow 的简写
+        val doc = parser.parse("\\to")
+        val symbol = doc.children[0] as LatexNode.Symbol
+        assertEquals("→", symbol.unicode)
+        assertEquals("to", symbol.symbol)
+    }
+    
+    @Test
     fun testLeftarrow() {
         val doc = parser.parse("\\leftarrow")
         assertTrue(doc.children[0] is LatexNode.Symbol)

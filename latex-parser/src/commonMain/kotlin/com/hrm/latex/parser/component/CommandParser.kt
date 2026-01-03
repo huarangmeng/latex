@@ -75,6 +75,12 @@ class CommandParser(
             "widehat" -> parseAccent(LatexNode.Accent.AccentType.WIDEHAT)
             "overrightarrow" -> parseAccent(LatexNode.Accent.AccentType.OVERRIGHTARROW)
             "overleftarrow" -> parseAccent(LatexNode.Accent.AccentType.OVERLEFTARROW)
+            "cancel" -> parseAccent(LatexNode.Accent.AccentType.CANCEL)
+
+            // 可扩展箭头
+            "xrightarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.RIGHT)
+            "xleftarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.LEFT)
+            "xleftrightarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.BOTH)
 
             // 空格
             "," -> LatexNode.Space(LatexNode.Space.SpaceType.THIN)
@@ -283,6 +289,29 @@ class CommandParser(
     private fun parseAccent(accentType: LatexNode.Accent.AccentType): LatexNode.Accent {
         val content = context.parseArgument() ?: LatexNode.Text("")
         return LatexNode.Accent(content, accentType)
+    }
+
+    /**
+     * 解析可扩展箭头命令
+     * 
+     * 语法: \xrightarrow[下方文字]{上方文字}
+     * 例如: \xrightarrow{f}  或  \xrightarrow[下]{上}
+     */
+    private fun parseExtensibleArrow(direction: LatexNode.ExtensibleArrow.Direction): LatexNode.ExtensibleArrow {
+        // 检查是否有可选参数（下方文字）
+        val below = if (context.tokenStream.peek() is LatexToken.LeftBracket) {
+            context.tokenStream.advance() // 消费 [
+            val nodes = parseUntil { it is LatexToken.RightBracket }
+            context.tokenStream.advance() // 消费 ]
+            if (nodes.isEmpty()) null else LatexNode.Group(nodes)
+        } else {
+            null
+        }
+        
+        // 解析必选参数（上方文字）
+        val above = context.parseArgument() ?: LatexNode.Text("")
+        
+        return LatexNode.ExtensibleArrow(above, below, direction)
     }
 
     private fun parseSymbolOrGenericCommand(cmdName: String): LatexNode {

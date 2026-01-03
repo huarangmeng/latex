@@ -38,7 +38,7 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
         val isWideAccent = when (node.accentType) {
             AccentType.WIDEHAT, AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW,
             AccentType.OVERLINE, AccentType.UNDERLINE,
-            AccentType.OVERBRACE, AccentType.UNDERBRACE -> true
+            AccentType.OVERBRACE, AccentType.UNDERBRACE, AccentType.CANCEL -> true
             else -> false
         }
 
@@ -286,6 +286,16 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
                         close()
                     }
                     drawPath(path = path, color = style.color)
+                }
+
+                AccentType.CANCEL -> {
+                    // 从左下角到右上角画斜线
+                    drawLine(
+                        color = style.color,
+                        start = Offset(x, contentY + contentLayout.height),
+                        end = Offset(x + width, contentY),
+                        strokeWidth = with(density) { 1.5f.dp.toPx() }
+                    )
                 }
                 
                 else -> {}

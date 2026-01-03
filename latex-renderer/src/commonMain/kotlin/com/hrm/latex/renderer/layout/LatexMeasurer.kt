@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.measurer.AccentMeasurer
 import com.hrm.latex.renderer.layout.measurer.DelimiterMeasurer
+import com.hrm.latex.renderer.layout.measurer.ExtensibleArrowMeasurer
 import com.hrm.latex.renderer.layout.measurer.MathMeasurer
 import com.hrm.latex.renderer.layout.measurer.MatrixMeasurer
 import com.hrm.latex.renderer.layout.measurer.TextContentMeasurer
@@ -28,6 +29,7 @@ internal fun measureNode(
     val matrixMeasurer = MatrixMeasurer()
     val accentMeasurer = AccentMeasurer()
     val delimiterMeasurer = DelimiterMeasurer()
+    val extensibleArrowMeasurer = ExtensibleArrowMeasurer()
 
     // 递归函数引用
     val measureGlobal = { n: LatexNode, s: RenderStyle ->
@@ -62,6 +64,9 @@ internal fun measureNode(
 
         is LatexNode.Accent ->
             accentMeasurer.measure(node, style, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.ExtensibleArrow ->
+            extensibleArrowMeasurer.measure(node, style, measurer, density, measureGlobal, measureGroupRef)
 
         is LatexNode.NewLine -> NodeLayout(
             0f, lineSpacingPx(style, density), 0f

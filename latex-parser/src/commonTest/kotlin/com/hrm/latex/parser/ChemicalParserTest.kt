@@ -63,6 +63,68 @@ class ChemicalParserTest {
     }
 
     @Test
+    fun should_parse_reversible_arrow() {
+        // \ce{A <-> B} 可逆反应
+        val input = "\\ce{A <-> B}"
+        val parser = LatexParser()
+        val result = parser.parse(input)
+        
+        val group = result.children.first() as LatexNode.Group
+        // Text(A), Space, Symbol(leftrightarrow, ↔), Space, Text(B)
+        
+        val arrow = group.children.find { 
+            it is LatexNode.Symbol && (it.symbol == "leftrightarrow" || it.unicode == "↔")
+        }
+        assertTrue(arrow != null, "Reversible arrow <-> not found")
+    }
+
+    @Test
+    fun should_parse_equilibrium_arrow() {
+        // \ce{A <=> B} 平衡反应（双线箭头）
+        val input = "\\ce{A <=> B}"
+        val parser = LatexParser()
+        val result = parser.parse(input)
+        
+        val group = result.children.first() as LatexNode.Group
+        // Text(A), Space, Symbol(Leftrightarrow, ⇔), Space, Text(B)
+        
+        val arrow = group.children.find { 
+            it is LatexNode.Symbol && (it.symbol == "Leftrightarrow" || it.unicode == "⇔")
+        }
+        assertTrue(arrow != null, "Equilibrium arrow <=> not found")
+    }
+
+    @Test
+    fun should_parse_left_arrow() {
+        // \ce{A <- B} 左箭头（不太常见但支持）
+        val input = "\\ce{A <- B}"
+        val parser = LatexParser()
+        val result = parser.parse(input)
+        
+        val group = result.children.first() as LatexNode.Group
+        
+        val arrow = group.children.find { 
+            it is LatexNode.Symbol && (it.symbol == "leftarrow" || it.unicode == "←")
+        }
+        assertTrue(arrow != null, "Left arrow <- not found")
+    }
+
+    @Test
+    fun should_parse_double_right_arrow() {
+        // \ce{A => B} 双线右箭头
+        val input = "\\ce{A => B}"
+        val parser = LatexParser()
+        val result = parser.parse(input)
+        
+        val group = result.children.first() as LatexNode.Group
+        
+        val arrow = group.children.find { 
+            it is LatexNode.Symbol && (it.symbol == "Rightarrow" || it.unicode == "⇒")
+        }
+        assertTrue(arrow != null, "Double right arrow => not found")
+    }
+
+    @Test
     fun should_parse_complex_ion() {
         // \ce{SO4^2-}
         val input = "\\ce{SO4^2-}"
