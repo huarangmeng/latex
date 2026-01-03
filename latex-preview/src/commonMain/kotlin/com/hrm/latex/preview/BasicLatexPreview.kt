@@ -355,6 +355,20 @@ val basicLatexPreviewGroups = listOf(
         )
     ),
     PreviewGroup(
+        id = "mathstyle",
+        title = "9.5 数学模式切换",
+        description = "displaystyle, textstyle, scriptstyle, scriptscriptstyle",
+        items = listOf(
+            PreviewItem("85", "displaystyle 分数", "\\frac{a}{b} \\quad \\displaystyle{\\frac{a}{b}}"),
+            PreviewItem("86", "displaystyle 求和", "\\sum_{i=1}^{n} \\quad \\displaystyle{\\sum_{i=1}^{n}}"),
+            PreviewItem("87", "scriptstyle 求和", "x\\sum_{i=1}^{n} \\quad x\\scriptstyle{\\sum_{i=1}^{n}}"),
+            PreviewItem("88", "求和作为上标", "x^{\\sum_{i=1}^{n}} \\quad x^{\\scriptstyle{\\sum_{i=1}^{n}}}"),
+            PreviewItem("89", "scriptscriptstyle", "\\scriptscriptstyle{x + y + z}"),
+            PreviewItem("90", "分数中的模式", "\\frac{\\displaystyle{\\sum_{i=1}^{n}}}{\\textstyle{n}}"),
+            PreviewItem("91", "嵌套模式", "\\displaystyle{\\frac{\\sum}{n}}"),
+        )
+    ),
+    PreviewGroup(
         id = "environments",
         title = "10. 环境专题",
         description = "split、multline、eqnarray、subequations 环境",

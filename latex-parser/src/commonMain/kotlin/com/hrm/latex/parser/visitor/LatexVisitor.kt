@@ -30,6 +30,7 @@ interface LatexVisitor<T> {
     fun visitStack(node: LatexNode.Stack): T
     fun visitStyle(node: LatexNode.Style): T
     fun visitColor(node: LatexNode.Color): T
+    fun visitMathStyle(node: LatexNode.MathStyle): T
     fun visitBigOperator(node: LatexNode.BigOperator): T
     fun visitAligned(node: LatexNode.Aligned): T
     fun visitCases(node: LatexNode.Cases): T
@@ -153,6 +154,11 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         return defaultVisit(node)
     }
     
+    override fun visitMathStyle(node: LatexNode.MathStyle): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+    
     override fun visitBigOperator(node: LatexNode.BigOperator): T {
         node.subscript?.let { visit(it) }
         node.superscript?.let { visit(it) }
@@ -231,9 +237,10 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         is LatexNode.Accent -> visitAccent(node)
         is LatexNode.ExtensibleArrow -> visitExtensibleArrow(node)
         is LatexNode.Stack -> visitStack(node)
-        is LatexNode.Style -> visitStyle(node)
-        is LatexNode.Color -> visitColor(node)
-        is LatexNode.BigOperator -> visitBigOperator(node)
+            is LatexNode.Style -> visitStyle(node)
+            is LatexNode.Color -> visitColor(node)
+            is LatexNode.MathStyle -> visitMathStyle(node)
+            is LatexNode.BigOperator -> visitBigOperator(node)
         is LatexNode.Aligned -> visitAligned(node)
         is LatexNode.Cases -> visitCases(node)
         is LatexNode.Split -> visitSplit(node)

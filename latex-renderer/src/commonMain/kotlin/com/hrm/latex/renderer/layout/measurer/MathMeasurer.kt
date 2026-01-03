@@ -8,6 +8,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.hrm.latex.base.LatexConstants
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
@@ -222,7 +223,8 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
 
         val totalHeight = maxBottomRel - maxTopRel
         val baseline = -maxTopRel
-        val width = baseLayout.width + scriptLayout.width
+        // 修复：宽度应该包含 scriptX 的偏移量
+        val width = scriptX + scriptLayout.width
 
         return NodeLayout(width, totalHeight, baseline) { x, y ->
             baseLayout.draw(this, x, y + baseline - baseLayout.baseline)
@@ -234,12 +236,14 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
      * 测量大型运算符 (\sum, \int, \prod)
      *
      * 支持两种模式：
-     * 1. **行内模式 (Inline)** / 积分模式：上下标显示在符号右侧。
-     * 2. **显示模式 (Display)**：上下标显示在符号正上方和正下方（求和、乘积等）。
+     * 1. **行内模式 (Inline/Side)** ：上下标显示在符号右侧（类似普通上下标）。
+     * 2. **显示模式 (Display)**：上下标显示在符号正上方和正下方。
      *
-     * 当前实现逻辑：
-     * - 积分符号 (\int) 始终将极限放在右侧。
-     * - 其他符号 (\sum, \prod) 默认将极限放在上下方（模拟 Display 模式）。
+     * 模式选择逻辑：
+     * - 积分符号 (\int) 始终使用侧边模式。
+     * - 求和/乘积符号 (\sum, \prod)：
+     *   - displaystyle (fontSize >= 16): 上下标在上下方
+     *   - textstyle/scriptstyle/scriptscriptstyle (fontSize < 16): 上下标在右侧
      */
     private fun measureBigOperator(
         node: LatexNode.BigOperator,
@@ -251,7 +255,18 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
         val symbol = mapBigOp(node.operator)
         val isIntegral = node.operator.contains("int")
 
-        val opStyle = style.grow(1.5f)
+        // 判断是否使用侧边模式（上下标在右侧）：
+        // 1. 积分符号始终使用侧边模式
+        // 2. 求和/乘积：只有在 displaystyle（大字体）下才使用上下模式
+        val useSideMode = isIntegral || style.fontSize < 16.sp
+        
+        // 根据模式调整运算符缩放
+        val scaleFactor = when {
+            useSideMode -> 1.0f           // 侧边模式：不放大，保持与周围文字协调
+            else -> 1.5f                   // displaystyle 上下模式：放大以突出
+        }
+        
+        val opStyle = style.grow(scaleFactor)
         val limitStyle = style.shrink(0.8f)
 
         // 测量运算符符号
@@ -268,8 +283,8 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
         val superLayout = node.superscript?.let { measureGroup(listOf(it), limitStyle) }
         val subLayout = node.subscript?.let { measureGroup(listOf(it), limitStyle) }
 
-        if (isIntegral) {
-            // 积分模式：脚本在右侧
+        if (useSideMode) {
+            // 侧边模式：上下标在右侧（类似普通上下标）
             val gap = with(density) { (style.fontSize * 0.1f).toPx() }
             val sUp = opLayout.height * 0.3f
             val sDown = opLayout.height * 0.2f
@@ -297,9 +312,10 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
                 subLayout?.draw(this, scriptX, y + baseline + subRelBase - subLayout.baseline)
             }
         } else {
-            // 求和模式：脚本在上下方
+            // 显示模式：上下标在正上方和正下方（仅用于 displaystyle）
             val spacing = with(density) { (style.fontSize * 0.1f).toPx() }
             val maxWidth = max(opLayout.width, max(superLayout?.width ?: 0f, subLayout?.width ?: 0f))
+            
             val opTop = (superLayout?.height ?: 0f) + (if (superLayout != null) spacing else 0f)
             val subTop = opTop + opLayout.height + (if (subLayout != null) spacing else 0f)
 

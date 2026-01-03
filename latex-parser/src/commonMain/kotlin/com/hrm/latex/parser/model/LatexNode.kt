@@ -227,6 +227,24 @@ sealed class LatexNode {
     ) : LatexNode()
     
     /**
+     * 数学模式节点（控制公式大小）
+     * 
+     * @property content 内容
+     * @property mathStyleType 数学模式类型
+     */
+    data class MathStyle(
+        val content: List<LatexNode>,
+        val mathStyleType: MathStyleType
+    ) : LatexNode() {
+        enum class MathStyleType {
+            DISPLAY,         // \displaystyle - 显示模式（最大）
+            TEXT,            // \textstyle - 文本模式（正常）
+            SCRIPT,          // \scriptstyle - 脚本模式（上下标大小）
+            SCRIPT_SCRIPT    // \scriptscriptstyle - 小脚本模式（二级上下标大小）
+        }
+    }
+    
+    /**
      * 大型运算符（求和、积分、乘积等）
      */
     data class BigOperator(

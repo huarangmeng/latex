@@ -62,6 +62,12 @@ class CommandParser(
             "mathscr" -> parseStyle(LatexNode.Style.StyleType.SCRIPT)
             "mathcal" -> parseStyle(LatexNode.Style.StyleType.CALLIGRAPHIC)
 
+            // 数学模式切换
+            "displaystyle" -> parseMathStyle(LatexNode.MathStyle.MathStyleType.DISPLAY)
+            "textstyle" -> parseMathStyle(LatexNode.MathStyle.MathStyleType.TEXT)
+            "scriptstyle" -> parseMathStyle(LatexNode.MathStyle.MathStyleType.SCRIPT)
+            "scriptscriptstyle" -> parseMathStyle(LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT)
+
             // 装饰
             "hat" -> parseAccent(LatexNode.Accent.AccentType.HAT)
             "tilde", "widetilde" -> parseAccent(LatexNode.Accent.AccentType.TILDE)
@@ -292,6 +298,21 @@ class CommandParser(
         return LatexNode.Style(
             if (content != null) listOf(content) else emptyList(),
             styleType
+        )
+    }
+
+    /**
+     * 解析数学模式切换命令
+     * 
+     * 注意：\displaystyle 等命令不需要参数，它们影响后续所有内容直到组结束
+     * 例如：{\displaystyle x + y} 或 \frac{\displaystyle a}{b}
+     */
+    private fun parseMathStyle(mathStyleType: LatexNode.MathStyle.MathStyleType): LatexNode.MathStyle {
+        // 数学模式命令后面可能紧跟一个参数组，或者影响当前组的剩余内容
+        val content = context.parseArgument()
+        return LatexNode.MathStyle(
+            if (content != null) listOf(content) else emptyList(),
+            mathStyleType
         )
     }
 

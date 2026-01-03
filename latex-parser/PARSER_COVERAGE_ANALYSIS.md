@@ -94,6 +94,30 @@
 
 ---
 
+## 8.5 数学模式切换
+
+### ✅ 已支持
+- ✅ `\displaystyle` 显示模式（最大，用于独立公式）
+- ✅ `\textstyle` 文本模式（正常大小）
+- ✅ `\scriptstyle` 脚本模式（上下标大小）
+- ✅ `\scriptscriptstyle` 小脚本模式（二级上下标大小）
+
+**使用示例：**
+```latex
+% 在分数中使用 displaystyle 使求和符号变大
+\frac{\displaystyle{\sum_{i=1}^{n}}}{n}
+
+% 强制使用 textstyle（行内样式）
+\displaystyle{\sum} \quad \textstyle{\sum}
+
+% 在上标中使用 scriptstyle
+x^{\scriptstyle{\sum_{i=1}^{n}}}
+```
+
+**覆盖率**: 4/4 (100%) ✅
+
+---
+
 ## 5. 矩阵
 
 ### ✅ 已支持
@@ -177,6 +201,30 @@
 
 ---
 
+## 8.5 数学模式切换
+
+### ✅ 已支持
+- ✅ `\displaystyle` 显示模式（最大，用于独立公式）
+- ✅ `\textstyle` 文本模式（正常大小）
+- ✅ `\scriptstyle` 脚本模式（上下标大小）
+- ✅ `\scriptscriptstyle` 小脚本模式（二级上下标大小）
+
+**使用示例：**
+```latex
+% 在分数中使用 displaystyle 使求和符号变大
+\frac{\displaystyle{\sum_{i=1}^{n}}}{n}
+
+% 强制使用 textstyle（行内样式）
+\displaystyle{\sum} \quad \textstyle{\sum}
+
+% 在上标中使用 scriptstyle
+x^{\scriptstyle{\sum_{i=1}^{n}}}
+```
+
+**覆盖率**: 4/4 (100%) ✅
+
+---
+
 ## 8. 字体样式
 
 ### ✅ 已支持
@@ -198,6 +246,30 @@
 - 无
 
 **覆盖率**: 20/20 (100%) ✅
+
+---
+
+## 8.5 数学模式切换
+
+### ✅ 已支持
+- ✅ `\displaystyle` 显示模式（最大，用于独立公式）
+- ✅ `\textstyle` 文本模式（正常大小）
+- ✅ `\scriptstyle` 脚本模式（上下标大小）
+- ✅ `\scriptscriptstyle` 小脚本模式（二级上下标大小）
+
+**使用示例：**
+```latex
+% 在分数中使用 displaystyle 使求和符号变大
+\frac{\displaystyle{\sum_{i=1}^{n}}}{n}
+
+% 强制使用 textstyle（行内样式）
+\displaystyle{\sum} \quad \textstyle{\sum}
+
+% 在上标中使用 scriptstyle
+x^{\scriptstyle{\sum_{i=1}^{n}}}
+```
+
+**覆盖率**: 4/4 (100%) ✅
 
 ---
 

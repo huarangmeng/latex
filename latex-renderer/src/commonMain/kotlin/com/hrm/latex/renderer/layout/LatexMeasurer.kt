@@ -11,6 +11,7 @@ import com.hrm.latex.renderer.layout.measurer.MatrixMeasurer
 import com.hrm.latex.renderer.layout.measurer.StackMeasurer
 import com.hrm.latex.renderer.layout.measurer.TextContentMeasurer
 import com.hrm.latex.renderer.model.RenderStyle
+import com.hrm.latex.renderer.model.applyMathStyle
 import com.hrm.latex.renderer.model.applyStyle
 import com.hrm.latex.renderer.model.withColor
 import com.hrm.latex.renderer.utils.lineSpacingPx
@@ -87,6 +88,10 @@ internal fun measureNode(
 
         is LatexNode.Color -> measureGroup(
             node.content, style.withColor(node.color), measurer, density
+        )
+
+        is LatexNode.MathStyle -> measureGroup(
+            node.content, style.applyMathStyle(node.mathStyleType), measurer, density
         )
 
         is LatexNode.Environment -> measureGroup(node.content, style, measurer, density)
