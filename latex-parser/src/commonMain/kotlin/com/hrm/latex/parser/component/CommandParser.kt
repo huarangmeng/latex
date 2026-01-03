@@ -5,7 +5,10 @@ import com.hrm.latex.parser.SymbolMap
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
-class CommandParser(private val context: LatexParserContext) {
+class CommandParser(
+    private val context: LatexParserContext,
+    private val chemicalParser: ChemicalParser
+) {
     private val tokenStream get() = context.tokenStream
 
     companion object {
@@ -81,6 +84,9 @@ class CommandParser(private val context: LatexParserContext) {
             "qquad" -> LatexNode.Space(LatexNode.Space.SpaceType.QQUAD)
             "!" -> LatexNode.Space(LatexNode.Space.SpaceType.NEGATIVE_THIN)
             "hspace" -> parseHSpace()
+
+            // 化学公式
+            "ce", "cf" -> chemicalParser.parseChemicalArgument()
 
             // 特殊符号
             else -> parseSymbolOrGenericCommand(cmdName)

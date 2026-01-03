@@ -3,6 +3,7 @@ package com.hrm.latex.parser
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.component.CommandParser
 import com.hrm.latex.parser.component.EnvironmentParser
+import com.hrm.latex.parser.component.ChemicalParser
 import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
@@ -41,7 +42,8 @@ class LatexParser : LatexParserContext {
         // 初始化组件
         tokenStream = LatexTokenStream(tokens)
         environmentParser = EnvironmentParser(this)
-        commandParser = CommandParser(this)
+        val chemicalParser = ChemicalParser(this)
+        commandParser = CommandParser(this, chemicalParser)
 
         // 语法分析
         val children = mutableListOf<LatexNode>()

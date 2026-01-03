@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.hrm.latex.preview.LatexPreview
-import com.hrm.latex.preview.Preview_Demo_RealTimeInput
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -24,7 +23,6 @@ fun App() {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             LatexPreview()
-//            Preview_Demo_RealTimeInput()
         }
     }
 }

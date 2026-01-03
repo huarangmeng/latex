@@ -35,9 +35,7 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         return when (node) {
             is LatexNode.Text -> measureText(node.content, style, measurer)
             is LatexNode.TextMode -> measureTextMode(node.text, style, measurer)
-            is LatexNode.Symbol -> measureText(
-                node.unicode.ifEmpty { node.symbol }, style, measurer
-            )
+            is LatexNode.Symbol -> measureSymbol(node, style, measurer)
             is LatexNode.Operator -> measureText(
                 node.op,
                 style.copy(fontStyle = FontStyle.Normal, fontFamily = FontFamily.Serif),
@@ -71,6 +69,66 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         return NodeLayout(width, height, baseline) { x, y ->
             drawText(result, topLeft = Offset(x, y))
         }
+    }
+
+    /**
+     * 测量符号（Symbol）
+     * 
+     * 对于箭头等符号，调整基线位置使其视觉上居中。
+     * 增大基线值可以让符号在整体布局中相对上移。
+     */
+    private fun measureSymbol(
+        node: LatexNode.Symbol, style: RenderStyle, measurer: TextMeasurer
+    ): NodeLayout {
+        val text = if (node.unicode.isEmpty()) node.symbol else node.unicode
+        val textStyle = style.textStyle()
+        val result: TextLayoutResult = measurer.measure(
+            text = AnnotatedString(text), style = textStyle
+        )
+
+        val width = result.size.width.toFloat()
+        val height = result.size.height.toFloat()
+        val originalBaseline = result.firstBaseline
+        
+        // 对于箭头和其他符号，调整基线使其视觉上居中
+        // 通过增大基线值（baseline = ascent），使符号在 measureGroup 的对齐中相对上移
+        // 因为 childY = y + (maxAscent - child.baseline)，baseline 越大，childY 越小，元素越靠上
+        val baseline = if (isArrowOrCenteredSymbol(node.symbol)) {
+            // 将基线设置为较高的位置，使箭头相对上移以达到视觉居中
+            // 经过测试，0.85 可以让箭头与带下标的化学式较好地对齐
+            height * 0.85f
+        } else {
+            originalBaseline
+        }
+
+        return NodeLayout(width, height, baseline) { x, y ->
+            drawText(result, topLeft = Offset(x, y))
+        }
+    }
+
+    /**
+     * 判断符号是否应该垂直居中
+     * 
+     * 箭头、等号、加减号等二元运算符应该居中显示
+     */
+    private fun isArrowOrCenteredSymbol(symbol: String): Boolean {
+        return symbol in setOf(
+            // 箭头
+            "rightarrow", "leftarrow", "leftrightarrow",
+            "Rightarrow", "Leftarrow", "Leftrightarrow",
+            "longrightarrow", "longleftarrow", "longleftrightarrow",
+            "uparrow", "downarrow", "updownarrow",
+            "Uparrow", "Downarrow", "Updownarrow",
+            "mapsto", "to",
+            // 等号和关系符号
+            "equals", "neq", "approx", "equiv", "sim",
+            "leq", "geq", "ll", "gg",
+            "subset", "supset", "subseteq", "supseteq",
+            // 二元运算符
+            "plus", "minus", "times", "div", "cdot",
+            "pm", "mp", "ast", "star", "circ",
+            "oplus", "ominus", "otimes", "oslash"
+        )
     }
 
     /**

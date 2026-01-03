@@ -33,7 +33,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Preview
 @Composable
 fun Preview_Demo_RealTimeInput() {
-    PreviewCard("实际应用: 实时输入预览 (Debug)") {
+    IncrementalPreviewCard("实际应用: 实时输入预览 (Debug)") {
         var userInput by remember { mutableStateOf("") }
         var debugInfo by remember { mutableStateOf("") }
 
@@ -86,7 +86,7 @@ fun Preview_Demo_RealTimeInput() {
 @Preview
 @Composable
 fun Preview_Demo_ProgressTracking() {
-    PreviewCard("实际应用: 解析进度追踪") {
+    IncrementalPreviewCard("实际应用: 解析进度追踪") {
         var currentText by remember { mutableStateOf("") }
         val formula = "\\sum_{n=0}^{\\infty} \\frac{x^n}{n!} = e^x"
         val progress = if (formula.isEmpty()) 0f else currentText.length.toFloat() / formula.length
@@ -129,7 +129,7 @@ fun Preview_Demo_ProgressTracking() {
 @Preview
 @Composable
 fun Preview_Demo_ErrorRecovery() {
-    PreviewCard("实际应用: 错误恢复") {
+    IncrementalPreviewCard("实际应用: 错误恢复") {
         val testCases = listOf(
             "完整公式" to "x^2 + y^2 = r^2",
             "未闭合括号" to "\\frac{1",
@@ -177,7 +177,7 @@ fun Preview_Demo_ErrorRecovery() {
 @Preview
 @Composable
 fun Preview_Demo_MultipleFormulas() {
-    PreviewCard("实际应用: 多个公式同时渲染") {
+    IncrementalPreviewCard("实际应用: 多个公式同时渲染") {
         val formulas = listOf(
             "勾股定理" to "a^2 + b^2 = c^2",
             "二次方程" to "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
@@ -222,7 +222,7 @@ fun Preview_Demo_MultipleFormulas() {
 @Preview
 @Composable
 fun Preview_Demo_ComparisonWithStandard() {
-    PreviewCard("对比: 标准 vs 增量渲染") {
+    IncrementalPreviewCard("对比: 标准 vs 增量渲染") {
         val formula = "\\sum_{i=1}^{n} i^2 = \\frac{n(n+1)(2n+1)}{6}"
         var incrementalText by remember { mutableStateOf("") }
 
