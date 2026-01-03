@@ -109,6 +109,10 @@ class CommandParser(
             // 化学公式
             "ce", "cf" -> chemicalParser.parseChemicalArgument()
 
+            // 特殊效果
+            "boxed" -> parseBoxed()
+            "phantom" -> parsePhantom()
+
             // 特殊符号
             else -> parseSymbolOrGenericCommand(cmdName)
         }
@@ -409,6 +413,24 @@ class CommandParser(
             is LatexNode.Group -> extractText(node.children)
             else -> "black"
         }
+    }
+
+    private fun parseBoxed(): LatexNode.Boxed {
+        val arg = context.parseArgument() ?: LatexNode.Text("")
+        val content = when (arg) {
+            is LatexNode.Group -> arg.children
+            else -> listOf(arg)
+        }
+        return LatexNode.Boxed(content)
+    }
+
+    private fun parsePhantom(): LatexNode.Phantom {
+        val arg = context.parseArgument() ?: LatexNode.Text("")
+        val content = when (arg) {
+            is LatexNode.Group -> arg.children
+            else -> listOf(arg)
+        }
+        return LatexNode.Phantom(content)
     }
 
     private fun parseSymbolOrGenericCommand(cmdName: String): LatexNode {

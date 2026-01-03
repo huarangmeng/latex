@@ -309,4 +309,16 @@ sealed class LatexNode {
      * 文本模式（在数学公式中插入普通文本）
      */
     data class TextMode(val text: String) : LatexNode()
+    
+    /**
+     * 方框节点（\boxed）
+     * 在内容周围绘制边框
+     */
+    data class Boxed(val content: List<LatexNode>) : LatexNode()
+    
+    /**
+     * 幻影节点（\phantom）
+     * 占据空间但不显示内容，用于对齐
+     */
+    data class Phantom(val content: List<LatexNode>) : LatexNode()
 }

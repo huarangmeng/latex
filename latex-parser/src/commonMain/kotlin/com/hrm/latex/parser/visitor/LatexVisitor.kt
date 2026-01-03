@@ -212,6 +212,16 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
     
     override fun visitTextMode(node: LatexNode.TextMode): T = defaultVisit(node)
     
+    open fun visitBoxed(node: LatexNode.Boxed): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+    
+    open fun visitPhantom(node: LatexNode.Phantom): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+    
     /**
      * 访问任意节点
      */
@@ -249,5 +259,7 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         is LatexNode.Subequations -> visitSubequations(node)
         is LatexNode.Binomial -> visitBinomial(node)
         is LatexNode.TextMode -> visitTextMode(node)
+        is LatexNode.Boxed -> visitBoxed(node)
+        is LatexNode.Phantom -> visitPhantom(node)
     }
 }

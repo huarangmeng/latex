@@ -342,6 +342,23 @@ val basicLatexPreviewGroups = listOf(
         )
     ),
     PreviewGroup(
+        id = "special_effects",
+        title = "8.6 特殊效果",
+        description = "方框（boxed）、幻影（phantom）",
+        items = listOf(
+            PreviewItem("84-1", "简单方框", "\\boxed{E = mc^2}"),
+            PreviewItem("84-2", "方框中的分数", "\\boxed{\\frac{a + b}{c}}"),
+            PreviewItem("84-3", "方框中的求和", "\\boxed{\\sum_{i=1}^{n} x_i}"),
+            PreviewItem("84-4", "多个方框", "\\boxed{x} + \\boxed{y} = \\boxed{z}"),
+            PreviewItem("84-5", "方框+颜色", "\\boxed{\\color{red}{x^2} + \\color{blue}{y^2}} = r^2"),
+            PreviewItem("84-6", "嵌套方框", "\\boxed{\\boxed{a} + b}"),
+            PreviewItem("84-7", "幻影对齐", "\\begin{aligned} x &= 1234 \\\\ \\phantom{x} &= 5678 \\end{aligned}"),
+            PreviewItem("84-8", "幻影占位", "a + \\phantom{bbb} = c"),
+            PreviewItem("84-9", "复杂幻影", "\\frac{a}{\\phantom{a}b\\phantom{a}}"),
+            PreviewItem("84-10", "方框+幻影组合", "\\boxed{x} + \\phantom{+ y} = z"),
+        )
+    ),
+    PreviewGroup(
         id = "spaces",
         title = "9. 间距专题",
         description = "负空格、自定义空格、水平间距",

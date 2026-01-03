@@ -8,6 +8,7 @@ import com.hrm.latex.renderer.layout.measurer.DelimiterMeasurer
 import com.hrm.latex.renderer.layout.measurer.ExtensibleArrowMeasurer
 import com.hrm.latex.renderer.layout.measurer.MathMeasurer
 import com.hrm.latex.renderer.layout.measurer.MatrixMeasurer
+import com.hrm.latex.renderer.layout.measurer.SpecialEffectMeasurer
 import com.hrm.latex.renderer.layout.measurer.StackMeasurer
 import com.hrm.latex.renderer.layout.measurer.TextContentMeasurer
 import com.hrm.latex.renderer.model.RenderStyle
@@ -33,6 +34,7 @@ internal fun measureNode(
     val delimiterMeasurer = DelimiterMeasurer()
     val extensibleArrowMeasurer = ExtensibleArrowMeasurer()
     val stackMeasurer = StackMeasurer()
+    val specialEffectMeasurer = SpecialEffectMeasurer()
 
     // 递归函数引用
     val measureGlobal = { n: LatexNode, s: RenderStyle ->
@@ -74,6 +76,9 @@ internal fun measureNode(
 
         is LatexNode.Stack ->
             stackMeasurer.measure(node, style, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.Boxed, is LatexNode.Phantom ->
+            specialEffectMeasurer.measure(node, style, measurer, density, measureGlobal, measureGroupRef)
 
         is LatexNode.NewLine -> NodeLayout(
             0f, lineSpacingPx(style, density), 0f
