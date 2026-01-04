@@ -1,10 +1,6 @@
 package com.hrm.latex.preview
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
-import com.hrm.latex.renderer.Latex
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -66,23 +62,6 @@ val basicLatexPreviewGroups = listOf(
                 "导数 (\\left \\right)",
                 "\\frac{d}{dx}\\left(x^n\\right) = nx^{n-1}"
             ),
-            PreviewItem("debug1", "括号测试", "(x)", content = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Latex(latex = "(x)", isDarkTheme = false)
-                    Latex(latex = "(x^2)", isDarkTheme = false)
-                    Latex(latex = "(x^{10})", isDarkTheme = false)
-                    Latex(latex = "\\left(x^{10}\\right)", isDarkTheme = false)
-                }
-            }),
-            PreviewItem("debug2", "下标中的文本测试", "\\prod_{p}", content = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Latex(latex = "\\prod_{p}", isDarkTheme = false)
-                    Latex(latex = "\\prod_{p prime}", isDarkTheme = false)
-                    Latex(latex = "\\prod_{p \\text{ prime}}", isDarkTheme = false)
-                    Latex(latex = "\\prod_{p \\text{ is prime}}", isDarkTheme = false)
-                    Latex(latex = "\\sum_{i \\text{ even}}", isDarkTheme = false)
-                }
-            }),
         )
     ),
     PreviewGroup(
@@ -126,19 +105,8 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem(
                 "29",
                 "黎曼ζ函数",
-                "\\zeta(s) = \\sum_{n=1}^{\\infty} \\frac{1}{n^s} = \\prod_{p} \\frac{1}{1-p^{-s}}",
-                content = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Latex(
-                            latex = "\\zeta(s) = \\sum_{n=1}^{\\infty} \\frac{1}{n^s} = \\prod_{p} \\frac{1}{1-p^{-s}}",
-                            isDarkTheme = false
-                        )
-                        Latex(
-                            latex = "\\zeta(s) = \\prod_{p \\text{ prime}} \\frac{1}{1-p^{-s}}",
-                            isDarkTheme = false
-                        )
-                    }
-                }),
+                "\\zeta(s) = \\sum_{n=1}^{\\infty} \\frac{1}{n^s} = \\prod_{p} \\frac{1}{1-p^{-s}}"
+            ),
             PreviewItem(
                 "30",
                 "斯托克斯定理",

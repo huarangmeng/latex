@@ -80,9 +80,29 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
             text = AnnotatedString(transformedText), style = textStyle
         )
 
-        val width = result.size.width.toFloat()
+        val baseWidth = result.size.width.toFloat()
         val height = result.size.height.toFloat()
         val baseline = result.firstBaseline
+        
+        // 斜体修正：为斜体文本添加右侧内边距，防止字符被截断
+        // 特别是最后一个字符（如大写 X, Y, Z）会向右倾斜溢出
+        val isItalic = resolvedStyle.fontStyle == FontStyle.Italic
+        val italicCorrection = if (isItalic && transformedText.isNotEmpty()) {
+            // 斜体修正值：
+            // - 大写字母：字体大小的 15%（更倾斜）
+            // - 小写字母：字体大小的 12%（中等倾斜，提高修正值以防止下标场景被截断）
+            // - 其他字符：字体大小的 8%（较小倾斜）
+            val lastChar = transformedText.last()
+            when {
+                lastChar.isUpperCase() -> context.fontSize.value * 0.15f  // 大写字母
+                lastChar.isLowerCase() -> context.fontSize.value * 0.12f  // 小写字母（提高到12%）
+                else -> context.fontSize.value * 0.08f  // 其他字符
+            }
+        } else {
+            0f
+        }
+        
+        val width = baseWidth + italicCorrection
 
         return NodeLayout(width, height, baseline) { x, y ->
             drawText(result, topLeft = Offset(x, y))
@@ -117,7 +137,7 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
             text = AnnotatedString(text), style = textStyle
         )
 
-        val width = result.size.width.toFloat()
+        val baseWidth = result.size.width.toFloat()
         val height = result.size.height.toFloat()
         val originalBaseline = result.firstBaseline
         
@@ -126,6 +146,17 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         } else {
             originalBaseline
         }
+        
+        // 斜体修正：小写希腊字母默认使用斜体，需要添加右侧内边距
+        val isItalic = resolvedStyle.fontStyle == FontStyle.Italic
+        val italicCorrection = if (isItalic && text.isNotEmpty()) {
+            // 希腊字母的斜体修正（提高到14%以防止被截断）
+            context.fontSize.value * 0.14f
+        } else {
+            0f
+        }
+        
+        val width = baseWidth + italicCorrection
 
         return NodeLayout(width, height, baseline) { x, y ->
             drawText(result, topLeft = Offset(x, y))

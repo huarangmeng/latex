@@ -13,7 +13,7 @@
 
 ## 📸 渲染预览
 
-项目包含一个演示 App (`composeApp`)，展示了各种复杂的 LaTeX 场景：
+项目包含一个演示 App (`composeApp`/`androidApp`)，展示了各种复杂的 LaTeX 场景：
 
 - **基础数学**：`\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}`
 - **矩阵与对齐**：`\begin{pmatrix} a & b \\ c & d \end{pmatrix}`
@@ -26,12 +26,13 @@
 - `:latex-renderer`: 负责将 AST 渲染为 Compose UI 组件。
 - `:latex-preview`: 预览组件和示例数据集。
 - `:composeApp`: 跨平台 Demo 应用程序。
+- `:androidApp`: Android Demo 应用程序。
 
 ## 🚀 快速开始
 
 ### 运行 Demo App
 
-- **Android**: `./gradlew :composeApp:assembleDebug`
+- **Android**: `./gradlew :androidApp:assembleDebug`
 - **Desktop**: `./gradlew :composeApp:run`
 - **Web (Wasm)**: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`
 - **iOS**: 在 Xcode 中打开 `iosApp/iosApp.xcworkspace` 运行。

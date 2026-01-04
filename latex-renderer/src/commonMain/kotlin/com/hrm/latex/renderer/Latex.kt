@@ -137,14 +137,13 @@ private fun LatexDocument(
     val widthDp = with(density) { layout.width.toDp() }
     val heightDp = with(density) { layout.height.toDp() }
 
-    Box(modifier = modifier) {
-        Canvas(modifier = Modifier.size(widthDp, heightDp)) {
-            // 绘制背景
-            if (backgroundColor != Color.Unspecified && backgroundColor != Color.Transparent) {
-                drawRect(color = backgroundColor)
-            }
-            // 绘制内容
-            layout.draw(this, 0f, 0f)
+    // 确保 Canvas 的大小被正确设置，不受外部 modifier 的影响
+    Canvas(modifier = modifier.size(widthDp, heightDp)) {
+        // 绘制背景
+        if (backgroundColor != Color.Unspecified && backgroundColor != Color.Transparent) {
+            drawRect(color = backgroundColor)
         }
+        // 绘制内容
+        layout.draw(this, 0f, 0f)
     }
 }

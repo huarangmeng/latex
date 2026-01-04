@@ -9,11 +9,11 @@ kotlin {
 }
 
 android {
-    namespace = "com.hrm.latex"
+    namespace = "com.hrm.latex.demo"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.hrm.latex"
+        applicationId = "com.hrm.latex.demo"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
