@@ -3,6 +3,7 @@ package com.hrm.latex.parser
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertNotNull
 import com.hrm.latex.parser.model.LatexNode
 
 class ChemicalParserTest {
@@ -20,18 +21,19 @@ class ChemicalParserTest {
         
         assertTrue(group.children[0] is LatexNode.Subscript) // H2
         val h2 = group.children[0] as LatexNode.Subscript
-        assertEquals("H", (h2.base as LatexNode.Text).content)
+        // 化学式字母现在使用 TextMode（正体）
+        assertEquals("H", (h2.base as LatexNode.TextMode).text)
         assertEquals("2", (h2.index as LatexNode.Text).content)
         
-        assertTrue(group.children[1] is LatexNode.Text) // O
-        assertEquals("O", (group.children[1] as LatexNode.Text).content)
+        assertTrue(group.children[1] is LatexNode.TextMode) // O
+        assertEquals("O", (group.children[1] as LatexNode.TextMode).text)
     }
 
     @Test
     fun should_parse_charge() {
         // \ce{Fe3+} -> Fe, Super(Fe, 3+)
-        // 但由于 Fe 是双字母元素，先添加 Text("Fe")
-        // 然后 3+ 会附着到 Fe 上，形成 Super(Text("Fe"), Text("3+"))
+        // 但由于 Fe 是双字母元素，先添加 TextMode("Fe")
+        // 然后 3+ 会附着到 Fe 上，形成 Super(TextMode("Fe"), Text("3+"))
         val input = "\\ce{Fe3+}"
         val parser = LatexParser()
         val result = parser.parse(input)
@@ -40,7 +42,8 @@ class ChemicalParserTest {
         assertEquals(1, group.children.size)
         
         val superNode = group.children[0] as LatexNode.Superscript
-        assertEquals("Fe", (superNode.base as LatexNode.Text).content)
+        // 化学式字母现在使用 TextMode（正体）
+        assertEquals("Fe", (superNode.base as LatexNode.TextMode).text)
         assertEquals("3+", (superNode.exponent as LatexNode.Text).content)
     }
 
@@ -141,7 +144,8 @@ class ChemicalParserTest {
         // ^2- -> remove Sub(O, 4), add Super(Sub(O, 4), 2-)
         
         assertEquals(2, group.children.size)
-        assertEquals("S", (group.children[0] as LatexNode.Text).content)
+        // 化学式字母现在使用 TextMode（正体）
+        assertEquals("S", (group.children[0] as LatexNode.TextMode).text)
         
         val complexNode = group.children[1] // Super(Sub(O, 4), 2-)
         assertTrue(complexNode is LatexNode.Superscript)
@@ -149,6 +153,44 @@ class ChemicalParserTest {
         
         val base = complexNode.base as LatexNode.Subscript
         assertEquals("4", (base.index as LatexNode.Text).content)
-        assertEquals("O", (base.base as LatexNode.Text).content)
+        assertEquals("O", (base.base as LatexNode.TextMode).text)
+    }
+
+    @Test
+    fun should_parse_crystallization_water() {
+        // \ce{CuSO4*5H2O}
+        val input = "\\ce{CuSO4*5H2O}"
+        val parser = LatexParser()
+        val result = parser.parse(input)
+        
+        val group = result.children.first() as LatexNode.Group
+        // nodes: Cu, S, O4, cdot, 5, H2, O
+        // Wait, current logic: CuSO4, cdot, 5, H2, O
+        
+        // Find cdot
+        val cdot = group.children.find { it is LatexNode.Symbol && it.symbol == "cdot" }
+        assertNotNull(cdot, "Should find cdot symbol")
+        
+        // Check 5 (coefficient after cdot)
+        val index = group.children.indexOf(cdot)
+        val five = group.children[index + 1] as LatexNode.Text
+        assertEquals("5", five.content)
+    }
+
+    @Test
+    fun should_remove_space_before_gas_symbol() {
+        // \ce{CO2 ^}
+        val input = "\\ce{CO2 ^}"
+        val parser = LatexParser()
+        val result = parser.parse(input)
+        
+        val group = result.children.first() as LatexNode.Group
+        // Should be [C, O, Sub(2), uparrow]
+        // NO Space node should be present
+        val spaceNode = group.children.find { it is LatexNode.Space }
+        assertTrue(spaceNode == null, "Space should be removed before gas symbol")
+        
+        val lastNode = group.children.last()
+        assertTrue(lastNode is LatexNode.Symbol && lastNode.symbol == "uparrow")
     }
 }

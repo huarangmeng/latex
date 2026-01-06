@@ -36,7 +36,6 @@ class ChemicalParser(private val context: LatexParserContext) {
         val nodes = mutableListOf<LatexNode>()
         // 跟踪上一个添加的节点，用于附着上下标
         // 注意：由于 nodes 列表可变，我们可以直接操作 nodes.last()
-        
         // 状态标记
         var expectCoefficient = true // 是否期望系数（行首或空格后）
 
@@ -115,9 +114,24 @@ class ChemicalParser(private val context: LatexParserContext) {
                 is LatexToken.Superscript -> {
                     // 显式上标 ^
                     tokenStream.advance()
-                    val exponent = parseChemicalScriptContent()
-                    attachSuperscript(nodes, exponent)
-                    expectCoefficient = false
+                    
+                    // 特殊情况：单独的 ^ 表示气体逸出（向上箭头）
+                    // 判断方法：后面是空格、右括号、或 EOF
+                    val nextToken = tokenStream.peek()
+                    if (nextToken is LatexToken.Whitespace || 
+                        nextToken is LatexToken.RightBrace || 
+                        tokenStream.isEOF()) {
+                        
+                        // 优化间距：如果前面有普通空格，减小它
+                        shrinkLastNormalSpace(nodes)
+                        nodes.add(LatexNode.Symbol("uparrow", "↑"))
+                        expectCoefficient = true
+                    } else {
+                        // 普通上标
+                        val exponent = parseChemicalScriptContent()
+                        attachSuperscript(nodes, exponent)
+                        expectCoefficient = false
+                    }
                 }
                 
                 is LatexToken.Command -> {
@@ -217,6 +231,14 @@ class ChemicalParser(private val context: LatexParserContext) {
                 continue
             }
             
+            // 1.4 结晶水连接符 * 或 .
+            if (char == '*' || char == '.') {
+                nodes.add(LatexNode.Symbol("cdot", "·"))
+                i++
+                expectCoef = true
+                continue
+            }
+            
             // 2. 数字处理
             if (char.isDigit()) {
                 // 提取连续数字
@@ -293,17 +315,28 @@ class ChemicalParser(private val context: LatexParserContext) {
             
             // 4. 字母 (元素)
             if (char.isLetter()) {
+                // 特殊情况：单独的 'v' 表示沉淀（向下箭头）
+                if (char == 'v' && 
+                    (i == text.length - 1 || text[i + 1] == ' ' || !text[i + 1].isLetter())) {
+                    shrinkLastNormalSpace(nodes)
+                    nodes.add(LatexNode.Symbol("downarrow", "↓"))
+                    i++
+                    expectCoef = true
+                    continue
+                }
+                
                 // H2O 中: H 是元素, 2 是下标, O 是元素
                 // Fe3+ 中: F 是元素, e 也是元素（Fe是一个元素），3+ 是上标
                 // 但这里我们逐字符解析，所以 F 和 e 分别是独立的字母
                 // 改进：判断是否是元素符号（大写字母 + 可选小写字母）
+                // 化学式中的字母应该使用正体（Roman），所以包装为 TextMode
                 if (char.isUpperCase() && i + 1 < text.length && text[i + 1].isLowerCase()) {
                     // 双字母元素,如 Fe, Na, Cl
-                    nodes.add(LatexNode.Text(text.substring(i, i + 2)))
+                    nodes.add(LatexNode.TextMode(text.substring(i, i + 2)))
                     i += 2
                 } else {
                     // 单字母元素
-                    nodes.add(LatexNode.Text(char.toString()))
+                    nodes.add(LatexNode.TextMode(char.toString()))
                     i++
                 }
                 expectCoef = false
@@ -339,6 +372,15 @@ class ChemicalParser(private val context: LatexParserContext) {
             nodes.add(LatexNode.Superscript(last, exponent))
         } else {
             nodes.add(LatexNode.Superscript(LatexNode.Text(""), exponent))
+        }
+    }
+
+    private fun shrinkLastNormalSpace(nodes: MutableList<LatexNode>) {
+        if (nodes.isNotEmpty()) {
+            val last = nodes.last()
+            if (last is LatexNode.Space && last.type == LatexNode.Space.SpaceType.NORMAL) {
+                nodes.removeAt(nodes.lastIndex)
+            }
         }
     }
 }
