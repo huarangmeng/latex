@@ -14,6 +14,7 @@ composeMultiplatform = "1.9.3"
 junit = "4.13.2"
 kotlin = "2.3.0"
 kotlinx-coroutines = "1.10.2"
+latex = "0.0.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -30,6 +31,12 @@ kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-s
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 compose-uiTooling = { module = "androidx.compose.ui:ui-tooling", version = "1.7.7" }
 ui-backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "composeMultiplatform" }
+latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
+latex-parser = { module = "io.github.huarangmeng:latex-parser", version.ref = "latex" }
+latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref = "latex" }
+
+[bundles]
+latex = ["latex-base", "latex-parser", "latex-renderer"]
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

@@ -56,9 +56,6 @@ kotlin {
             implementation(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
-            implementation(projects.latexBase)
-            implementation(projects.latexParser)
-            implementation(projects.latexRenderer)
             implementation(projects.latexPreview)
 
             implementation(compose.runtime)

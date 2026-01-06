@@ -19,6 +19,30 @@
 - **矩阵与对齐**：`\begin{pmatrix} a & b \\ c & d \end{pmatrix}`
 - **自定义宏**：`\newcommand{\R}{\mathbb{R}} x \in \R`
 
+## 📦 安装
+
+在 `gradle/libs.versions.toml` 中添加依赖：
+
+```toml
+[versions]
+latex = "0.0.2"
+
+[libraries]
+latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
+latex-parser = { module = "io.github.huarangmeng:latex-parser", version.ref = "latex" }
+latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref = "latex" }
+```
+
+在模块的 `build.gradle.kts` 中引用：
+
+```kotlin
+dependencies {
+    implementation(libs.latex.base) // 基础日志
+    implementation(libs.latex.renderer) // 渲染逻辑
+    implementation(libs.latex.parser) // 解析逻辑
+}
+```
+
 ## 🏗️ 项目结构
 
 - `:latex-base`: 基础数据结构和接口。
