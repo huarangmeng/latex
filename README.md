@@ -15,9 +15,33 @@
 
 项目包含一个演示 App (`composeApp`/`androidApp`)，展示了各种复杂的 LaTeX 场景：
 
-- **基础数学**：`\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}`
-- **矩阵与对齐**：`\begin{pmatrix} a & b \\ c & d \end{pmatrix}`
-- **自定义宏**：`\newcommand{\R}{\mathbb{R}} x \in \R`
+| 基础数学 | 化学公式 | 增量解析 |
+| :---: | :---: | :---: |
+| ![基础数学](images/normal_latex.png) | ![化学公式](images/chemical_latex.png) | ![增量解析](images/incremental_latex.png) |
+| 基础数学公式渲染 | 支持 `\ce{...}` 语法 | 支持不完整输入的实时预览 |
+
+## 🛠️ 使用方法
+
+在 Compose Multiplatform 项目中，你可以直接使用 `Latex` 组件。该组件会自动处理增量解析，支持实时预览：
+
+```kotlin
+import com.hrm.latex.renderer.Latex
+import com.hrm.latex.renderer.model.LatexConfig
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+
+@Composable
+fun MyScreen() {
+    Latex(
+        latex = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
+        config = LatexConfig(
+            fontSize = 20.sp,
+            color = Color.Black,
+            darkColor = Color.White // 自动支持深色模式
+        )
+    )
+}
+```
 
 ## 📦 安装
 
