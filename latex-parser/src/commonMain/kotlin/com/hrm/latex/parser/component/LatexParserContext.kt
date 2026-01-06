@@ -23,6 +23,7 @@ interface LatexParserContext {
     val customCommands: MutableMap<String, CustomCommand>
 
     fun parseExpression(): LatexNode?
+    fun parseFactor(): LatexNode?
     fun parseArgument(): LatexNode?
     fun parseGroup(): LatexNode.Group
 }

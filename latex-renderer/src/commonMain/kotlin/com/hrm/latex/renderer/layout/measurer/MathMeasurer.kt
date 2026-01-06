@@ -267,7 +267,8 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
         }
         
         val opStyle = context.grow(scaleFactor)
-        val limitStyle = context.shrink(0.8f)
+        // 缩小上下限字体：从 0.8f 降至 0.7f (标准的 SCRIPT_SCALE_FACTOR)
+        val limitStyle = context.shrink(0.7f)
 
         // 测量运算符符号
         val textStyle = opStyle.textStyle()
@@ -285,9 +286,16 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
 
         if (useSideMode) {
             // 侧边模式：上下标在右侧（类似普通上下标）
-            val gap = with(density) { (context.fontSize * 0.1f).toPx() }
-            val sUp = opLayout.height * 0.3f
-            val sDown = opLayout.height * 0.2f
+            // 恢复适中的水平间距
+            val gap = with(density) { (context.fontSize * 0.08f).toPx() }
+            
+            // 针对积分符号 (∫) 的视觉优化：
+            // 积分号是倾斜的，下标通常需要稍微向左移动（负偏移）才显得对齐
+            val subOffset = if (isIntegral) with(density) { (context.fontSize * 0.12f).toPx() } else 0f
+            
+            // 增大垂直偏移比例，防止上下限重叠（特别是字号缩小到 0.7f 后）
+            val sUp = opLayout.height * 0.45f
+            val sDown = opLayout.height * 0.35f
             val superRelBase = -sUp
             val subRelBase = sDown
 
@@ -302,28 +310,41 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
 
             val totalHeight = maxBottom - maxTop
             val baseline = -maxTop
-            val scriptWidth = max(superLayout?.width ?: 0f, subLayout?.width ?: 0f)
+            val scriptWidth = max(superLayout?.width ?: 0f, (subLayout?.width ?: 0f) - subOffset)
             val width = opLayout.width + (if (scriptWidth > 0) gap + scriptWidth else 0f)
 
             return NodeLayout(width, totalHeight, baseline) { x, y ->
                 opLayout.draw(this, x, y + baseline - opLayout.baseline)
                 val scriptX = x + opLayout.width + gap
                 superLayout?.draw(this, scriptX, y + baseline + superRelBase - superLayout.baseline)
-                subLayout?.draw(this, scriptX, y + baseline + subRelBase - subLayout.baseline)
+                // 应用积分下标的负偏移
+                subLayout?.draw(this, scriptX - subOffset, y + baseline + subRelBase - subLayout.baseline)
             }
         } else {
             // 显示模式：上下标在正上方和正下方（仅用于 displaystyle）
-            val spacing = with(density) { (context.fontSize * 0.1f).toPx() }
+            // 进一步优化间距：由于大型运算符（如 \sum）的测量结果通常包含巨大的垂直 padding，
+            // 我们需要显著减小间距，甚至使用负间距来抵消 padding。
+            val spacing = with(density) { (context.fontSize * 0.01f).toPx() }
+            
+            // 视觉校正量：大型运算符在视觉上往往比测量高度要窄（垂直方向）
+            // 我们使用 0.8 的系数来收缩运算符占用的垂直空间，使其上下限更紧凑
+            val visualOpHeight = opLayout.height * 0.85f
+            val opPadding = (opLayout.height - visualOpHeight) / 2
+            
             val maxWidth = max(opLayout.width, max(superLayout?.width ?: 0f, subLayout?.width ?: 0f))
             
-            val opTop = (superLayout?.height ?: 0f) + (if (superLayout != null) spacing else 0f)
-            val subTop = opTop + opLayout.height + (if (subLayout != null) spacing else 0f)
-
+            // 计算上标位置：减去运算符顶部的 padding，并加上微小间距
+            val opTop = (superLayout?.height ?: 0f) + spacing - opPadding
+            // 计算下标位置：运算符底部 padding 被抵消
+            val subTop = opTop + visualOpHeight + spacing
+            
             val totalHeight = subTop + (subLayout?.height ?: 0f)
-            val baseline = opTop + opLayout.baseline
+            // 修正基线位置
+            val baseline = opTop + opLayout.baseline - opPadding
 
             return NodeLayout(maxWidth, totalHeight, baseline) { x, y ->
-                opLayout.draw(this, x + (maxWidth - opLayout.width) / 2, y + opTop)
+                // 绘制运算符时需要还原 padding 偏移
+                opLayout.draw(this, x + (maxWidth - opLayout.width) / 2, y + opTop - opPadding)
                 superLayout?.draw(this, x + (maxWidth - superLayout.width) / 2, y)
                 subLayout?.draw(this, x + (maxWidth - subLayout.width) / 2, y + subTop)
             }

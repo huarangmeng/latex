@@ -86,7 +86,7 @@ class LatexParser : LatexParserContext {
     /**
      * 解析基本因子（不含上标下标）
      */
-    private fun parseFactor(): LatexNode? {
+    override fun parseFactor(): LatexNode? {
         when (val token = tokenStream.peek()) {
             is LatexToken.Text -> {
                 tokenStream.advance()

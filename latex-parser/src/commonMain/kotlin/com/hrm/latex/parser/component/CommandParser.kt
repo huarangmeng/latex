@@ -190,19 +190,18 @@ class CommandParser(
         var subscript: LatexNode? = null
         var superscript: LatexNode? = null
 
-        if (tokenStream.peek() is LatexToken.Subscript) {
-            tokenStream.advance()
-            subscript = parseScriptContent()
-        }
-
-        if (tokenStream.peek() is LatexToken.Superscript) {
-            tokenStream.advance()
-            superscript = parseScriptContent()
-        }
-
-        if (subscript == null && tokenStream.peek() is LatexToken.Subscript) {
-            tokenStream.advance()
-            subscript = parseScriptContent()
+        // 循环解析上下标，直到不再出现 _ 或 ^，以防止顺序问题并处理重复
+        while (!tokenStream.isEOF()) {
+            val token = tokenStream.peek()
+            if (token is LatexToken.Subscript && subscript == null) {
+                tokenStream.advance()
+                subscript = parseScriptContent()
+            } else if (token is LatexToken.Superscript && superscript == null) {
+                tokenStream.advance()
+                superscript = parseScriptContent()
+            } else {
+                break
+            }
         }
 
         return LatexNode.BigOperator(operator, subscript, superscript)
@@ -211,7 +210,11 @@ class CommandParser(
     private fun parseScriptContent(): LatexNode {
         return when (tokenStream.peek()) {
             is LatexToken.LeftBrace -> context.parseGroup()
-            else -> context.parseExpression() ?: LatexNode.Text("")
+            else -> {
+                // 重要：为了防止贪婪解析导致 \int_0^1 变成 \int_{0^1}，
+                // 当脚本内容没有用 {} 包裹时，只解析一个因子 (parseFactor)
+                context.parseFactor() ?: LatexNode.Text("")
+            }
         }
     }
 
