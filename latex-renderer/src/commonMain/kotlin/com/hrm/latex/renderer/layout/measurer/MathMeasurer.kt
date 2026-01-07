@@ -198,6 +198,72 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
         val baseNode = if (isSuper) (node as LatexNode.Superscript).base else (node as LatexNode.Subscript).base
         val scriptNode = if (isSuper) (node as LatexNode.Superscript).exponent else (node as LatexNode.Subscript).index
 
+        // 检测同时存在上下标的情况（化学式等）
+        // 例如: Ba^{2+}_{3} 会被解析为 Subscript(Superscript(Ba, 2+), 3)
+        // 在这种情况下，上下标应该对齐在原始 base 的右侧
+        val hasBothScripts = when {
+            isSuper && baseNode is LatexNode.Subscript -> true  // 当前是上标，base 是下标
+            !isSuper && baseNode is LatexNode.Superscript -> true  // 当前是下标，base 是上标
+            else -> false
+        }
+
+        if (hasBothScripts) {
+            // 提取真正的原始 base 和另一个脚本
+            val (realBase, otherScriptNode) = if (isSuper) {
+                // 当前是上标，base 是下标节点
+                val subNode = baseNode as LatexNode.Subscript
+                Pair(subNode.base, subNode.index)
+            } else {
+                // 当前是下标，base 是上标节点
+                val superNode = baseNode as LatexNode.Superscript
+                Pair(superNode.base, superNode.exponent)
+            }
+
+            // 测量布局
+            val scriptStyle = context.shrink(LatexConstants.SCRIPT_SCALE_FACTOR)
+            val realBaseLayout = measureGlobal(realBase, context)
+            val currentScriptLayout = measureGlobal(scriptNode, scriptStyle)
+            val otherScriptLayout = measureGlobal(otherScriptNode, scriptStyle)
+
+            val superscriptShift = with(density) {
+                (context.fontSize * LatexConstants.SUPERSCRIPT_SHIFT_RATIO).toPx()
+            }
+            val subscriptShift = with(density) {
+                (context.fontSize * LatexConstants.SUBSCRIPT_SHIFT_RATIO).toPx()
+            }
+
+            // 上下标都从原始 base 右侧开始，水平对齐
+            val scriptX = realBaseLayout.width + with(density) { 1.dp.toPx() }
+            
+            // 上标和下标的垂直位置
+            val superLayout = if (isSuper) currentScriptLayout else otherScriptLayout
+            val subLayout = if (isSuper) otherScriptLayout else currentScriptLayout
+            val superRelY = -superscriptShift
+            val subRelY = subscriptShift
+
+            // 计算总体尺寸
+            val superTopRel = superRelY - superLayout.baseline
+            val superBottomRel = superRelY + (superLayout.height - superLayout.baseline)
+            val subTopRel = subRelY - subLayout.baseline
+            val subBottomRel = subRelY + (subLayout.height - subLayout.baseline)
+            val baseTopRel = -realBaseLayout.baseline
+            val baseBottomRel = realBaseLayout.height - realBaseLayout.baseline
+
+            val maxTopRel = minOf(superTopRel, subTopRel, baseTopRel)
+            val maxBottomRel = maxOf(superBottomRel, subBottomRel, baseBottomRel)
+
+            val totalHeight = maxBottomRel - maxTopRel
+            val baseline = -maxTopRel
+            val width = scriptX + maxOf(superLayout.width, subLayout.width)
+
+            return NodeLayout(width, totalHeight, baseline) { x, y ->
+                realBaseLayout.draw(this, x, y + baseline - realBaseLayout.baseline)
+                superLayout.draw(this, x + scriptX, y + baseline + superRelY - superLayout.baseline)
+                subLayout.draw(this, x + scriptX, y + baseline + subRelY - subLayout.baseline)
+            }
+        }
+
+        // 普通情况：只有单个上标或下标
         val scriptStyle = context.shrink(LatexConstants.SCRIPT_SCALE_FACTOR)
 
         val baseLayout = measureGlobal(baseNode, context)
