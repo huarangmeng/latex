@@ -117,13 +117,50 @@ internal fun measureGroup(
     }
 
     // 单行 (InlineRow)
-    val measuredNodes = nodes.map { measureNode(it, context, measurer, density) }
+    // 第一遍测量：获取所有节点的初步尺寸
+    val initialLayouts = nodes.map { measureNode(it, context, measurer, density) }
+
+    // 检查是否存在需要根据内容调整高度的大型运算符（如积分）
+    val hasIntegrals = nodes.any { it is LatexNode.BigOperator && it.operator.contains("int") }
+    
+    val finalMeasuredNodes = if (hasIntegrals && context.mathStyle == RenderContext.MathStyleMode.DISPLAY) {
+        // 计算除了积分以外的其他内容的最大高度
+        var maxContentAscent = 0f
+        var maxContentDescent = 0f
+        
+        nodes.forEachIndexed { index, node ->
+            val isIntegral = node is LatexNode.BigOperator && node.operator.contains("int")
+            if (!isIntegral) {
+                val layout = initialLayouts[index]
+                if (layout.baseline > maxContentAscent) maxContentAscent = layout.baseline
+                if (layout.height - layout.baseline > maxContentDescent) maxContentDescent = layout.height - layout.baseline
+            }
+        }
+        
+        val contentHeight = maxContentAscent + maxContentDescent
+        
+        // 如果有明显的高度（例如分式），则重新测量积分以匹配高度
+        if (contentHeight > 0) {
+            nodes.mapIndexed { index, node ->
+                val isIntegral = node is LatexNode.BigOperator && node.operator.contains("int")
+                if (isIntegral) {
+                    measureNode(node, context.copy(bigOpHeightHint = contentHeight), measurer, density)
+                } else {
+                    initialLayouts[index]
+                }
+            }
+        } else {
+            initialLayouts
+        }
+    } else {
+        initialLayouts
+    }
 
     var totalWidth = 0f
     var maxAscent = 0f // 基线以上高度
     var maxDescent = 0f // 基线以下高度
 
-    measuredNodes.forEach {
+    finalMeasuredNodes.forEach {
         val ascent = it.baseline
         val descent = it.height - it.baseline
         if (ascent > maxAscent) maxAscent = ascent
@@ -136,7 +173,7 @@ internal fun measureGroup(
 
     return NodeLayout(totalWidth, height, baseline) { x, y ->
         var currentX = x
-        measuredNodes.forEach { child ->
+        finalMeasuredNodes.forEach { child ->
             val childY = y + (baseline - child.baseline)
             child.draw(this, currentX, childY)
             currentX += child.width

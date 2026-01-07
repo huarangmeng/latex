@@ -32,7 +32,8 @@ internal data class RenderContext(
     val fontStyle: FontStyle? = null,
     val fontFamily: FontFamily? = FontFamily.Serif,
     val fontVariant: FontVariant = FontVariant.NORMAL,
-    val mathStyle: MathStyleMode = MathStyleMode.DISPLAY
+    val mathStyle: MathStyleMode = MathStyleMode.DISPLAY,
+    val bigOpHeightHint: Float? = null // 大型运算符（如积分）的高度暗示
 ) {
     enum class MathStyleMode {
         DISPLAY,         // \displaystyle

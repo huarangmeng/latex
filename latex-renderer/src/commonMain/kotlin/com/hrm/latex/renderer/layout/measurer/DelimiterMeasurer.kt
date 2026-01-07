@@ -9,6 +9,7 @@ import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.grow
 import com.hrm.latex.renderer.model.textStyle
+import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.Side
 import com.hrm.latex.renderer.utils.drawBracket
 
@@ -150,7 +151,7 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         val bracketWidth = with(density) { (context.fontSize * 0.4f).toPx() }
         val strokeWidth = with(density) { (context.fontSize * 0.05f).toPx() }
 
-        val axisHeight = with(density) { (context.fontSize * 0.25f).toPx() }
+        val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
         val baseline = height / 2 + axisHeight
 
         return if (bracketType != null) {

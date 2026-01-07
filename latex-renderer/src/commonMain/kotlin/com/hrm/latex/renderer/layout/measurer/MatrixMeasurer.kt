@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
+import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.Side
 import com.hrm.latex.renderer.utils.drawBracket
 import kotlin.math.max
@@ -25,17 +26,17 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         return when (node) {
-            is LatexNode.Matrix -> measureMatrix(node, context, density, measureGlobal)
-            is LatexNode.Array -> measureMatrixLike(node.rows, context, density, measureGlobal)
-            is LatexNode.Cases -> measureCases(node, context, density, measureGlobal)
+            is LatexNode.Matrix -> measureMatrix(node, context, measurer, density, measureGlobal)
+            is LatexNode.Array -> measureMatrixLike(node.rows, context, measurer, density, measureGlobal)
+            is LatexNode.Cases -> measureCases(node, context, measurer, density, measureGlobal)
             is LatexNode.Aligned, is LatexNode.Split -> {
                 val rows = if (node is LatexNode.Aligned) node.rows else (node as LatexNode.Split).rows
                 val alignments = List(10) { if (it % 2 == 0) ColumnAlignment.RIGHT else ColumnAlignment.LEFT }
-                measureMatrixLike(rows, context, density, measureGlobal, alignments = alignments)
+                measureMatrixLike(rows, context, measurer, density, measureGlobal, alignments = alignments)
             }
             is LatexNode.Eqnarray -> {
                 val alignments = listOf(ColumnAlignment.RIGHT, ColumnAlignment.CENTER, ColumnAlignment.LEFT)
-                measureMatrixLike(node.rows, context, density, measureGlobal, alignments = alignments)
+                measureMatrixLike(node.rows, context, measurer, density, measureGlobal, alignments = alignments)
             }
             is LatexNode.Multline -> measureMultline(node, context, density, measureGlobal)
             is LatexNode.Subequations -> measureGroup(node.content, context)
@@ -46,10 +47,11 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
     private fun measureMatrix(
         node: LatexNode.Matrix,
         context: RenderContext,
+        measurer: TextMeasurer,
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
-        val contentLayout = measureMatrixLike(node.rows, context, density, measureGlobal)
+        val contentLayout = measureMatrixLike(node.rows, context, measurer, density, measureGlobal)
         val bracketType = node.type
         if (bracketType == LatexNode.Matrix.MatrixType.PLAIN) return contentLayout
 
@@ -73,6 +75,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
     private fun measureMatrixLike(
         rows: List<List<LatexNode>>,
         context: RenderContext,
+        measurer: TextMeasurer,
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
         alignments: List<ColumnAlignment>? = null,
@@ -113,7 +116,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         val baseline = if (isBaselineFirstRow) {
             rowBaselines[0]
         } else {
-            val axisHeight = with(density) { (context.fontSize * 0.25f).toPx() }
+            val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
             totalHeight / 2 + axisHeight
         }
 
@@ -141,11 +144,12 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
     private fun measureCases(
         node: LatexNode.Cases,
         context: RenderContext,
+        measurer: TextMeasurer,
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         val rows = node.cases.map { listOf(it.second, LatexNode.Text(" if "), it.first) }
-        val matrixLayout = measureMatrixLike(rows, context, density, measureGlobal, 
+        val matrixLayout = measureMatrixLike(rows, context, measurer, density, measureGlobal, 
             alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.CENTER, ColumnAlignment.LEFT))
         
         val bracketWidth = with(density) { (context.fontSize * 0.5f).toPx() }

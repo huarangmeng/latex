@@ -9,6 +9,16 @@ package com.hrm.latex.renderer.utils
 object MathFontUtils {
     
     /**
+     * 将 codePoint 转换为 UTF-16 字符串，支持非 BMP 字符 (U+10000 及以上)
+     */
+    private fun codePointToString(codePoint: Int): String {
+        if (codePoint <= 0xFFFF) return codePoint.toChar().toString()
+        val high = ((codePoint - 0x10000) shr 10) + 0xD800
+        val low = ((codePoint - 0x10000) and 0x3FF) + 0xDC00
+        return "${high.toChar()}${low.toChar()}"
+    }
+
+    /**
      * 转换为双线体 (Blackboard Bold) - \mathbb
      * 映射范围: A-Z (U+1D538), a-z (U+1D552), 0-9 (U+1D7D8)
      */
@@ -18,19 +28,19 @@ object MathFontUtils {
                 in 'A'..'Z' -> {
                     // 特殊情况：C, H, N, P, Q, R, Z 在 Unicode 中不在连续块内
                     when (char) {
-                        'C' -> 'ℂ'
-                        'H' -> 'ℍ'
-                        'N' -> 'ℕ'
-                        'P' -> 'ℙ'
-                        'Q' -> 'ℚ'
-                        'R' -> 'ℝ'
-                        'Z' -> 'ℤ'
-                        else -> char + (0x1D538 - 'A'.code)
+                        'C' -> "ℂ"
+                        'H' -> "ℍ"
+                        'N' -> "ℕ"
+                        'P' -> "ℙ"
+                        'Q' -> "ℚ"
+                        'R' -> "ℝ"
+                        'Z' -> "ℤ"
+                        else -> codePointToString(0x1D538 + (char.code - 'A'.code))
                     }
                 }
-                in 'a'..'z' -> char + (0x1D552 - 'a'.code)
-                in '0'..'9' -> char + (0x1D7D8 - '0'.code)
-                else -> char
+                in 'a'..'z' -> codePointToString(0x1D552 + (char.code - 'a'.code))
+                in '0'..'9' -> codePointToString(0x1D7D8 + (char.code - '0'.code))
+                else -> char.toString()
             }
         }.joinToString("")
     }
@@ -45,18 +55,18 @@ object MathFontUtils {
                 in 'A'..'Z' -> {
                     // 特殊情况：B, E, F, H, I, L, M, R 在 Unicode 中不在连续块内
                     when (char) {
-                        'B' -> 'ℬ'
-                        'E' -> 'ℰ'
-                        'F' -> 'ℱ'
-                        'H' -> 'ℋ'
-                        'I' -> 'ℐ'
-                        'L' -> 'ℒ'
-                        'M' -> 'ℳ'
-                        'R' -> 'ℛ'
-                        else -> char + (0x1D49C - 'A'.code)
+                        'B' -> "ℬ"
+                        'E' -> "ℰ"
+                        'F' -> "ℱ"
+                        'H' -> "ℋ"
+                        'I' -> "ℐ"
+                        'L' -> "ℒ"
+                        'M' -> "ℳ"
+                        'R' -> "ℛ"
+                        else -> codePointToString(0x1D49C + (char.code - 'A'.code))
                     }
                 }
-                else -> char
+                else -> char.toString()
             }
         }.joinToString("")
     }

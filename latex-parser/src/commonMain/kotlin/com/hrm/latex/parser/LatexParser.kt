@@ -123,6 +123,21 @@ class LatexParser : LatexParserContext {
                 return LatexNode.NewLine
             }
 
+            is LatexToken.LeftBracket -> {
+                tokenStream.advance()
+                return LatexNode.Text("[")
+            }
+
+            is LatexToken.RightBracket -> {
+                tokenStream.advance()
+                return LatexNode.Text("]")
+            }
+
+            is LatexToken.Ampersand -> {
+                tokenStream.advance()
+                return LatexNode.Text("&")
+            }
+
             is LatexToken.EOF -> return null
             else -> {
                 tokenStream.advance()
