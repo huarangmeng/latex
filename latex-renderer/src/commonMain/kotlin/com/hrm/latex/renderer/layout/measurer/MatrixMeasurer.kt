@@ -67,11 +67,13 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         scale: Float = 1.0f
     ): RenderContext {
         // 根据缩放比例动态调整 fontWeight (100-400)
+        // 更激进的调整策略,从 1.2x 就开始大幅减轻
         val weight = when {
             scale <= 1.0f -> 400  // 正常大小
-            scale >= 2.5f -> 100  // 很高的括号，使用最细
+            scale >= 2.0f -> 100  // 较高的括号就使用最细
             else -> {
-                val t = (scale - 1.0f) / 1.5f
+                // 线性插值: scale 从 1.0 到 2.0,weight 从 400 到 100
+                val t = (scale - 1.0f) / 1.0f
                 (400 - t * 300).toInt().coerceIn(100, 400)
             }
         }
@@ -111,20 +113,20 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
 
         val scale = targetHeight / baseResult.size.height
 
-        // 根据实际缩放比例重新测量（应用动态 fontWeight）
-        val adjustedContext = delimiterContext(context, scale)
+        // 根据缩放比例调整 fontSize 和 fontWeight
+        val adjustedContext = delimiterContext(context, scale).copy(
+            fontSize = context.fontSize * scale
+        )
         val adjustedStyle = adjustedContext.textStyle()
         val adjustedResult = measurer.measure(AnnotatedString(delimiter), adjustedStyle)
 
-        // 使用 Canvas scale 而不是字体大小缩放，避免笔画变粗
+        // 直接使用调整后的字体大小,不使用 Canvas scale
         return NodeLayout(
-            width = adjustedResult.size.width * scale,
-            height = targetHeight,
-            baseline = adjustedResult.firstBaseline * scale
+            width = adjustedResult.size.width.toFloat(),
+            height = adjustedResult.size.height.toFloat(),
+            baseline = adjustedResult.firstBaseline
         ) { x, y ->
-            scale(scale, scale, pivot = Offset(x, y)) {
-                drawText(adjustedResult, topLeft = Offset(x, y))
-            }
+            drawText(adjustedResult, topLeft = Offset(x, y))
         }
     }
 

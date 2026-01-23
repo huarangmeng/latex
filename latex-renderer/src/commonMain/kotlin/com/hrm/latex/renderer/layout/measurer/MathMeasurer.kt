@@ -63,11 +63,13 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
         scale: Float = 1.0f
     ): RenderContext {
         // 根据缩放比例动态调整 fontWeight (100-400)
+        // 更激进的调整策略,从 1.2x 就开始大幅减轻
         val weight = when {
             scale <= 1.0f -> 400  // 正常大小
-            scale >= 2.5f -> 100  // 很高的括号，使用最细
+            scale >= 2.0f -> 100  // 较高的括号就使用最细
             else -> {
-                val t = (scale - 1.0f) / 1.5f
+                // 线性插值: scale 从 1.0 到 2.0,weight 从 400 到 100
+                val t = (scale - 1.0f) / 1.0f
                 (400 - t * 300).toInt().coerceIn(100, 400)
             }
         }
@@ -94,7 +96,7 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
         val baseContext = delimiterContext(context)
         val baseStyle = baseContext.textStyle()
         val baseResult = measurer.measure(AnnotatedString(delimiter), baseStyle)
-        
+
         if (baseResult.size.height <= 0f || targetHeight <= 0f) {
             return NodeLayout(
                 baseResult.size.width.toFloat(),
@@ -107,20 +109,20 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
 
         val scale = targetHeight / baseResult.size.height
 
-        // 根据实际缩放比例重新测量（应用动态 fontWeight）
-        val adjustedContext = delimiterContext(context, scale)
+        // 根据缩放比例调整 fontSize 和 fontWeight
+        val adjustedContext = delimiterContext(context, scale).copy(
+            fontSize = context.fontSize * scale
+        )
         val adjustedStyle = adjustedContext.textStyle()
         val adjustedResult = measurer.measure(AnnotatedString(delimiter), adjustedStyle)
 
-        // 使用 Canvas scale 而不是字体大小缩放，避免笔画变粗
+        // 直接使用调整后的字体大小,不使用 Canvas scale
         return NodeLayout(
-            width = adjustedResult.size.width * scale,
-            height = targetHeight,
-            baseline = adjustedResult.firstBaseline * scale
+            width = adjustedResult.size.width.toFloat(),
+            height = adjustedResult.size.height.toFloat(),
+            baseline = adjustedResult.firstBaseline
         ) { x, y ->
-            scale(scale, scale, pivot = Offset(x, y)) {
-                drawText(adjustedResult, topLeft = Offset(x, y))
-            }
+            drawText(adjustedResult, topLeft = Offset(x, y))
         }
     }
 
@@ -473,14 +475,14 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
         }
 
         // 根据缩放因子动态调整 fontWeight,防止笔画变粗
-        // 对所有大型运算符(非命名运算符)应用此调整
+        // 对所有大型运算符应用此调整
         val baseOpStyle = if (!isNamedOperator) {
-            // 计算 fontWeight: scaleFactor 从 1.0 到 2.0，weight 从 400 到 100
+            // 符号运算符(∑∫∏等): 较激进的 fontWeight 调整
             val weight = when {
                 scaleFactor <= 1.0f -> 400  // 正常或更小
-                scaleFactor >= 2.0f -> 100  // 很大，用最细
+                scaleFactor >= 2.0f -> 100  // 很大,用最细
                 else -> {
-                    // 线性插值: scaleFactor 从 1.0 到 2.0，weight 从 400 到 100
+                    // 线性插值: scaleFactor 从 1.0 到 2.0,weight 从 400 到 100
                     val t = (scaleFactor - 1.0f) / 1.0f
                     (400 - t * 300).toInt().coerceIn(100, 400)
                 }
@@ -491,8 +493,20 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
                 fontWeight = FontWeight(weight)
             )
         } else {
-            // 命名运算符(如 det, lim)使用正体,不调整 fontWeight
-            context.grow(scaleFactor).copy(fontStyle = FontStyle.Normal)
+            // 命名运算符(lim, max, det等): 温和的 fontWeight 调整
+            val weight = when {
+                scaleFactor <= 1.0f -> 400  // 正常或更小
+                scaleFactor >= 1.5f -> 300  // 较大时略微减轻
+                else -> {
+                    // 线性插值: scaleFactor 从 1.0 到 1.5,weight 从 400 到 300
+                    val t = (scaleFactor - 1.0f) / 0.5f
+                    (400 - t * 100).toInt().coerceIn(300, 400)
+                }
+            }
+            context.grow(scaleFactor).copy(
+                fontStyle = FontStyle.Normal,
+                fontWeight = FontWeight(weight)
+            )
         }
 
         val opStyle = baseOpStyle
@@ -529,7 +543,7 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
         } else {
             opStyle
         }
-        
+
         // 如果 fontWeight 改变了,重新测量
         val finalOpResult = if (adjustedOpStyle != opStyle) {
             measurer.measure(AnnotatedString(symbol), adjustedOpStyle.textStyle())
@@ -567,9 +581,9 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
         if (useSideMode) {
             // ============ 步骤1: 获取数学轴高度（用于对齐） ============
             val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-            
+
             // ============ 步骤2: 计算运算符的水平位置和视觉宽度 ============
-            
+
             // 对于某些符号（如积分、命名运算符），glyph 包含大量右侧空白，我们定义一个较窄的"视觉核心区"
             val opVisualWidth = when {
                 isIntegral -> with(density) { (context.fontSize * 0.22f).toPx() }  // 积分符号视觉核心区（缩小以让上下标更贴近）
@@ -588,7 +602,7 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
             val opActualLeft = if (opDrawX == 0f) opLayout.width else opVisualWidth
 
             // ============ 步骤3: 计算积分符号应该垂直居中的目标高度 ============
-            
+
             // 如果是积分符号且有高度暗示（来自括号内容），使用该高度
             // 否则使用运算符本身的高度
             val targetCenterHeight = if (isIntegral && context.bigOpHeightHint != null) {
@@ -596,7 +610,7 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
             } else {
                 opLayout.height
             }
-            
+
             // 积分符号应该垂直居中于目标高度（相对于数学轴）
             // 运算符的几何中心应该位于数学轴上
             val opCenterRelAxis = 0f  // 运算符中心对齐数学轴
@@ -618,9 +632,16 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
             }
 
             // 计算上下限的水平位置
-            // 上下标都使用相同的 X 坐标,紧贴积分符号视觉右边缘
+            // 上标紧贴积分符号视觉右边缘
             val superX = opVisualRight + limitSpacing
-            val subX = opVisualRight + limitSpacing
+
+            // 下标需要向左偏移,因为积分符号是倾斜的(从左上到右下)
+            // 让下标更贴近积分符号底部
+            val subX = if (isIntegral) {
+                opVisualRight + limitSpacing - with(density) { (context.fontSize * 0.12f).toPx() }
+            } else {
+                opVisualRight + limitSpacing
+            }
 
             // ============ 步骤5: 计算上下限的垂直位置 ============
 
@@ -672,7 +693,7 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
             return NodeLayout(width, totalHeight, baseline) { x, y ->
                 // 绘制运算符（相对于数学轴居中）
                 opLayout.draw(this, x + opDrawX, y + baseline + opTop)
-                
+
                 // 绘制上下限
                 superLayout?.draw(this, x + superX, y + baseline + superTop)
                 subLayout?.draw(this, x + subX, y + baseline + subTop)
