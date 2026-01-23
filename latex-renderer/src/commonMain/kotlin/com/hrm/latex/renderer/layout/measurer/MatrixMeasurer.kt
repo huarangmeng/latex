@@ -166,47 +166,48 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         val bracketType = node.type
         if (bracketType == LatexNode.Matrix.MatrixType.PLAIN) return contentLayout
 
+        // 括号高度应该略高于内容,形成包裹感
+        val delimiterPadding = with(density) { (context.fontSize * 0.15f).toPx() }
+        val delimiterHeight = contentLayout.height + delimiterPadding * 2
+
         // 使用字体渲染括号（而不是 Path）
         val leftChar = getDelimiterChar(bracketType, isLeft = true)
         val rightChar = getDelimiterChar(bracketType, isLeft = false)
 
         val leftLayout = if (leftChar.isNotEmpty()) {
-            measureDelimiterScaled(leftChar, context, measurer, contentLayout.height)
+            measureDelimiterScaled(leftChar, context, measurer, delimiterHeight)
         } else null
 
         val rightLayout = if (rightChar.isNotEmpty()) {
-            measureDelimiterScaled(rightChar, context, measurer, contentLayout.height)
+            measureDelimiterScaled(rightChar, context, measurer, delimiterHeight)
         } else null
 
         val leftW = leftLayout?.width ?: 0f
         val rightW = rightLayout?.width ?: 0f
 
         val width = leftW + contentLayout.width + rightW
-        val height = contentLayout.height
-        val baseline = contentLayout.baseline
+        val height = delimiterHeight
+        val baseline = contentLayout.baseline + delimiterPadding
 
         return NodeLayout(width, height, baseline) { x, y ->
             var curX = x
 
-            // 计算数学轴的绝对 Y 坐标
-            val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-            val contentAxisY = y + baseline - axisHeight
+            // 内容在括号内垂直居中
+            val contentY = y + (delimiterHeight - contentLayout.height) / 2f
 
-            // 绘制左侧括号:括号的几何中心应该对齐到数学轴
+            // 绘制左侧括号
             if (leftLayout != null) {
-                val delimiterTopY = contentAxisY - leftLayout.height / 2f
-                leftLayout.draw(this, curX, delimiterTopY)
+                leftLayout.draw(this, curX, y)
                 curX += leftLayout.width
             }
 
-            // 绘制内容
-            contentLayout.draw(this, curX, y)
+            // 绘制内容:垂直居中
+            contentLayout.draw(this, curX, contentY)
             curX += contentLayout.width
 
-            // 绘制右侧括号:与左侧相同的逻辑
+            // 绘制右侧括号
             if (rightLayout != null) {
-                val delimiterTopY = contentAxisY - rightLayout.height / 2f
-                rightLayout.draw(this, curX, delimiterTopY)
+                rightLayout.draw(this, curX, y)
             }
         }
     }
@@ -294,25 +295,27 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         val matrixLayout = measureMatrixLike(rows, context, measurer, density, measureGlobal, 
             alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.CENTER, ColumnAlignment.LEFT))
         
+        // 括号高度应该略高于内容,形成包裹感
+        val delimiterPadding = with(density) { (context.fontSize * 0.15f).toPx() }
+        val delimiterHeight = matrixLayout.height + delimiterPadding * 2
+        
         // 使用字体渲染大括号（而不是 Path）
         val leftChar = getDelimiterChar(LatexNode.Matrix.MatrixType.BRACE, isLeft = true)
-        val leftLayout = measureDelimiterScaled(leftChar, context, measurer, matrixLayout.height)
+        val leftLayout = measureDelimiterScaled(leftChar, context, measurer, delimiterHeight)
 
         val width = leftLayout.width + matrixLayout.width
-        val height = matrixLayout.height
-        val baseline = matrixLayout.baseline
+        val height = delimiterHeight
+        val baseline = matrixLayout.baseline + delimiterPadding
 
         return NodeLayout(width, height, baseline) { x, y ->
-            // 计算数学轴的绝对 Y 坐标
-            val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-            val contentAxisY = y + baseline - axisHeight
+            // 内容在括号内垂直居中
+            val contentY = y + (delimiterHeight - matrixLayout.height) / 2f
 
-            // 绘制左侧大括号:括号的几何中心应该对齐到数学轴
-            val delimiterTopY = contentAxisY - leftLayout.height / 2f
-            leftLayout.draw(this, x, delimiterTopY)
+            // 绘制左侧大括号
+            leftLayout.draw(this, x, y)
             
-            // 绘制内容
-            matrixLayout.draw(this, x + leftLayout.width, y)
+            // 绘制内容:垂直居中
+            matrixLayout.draw(this, x + leftLayout.width, contentY)
         }
     }
 

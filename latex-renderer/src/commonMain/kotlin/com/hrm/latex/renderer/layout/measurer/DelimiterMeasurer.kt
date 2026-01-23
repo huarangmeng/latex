@@ -94,44 +94,48 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         val leftStr = node.left
         val rightStr = node.right
 
+        // 括号高度应该略高于内容,形成包裹感
+        // 添加上下各 0.15em 的 padding (总共 0.3em)
+        val delimiterPadding = with(density) { (context.fontSize * 0.15f).toPx() }
+        val delimiterHeight = contentLayout.height + delimiterPadding * 2
+
         val leftLayout = if (leftStr != ".") {
-            measureDelimiterScaled(leftStr, context, measurer, contentLayout.height)
+            measureDelimiterScaled(leftStr, context, measurer, delimiterHeight)
         } else null
 
         val rightLayout = if (rightStr != ".") {
-            measureDelimiterScaled(rightStr, context, measurer, contentLayout.height)
+            measureDelimiterScaled(rightStr, context, measurer, delimiterHeight)
         } else null
 
         val leftW = leftLayout?.width ?: 0f
         val rightW = rightLayout?.width ?: 0f
 
         val width = leftW + contentLayout.width + rightW
-        val height = contentLayout.height
-        val baseline = contentLayout.baseline
+        val height = delimiterHeight
+        val baseline = contentLayout.baseline + delimiterPadding
 
         return NodeLayout(width, height, baseline) { x, y ->
             var curX = x
 
-            // 计算数学轴的绝对 Y 坐标
-            // 数学轴是相对于 baseline 的位置,用于居中运算符和括号
-            val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-            val contentAxisY = y + baseline - axisHeight
+            // 括号与内容都从 y 开始绘制
+            // 括号的高度是 delimiterHeight
+            // 内容的高度是 contentLayout.height
+            // 内容应该在括号内垂直居中,所以内容顶部 = y + (delimiterHeight - contentLayout.height) / 2
+            val contentY = y + (delimiterHeight - contentLayout.height) / 2f
 
-            // 绘制左侧括号:括号的几何中心应该对齐到数学轴
+            // 绘制左侧括号
             if (leftLayout != null) {
-                val delimiterTopY = contentAxisY - leftLayout.height / 2f
-                leftLayout.draw(this, curX, delimiterTopY)
+                leftLayout.draw(this, curX, y)
                 curX += leftLayout.width
             }
 
-            // 绘制内容
-            contentLayout.draw(this, curX, y)
+            // 绘制内容:垂直居中
+            contentLayout.draw(this, curX, contentY)
             curX += contentLayout.width
 
-            // 绘制右侧括号:与左侧相同的逻辑
+            // 绘制右侧括号
             if (rightLayout != null) {
-                val delimiterTopY = contentAxisY - rightLayout.height / 2f
-                rightLayout.draw(this, curX, delimiterTopY)
+                rightLayout.draw(this, curX, y)
             }
         }
     }
@@ -231,10 +235,16 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
             delimiterContext(context, delimiter, scaleFactor).copy(fontSize = context.fontSize * scaleFactor)
         val result = measurer.measure(AnnotatedString(delimiter), delimiterStyle.textStyle())
 
+        // 括号应该相对于数学轴居中
+        // baseline 应该设置为:数学轴位置 = height/2 + axisHeight
+        val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
+        val height = result.size.height.toFloat()
+        val baseline = height / 2f + axisHeight
+
         return NodeLayout(
             result.size.width.toFloat(),
-            result.size.height.toFloat(),
-            result.firstBaseline
+            height,
+            baseline
         ) { x, y ->
             drawText(result, topLeft = androidx.compose.ui.geometry.Offset(x, y))
         }

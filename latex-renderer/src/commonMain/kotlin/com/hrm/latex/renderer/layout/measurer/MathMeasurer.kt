@@ -472,25 +472,37 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
             else -> 1.3f
         }
 
-        val opStyle = context.grow(scaleFactor).let {
-            if (isNamedOperator) {
-                // 命名运算符（如 det, lim）使用正体
-                it.copy(fontStyle = FontStyle.Normal)
-            } else {
-                // 大型运算符（∑∫∏等）使用 cmex10 (extension) 字体
-                it.copy(
-                    fontFamily = context.fontFamilies?.extension ?: context.fontFamily,
-                    fontStyle = FontStyle.Normal
-                )
+        // 根据缩放因子动态调整 fontWeight,防止笔画变粗
+        // 对所有大型运算符(非命名运算符)应用此调整
+        val baseOpStyle = if (!isNamedOperator) {
+            // 计算 fontWeight: scaleFactor 从 1.0 到 2.0，weight 从 400 到 100
+            val weight = when {
+                scaleFactor <= 1.0f -> 400  // 正常或更小
+                scaleFactor >= 2.0f -> 100  // 很大，用最细
+                else -> {
+                    // 线性插值: scaleFactor 从 1.0 到 2.0，weight 从 400 到 100
+                    val t = (scaleFactor - 1.0f) / 1.0f
+                    (400 - t * 300).toInt().coerceIn(100, 400)
+                }
             }
+            context.grow(scaleFactor).copy(
+                fontFamily = context.fontFamilies?.extension ?: context.fontFamily,
+                fontStyle = FontStyle.Normal,
+                fontWeight = FontWeight(weight)
+            )
+        } else {
+            // 命名运算符(如 det, lim)使用正体,不调整 fontWeight
+            context.grow(scaleFactor).copy(fontStyle = FontStyle.Normal)
         }
+
+        val opStyle = baseOpStyle
         val limitStyle = context.shrink(LatexConstants.OPERATOR_LIMIT_SCALE_FACTOR)
 
         // 测量运算符符号
         val textStyle = opStyle.textStyle()
         val opResult = measurer.measure(AnnotatedString(symbol), textStyle)
 
-        // 如果存在高度暗示且是积分符号，通过垂直拉伸（stretching）来匹配高度
+        // 如果存在高度暗示且是积分符号,通过垂直拉伸来匹配高度
         var verticalScale = 1.0f
         if (isIntegral && context.bigOpHeightHint != null && context.mathStyle == RenderContext.MathStyleMode.DISPLAY) {
             val targetHeight = context.bigOpHeightHint * 1.05f
@@ -500,23 +512,25 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
             }
         }
 
-        // 根据垂直拉伸比例动态调整 fontWeight（类似括号的处理）
+        // 对于额外的垂直拉伸,进一步调整 fontWeight
         val adjustedOpStyle = if (verticalScale > 1.0f) {
-            // 计算 fontWeight：verticalScale 从 1.0 到 2.5，weight 从 400 到 100
-            val weight = when {
-                verticalScale <= 1.0f -> 400  // 正常大小
-                verticalScale >= 2.5f -> 100  // 拉伸很多，用最细
+            // 获取当前的 fontWeight (已经根据 scaleFactor 调整过)
+            val currentWeight = opStyle.fontWeight?.weight ?: 400
+            // 根据 verticalScale 进一步减少 weight
+            val additionalReduction = when {
+                verticalScale >= 2.0f -> 200  // 额外减少200
                 else -> {
-                    val t = (verticalScale - 1.0f) / 1.5f
-                    (400 - t * 300).toInt().coerceIn(100, 400)
+                    val t = (verticalScale - 1.0f) / 1.0f
+                    (t * 200).toInt()
                 }
             }
-            opStyle.copy(fontWeight = androidx.compose.ui.text.font.FontWeight(weight))
+            val finalWeight = (currentWeight - additionalReduction).coerceIn(100, 400)
+            opStyle.copy(fontWeight = FontWeight(finalWeight))
         } else {
             opStyle
         }
         
-        // 如果 fontWeight 改变了，重新测量
+        // 如果 fontWeight 改变了,重新测量
         val finalOpResult = if (adjustedOpStyle != opStyle) {
             measurer.measure(AnnotatedString(symbol), adjustedOpStyle.textStyle())
         } else {
@@ -710,37 +724,38 @@ internal class MathMeasurer : NodeMeasurer<LatexNode> {
 
         val gap = with(density) { (context.fontSize * 0.2f).toPx() }
         val contentWidth = max(numLayout.width, denLayout.width)
-        val height = numLayout.height + denLayout.height + gap
+        val contentHeight = numLayout.height + denLayout.height + gap
+
+        // 括号高度应该略高于内容,形成包裹感
+        val delimiterPadding = with(density) { (context.fontSize * 0.15f).toPx() }
+        val delimiterHeight = contentHeight + delimiterPadding * 2
 
         // 修正：二项式系数的基准线应与数学轴对齐，而非简单的几何中心
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-        val center = numLayout.height + gap / 2f
+        val center = numLayout.height + gap / 2f + delimiterPadding
         val baseline = center + axisHeight
 
         // 使用字体渲染括号（而不是 Path）
-        val leftLayout = measureDelimiterScaled("(", context, measurer, height)
-        val rightLayout = measureDelimiterScaled(")", context, measurer, height)
+        val leftLayout = measureDelimiterScaled("(", context, measurer, delimiterHeight)
+        val rightLayout = measureDelimiterScaled(")", context, measurer, delimiterHeight)
 
         val width = leftLayout.width + contentWidth + rightLayout.width
 
-        return NodeLayout(width, height, baseline) { x, y ->
-            // 计算数学轴的绝对 Y 坐标
-            val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-            val contentAxisY = y + baseline - axisHeight
+        return NodeLayout(width, delimiterHeight, baseline) { x, y ->
+            // 内容在括号内垂直居中
+            val contentY = y + (delimiterHeight - contentHeight) / 2f
 
-            // 绘制左侧括号:括号的几何中心应该对齐到数学轴
-            val leftDelimiterTopY = contentAxisY - leftLayout.height / 2f
-            leftLayout.draw(this, x, leftDelimiterTopY)
+            // 绘制左侧括号
+            leftLayout.draw(this, x, y)
 
-            // 绘制内容
+            // 绘制内容:垂直居中
             val numX = x + leftLayout.width + (contentWidth - numLayout.width) / 2
             val denX = x + leftLayout.width + (contentWidth - denLayout.width) / 2
-            numLayout.draw(this, numX, y)
-            denLayout.draw(this, denX, y + numLayout.height + gap)
+            numLayout.draw(this, numX, contentY)
+            denLayout.draw(this, denX, contentY + numLayout.height + gap)
 
-            // 绘制右侧括号:与左侧相同的逻辑
-            val rightDelimiterTopY = contentAxisY - rightLayout.height / 2f
-            rightLayout.draw(this, x + leftLayout.width + contentWidth, rightDelimiterTopY)
+            // 绘制右侧括号
+            rightLayout.draw(this, x + leftLayout.width + contentWidth, y)
         }
     }
 }
