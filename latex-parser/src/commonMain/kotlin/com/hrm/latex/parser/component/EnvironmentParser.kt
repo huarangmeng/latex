@@ -202,10 +202,8 @@ class EnvironmentParser(private val context: LatexParserContext) {
                         tokenStream.advance()
                         break
                     } else {
-                        val node = context.parseExpression()
-                        if (node != null) {
-                            currentCell.add(node)
-                        }
+                        // mismatched end environment - advance to avoid infinite loop
+                        tokenStream.advance()
                     }
                 }
 
