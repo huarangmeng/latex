@@ -51,7 +51,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
 
             "smallmatrix" -> parseMatrix("matrix", isSmall = true)
             "array" -> parseArray()
-            "align", "aligned", "gather", "gathered" -> parseAligned()
+            "align", "aligned", "gather", "gathered" -> parseAligned(envName)
             "split" -> parseSplit()
             "multline" -> parseMultline()
             "eqnarray" -> parseEqnarray()
@@ -167,7 +167,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
     /**
      * 解析对齐环境
      */
-    private fun parseAligned(): LatexNode.Aligned {
+    private fun parseAligned(envName: String): LatexNode.Aligned {
         // Aligned parsing is slightly different in original code because it didn't check for EndEnvironment name strictly in loop?
         // Original code:
         /*
@@ -192,15 +192,21 @@ class EnvironmentParser(private val context: LatexParserContext) {
         while (!tokenStream.isEOF()) {
             when (val token = tokenStream.peek()) {
                 is LatexToken.EndEnvironment -> {
-                    // Original code: simply breaks on EndEnvironment
-                    if (currentCell.isNotEmpty()) {
-                        currentRow.add(LatexNode.Group(currentCell))
+                    if (token.name == envName) {
+                        if (currentCell.isNotEmpty()) {
+                            currentRow.add(LatexNode.Group(currentCell))
+                        }
+                        if (currentRow.isNotEmpty()) {
+                            rows.add(currentRow)
+                        }
+                        tokenStream.advance()
+                        break
+                    } else {
+                        val node = context.parseExpression()
+                        if (node != null) {
+                            currentCell.add(node)
+                        }
                     }
-                    if (currentRow.isNotEmpty()) {
-                        rows.add(currentRow)
-                    }
-                    tokenStream.advance()
-                    break
                 }
 
                 is LatexToken.Ampersand -> {
