@@ -203,6 +203,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
                         break
                     } else {
                         // mismatched end environment - advance to avoid infinite loop
+                        HLog.w(TAG, "mismatched end environment: expected $envName, got ${token.name}")
                         tokenStream.advance()
                     }
                 }
