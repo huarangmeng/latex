@@ -263,4 +263,43 @@ class NewCommandTest {
         val style = styleNode as LatexNode.Style
         assertEquals(LatexNode.Style.StyleType.BOLD_SYMBOL, style.styleType, "应该是 BOLD_SYMBOL 样式")
     }
+
+    @Test
+    fun should_expand_binomial_in_custom_command() {
+        val parser = LatexParser()
+        val input = "\\newcommand{\\mychoose}[2]{\\binom{#1}{#2}} \\mychoose{n}{k}"
+        val result = parser.parse(input)
+
+        assertTrue(parser.customCommands.containsKey("mychoose"))
+
+        val lastNode = result.children.last()
+        assertTrue(lastNode is LatexNode.Group, "custom command should expand to Group")
+
+        val group = lastNode as LatexNode.Group
+        val binomial = group.children.find { it is LatexNode.Binomial }
+        assertTrue(binomial != null, "expanded result should contain Binomial")
+
+        val binom = binomial as LatexNode.Binomial
+        // verify parameters were replaced (not #1 and #2)
+        fun extractText(node: LatexNode): String = when (node) {
+            is LatexNode.Text -> node.content
+            is LatexNode.Group -> node.children.joinToString("") { extractText(it) }
+            else -> ""
+        }
+        val topText = extractText(binom.top)
+        val bottomText = extractText(binom.bottom)
+        assertEquals("n", topText, "top should be 'n' not '#1'")
+        assertEquals("k", bottomText, "bottom should be 'k' not '#2'")
+    }
+
+    @Test
+    fun should_expand_binomial_with_complex_args() {
+        val parser = LatexParser()
+        val input = "\\newcommand{\\C}[2]{\\binom{#1}{#2}} \\C{n+1}{k-1}"
+        val result = parser.parse(input)
+
+        val lastNode = result.children.last() as LatexNode.Group
+        val binomial = lastNode.children.find { it is LatexNode.Binomial }
+        assertTrue(binomial != null, "should contain Binomial after expansion")
+    }
 }

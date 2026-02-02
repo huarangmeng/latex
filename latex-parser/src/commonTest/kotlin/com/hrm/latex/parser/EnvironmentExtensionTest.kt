@@ -276,4 +276,56 @@ class EnvironmentExtensionTest {
         // 空环境可能产生0行或1个空行,都是合理的
         assertTrue(split.rows.size <= 1)
     }
+
+    // ========== nested environment tests (regression for infinite loop fix) ==========
+
+    @Test
+    fun testAlignedInsideAlign() {
+        // this used to cause infinite loop when parseAligned encountered mismatched EndEnvironment
+        val doc = parser.parse(
+            """
+            \begin{align}
+            \begin{aligned}
+            x &= 1 \\
+            y &= 2
+            \end{aligned}
+            \end{align}
+        """.trimIndent()
+        )
+        assertTrue(doc.children[0] is LatexNode.Aligned)
+    }
+
+    @Test
+    fun testNestedAlignedEnvironments() {
+        // regression test: mismatched EndEnvironment should not cause infinite loop
+        val doc = parser.parse(
+            """
+            \begin{equation}
+            \begin{aligned}
+            a &= b \\
+            c &= d
+            \end{aligned}
+            \end{equation}
+        """.trimIndent()
+        )
+        assertTrue(doc.children[0] is LatexNode.Environment)
+        val env = doc.children[0] as LatexNode.Environment
+        assertEquals("equation", env.name)
+        assertTrue(env.content.any { it is LatexNode.Aligned })
+    }
+
+    @Test
+    fun testGatherInsideSubequations() {
+        val doc = parser.parse(
+            """
+            \begin{subequations}
+            \begin{gather}
+            x = 1 \\
+            y = 2
+            \end{gather}
+            \end{subequations}
+        """.trimIndent()
+        )
+        assertTrue(doc.children[0] is LatexNode.Subequations)
+    }
 }
