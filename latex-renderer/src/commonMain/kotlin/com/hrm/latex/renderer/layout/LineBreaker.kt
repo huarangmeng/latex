@@ -56,7 +56,7 @@ internal class LineBreaker(private val maxWidth: Float) {
     /**
      * break state using index ranges to avoid list copying
      */
-    private class BreakState(private val widths: FloatArray) {
+    private class BreakState {
         val lineRanges = ArrayList<IntRange>(4)
         var lineStart = 0
         var currentPos = 0
@@ -122,7 +122,7 @@ internal class LineBreaker(private val maxWidth: Float) {
             return listOf(nodes.indices.toList())
         }
 
-        val state = BreakState(widths)
+        val state = BreakState()
         var depth = 0
 
         for (i in nodes.indices) {
