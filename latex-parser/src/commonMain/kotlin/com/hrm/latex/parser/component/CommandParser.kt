@@ -599,14 +599,8 @@ class CommandParser(
                                 val paramNum = text[i + 1].toString().toInt()
                                 if (paramNum > 0 && paramNum <= args.size) {
                                     result.add(args[paramNum - 1])
-                                } else {
-                                    result.add(LatexNode.Text("#${text[i + 1]}"))
                                 }
                                 i += 2
-                            } else if (text[i] == '#') {
-                                // lone # or # not followed by digit - treat as literal
-                                result.add(LatexNode.Text("#"))
-                                i++
                             } else {
                                 val start = i
                                 while (i < text.length && text[i] != '#') i++
@@ -665,45 +659,6 @@ class CommandParser(
                         listOf(LatexNode.Command(node.name, expandedArgs))
                     }
                 }
-                is LatexNode.Color -> listOf(LatexNode.Color(
-                    replaceParameters(node.content, args),
-                    node.color
-                ))
-                is LatexNode.Accent -> listOf(LatexNode.Accent(
-                    replaceParametersInNode(node.content, args),
-                    node.accentType
-                ))
-                is LatexNode.BigOperator -> listOf(LatexNode.BigOperator(
-                    node.operator,
-                    node.subscript?.let { replaceParametersInNode(it, args) },
-                    node.superscript?.let { replaceParametersInNode(it, args) },
-                    node.limitsMode
-                ))
-                is LatexNode.MathStyle -> listOf(LatexNode.MathStyle(
-                    replaceParameters(node.content, args),
-                    node.mathStyleType
-                ))
-                is LatexNode.Boxed -> listOf(LatexNode.Boxed(
-                    replaceParameters(node.content, args)
-                ))
-                is LatexNode.Phantom -> listOf(LatexNode.Phantom(
-                    replaceParameters(node.content, args)
-                ))
-                is LatexNode.Stack -> listOf(LatexNode.Stack(
-                    replaceParametersInNode(node.base, args),
-                    node.above?.let { replaceParametersInNode(it, args) },
-                    node.below?.let { replaceParametersInNode(it, args) }
-                ))
-                is LatexNode.ExtensibleArrow -> listOf(LatexNode.ExtensibleArrow(
-                    replaceParametersInNode(node.content, args),
-                    node.below?.let { replaceParametersInNode(it, args) },
-                    node.direction
-                ))
-                is LatexNode.Binomial -> listOf(LatexNode.Binomial(
-                    replaceParametersInNode(node.top, args),
-                    replaceParametersInNode(node.bottom, args),
-                    node.style
-                ))
                 else -> listOf(node)
             }
         }

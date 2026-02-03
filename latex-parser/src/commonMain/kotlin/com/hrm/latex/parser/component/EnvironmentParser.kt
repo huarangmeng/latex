@@ -51,7 +51,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
 
             "smallmatrix" -> parseMatrix("matrix", isSmall = true)
             "array" -> parseArray()
-            "align", "aligned", "gather", "gathered" -> parseAligned(envName)
+            "align", "aligned", "gather", "gathered" -> parseAligned()
             "split" -> parseSplit()
             "multline" -> parseMultline()
             "eqnarray" -> parseEqnarray()
@@ -167,7 +167,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
     /**
      * 解析对齐环境
      */
-    private fun parseAligned(envName: String): LatexNode.Aligned {
+    private fun parseAligned(): LatexNode.Aligned {
         // Aligned parsing is slightly different in original code because it didn't check for EndEnvironment name strictly in loop?
         // Original code:
         /*
@@ -192,20 +192,15 @@ class EnvironmentParser(private val context: LatexParserContext) {
         while (!tokenStream.isEOF()) {
             when (val token = tokenStream.peek()) {
                 is LatexToken.EndEnvironment -> {
-                    if (token.name == envName) {
-                        if (currentCell.isNotEmpty()) {
-                            currentRow.add(LatexNode.Group(currentCell))
-                        }
-                        if (currentRow.isNotEmpty()) {
-                            rows.add(currentRow)
-                        }
-                        tokenStream.advance()
-                        break
-                    } else {
-                        // mismatched end environment - advance to avoid infinite loop
-                        HLog.w(TAG, "mismatched end environment: expected $envName, got ${token.name}")
-                        tokenStream.advance()
+                    // Original code: simply breaks on EndEnvironment
+                    if (currentCell.isNotEmpty()) {
+                        currentRow.add(LatexNode.Group(currentCell))
                     }
+                    if (currentRow.isNotEmpty()) {
+                        rows.add(currentRow)
+                    }
+                    tokenStream.advance()
+                    break
                 }
 
                 is LatexToken.Ampersand -> {

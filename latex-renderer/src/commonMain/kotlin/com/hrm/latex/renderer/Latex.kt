@@ -25,7 +25,6 @@ package com.hrm.latex.renderer
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +41,6 @@ import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.measureGroup
 import com.hrm.latex.renderer.model.LatexConfig
-import com.hrm.latex.renderer.model.LineBreakingConfig
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.toContext
 import kotlinx.coroutines.Dispatchers
@@ -134,46 +132,6 @@ fun Latex(
         context = context,
         backgroundColor = resolvedBackgroundColor
     )
-}
-
-/**
- * latex renderer with automatic line breaking based on container width
- *
- * this composable automatically wraps long equations to fit within the parent container.
- * line breaks occur at logical points: after relation symbols (=, <, >) and
- * binary operators (+, -, ×).
- *
- * @param latex latex string (supports incremental input)
- * @param modifier modifier
- * @param config rendering configuration (font size, colors, etc.)
- * @param isDarkTheme dark theme flag (defaults to system setting)
- */
-@Composable
-fun LatexAutoWrap(
-    latex: String,
-    modifier: Modifier = Modifier,
-    config: LatexConfig = LatexConfig(),
-    isDarkTheme: Boolean = isSystemInDarkTheme()
-) {
-    val density = LocalDensity.current
-
-    BoxWithConstraints(modifier = modifier) {
-        val maxWidthPx = with(density) { maxWidth.toPx() }
-
-        val wrappingConfig = config.copy(
-            lineBreaking = LineBreakingConfig(
-                enabled = true,
-                maxWidth = maxWidthPx
-            )
-        )
-
-        Latex(
-            latex = latex,
-            modifier = Modifier,
-            config = wrappingConfig,
-            isDarkTheme = isDarkTheme
-        )
-    }
 }
 
 /**

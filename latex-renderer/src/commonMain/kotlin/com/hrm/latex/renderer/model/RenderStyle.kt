@@ -43,19 +43,7 @@ data class LatexConfig(
     val backgroundColor: Color = Color.Transparent,
     val darkBackgroundColor: Color = Color.Transparent,
     val baseFontFamily: FontFamily? = null,
-    val fontFamilies: LatexFontFamilies? = null,
-    val lineBreaking: LineBreakingConfig = LineBreakingConfig()
-)
-
-/**
- * line breaking configuration
- *
- * @property enabled whether automatic line breaking is enabled
- * @property maxWidth maximum line width in pixels, null means no limit
- */
-data class LineBreakingConfig(
-    val enabled: Boolean = false,
-    val maxWidth: Float? = null
+    val fontFamilies: LatexFontFamilies? = null
 )
 
 /**
@@ -71,9 +59,7 @@ internal data class RenderContext(
     val fontFamilies: LatexFontFamilies? = null,
     val isVariantFontFamily: Boolean = false,
     val mathStyle: MathStyleMode = MathStyleMode.DISPLAY,
-    val bigOpHeightHint: Float? = null, // 大型运算符（如积分）的高度暗示
-    val maxLineWidth: Float? = null,
-    val lineBreakingEnabled: Boolean = false
+    val bigOpHeightHint: Float? = null // 大型运算符（如积分）的高度暗示
 ) {
     enum class MathStyleMode {
         DISPLAY,         // \displaystyle
@@ -106,9 +92,7 @@ internal fun LatexConfig.toContext(isDark: Boolean): RenderContext {
         color = resolvedColor,
         fontFamily = baseFontFamily,
         fontFamilies = fontFamilies,
-        isVariantFontFamily = false,
-        maxLineWidth = if (lineBreaking.enabled) lineBreaking.maxWidth else null,
-        lineBreakingEnabled = lineBreaking.enabled
+        isVariantFontFamily = false
     )
 }
 
