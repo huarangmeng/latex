@@ -18,6 +18,7 @@
 - **多平台一致性**：使用 Compose Multiplatform 实现跨平台 UI 渲染。
 - **化学公式支持**：内置 `\ce{...}` 插件支持。
 - **样式定制**：支持颜色（`\color`）、方框（`\boxed`）和数学模式切换（`\displaystyle` 等）。
+- **自动换行**：长公式在逻辑断点（运算符、关系符）处智能换行。
 
 ## 📸 渲染预览
 
@@ -50,6 +51,25 @@ fun MyScreen() {
     )
 }
 ```
+
+### 自动换行
+
+对于需要在容器宽度内自动换行的长公式，使用 `LatexAutoWrap`：
+
+```kotlin
+import com.hrm.latex.renderer.LatexAutoWrap
+
+@Composable
+fun MyScreen() {
+    LatexAutoWrap(
+        latex = "E = mc^2 + \\frac{p^2}{2m} + V(x) + \\frac{1}{2}kx^2",
+        modifier = Modifier.fillMaxWidth(),
+        config = LatexConfig(fontSize = 20.sp)
+    )
+}
+```
+
+换行发生在数学上有效的位置：关系运算符（`=`、`<`、`>`），然后是加法运算符（`+`、`-`），然后是乘法运算符（`×`、`÷`）。分数、根号、矩阵等原子结构不会被拆分。
 
 ## 📦 安装
 

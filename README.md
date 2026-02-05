@@ -18,6 +18,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Multi-platform Consistency**: Uses Compose Multiplatform for cross-platform UI rendering.
 - **Chemical Formula Support**: Built-in support for the `\ce{...}` plugin.
 - **Style Customization**: Supports colors (`\color`), boxes (`\boxed`), and math mode switching (`\displaystyle`, etc.).
+- **Automatic Line Breaking**: Smart line wrapping for long formulas at logical breakpoints (operators, relations).
 
 ## 📸 Rendering Preview
 
@@ -50,6 +51,25 @@ fun MyScreen() {
     )
 }
 ```
+
+### Automatic Line Wrapping
+
+For long formulas that need to wrap within the container width, use `LatexAutoWrap`:
+
+```kotlin
+import com.hrm.latex.renderer.LatexAutoWrap
+
+@Composable
+fun MyScreen() {
+    LatexAutoWrap(
+        latex = "E = mc^2 + \\frac{p^2}{2m} + V(x) + \\frac{1}{2}kx^2",
+        modifier = Modifier.fillMaxWidth(),
+        config = LatexConfig(fontSize = 20.sp)
+    )
+}
+```
+
+Line breaks occur at mathematically valid points: relation operators (`=`, `<`, `>`), then additive operators (`+`, `-`), then multiplicative operators (`×`, `÷`). Atomic structures like fractions, roots, and matrices are never broken.
 
 ## 📦 Installation
 
