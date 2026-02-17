@@ -44,6 +44,7 @@ import com.hrm.latex.renderer.layout.measureGroup
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LineBreakingConfig
 import com.hrm.latex.renderer.model.RenderContext
+import com.hrm.latex.renderer.model.defaultLatexFontFamilies
 import com.hrm.latex.renderer.model.toContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -79,8 +80,15 @@ fun Latex(
         config.backgroundColor
     }
 
+    // resolve default font families when not explicitly provided
+    val resolvedConfig = if (config.fontFamilies == null) {
+        config.copy(fontFamilies = defaultLatexFontFamilies())
+    } else {
+        config
+    }
+
     // 构建初始渲染上下文
-    val context = config.toContext(isDarkTheme)
+    val context = resolvedConfig.toContext(isDarkTheme)
 
     // 复用解析器实例以支持真正的增量解析
     val parser = remember { IncrementalLatexParser() }
