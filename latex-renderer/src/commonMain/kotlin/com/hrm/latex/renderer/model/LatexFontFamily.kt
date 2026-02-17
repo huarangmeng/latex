@@ -237,7 +237,7 @@ data class LatexFontFamilies(
  * - MicroTeX 的实际配置也是使用完整版字体
  */
 @Composable
-internal fun defaultLatexFontFamilies(): LatexFontFamilies {
+fun defaultLatexFontFamilies(): LatexFontFamilies {
     // === 文本字体：使用完整版 ===
     // cmr10 - Computer Modern Roman，包含完整拉丁字母表
     val roman = FontFamily(
