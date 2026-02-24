@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
@@ -35,6 +36,7 @@ import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.utils.LayoutUtils
+import com.hrm.latex.renderer.utils.isMobilePlatform
 
 /**
  * 定界符测量器
@@ -145,23 +147,28 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         delimiter: String,
         scale: Float = 1.0f
     ): RenderContext {
-        // 根据缩放比例动态调整 fontWeight (100-400)
-        // 更激进的调整策略,从 1.2x 就开始大幅减轻
         val weight = when {
-            scale <= 1.0f -> 400  // 正常大小
-            scale >= 2.0f -> 100  // 较高的括号就使用最细
+            scale <= 1.0f -> 400
+            scale >= 2.0f -> 100
             else -> {
-                // 线性插值: scale 从 1.0 到 2.0,weight 从 400 到 100
                 val t = (scale - 1.0f) / 1.0f
                 (400 - t * 300).toInt().coerceIn(100, 400)
             }
         }
-
         val fontWeight = FontWeight(weight)
+
+        // cmsy10 的 TeX 编码在桌面端(JVM/JS/WASM)会导致 ( ) [ ] 字形错误。
+        // 桌面端回退到系统 SansSerif 字体；移动端不受影响。
+        val useFallback = !isMobilePlatform() && delimiter in setOf("(", ")", "[", "]")
+        val fontFamily = if (useFallback) {
+            FontFamily.SansSerif
+        } else {
+            context.fontFamilies?.symbol ?: context.fontFamily
+        }
 
         return context.copy(
             fontStyle = FontStyle.Normal,
-            fontFamily = context.fontFamilies?.symbol ?: context.fontFamily,
+            fontFamily = fontFamily,
             fontWeight = fontWeight
         )
     }

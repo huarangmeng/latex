@@ -200,16 +200,18 @@ private fun LatexDocument(
         measureGroup(children, context, measurer, density)
     }
 
-    val widthDp = with(density) { layout.width.toDp() }
+    // 为斜体文字和特殊字体（cmmi10, cmex10 等）预留安全边距，
+    // 防止 glyph 溢出测量宽度导致内容被截断
+    val safetyPadding = with(density) { context.fontSize.toPx() * 0.15f }
+    val widthDp = with(density) { (layout.width + safetyPadding * 2).toDp() }
     val heightDp = with(density) { layout.height.toDp() }
 
-    // 确保 Canvas 的大小被正确设置，不受外部 modifier 的影响
     Canvas(modifier = modifier.size(widthDp, heightDp)) {
         // 绘制背景
         if (backgroundColor != Color.Unspecified && backgroundColor != Color.Transparent) {
             drawRect(color = backgroundColor)
         }
-        // 绘制内容
-        layout.draw(this, 0f, 0f)
+        // 内容绘制时加上左侧安全边距偏移
+        layout.draw(this, safetyPadding, 0f)
     }
 }

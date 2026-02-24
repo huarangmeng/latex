@@ -39,7 +39,6 @@ import com.hrm.latex.renderer.utils.MathFontUtils
 import com.hrm.latex.renderer.utils.isCenteredSymbol
 import com.hrm.latex.renderer.utils.parseDimension
 import com.hrm.latex.renderer.utils.spaceWidthPx
-import com.hrm.latex.renderer.utils.isMobilePlatform
 
 /**
  * 文本内容测量器
@@ -82,16 +81,14 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
     private fun measureText(
         text: String, context: RenderContext, measurer: TextMeasurer
     ): NodeLayout {
-        // 平台相关的字体处理策略：
-        // - PC 端 (JVM/JS/WASM): cmsy10 等字体的 cmap 表完整，直接使用原始字符
-        // - 移动端 (Android/iOS): cmsy10 的 cmap 表不完整，CALLIGRAPHIC 需要 Unicode 映射
-        val needsUnicodeMapping = isMobilePlatform() && 
-                                  context.fontVariant == RenderContext.FontVariant.CALLIGRAPHIC
-        
-        val transformedText = if (context.isVariantFontFamily && !needsUnicodeMapping) {
-            text  // 直接使用原始字符，字体文件提供字形
+        // 字体变体处理逻辑：
+        // - 如果设置了变体字体家族(如 blackboardBold, calligraphic 等)，优先使用字体文件自身的字形
+        // - 否则，使用 Unicode 数学字母作为降级方案
+        val transformedText = if (context.isVariantFontFamily) {
+            // 直接使用原始字符，让字体文件提供正确的字形
+            text
         } else {
-            // 使用 Unicode 数学字母映射
+            // 使用 Unicode 数学字母映射作为降级方案
             applyFontVariant(text, context.fontVariant)
         }
 

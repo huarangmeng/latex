@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
@@ -35,6 +36,7 @@ import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
+import com.hrm.latex.renderer.utils.isMobilePlatform
 import com.hrm.latex.renderer.utils.LayoutUtils
 import kotlin.math.max
 
@@ -60,29 +62,33 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
     }
 
     /**
-     * 获取定界符的渲染上下文（使用 symbol 字体）
+     * 获取定界符的渲染上下文
      */
     private fun delimiterContext(
         context: RenderContext,
+        delimiter: String = "(",
         scale: Float = 1.0f
     ): RenderContext {
-        // 根据缩放比例动态调整 fontWeight (100-400)
-        // 更激进的调整策略,从 1.2x 就开始大幅减轻
         val weight = when {
-            scale <= 1.0f -> 400  // 正常大小
-            scale >= 2.0f -> 100  // 较高的括号就使用最细
+            scale <= 1.0f -> 400
+            scale >= 2.0f -> 100
             else -> {
-                // 线性插值: scale 从 1.0 到 2.0,weight 从 400 到 100
                 val t = (scale - 1.0f) / 1.0f
                 (400 - t * 300).toInt().coerceIn(100, 400)
             }
         }
-
         val fontWeight = FontWeight(weight)
+
+        val useFallback = !isMobilePlatform() && delimiter in setOf("(", ")", "[", "]")
+        val fontFamily = if (useFallback) {
+            FontFamily.SansSerif
+        } else {
+            context.fontFamilies?.symbol ?: context.fontFamily
+        }
 
         return context.copy(
             fontStyle = FontStyle.Normal,
-            fontFamily = context.fontFamilies?.symbol ?: context.fontFamily,
+            fontFamily = fontFamily,
             fontWeight = fontWeight
         )
     }
@@ -97,7 +103,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         targetHeight: Float
     ): NodeLayout {
         // 先用默认 weight 测量获取基础高度
-        val baseContext = delimiterContext(context)
+        val baseContext = delimiterContext(context, delimiter)
         val baseStyle = baseContext.textStyle()
         val baseResult = measurer.measure(AnnotatedString(delimiter), baseStyle)
         
@@ -114,7 +120,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         val scale = targetHeight / baseResult.size.height
 
         // 根据缩放比例调整 fontSize 和 fontWeight
-        val adjustedContext = delimiterContext(context, scale).copy(
+        val adjustedContext = delimiterContext(context, delimiter, scale).copy(
             fontSize = context.fontSize * scale
         )
         val adjustedStyle = adjustedContext.textStyle()

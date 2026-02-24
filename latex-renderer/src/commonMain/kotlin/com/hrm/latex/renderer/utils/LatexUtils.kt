@@ -29,9 +29,12 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.LatexNode.Space.SpaceType
 import com.hrm.latex.renderer.model.RenderContext
+
+const val TAG = "LatexUtils"
 
 /**
  * 分割多行内容
@@ -173,21 +176,20 @@ fun parseColor(color: String): Color? {
                 "teal" -> Color(0xFF008080.toInt())
                 "violet" -> Color(0xFFEE82EE.toInt())
                 else -> {
-                    println("⚠️ Unknown color: '$color' (trimmed: '$trimmed')")
+                    HLog.e(TAG, "⚠️ Unknown color: '$color' (trimmed: '$trimmed')")
                     null
                 }
             }
         }
     } catch (e: Exception) {
-        println("❌ Error parsing color '$color': ${e.message}")
-        e.printStackTrace()
+        HLog.e(TAG, "❌ Error parsing color '$color': ${e.message}", e)
         null
     }
 }
 
 /**
  * 判断符号是否应该垂直居中
- * 
+ *
  * 箭头、等号、加减号等二元运算符应该居中显示
  */
 fun isCenteredSymbol(symbol: String): Boolean {
