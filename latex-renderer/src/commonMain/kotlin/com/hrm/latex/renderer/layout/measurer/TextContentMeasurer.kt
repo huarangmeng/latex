@@ -39,12 +39,13 @@ import com.hrm.latex.renderer.utils.MathFontUtils
 import com.hrm.latex.renderer.utils.isCenteredSymbol
 import com.hrm.latex.renderer.utils.parseDimension
 import com.hrm.latex.renderer.utils.spaceWidthPx
+import com.hrm.latex.renderer.utils.isMobilePlatform
 
 /**
  * 文本内容测量器
  */
 internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
-    
+
     override fun measure(
         node: LatexNode,
         context: RenderContext,
@@ -61,11 +62,15 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
                 val operatorGap = with(density) { (context.fontSize * 0.166f).toPx() }
                 val layout = measureText(
                     node.op,
-                    context.copy(fontStyle = FontStyle.Normal, fontFamily = androidx.compose.ui.text.font.FontFamily.Serif),
+                    context.copy(
+                        fontStyle = FontStyle.Normal,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Serif
+                    ),
                     measurer
                 )
                 layout.copy(width = layout.width + operatorGap)
             }
+
             is LatexNode.Command -> measureText(node.name, context, measurer)
             is LatexNode.Space -> measureSpace(node.type, context, density)
             is LatexNode.HSpace -> measureHSpace(node, context, density)
@@ -77,24 +82,29 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
     private fun measureText(
         text: String, context: RenderContext, measurer: TextMeasurer
     ): NodeLayout {
-        // 如果使用了字体系列变体（blackboardBold, calligraphic等），直接使用原始文本
-        // 字体会自动显示正确的字形，不需要Unicode映射
-        val transformedText = if (context.isVariantFontFamily) {
-            text  // 直接使用原始文本，让字体处理
+        // 平台相关的字体处理策略：
+        // - PC 端 (JVM/JS/WASM): cmsy10 等字体的 cmap 表完整，直接使用原始字符
+        // - 移动端 (Android/iOS): cmsy10 的 cmap 表不完整，CALLIGRAPHIC 需要 Unicode 映射
+        val needsUnicodeMapping = isMobilePlatform() && 
+                                  context.fontVariant == RenderContext.FontVariant.CALLIGRAPHIC
+        
+        val transformedText = if (context.isVariantFontFamily && !needsUnicodeMapping) {
+            text  // 直接使用原始字符，字体文件提供字形
         } else {
-            // 降级方案：没有字体时才使用Unicode映射
+            // 使用 Unicode 数学字母映射
             applyFontVariant(text, context.fontVariant)
         }
-        
-        val resolvedStyle = if (context.fontStyle == null && context.fontVariant == RenderContext.FontVariant.NORMAL) {
-            when {
-                transformedText.any { it.isLetter() } -> context.copy(fontStyle = FontStyle.Italic)
-                transformedText.any { it.isDigit() } -> context.copy(fontStyle = FontStyle.Normal)
-                else -> context
+
+        val resolvedStyle =
+            if (context.fontStyle == null && context.fontVariant == RenderContext.FontVariant.NORMAL) {
+                when {
+                    transformedText.any { it.isLetter() } -> context.copy(fontStyle = FontStyle.Italic)
+                    transformedText.any { it.isDigit() } -> context.copy(fontStyle = FontStyle.Normal)
+                    else -> context
+                }
+            } else {
+                context
             }
-        } else {
-            context
-        }
 
         return measureAnnotatedText(transformedText, resolvedStyle, measurer)
     }
@@ -103,7 +113,7 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         node: LatexNode.Symbol, context: RenderContext, measurer: TextMeasurer
     ): NodeLayout {
         val text = if (node.unicode.isEmpty()) node.symbol else node.unicode
-        
+
         var resolvedStyle = if (context.fontStyle == null) {
             when {
                 isLowercaseGreek(node.symbol) -> context.copy(fontStyle = FontStyle.Italic)
@@ -113,18 +123,18 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         } else {
             context
         }
-        
+
         // 对某些符号（如 ℏ, ∇, ∂）应用极细字重，避免笔画过粗
         if (needsLightWeight(node.symbol)) {
             resolvedStyle = resolvedStyle.copy(fontWeight = FontWeight.ExtraLight)
         }
-        
+
         val layout = measureAnnotatedText(text, resolvedStyle, measurer)
-        
+
         if (isCenteredSymbol(node.symbol)) {
             return layout.copy(baseline = layout.height * 0.85f)
         }
-        
+
         return layout
     }
 
@@ -133,7 +143,7 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
     ): NodeLayout {
         val result = measurer.measure(AnnotatedString(text), context.textStyle())
         val baseWidth = result.size.width.toFloat()
-        
+
         val italicCorrection = if (context.fontStyle == FontStyle.Italic && text.isNotEmpty()) {
             val lastChar = text.last()
             when {
@@ -142,15 +152,19 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
                 else -> context.fontSize.value * 0.08f
             }
         } else 0f
-        
-        return NodeLayout(baseWidth + italicCorrection, result.size.height.toFloat(), result.firstBaseline) { x, y ->
+
+        return NodeLayout(
+            baseWidth + italicCorrection,
+            result.size.height.toFloat(),
+            result.firstBaseline
+        ) { x, y ->
             drawText(result, topLeft = Offset(x, y))
         }
     }
 
     /**
      * 应用字体变体的降级方案（Unicode 映射）
-     * 
+     *
      * 注意：这是降级方案，仅在无法加载字体时使用。
      * 正常情况下应该直接使用对应的字体系列（blackboardBold, calligraphic等）。
      */
@@ -173,10 +187,20 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
 
     private fun isUppercaseGreek(symbol: String): Boolean {
         return symbol in setOf(
-            "Gamma", "Delta", "Theta", "Lambda", "Xi", "Pi", "Sigma", "Upsilon", "Phi", "Psi", "Omega"
+            "Gamma",
+            "Delta",
+            "Theta",
+            "Lambda",
+            "Xi",
+            "Pi",
+            "Sigma",
+            "Upsilon",
+            "Phi",
+            "Psi",
+            "Omega"
         )
     }
-    
+
     /**
      * 判断符号是否需要使用极细字重（FontWeight.ExtraLight）
      * 某些符号（如 ℏ, ∇, ∂）在正常字重下笔画过粗，需要使用极细字重
@@ -198,7 +222,11 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         ).textStyle()
         val result = measurer.measure(AnnotatedString(text), textStyle)
 
-        return NodeLayout(result.size.width.toFloat(), result.size.height.toFloat(), result.firstBaseline) { x, y ->
+        return NodeLayout(
+            result.size.width.toFloat(),
+            result.size.height.toFloat(),
+            result.firstBaseline
+        ) { x, y ->
             drawText(result, topLeft = Offset(x, y))
         }
     }
