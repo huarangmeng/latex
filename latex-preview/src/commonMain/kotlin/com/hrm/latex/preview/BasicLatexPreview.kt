@@ -140,6 +140,11 @@ val basicLatexPreviewGroups = listOf(
                 "斯托克斯定理",
                 "\\int_{\\partial \\Omega} \\omega = \\int_{\\Omega} d\\omega"
             ),
+            PreviewItem(
+                "30-1",
+                "向量场",
+                "v(x, t_\\theta)"
+            )
         )
     ),
     PreviewGroup(

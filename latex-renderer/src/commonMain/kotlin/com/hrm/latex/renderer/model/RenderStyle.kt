@@ -94,7 +94,10 @@ internal data class RenderContext(
 /**
  * 从外部配置创建初始上下文
  */
-internal fun LatexConfig.toContext(isDark: Boolean): RenderContext {
+internal fun LatexConfig.toContext(
+    isDark: Boolean,
+    fontFamilies: LatexFontFamilies
+): RenderContext {
     val resolvedColor = if (isDark) {
         if (darkColor != Color.Unspecified) darkColor else Color.White
     } else {
