@@ -27,14 +27,38 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 
 /**
  * 节点布局结果
- * @property width 布局宽度
- * @property height 布局高度
- * @property baseline 基线距离顶部的距离
- * @property draw 绘制回调函数
+ *
+ * 使用 class 而非 data class，因为 draw lambda 不参与 equals/hashCode。
+ * 若使用 data class，remember(layout) 等基于 equality 的缓存机制会产生误判。
+ * 缓存应基于产生 layout 的输入（AST 节点 + 配置），而非 layout 本身。
+ *
+ * @property width 墨水边界宽度（包含 Stroke 半宽、斜体悬伸等所有可能产生像素的区域）
+ * @property height 墨水边界高度
+ * @property baseline 基线距离顶部的距离，始终 >= 0
+ * @property draw 绘制回调。(x, y) 是元素左上角的绝对画布坐标，由父级传入。
  */
-data class NodeLayout(
+class NodeLayout(
     val width: Float,
     val height: Float,
-    val baseline: Float, // Distance from top to baseline
+    val baseline: Float,
     val draw: DrawScope.(x: Float, y: Float) -> Unit
 )
+
+/**
+ * 空布局，用于异常输入的安全回退
+ */
+val EMPTY_LAYOUT = NodeLayout(
+    width = 0f,
+    height = 0f,
+    baseline = 0f,
+    draw = { _, _ -> }
+)
+
+/**
+ * 浮点数安全检查，防止 NaN/Infinity/负值参与布局计算
+ */
+fun Float.sanitized(fallback: Float = 0f): Float = when {
+    isNaN() || isInfinite() -> fallback
+    this < 0f -> 0f
+    else -> this
+}

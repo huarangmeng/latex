@@ -27,17 +27,23 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.measurer.AccentMeasurer
+import com.hrm.latex.renderer.layout.measurer.BigOperatorMeasurer
+import com.hrm.latex.renderer.layout.measurer.BinomialMeasurer
 import com.hrm.latex.renderer.layout.measurer.DelimiterMeasurer
 import com.hrm.latex.renderer.layout.measurer.ExtensibleArrowMeasurer
-import com.hrm.latex.renderer.layout.measurer.MathMeasurer
+import com.hrm.latex.renderer.layout.measurer.FractionMeasurer
 import com.hrm.latex.renderer.layout.measurer.MatrixMeasurer
+import com.hrm.latex.renderer.layout.measurer.RootMeasurer
+import com.hrm.latex.renderer.layout.measurer.ScriptMeasurer
 import com.hrm.latex.renderer.layout.measurer.SpecialEffectMeasurer
 import com.hrm.latex.renderer.layout.measurer.StackMeasurer
 import com.hrm.latex.renderer.layout.measurer.TextContentMeasurer
+import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.applyMathStyle
 import com.hrm.latex.renderer.model.applyStyle
 import com.hrm.latex.renderer.model.withColor
+import com.hrm.latex.renderer.utils.MathSpacing
 import com.hrm.latex.renderer.utils.lineSpacingPx
 import com.hrm.latex.renderer.utils.splitLines
 
@@ -46,7 +52,11 @@ import com.hrm.latex.renderer.utils.splitLines
  */
 private object MeasurerRegistry {
     val text = TextContentMeasurer()
-    val math = MathMeasurer()
+    val fraction = FractionMeasurer()
+    val root = RootMeasurer()
+    val script = ScriptMeasurer()
+    val bigOperator = BigOperatorMeasurer()
+    val binomial = BinomialMeasurer()
     val matrix = MatrixMeasurer()
     val accent = AccentMeasurer()
     val delimiter = DelimiterMeasurer()
@@ -75,9 +85,20 @@ internal fun measureNode(
         is LatexNode.HSpace ->
             MeasurerRegistry.text.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
 
-        is LatexNode.Fraction, is LatexNode.Root, is LatexNode.Superscript,
-        is LatexNode.Subscript, is LatexNode.BigOperator, is LatexNode.Binomial ->
-            MeasurerRegistry.math.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+        is LatexNode.Fraction ->
+            MeasurerRegistry.fraction.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.Root ->
+            MeasurerRegistry.root.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.Superscript, is LatexNode.Subscript ->
+            MeasurerRegistry.script.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.BigOperator ->
+            MeasurerRegistry.bigOperator.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.Binomial ->
+            MeasurerRegistry.binomial.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
 
         is LatexNode.Matrix, is LatexNode.Array, is LatexNode.Cases, is LatexNode.Aligned,
         is LatexNode.Split, is LatexNode.Multline, is LatexNode.Eqnarray, is LatexNode.Subequations ->
@@ -173,7 +194,7 @@ internal fun measureGroup(
     // 检查是否存在需要根据内容调整高度的大型运算符（如积分）
     val hasIntegrals = nodes.any { it is LatexNode.BigOperator && it.operator.contains("int") }
     
-    val finalMeasuredNodes = if (hasIntegrals && context.mathStyle == RenderContext.MathStyleMode.DISPLAY) {
+    val finalMeasuredNodes = if (hasIntegrals && context.mathStyle == MathStyle.DISPLAY) {
         // 计算除了积分以外的其他内容的最大高度
         var maxContentAscent = 0f
         var maxContentDescent = 0f
@@ -206,16 +227,38 @@ internal fun measureGroup(
         initialLayouts
     }
 
+    // 计算 TeX 标准原子间距
+    val isScript = context.mathStyle == MathStyle.SCRIPT ||
+            context.mathStyle == MathStyle.SCRIPT_SCRIPT
+    val fontSizePx = with(density) { context.fontSize.toPx() }
+
+    // 对每对相邻节点计算间距（spacings[i] = nodes[i] 与 nodes[i+1] 之间的间距）
+    val spacings = FloatArray(nodes.size) { 0f }
+    for (i in 0 until nodes.size - 1) {
+        val leftNode = nodes[i]
+        val rightNode = nodes[i + 1]
+        // Space/HSpace 节点自带间距，不额外添加
+        if (leftNode is LatexNode.Space || leftNode is LatexNode.HSpace ||
+            rightNode is LatexNode.Space || rightNode is LatexNode.HSpace) {
+            continue
+        }
+        val leftType = MathSpacing.classifyNode(leftNode)
+        val rightType = MathSpacing.classifyNode(rightNode)
+        val spacingFactor = MathSpacing.spaceBetween(leftType, rightType, isScript)
+        spacings[i] = spacingFactor * fontSizePx
+    }
+
     var totalWidth = 0f
     var maxAscent = 0f // 基线以上高度
     var maxDescent = 0f // 基线以下高度
 
-    finalMeasuredNodes.forEach {
-        val ascent = it.baseline
-        val descent = it.height - it.baseline
+    finalMeasuredNodes.forEachIndexed { index, layout ->
+        val ascent = layout.baseline
+        val descent = layout.height - layout.baseline
         if (ascent > maxAscent) maxAscent = ascent
         if (descent > maxDescent) maxDescent = descent
-        totalWidth += it.width
+        totalWidth += layout.width
+        if (index < spacings.size) totalWidth += spacings[index]
     }
 
     val height = maxAscent + maxDescent
@@ -223,10 +266,11 @@ internal fun measureGroup(
 
     return NodeLayout(totalWidth, height, baseline) { x, y ->
         var currentX = x
-        finalMeasuredNodes.forEach { child ->
+        finalMeasuredNodes.forEachIndexed { index, child ->
             val childY = y + (baseline - child.baseline)
             child.draw(this, currentX, childY)
             currentX += child.width
+            if (index < spacings.size) currentX += spacings[index]
         }
     }
 }

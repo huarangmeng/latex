@@ -29,6 +29,7 @@ import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.shrink
+import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.isCenteredSymbol
 import kotlin.math.max
 
@@ -78,7 +79,7 @@ internal class StackMeasurer : NodeMeasurer<LatexNode.Stack> {
         val isCenteredBase = (baseNode as? LatexNode.Symbol)?.symbol?.let { isCenteredSymbol(it) } == true
         
         // 上下内容使用较小字体（0.7倍）
-        val scriptStyle = context.shrink(0.7f)
+        val scriptStyle = context.shrink(MathConstants.STACK_SCRIPT_SCALE)
 
         // 测量上方内容（如果有）- 包装成List
         val aboveLayout = aboveNode?.let { measureGroup(listOf(it), scriptStyle) }
@@ -91,9 +92,9 @@ internal class StackMeasurer : NodeMeasurer<LatexNode.Stack> {
             val maxScriptWidth = max(aboveLayout?.width ?: 0f, belowLayout?.width ?: 0f)
             if (maxScriptWidth > baseLayout.width) {
                 // 拉长箭头：增加更多额外宽度避免重叠
-                val extraWidth = maxScriptWidth * 0.5f  // 从30%增加到50%，使箭头更长
+                val extraWidth = maxScriptWidth * MathConstants.STACK_ARROW_EXTRA_WIDTH
                 val targetWidth = maxScriptWidth + extraWidth
-                baseLayout = baseLayout.copy(width = targetWidth)
+                baseLayout = NodeLayout(targetWidth, baseLayout.height, baseLayout.baseline, baseLayout.draw)
             }
         }
 
@@ -111,17 +112,17 @@ internal class StackMeasurer : NodeMeasurer<LatexNode.Stack> {
         // 这里用一个更稳定的启发式：从被抬高的 baseline 反推视觉中线。
         // - 对箭头：baseline≈0.85h => 视觉中线更靠上，可用 (baseline - 0.45h) 近似
         // - 对非 centered：仍按顶/底堆叠
-        val axis = if (isCenteredBase) baseLayout.baseline - baseLayout.height * 0.45f else 0f
+        val axis = if (isCenteredBase) baseLayout.baseline - baseLayout.height * MathConstants.STACK_CENTER_AXIS else 0f
 
         // centered 符号的行高盒子上下留白很大，优化上下间距
         // - 上方: 0.15 (减小拉近力度，让上方内容离箭头远一些，往上移)
         // - 下方: 0.58 (极限拉近，让下方内容紧贴箭头)
-        val aboveTighten = if (isCenteredBase) 0.15f else 0f
-        val belowLift = if (isCenteredBase) 0.58f else 0f
+        val aboveTighten = if (isCenteredBase) MathConstants.STACK_ABOVE_TIGHTEN else 0f
+        val belowLift = if (isCenteredBase) MathConstants.STACK_BELOW_LIFT else 0f
 
         val attachAbove = if (isCenteredBase) axis else 0f
         // 下方附着点用 baseline 附近更稳定：对 \to 这类符号 baseline 被抬高，接近符号下缘
-        val attachBelow = if (isCenteredBase) baseLayout.baseline + baseLayout.height * 0.02f else baseLayout.height
+        val attachBelow = if (isCenteredBase) baseLayout.baseline + baseLayout.height * MathConstants.STACK_BELOW_ATTACH_NUDGE else baseLayout.height
 
         val baseY = 0f
         // 上方：贴底后向下拉近；下方：贴顶后向上轻微拉近，并做最小下移防重叠
@@ -129,7 +130,7 @@ internal class StackMeasurer : NodeMeasurer<LatexNode.Stack> {
         val belowY = if (belowLayout != null) {
             val raw = (attachBelow + gap) - belowLayout.height * belowLift
             // 极低防重叠阈值: 0.20，让下方内容极限靠近箭头
-            if (isCenteredBase) maxOf(raw, baseLayout.height * 0.20f) else raw
+            if (isCenteredBase) maxOf(raw, baseLayout.height * MathConstants.STACK_MIN_BELOW_THRESHOLD) else raw
         } else null
 
         val top = minOf(
@@ -155,7 +156,7 @@ internal class StackMeasurer : NodeMeasurer<LatexNode.Stack> {
 
             // 绘制上方内容（如果有，居中对齐，贴合附着点）
             // 对于 centered 符号，上下内容稍微往左偏移一点点，避免与箭头头部重叠
-            val scriptOffset = if (isCenteredBase) -totalWidth * 0.05f else 0f
+            val scriptOffset = if (isCenteredBase) totalWidth * MathConstants.STACK_SCRIPT_HORIZONTAL_OFFSET else 0f
             
             aboveLayout?.let { layout ->
                 val aboveX = x + (totalWidth - layout.width) / 2 + scriptOffset

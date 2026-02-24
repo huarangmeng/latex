@@ -24,7 +24,6 @@ package com.hrm.latex.renderer.utils
 
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
-import com.hrm.latex.base.LatexConstants
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
 
@@ -58,7 +57,7 @@ internal object LayoutUtils {
             axisHeight
         } else {
             // 回退到默认比例
-            fontSizePx * LatexConstants.MATH_AXIS_HEIGHT_RATIO
+            fontSizePx * MathConstants.MATH_AXIS_HEIGHT_RATIO
         }
     }
 }

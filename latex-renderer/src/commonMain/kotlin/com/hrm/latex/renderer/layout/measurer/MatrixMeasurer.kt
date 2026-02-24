@@ -24,20 +24,15 @@
 package com.hrm.latex.renderer.layout.measurer
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
-import com.hrm.latex.renderer.model.textStyle
-import com.hrm.latex.renderer.utils.isMobilePlatform
+import com.hrm.latex.renderer.utils.DelimiterRenderer
 import com.hrm.latex.renderer.utils.LayoutUtils
+import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
 
 /**
@@ -58,81 +53,6 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
             LatexNode.Matrix.MatrixType.VBAR -> "|"
             LatexNode.Matrix.MatrixType.DOUBLE_VBAR -> "‖"
             LatexNode.Matrix.MatrixType.PLAIN -> ""
-        }
-    }
-
-    /**
-     * 获取定界符的渲染上下文
-     */
-    private fun delimiterContext(
-        context: RenderContext,
-        delimiter: String = "(",
-        scale: Float = 1.0f
-    ): RenderContext {
-        val weight = when {
-            scale <= 1.0f -> 400
-            scale >= 2.0f -> 100
-            else -> {
-                val t = (scale - 1.0f) / 1.0f
-                (400 - t * 300).toInt().coerceIn(100, 400)
-            }
-        }
-        val fontWeight = FontWeight(weight)
-
-        val useFallback = !isMobilePlatform() && delimiter in setOf("(", ")", "[", "]")
-        val fontFamily = if (useFallback) {
-            FontFamily.SansSerif
-        } else {
-            context.fontFamilies?.symbol ?: context.fontFamily
-        }
-
-        return context.copy(
-            fontStyle = FontStyle.Normal,
-            fontFamily = fontFamily,
-            fontWeight = fontWeight
-        )
-    }
-
-    /**
-     * 测量并缩放定界符
-     */
-    private fun measureDelimiterScaled(
-        delimiter: String,
-        context: RenderContext,
-        measurer: TextMeasurer,
-        targetHeight: Float
-    ): NodeLayout {
-        // 先用默认 weight 测量获取基础高度
-        val baseContext = delimiterContext(context, delimiter)
-        val baseStyle = baseContext.textStyle()
-        val baseResult = measurer.measure(AnnotatedString(delimiter), baseStyle)
-        
-        if (baseResult.size.height <= 0f || targetHeight <= 0f) {
-            return NodeLayout(
-                baseResult.size.width.toFloat(),
-                baseResult.size.height.toFloat(),
-                baseResult.firstBaseline
-            ) { x, y ->
-                drawText(baseResult, topLeft = Offset(x, y))
-            }
-        }
-
-        val scale = targetHeight / baseResult.size.height
-
-        // 根据缩放比例调整 fontSize 和 fontWeight
-        val adjustedContext = delimiterContext(context, delimiter, scale).copy(
-            fontSize = context.fontSize * scale
-        )
-        val adjustedStyle = adjustedContext.textStyle()
-        val adjustedResult = measurer.measure(AnnotatedString(delimiter), adjustedStyle)
-
-        // 直接使用调整后的字体大小,不使用 Canvas scale
-        return NodeLayout(
-            width = adjustedResult.size.width.toFloat(),
-            height = adjustedResult.size.height.toFloat(),
-            baseline = adjustedResult.firstBaseline
-        ) { x, y ->
-            drawText(adjustedResult, topLeft = Offset(x, y))
         }
     }
 
@@ -175,7 +95,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         if (bracketType == LatexNode.Matrix.MatrixType.PLAIN) return contentLayout
 
         // 括号高度应该略高于内容,形成包裹感
-        val delimiterPadding = with(density) { (context.fontSize * 0.15f).toPx() }
+        val delimiterPadding = with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
         val delimiterHeight = contentLayout.height + delimiterPadding * 2
 
         // 使用字体渲染括号（而不是 Path）
@@ -183,11 +103,11 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         val rightChar = getDelimiterChar(bracketType, isLeft = false)
 
         val leftLayout = if (leftChar.isNotEmpty()) {
-            measureDelimiterScaled(leftChar, context, measurer, delimiterHeight)
+            DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight)
         } else null
 
         val rightLayout = if (rightChar.isNotEmpty()) {
-            measureDelimiterScaled(rightChar, context, measurer, delimiterHeight)
+            DelimiterRenderer.measureScaled(rightChar, context, measurer, delimiterHeight)
         } else null
 
         val leftW = leftLayout?.width ?: 0f
@@ -230,8 +150,8 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
         alignments: List<ColumnAlignment>? = null,
-        colSpacingRatio: Float = 0.5f,
-        rowSpacingRatio: Float = 0.2f,
+        colSpacingRatio: Float = MathConstants.MATRIX_COLUMN_SPACING,
+        rowSpacingRatio: Float = MathConstants.MATRIX_ROW_SPACING,
         isBaselineFirstRow: Boolean = false
     ): NodeLayout {
         val measuredRows = rows.map { row -> row.map { measureGlobal(it, context) } }
@@ -304,12 +224,12 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
             alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.CENTER, ColumnAlignment.LEFT))
         
         // 括号高度应该略高于内容,形成包裹感
-        val delimiterPadding = with(density) { (context.fontSize * 0.15f).toPx() }
+        val delimiterPadding = with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
         val delimiterHeight = matrixLayout.height + delimiterPadding * 2
         
         // 使用字体渲染大括号（而不是 Path）
         val leftChar = getDelimiterChar(LatexNode.Matrix.MatrixType.BRACE, isLeft = true)
-        val leftLayout = measureDelimiterScaled(leftChar, context, measurer, delimiterHeight)
+        val leftLayout = DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight)
 
         val width = leftLayout.width + matrixLayout.width
         val height = delimiterHeight
@@ -337,7 +257,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         if (lineLayouts.isEmpty()) return NodeLayout(0f, 0f, 0f) { _, _ -> }
 
         val maxWidth = lineLayouts.maxOf { it.width }
-        val rowSpacing = with(density) { (context.fontSize * 0.3f).toPx() }
+        val rowSpacing = with(density) { (context.fontSize * MathConstants.MULTLINE_ROW_SPACING).toPx() }
         val totalHeight = lineLayouts.sumOf { it.height.toDouble() }.toFloat() + rowSpacing * (lineLayouts.size - 1)
         val baseline = lineLayouts.first().baseline
 

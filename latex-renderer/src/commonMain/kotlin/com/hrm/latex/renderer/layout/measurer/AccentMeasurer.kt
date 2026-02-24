@@ -31,12 +31,14 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.drawscope.withTransform
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.LatexNode.Accent.AccentType
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.shrink
 import com.hrm.latex.renderer.model.textStyle
+import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
 import kotlin.math.min
 
@@ -81,18 +83,18 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
         }
 
         val isUnder = node.accentType == AccentType.UNDERLINE || node.accentType == AccentType.UNDERBRACE
-        val accentStyle = context.shrink(0.8f)
+        val accentStyle = context.shrink(MathConstants.ACCENT_SCALE)
         val textStyle = accentStyle.textStyle()
         val result = measurer.measure(AnnotatedString(accentChar), textStyle)
         
         val (accentHeightScale, accentOffsetScale) = when (node.accentType) {
-            AccentType.HAT -> 0.52f to 0.20f
-            AccentType.TILDE -> 0.48f to 0.13f
-            AccentType.BAR -> 0.22f to 0.12f
-            AccentType.VEC -> 0.46f to 0.0f
-            AccentType.DOT -> 0.26f to 0.15f
-            AccentType.DDOT -> 0.30f to 0.15f
-            else -> 0.45f to 0.24f
+            AccentType.HAT -> MathConstants.ACCENT_HAT_HEIGHT to MathConstants.ACCENT_HAT_OFFSET
+            AccentType.TILDE -> MathConstants.ACCENT_TILDE_HEIGHT to MathConstants.ACCENT_TILDE_OFFSET
+            AccentType.BAR -> MathConstants.ACCENT_BAR_HEIGHT to MathConstants.ACCENT_BAR_OFFSET
+            AccentType.VEC -> MathConstants.ACCENT_VEC_HEIGHT to MathConstants.ACCENT_VEC_OFFSET
+            AccentType.DOT -> MathConstants.ACCENT_DOT_HEIGHT to MathConstants.ACCENT_DOT_OFFSET
+            AccentType.DDOT -> MathConstants.ACCENT_DDOT_HEIGHT to MathConstants.ACCENT_DDOT_OFFSET
+            else -> MathConstants.ACCENT_DEFAULT_HEIGHT to MathConstants.ACCENT_DEFAULT_OFFSET
         }
 
         val lineTop = result.getLineTop(0)
@@ -124,7 +126,7 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
             
             // 上方装饰符号向右偏移以补偿斜体效果
             val italicCorrection = if (!isUnder) {
-                with(density) { (context.fontSize * 0.08f).toPx() }
+                with(density) { (context.fontSize * MathConstants.ACCENT_ITALIC_CORRECTION).toPx() }
             } else 0f
             val accentX = centerX - accentLayout.width / 2 + italicCorrection
 
@@ -142,6 +144,8 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
      * 测量宽装饰（自绘图形）
      *
      * 根据内容宽度，动态绘制横线、大括号、箭头或宽帽子。
+     * Path 以 (0,0) 为原点构建，draw 时通过 translate 偏移。
+     * NodeLayout 尺寸包含 Stroke 半宽。
      */
     private fun measureWideAccent(
         node: LatexNode.Accent,
@@ -155,19 +159,106 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
         val isArrowAccent = node.accentType == AccentType.OVERRIGHTARROW ||
                 node.accentType == AccentType.OVERLEFTARROW
 
+        val strokeWidth = when (node.accentType) {
+            AccentType.OVERBRACE, AccentType.UNDERBRACE -> with(density) { 1.2f.dp.toPx() }
+            AccentType.WIDEHAT -> with(density) { 1.5f.dp.toPx() }
+            AccentType.OVERLINE, AccentType.UNDERLINE,
+            AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW -> with(density) { 1.5f.dp.toPx() }
+            AccentType.CANCEL -> with(density) { 1.5f.dp.toPx() }
+            else -> with(density) { 1.5f.dp.toPx() }
+        }
+        val strokeHalf = strokeWidth / 2f
+
         val accentHeight = when (node.accentType) {
             AccentType.OVERLINE, AccentType.UNDERLINE -> with(density) { 2f.dp.toPx() }
             AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW ->
-                with(density) { (context.fontSize * 0.18f).toPx() }
-            else -> with(density) { (context.fontSize * 0.3f).toPx() }
+                with(density) { (context.fontSize * MathConstants.WIDE_ACCENT_ARROW_HEIGHT).toPx() }
+            else -> with(density) { (context.fontSize * MathConstants.WIDE_ACCENT_DEFAULT_HEIGHT).toPx() }
         }
         val gap = when {
-            isArrowAccent -> with(density) { (context.fontSize * 0.02f).toPx() }
-            else -> with(density) { (context.fontSize * 0.08f).toPx() }
+            isArrowAccent -> with(density) { (context.fontSize * MathConstants.WIDE_ACCENT_ARROW_GAP).toPx() }
+            else -> with(density) { (context.fontSize * MathConstants.WIDE_ACCENT_DEFAULT_GAP).toPx() }
         }
 
         val width = contentLayout.width
-        val totalHeight = contentLayout.height + accentHeight + gap
+        // 总高度包含 Stroke 半宽
+        val totalHeight = contentLayout.height + accentHeight + gap + strokeHalf
+
+        // Measure 阶段：以 (0,0) 为原点预构建 Path
+        val accentPath: Path? = when (node.accentType) {
+            AccentType.OVERBRACE -> {
+                val leftX = 0f
+                val rightX = width
+                val centerX = width / 2
+                val topY = 0f
+                val bottomY = accentHeight
+                val tipHeight = accentHeight * 0.25f
+                val shoulderY = topY + tipHeight
+                val curveWidth = min(width / 2, accentHeight)
+
+                Path().apply {
+                    moveTo(leftX, bottomY)
+                    cubicTo(leftX, bottomY - (bottomY - shoulderY) * 0.6f, leftX + curveWidth * 0.4f, shoulderY, leftX + curveWidth, shoulderY)
+                    lineTo(centerX - curveWidth, shoulderY)
+                    cubicTo(centerX - curveWidth * 0.4f, shoulderY, centerX, shoulderY - tipHeight * 0.6f, centerX, topY)
+                    cubicTo(centerX, shoulderY - tipHeight * 0.6f, centerX + curveWidth * 0.4f, shoulderY, centerX + curveWidth, shoulderY)
+                    lineTo(rightX - curveWidth, shoulderY)
+                    cubicTo(rightX - curveWidth * 0.4f, shoulderY, rightX, bottomY - (bottomY - shoulderY) * 0.6f, rightX, bottomY)
+                }
+            }
+
+            AccentType.UNDERBRACE -> {
+                val leftX = 0f
+                val rightX = width
+                val centerX = width / 2
+                val topY = 0f
+                val bottomY = accentHeight
+                val tipHeight = accentHeight * 0.25f
+                val shoulderY = bottomY - tipHeight
+                val curveWidth = min(width / 2, accentHeight)
+
+                Path().apply {
+                    moveTo(leftX, topY)
+                    cubicTo(leftX, topY + (shoulderY - topY) * 0.6f, leftX + curveWidth * 0.4f, shoulderY, leftX + curveWidth, shoulderY)
+                    lineTo(centerX - curveWidth, shoulderY)
+                    cubicTo(centerX - curveWidth * 0.4f, shoulderY, centerX, shoulderY + tipHeight * 0.6f, centerX, bottomY)
+                    cubicTo(centerX, shoulderY + tipHeight * 0.6f, centerX + curveWidth * 0.4f, shoulderY, centerX + curveWidth, shoulderY)
+                    lineTo(rightX - curveWidth, shoulderY)
+                    cubicTo(rightX - curveWidth * 0.4f, shoulderY, rightX, topY + (shoulderY - topY) * 0.6f, rightX, topY)
+                }
+            }
+
+            AccentType.WIDEHAT -> {
+                val bottomY = accentHeight
+                Path().apply {
+                    moveTo(0f, bottomY)
+                    lineTo(width / 2, 0f)
+                    lineTo(width, bottomY)
+                }
+            }
+
+            AccentType.OVERRIGHTARROW -> {
+                val arrowHeadSize = with(density) { 4f.dp.toPx() }
+                Path().apply {
+                    moveTo(width, accentHeight / 2)
+                    lineTo(width - arrowHeadSize, accentHeight / 2 - arrowHeadSize / 2)
+                    lineTo(width - arrowHeadSize, accentHeight / 2 + arrowHeadSize / 2)
+                    close()
+                }
+            }
+
+            AccentType.OVERLEFTARROW -> {
+                val arrowHeadSize = with(density) { 4f.dp.toPx() }
+                Path().apply {
+                    moveTo(0f, accentHeight / 2)
+                    lineTo(arrowHeadSize, accentHeight / 2 - arrowHeadSize / 2)
+                    lineTo(arrowHeadSize, accentHeight / 2 + arrowHeadSize / 2)
+                    close()
+                }
+            }
+
+            else -> null
+        }
 
         return NodeLayout(
             width,
@@ -178,182 +269,60 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
             val contentY = if (isUnder) y else y + accentHeight + gap
 
             when (node.accentType) {
-                AccentType.OVERLINE -> {
+                AccentType.OVERLINE, AccentType.UNDERLINE -> {
                     drawLine(
                         color = context.color,
-                        start = Offset(x, accentY),
-                        end = Offset(x + width, accentY),
-                        strokeWidth = with(density) { 1.5f.dp.toPx() }
+                        start = Offset(x, accentY + strokeHalf),
+                        end = Offset(x + width, accentY + strokeHalf),
+                        strokeWidth = strokeWidth
                     )
                 }
 
-                AccentType.UNDERLINE -> {
-                    drawLine(
-                        color = context.color,
-                        start = Offset(x, accentY),
-                        end = Offset(x + width, accentY),
-                        strokeWidth = with(density) { 1.5f.dp.toPx() }
-                    )
-                }
-
-                AccentType.OVERBRACE -> {
-                    val path = Path().apply {
-                        val leftX = x
-                        val rightX = x + width
-                        val centerX = x + width / 2
-                        val topY = accentY
-                        val bottomY = accentY + accentHeight
-
-                        val tipHeight = accentHeight * 0.25f
-                        val shoulderY = topY + tipHeight
-                        val curveWidth = min(width / 2, accentHeight)
-
-                        moveTo(leftX, bottomY)
-                        cubicTo(
-                            leftX, bottomY - (bottomY - shoulderY) * 0.6f,
-                            leftX + curveWidth * 0.4f, shoulderY,
-                            leftX + curveWidth, shoulderY
-                        )
-                        lineTo(centerX - curveWidth, shoulderY)
-                        cubicTo(
-                            centerX - curveWidth * 0.4f, shoulderY,
-                            centerX, shoulderY - tipHeight * 0.6f,
-                            centerX, topY
-                        )
-                        cubicTo(
-                            centerX, shoulderY - tipHeight * 0.6f,
-                            centerX + curveWidth * 0.4f, shoulderY,
-                            centerX + curveWidth, shoulderY
-                        )
-                        lineTo(rightX - curveWidth, shoulderY)
-                        cubicTo(
-                            rightX - curveWidth * 0.4f, shoulderY,
-                            rightX, bottomY - (bottomY - shoulderY) * 0.6f,
-                            rightX, bottomY
-                        )
+                AccentType.OVERBRACE, AccentType.UNDERBRACE, AccentType.WIDEHAT -> {
+                    accentPath?.let { path ->
+                        withTransform({ translate(left = x, top = accentY) }) {
+                            drawPath(path = path, color = context.color, style = Stroke(width = strokeWidth))
+                        }
                     }
-                    drawPath(
-                        path = path,
-                        color = context.color,
-                        style = Stroke(width = with(density) { 1.2f.dp.toPx() })
-                    )
-                }
-
-                AccentType.UNDERBRACE -> {
-                    val path = Path().apply {
-                        val leftX = x
-                        val rightX = x + width
-                        val centerX = x + width / 2
-                        val topY = accentY
-                        val bottomY = accentY + accentHeight
-
-                        val tipHeight = accentHeight * 0.25f
-                        val shoulderY = bottomY - tipHeight
-                        val curveWidth = min(width / 2, accentHeight)
-
-                        moveTo(leftX, topY)
-                        cubicTo(
-                            leftX, topY + (shoulderY - topY) * 0.6f,
-                            leftX + curveWidth * 0.4f, shoulderY,
-                            leftX + curveWidth, shoulderY
-                        )
-                        lineTo(centerX - curveWidth, shoulderY)
-                        cubicTo(
-                            centerX - curveWidth * 0.4f, shoulderY,
-                            centerX, shoulderY + tipHeight * 0.6f,
-                            centerX, bottomY
-                        )
-                        cubicTo(
-                            centerX, shoulderY + tipHeight * 0.6f,
-                            centerX + curveWidth * 0.4f, shoulderY,
-                            centerX + curveWidth, shoulderY
-                        )
-                        lineTo(rightX - curveWidth, shoulderY)
-                        cubicTo(
-                            rightX - curveWidth * 0.4f, shoulderY,
-                            rightX, topY + (shoulderY - topY) * 0.6f,
-                            rightX, topY
-                        )
-                    }
-                    drawPath(
-                        path = path,
-                        color = context.color,
-                        style = Stroke(width = with(density) { 1.2f.dp.toPx() })
-                    )
-                }
-
-                AccentType.WIDEHAT -> {
-                    val path = Path().apply {
-                        val leftX = x
-                        val rightX = x + width
-                        val bottomY = accentY + accentHeight
-                        val topY = accentY
-
-                        moveTo(leftX, bottomY)
-                        lineTo(x + width / 2, topY)
-                        lineTo(rightX, bottomY)
-                    }
-                    drawPath(
-                        path = path,
-                        color = context.color,
-                        style = Stroke(width = with(density) { 1.5f.dp.toPx() })
-                    )
                 }
 
                 AccentType.OVERRIGHTARROW -> {
-                    val arrowY = accentY + accentHeight / 2
-                    val arrowEndX = x + width
-                    val arrowStartX = x
-
                     drawLine(
                         color = context.color,
-                        start = Offset(arrowStartX, arrowY),
-                        end = Offset(arrowEndX, arrowY),
-                        strokeWidth = with(density) { 1.5f.dp.toPx() }
+                        start = Offset(x, accentY + accentHeight / 2),
+                        end = Offset(x + width, accentY + accentHeight / 2),
+                        strokeWidth = strokeWidth
                     )
-
-                    val arrowHeadSize = with(density) { 4f.dp.toPx() }
-                    val path = Path().apply {
-                        moveTo(arrowEndX, arrowY)
-                        lineTo(arrowEndX - arrowHeadSize, arrowY - arrowHeadSize / 2)
-                        lineTo(arrowEndX - arrowHeadSize, arrowY + arrowHeadSize / 2)
-                        close()
+                    accentPath?.let { path ->
+                        withTransform({ translate(left = x, top = accentY) }) {
+                            drawPath(path = path, color = context.color)
+                        }
                     }
-                    drawPath(path = path, color = context.color)
                 }
 
                 AccentType.OVERLEFTARROW -> {
-                    val arrowY = accentY + accentHeight / 2
-                    val arrowStartX = x
-                    val arrowEndX = x + width
-
                     drawLine(
                         color = context.color,
-                        start = Offset(arrowStartX, arrowY),
-                        end = Offset(arrowEndX, arrowY),
-                        strokeWidth = with(density) { 1.5f.dp.toPx() }
+                        start = Offset(x, accentY + accentHeight / 2),
+                        end = Offset(x + width, accentY + accentHeight / 2),
+                        strokeWidth = strokeWidth
                     )
-
-                    val arrowHeadSize = with(density) { 4f.dp.toPx() }
-                    val path = Path().apply {
-                        moveTo(arrowStartX, arrowY)
-                        lineTo(arrowStartX + arrowHeadSize, arrowY - arrowHeadSize / 2)
-                        lineTo(arrowStartX + arrowHeadSize, arrowY + arrowHeadSize / 2)
-                        close()
+                    accentPath?.let { path ->
+                        withTransform({ translate(left = x, top = accentY) }) {
+                            drawPath(path = path, color = context.color)
+                        }
                     }
-                    drawPath(path = path, color = context.color)
                 }
 
                 AccentType.CANCEL -> {
-                    // 从左下角到右上角画斜线
                     drawLine(
                         color = context.color,
                         start = Offset(x, contentY + contentLayout.height),
                         end = Offset(x + width, contentY),
-                        strokeWidth = with(density) { 1.5f.dp.toPx() }
+                        strokeWidth = strokeWidth
                     )
                 }
-                
+
                 else -> {}
             }
 

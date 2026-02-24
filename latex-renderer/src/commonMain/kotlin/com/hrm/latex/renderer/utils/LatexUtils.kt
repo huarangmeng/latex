@@ -24,9 +24,6 @@
 package com.hrm.latex.renderer.utils
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.base.log.HLog
@@ -58,7 +55,7 @@ fun splitLines(nodes: List<LatexNode>): List<List<LatexNode>> {
  * 计算行间距
  */
 internal fun lineSpacingPx(context: RenderContext, density: Density): Float =
-    with(density) { (context.fontSize * 0.25f).toPx() }
+    with(density) { (context.fontSize * MathConstants.LINE_SPACING).toPx() }
 
 /**
  * 计算空白宽度
@@ -210,95 +207,4 @@ fun isCenteredSymbol(symbol: String): Boolean {
         "pm", "mp", "ast", "star", "circ",
         "oplus", "ominus", "otimes", "oslash"
     )
-}
-
-// 括号绘制相关
-enum class Side { LEFT, RIGHT }
-
-/**
- * 绘制各种类型的括号/定界符
- */
-fun DrawScope.drawBracket(
-    type: LatexNode.Matrix.MatrixType,
-    side: Side,
-    x: Float,
-    y: Float,
-    width: Float,
-    height: Float,
-    stroke: Float,
-    color: Color
-) {
-    val path = Path()
-    when (type) {
-        LatexNode.Matrix.MatrixType.PAREN -> {
-            // Curve
-            val x0 = if (side == Side.LEFT) x + width else x
-            val x1 = if (side == Side.LEFT) x else x + width
-            path.moveTo(x0, y)
-            path.quadraticTo(x1, y + height / 2, x0, y + height)
-        }
-
-        LatexNode.Matrix.MatrixType.BRACKET -> {
-            val x0 = if (side == Side.LEFT) x + width else x
-            val x1 = if (side == Side.LEFT) x + stroke else x + width - stroke
-            path.moveTo(x0, y)
-            path.lineTo(x1, y)
-            path.lineTo(x1, y + height)
-            path.lineTo(x0, y + height)
-        }
-
-        LatexNode.Matrix.MatrixType.BRACE -> {
-            // 花括号: { 或 }
-            // 分为三段：上半部分、中间尖端、下半部分
-            val midY = y + height / 2
-            val tipX = if (side == Side.LEFT) x else x + width
-            val baseX = if (side == Side.LEFT) x + width else x
-            val controlOffset = width * 0.4f
-
-            // 上半部分（顶部到中间）
-            path.moveTo(baseX, y)
-            path.quadraticTo(
-                baseX - (if (side == Side.LEFT) controlOffset else -controlOffset),
-                y + height * 0.2f,
-                baseX,
-                y + height * 0.4f
-            )
-            path.quadraticTo(
-                baseX + (if (side == Side.LEFT) -controlOffset else controlOffset),
-                midY - height * 0.1f,
-                tipX,
-                midY
-            )
-
-            // 下半部分（中间到底部）
-            path.quadraticTo(
-                baseX + (if (side == Side.LEFT) -controlOffset else controlOffset),
-                midY + height * 0.1f,
-                baseX,
-                y + height * 0.6f
-            )
-            path.quadraticTo(
-                baseX - (if (side == Side.LEFT) controlOffset else -controlOffset),
-                y + height * 0.8f,
-                baseX,
-                y + height
-            )
-        }
-
-        LatexNode.Matrix.MatrixType.VBAR -> {
-            val mx = x + width / 2
-            path.moveTo(mx, y)
-            path.lineTo(mx, y + height)
-        }
-
-        LatexNode.Matrix.MatrixType.DOUBLE_VBAR -> {
-            val mx1 = x + width / 3
-            val mx2 = x + width * 2 / 3
-            path.moveTo(mx1, y); path.lineTo(mx1, y + height)
-            path.moveTo(mx2, y); path.lineTo(mx2, y + height)
-        }
-
-        LatexNode.Matrix.MatrixType.PLAIN -> {}
-    }
-    drawPath(path, color, style = Stroke(stroke))
 }

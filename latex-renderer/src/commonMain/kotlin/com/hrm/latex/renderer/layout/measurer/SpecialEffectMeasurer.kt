@@ -24,10 +24,6 @@
 package com.hrm.latex.renderer.layout.measurer
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
@@ -35,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
+import com.hrm.latex.renderer.utils.MathConstants
 
 /**
  * 测量特殊效果节点（boxed, phantom）
@@ -71,8 +68,8 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
         val contentLayout = measureGroup(node.content, context)
         
         // 内边距（相对于字体大小）
-        val padding = with(density) { (context.fontSize * 0.15f).toPx() }
-        val borderWidth = with(density) { 1.dp.toPx() }
+        val padding = with(density) { (context.fontSize * MathConstants.BOXED_PADDING).toPx() }
+        val borderWidth = with(density) { MathConstants.BOXED_BORDER_WIDTH_DP.dp.toPx() }
         
         val totalWidth = contentLayout.width + 2 * padding
         val totalHeight = contentLayout.height + 2 * padding

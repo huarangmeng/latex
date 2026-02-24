@@ -24,9 +24,9 @@
 package com.hrm.latex.renderer.layout.measurer
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -34,6 +34,7 @@ import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.shrink
+import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
 
 /**
@@ -51,149 +52,111 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer<LatexNode.ExtensibleArrow>
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
-        // 测量上方文字（必选）- 包装成List确保作为整体渲染
-        val aboveStyle = context.shrink(0.7f)
+        val aboveStyle = context.shrink(MathConstants.STACK_SCRIPT_SCALE)
         val aboveLayout = measureGroup(listOf(node.content), aboveStyle)
-
-        // 测量下方文字（可选）- 包装成List确保作为整体渲染
         val belowLayout = node.below?.let { measureGroup(listOf(it), aboveStyle) }
 
-        // 箭头的最小长度
-        val minArrowLength = with(density) { 30.dp.toPx() }
-
-        // 总宽度 = max(上方文字宽度, 下方文字宽度, 最小长度) + 两侧留白
+        val minArrowLength = with(density) { MathConstants.EXTENSIBLE_ARROW_MIN_LENGTH_DP.dp.toPx() }
         val contentWidth = max(
             max(aboveLayout.width, belowLayout?.width ?: 0f),
             minArrowLength
         )
-        val padding = with(density) { 4.dp.toPx() }
+        val padding = with(density) { MathConstants.EXTENSIBLE_ARROW_PADDING_DP.dp.toPx() }
+        val strokeWidth = with(density) { MathConstants.EXTENSIBLE_ARROW_STROKE_DP.dp.toPx() }
+        val strokeHalf = strokeWidth / 2f
+        val arrowHeadSize = with(density) { MathConstants.EXTENSIBLE_ARROW_HEAD_SIZE_DP.dp.toPx() }
+
         val totalWidth = contentWidth + padding * 2
+        val arrowStrokeHeight = with(density) { MathConstants.EXTENSIBLE_ARROW_STROKE_HEIGHT_DP.dp.toPx() }
+        val topGap = with(density) { MathConstants.EXTENSIBLE_ARROW_TEXT_GAP_DP.dp.toPx() }
+        val bottomGap = with(density) { MathConstants.EXTENSIBLE_ARROW_TEXT_GAP_DP.dp.toPx() }
 
-        // 箭头线条的粗细和间距
-        val arrowStrokeHeight = with(density) { 2.dp.toPx() }
-        val topGap = with(density) { 2.dp.toPx() }
-        val bottomGap = with(density) { 2.dp.toPx() }
+        // 相对 Y 坐标
+        val aboveRelY = strokeHalf // 顶部留出 Stroke 半宽
+        val arrowRelY = aboveRelY + aboveLayout.height + topGap
+        val belowRelY = arrowRelY + arrowStrokeHeight + bottomGap
 
-        // 计算各部分的 Y 坐标
-        val aboveY = 0f
-        val arrowY = aboveLayout.height + topGap
-        val belowY = arrowY + arrowStrokeHeight + bottomGap
-
-        // 总高度
         val totalHeight = if (belowLayout != null) {
-            aboveLayout.height + topGap + arrowStrokeHeight + bottomGap + belowLayout.height
+            belowRelY + belowLayout.height + strokeHalf
         } else {
-            aboveLayout.height + topGap + arrowStrokeHeight
+            arrowRelY + arrowStrokeHeight + strokeHalf
         }
 
-        // 基线位置（以箭头为基准，向上偏移一点使其与周围文本对齐）
-        val baseline = arrowY + arrowStrokeHeight / 2
+        val baseline = arrowRelY + arrowStrokeHeight / 2
+
+        // 相对 X 坐标
+        val aboveRelX = (totalWidth - aboveLayout.width) / 2
+        val belowRelX = if (belowLayout != null) (totalWidth - belowLayout.width) / 2 else 0f
+
+        // 箭头的相对坐标 (以 (0,0) 为原点构建)
+        val arrowStartRelX = padding
+        val arrowEndRelX = totalWidth - padding
+        val arrowCenterRelY = arrowRelY + arrowStrokeHeight / 2
+        val color = context.color
+
+        // 预构建箭头头部 Path (以 (0,0) 为原点)
+        val arrowPaths = buildArrowPaths(node.direction, arrowStartRelX, arrowEndRelX, arrowCenterRelY, arrowHeadSize)
 
         return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
-            // 绘制上方文字（居中）
-            val aboveX = x + (totalWidth - aboveLayout.width) / 2
-            aboveLayout.draw(this, aboveX, y + aboveY)
+            // 绘制上方文字
+            aboveLayout.draw(this, x + aboveRelX, y + aboveRelY)
 
-            // 绘制箭头
-            val arrowStartX = x + padding
-            val arrowEndX = x + totalWidth - padding
-            drawArrow(
-                direction = node.direction,
-                startX = arrowStartX,
-                endX = arrowEndX,
-                centerY = y + arrowY + arrowStrokeHeight / 2,
-                color = context.color,
-                density = density
+            // 绘制箭头线条 (drawLine 使用绝对坐标，这是允许的简单算术)
+            drawLine(
+                color = color,
+                start = Offset(x + arrowStartRelX, y + arrowCenterRelY),
+                end = Offset(x + arrowEndRelX, y + arrowCenterRelY),
+                strokeWidth = strokeWidth
             )
 
-            // 绘制下方文字（如果有，居中）
+            // 绘制预构建的箭头头部 Path
+            if (arrowPaths.isNotEmpty()) {
+                withTransform({ translate(left = x, top = y) }) {
+                    arrowPaths.forEach { path ->
+                        drawPath(path = path, color = color)
+                    }
+                }
+            }
+
+            // 绘制下方文字
             belowLayout?.let { layout ->
-                val belowX = x + (totalWidth - layout.width) / 2
-                layout.draw(this, belowX, y + belowY)
+                layout.draw(this, x + belowRelX, y + belowRelY)
             }
         }
     }
 
     /**
-     * 绘制箭头
+     * 在 Measure 阶段预构建箭头头部 Path (以 (0,0) 为原点)
      */
-    private fun DrawScope.drawArrow(
+    private fun buildArrowPaths(
         direction: LatexNode.ExtensibleArrow.Direction,
         startX: Float,
         endX: Float,
         centerY: Float,
-        color: Color,
-        density: Density
-    ) {
-        val strokeWidth = with(density) { 1.5f.dp.toPx() }
-        val arrowHeadSize = with(density) { 5.dp.toPx() }
+        headSize: Float
+    ): List<Path> {
+        val paths = mutableListOf<Path>()
 
-        when (direction) {
-            LatexNode.ExtensibleArrow.Direction.RIGHT -> {
-                // 绘制线条
-                drawLine(
-                    color = color,
-                    start = Offset(startX, centerY),
-                    end = Offset(endX, centerY),
-                    strokeWidth = strokeWidth
-                )
-
-                // 绘制右箭头头部
-                val path = Path().apply {
-                    moveTo(endX, centerY)
-                    lineTo(endX - arrowHeadSize, centerY - arrowHeadSize / 2)
-                    lineTo(endX - arrowHeadSize, centerY + arrowHeadSize / 2)
-                    close()
-                }
-                drawPath(path = path, color = color)
-            }
-
-            LatexNode.ExtensibleArrow.Direction.LEFT -> {
-                // 绘制线条
-                drawLine(
-                    color = color,
-                    start = Offset(startX, centerY),
-                    end = Offset(endX, centerY),
-                    strokeWidth = strokeWidth
-                )
-
-                // 绘制左箭头头部
-                val path = Path().apply {
-                    moveTo(startX, centerY)
-                    lineTo(startX + arrowHeadSize, centerY - arrowHeadSize / 2)
-                    lineTo(startX + arrowHeadSize, centerY + arrowHeadSize / 2)
-                    close()
-                }
-                drawPath(path = path, color = color)
-            }
-
-            LatexNode.ExtensibleArrow.Direction.BOTH -> {
-                // 绘制线条
-                drawLine(
-                    color = color,
-                    start = Offset(startX, centerY),
-                    end = Offset(endX, centerY),
-                    strokeWidth = strokeWidth
-                )
-
-                // 绘制左箭头头部
-                val leftPath = Path().apply {
-                    moveTo(startX, centerY)
-                    lineTo(startX + arrowHeadSize, centerY - arrowHeadSize / 2)
-                    lineTo(startX + arrowHeadSize, centerY + arrowHeadSize / 2)
-                    close()
-                }
-                drawPath(path = leftPath, color = color)
-
-                // 绘制右箭头头部
-                val rightPath = Path().apply {
-                    moveTo(endX, centerY)
-                    lineTo(endX - arrowHeadSize, centerY - arrowHeadSize / 2)
-                    lineTo(endX - arrowHeadSize, centerY + arrowHeadSize / 2)
-                    close()
-                }
-                drawPath(path = rightPath, color = color)
-            }
+        if (direction == LatexNode.ExtensibleArrow.Direction.RIGHT ||
+            direction == LatexNode.ExtensibleArrow.Direction.BOTH) {
+            paths.add(Path().apply {
+                moveTo(endX, centerY)
+                lineTo(endX - headSize, centerY - headSize / 2)
+                lineTo(endX - headSize, centerY + headSize / 2)
+                close()
+            })
         }
+
+        if (direction == LatexNode.ExtensibleArrow.Direction.LEFT ||
+            direction == LatexNode.ExtensibleArrow.Direction.BOTH) {
+            paths.add(Path().apply {
+                moveTo(startX, centerY)
+                lineTo(startX + headSize, centerY - headSize / 2)
+                lineTo(startX + headSize, centerY + headSize / 2)
+                close()
+            })
+        }
+
+        return paths
     }
 }

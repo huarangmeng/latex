@@ -33,8 +33,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
+import com.hrm.latex.renderer.model.FontVariant
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
+import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.MathFontUtils
 import com.hrm.latex.renderer.utils.isCenteredSymbol
 import com.hrm.latex.renderer.utils.parseDimension
@@ -54,23 +56,24 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         return when (node) {
-            is LatexNode.Text -> measureText(node.content, context, measurer)
+            is LatexNode.Text -> measureText(node.content, context, measurer, density)
             is LatexNode.TextMode -> measureTextMode(node.text, context, measurer)
-            is LatexNode.Symbol -> measureSymbol(node, context, measurer)
+            is LatexNode.Symbol -> measureSymbol(node, context, measurer, density)
             is LatexNode.Operator -> {
-                val operatorGap = with(density) { (context.fontSize * 0.166f).toPx() }
+                val operatorGap = with(density) { (context.fontSize * MathConstants.OPERATOR_RIGHT_GAP).toPx() }
                 val layout = measureText(
                     node.op,
                     context.copy(
                         fontStyle = FontStyle.Normal,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Serif
                     ),
-                    measurer
+                    measurer,
+                    density
                 )
-                layout.copy(width = layout.width + operatorGap)
+                NodeLayout(layout.width + operatorGap, layout.height, layout.baseline, layout.draw)
             }
 
-            is LatexNode.Command -> measureText(node.name, context, measurer)
+            is LatexNode.Command -> measureText(node.name, context, measurer, density)
             is LatexNode.Space -> measureSpace(node.type, context, density)
             is LatexNode.HSpace -> measureHSpace(node, context, density)
             is LatexNode.NewLine -> NodeLayout(0f, 0f, 0f) { _, _ -> }
@@ -79,7 +82,7 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
     }
 
     private fun measureText(
-        text: String, context: RenderContext, measurer: TextMeasurer
+        text: String, context: RenderContext, measurer: TextMeasurer, density: Density
     ): NodeLayout {
         // 字体变体处理逻辑：
         // - 如果设置了变体字体家族(如 blackboardBold, calligraphic 等)，优先使用字体文件自身的字形
@@ -93,7 +96,7 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         }
 
         val resolvedStyle =
-            if (context.fontStyle == null && context.fontVariant == RenderContext.FontVariant.NORMAL) {
+            if (context.fontStyle == null && context.fontVariant == FontVariant.NORMAL) {
                 when {
                     transformedText.any { it.isLetter() } -> context.copy(fontStyle = FontStyle.Italic)
                     transformedText.any { it.isDigit() } -> context.copy(fontStyle = FontStyle.Normal)
@@ -103,11 +106,11 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
                 context
             }
 
-        return measureAnnotatedText(transformedText, resolvedStyle, measurer)
+        return measureAnnotatedText(transformedText, resolvedStyle, measurer, density)
     }
 
     private fun measureSymbol(
-        node: LatexNode.Symbol, context: RenderContext, measurer: TextMeasurer
+        node: LatexNode.Symbol, context: RenderContext, measurer: TextMeasurer, density: Density
     ): NodeLayout {
         val text = if (node.unicode.isEmpty()) node.symbol else node.unicode
 
@@ -126,36 +129,48 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
             resolvedStyle = resolvedStyle.copy(fontWeight = FontWeight.ExtraLight)
         }
 
-        val layout = measureAnnotatedText(text, resolvedStyle, measurer)
+        val layout = measureAnnotatedText(text, resolvedStyle, measurer, density)
 
         if (isCenteredSymbol(node.symbol)) {
-            return layout.copy(baseline = layout.height * 0.85f)
+            return NodeLayout(layout.width, layout.height, layout.height * MathConstants.CENTERED_SYMBOL_BASELINE, layout.draw)
         }
 
         return layout
     }
 
     private fun measureAnnotatedText(
-        text: String, context: RenderContext, measurer: TextMeasurer
+        text: String, context: RenderContext, measurer: TextMeasurer, density: Density
     ): NodeLayout {
         val result = measurer.measure(AnnotatedString(text), context.textStyle())
         val baseWidth = result.size.width.toFloat()
 
-        val italicCorrection = if (context.fontStyle == FontStyle.Italic && text.isNotEmpty()) {
+        // 斜体悬伸补偿：必须使用 px 单位，不能用 sp 的数值直接加到 px 宽度上
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+
+        val rightOverhang = if (context.fontStyle == FontStyle.Italic && text.isNotEmpty()) {
             val lastChar = text.last()
             when {
-                lastChar.isUpperCase() -> context.fontSize.value * 0.15f
-                lastChar.isLowerCase() -> context.fontSize.value * 0.12f
-                else -> context.fontSize.value * 0.08f
+                lastChar.isUpperCase() -> fontSizePx * MathConstants.ITALIC_RIGHT_OVERHANG_UPPER
+                lastChar.isLowerCase() -> fontSizePx * MathConstants.ITALIC_RIGHT_OVERHANG_LOWER
+                else -> fontSizePx * MathConstants.ITALIC_RIGHT_OVERHANG_OTHER
             }
         } else 0f
 
+        val leftOverhang = if (context.fontStyle == FontStyle.Italic && text.isNotEmpty()) {
+            when {
+                text.first() in "FTVWYfv" -> fontSizePx * MathConstants.ITALIC_LEFT_OVERHANG
+                else -> 0f
+            }
+        } else 0f
+
+        val totalWidth = baseWidth + leftOverhang + rightOverhang
+
         return NodeLayout(
-            baseWidth + italicCorrection,
+            totalWidth,
             result.size.height.toFloat(),
             result.firstBaseline
         ) { x, y ->
-            drawText(result, topLeft = Offset(x, y))
+            drawText(result, topLeft = Offset(x + leftOverhang, y))
         }
     }
 
@@ -165,10 +180,10 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
      * 注意：这是降级方案，仅在无法加载字体时使用。
      * 正常情况下应该直接使用对应的字体系列（blackboardBold, calligraphic等）。
      */
-    private fun applyFontVariant(text: String, variant: RenderContext.FontVariant): String {
+    private fun applyFontVariant(text: String, variant: FontVariant): String {
         return when (variant) {
-            RenderContext.FontVariant.BLACKBOARD_BOLD -> MathFontUtils.toBlackboardBold(text)
-            RenderContext.FontVariant.CALLIGRAPHIC -> MathFontUtils.toCalligraphic(text)
+            FontVariant.BLACKBOARD_BOLD -> MathFontUtils.toBlackboardBold(text)
+            FontVariant.CALLIGRAPHIC -> MathFontUtils.toCalligraphic(text)
             else -> text
         }
     }

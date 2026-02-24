@@ -1,0 +1,910 @@
+---
+description: 
+alwaysApply: true
+enabled: true
+updatedAt: 2026-02-24T07:39:24.310Z
+provider: 
+---
+
+# Compose Multiplatform Canvas LaTeX 绘制规范
+
+> 本规范的目标：**跨平台渲染一致性** + **数学排版美观** + **工程可维护性**。
+> 适用于基于 Compose Multiplatform `Canvas` + `DrawScope` 的自定义 LaTeX 渲染引擎。
+
+---
+
+## 1. 架构：Measure/Draw 两阶段模型
+
+### 1.1 为什么是两阶段而非三阶段
+
+传统 UI 框架采用 Measure → Layout → Draw 三阶段。但 LaTeX 渲染的特殊性在于：**布局即测量** — 一个分数的布局位置完全由分子/分母的测量结果决定，不存在独立的"布局约束协商"阶段。因此采用更务实的两阶段模型：
+
+| 阶段 | 职责 | 产出 |
+|------|------|------|
+| **Measure（测量+布局）** | 递归测量 AST，计算每个节点的尺寸、基线、内部子节点相对位置，并生成绘制指令 | `NodeLayout` |
+| **Draw（绘制）** | 将 `NodeLayout` 的绘制指令在给定绝对坐标下执行 | 屏幕像素 |
+
+### 1.2 NodeLayout 核心数据结构
+
+```kotlin
+class NodeLayout(
+    val width: Float,
+    val height: Float,
+    val baseline: Float,
+    val draw: DrawScope.(x: Float, y: Float) -> Unit
+)
+```
+
+**设计决策与注意事项**：
+
+- **使用 `class` 而非 `data class`**：`draw` 是 lambda，不参与 `equals`/`hashCode`。如果使用 `data class`，`remember(layout)` 等基于 equality 的缓存机制会产生误判。需要通过 `remember` 的 key 是产生 layout 的输入（如 AST 节点 + 配置），而非 layout 本身。
+- `(x, y)` 是元素**左上角**的绝对画布坐标，由父级传入。
+- `baseline` 是从顶部到基线的距离，始终 >= 0。
+
+### 1.3 draw lambda 中的坐标约定
+
+所有子元素在 draw lambda 内的绘制坐标必须是 **`(x + relativeX, y + relativeY)`** 形式，其中 `relativeX/relativeY` 是 Measure 阶段预计算的相对偏移：
+
+```kotlin
+// ✅ 正确：Measure 阶段计算相对偏移，Draw 阶段仅做加法
+fun measureFraction(...): NodeLayout {
+    val numLayout = measureGroup(numerator, ...)
+    val denLayout = measureGroup(denominator, ...)
+    // Measure 阶段计算好所有相对位置
+    val numRelX = (totalWidth - numLayout.width) / 2f
+    val numRelY = 0f
+    val lineRelY = numLayout.height + numGap
+    val denRelX = (totalWidth - denLayout.width) / 2f
+    val denRelY = lineRelY + lineThickness + denGap
+
+    return NodeLayout(
+        width = totalWidth,
+        height = totalHeight,
+        baseline = lineRelY + axisHeight,
+        draw = { x, y ->
+            numLayout.draw(this, x + numRelX, y + numRelY)
+            drawLine(...)  // 分数线
+            denLayout.draw(this, x + denRelX, y + denRelY)
+        }
+    )
+}
+```
+
+**禁止在 draw lambda 中做的事情**：
+- ❌ 调用 `TextMeasurer.measure()`（测量必须提前完成）
+- ❌ 进行 `if/when` 平台判断（平台差异必须在 Measure 阶段解决）
+- ❌ 分配集合（`listOf`, `mutableListOf` 等）
+- ❌ 字符串操作（拼接、格式化、`AnnotatedString` 构建）
+
+**允许在 draw lambda 中做的事情**：
+- ✅ 调用子 layout 的 `draw()`
+- ✅ `drawText(precomputedTextLayoutResult, ...)`
+- ✅ `drawLine()` / `drawRect()` / `drawPath(precomputedPath, ...)`
+- ✅ `withTransform { scale/rotate }` + 绘制调用
+- ✅ 简单的算术（`x + offset` 等）
+
+---
+
+## 2. 边界安全：杜绝内容截断
+
+> **核心目标**：内容区相对父容器有合理内边距；内容区内部元素尽可能紧贴，不浪费空间。
+> **铁律**：`NodeLayout` 的 `(width, height)` 必须完整包含该节点所有可能产生像素的区域（墨水边界），绝不允许任何像素绘制到 `[0, width] × [0, height]` 之外。
+
+### 2.1 两种边界的区分
+
+| 概念 | 定义 | 举例 |
+|------|------|------|
+| **逻辑边界 (Logical Box)** | TextMeasurer 返回的 `size`，即文本的行框大小 | `TextLayoutResult.size.width/height` |
+| **墨水边界 (Ink Bounds)** | 字形实际绘制的像素范围，可能超出逻辑边界 | 斜体 "f" 右侧悬伸、"g" 下方的 descender 尾巴、大括号顶底端 |
+
+**规则**：`NodeLayout.width/height` 必须基于**墨水边界**，而非逻辑边界。
+
+### 2.2 水平方向溢出的来源与补偿
+
+#### (a) 斜体悬伸 (Italic Overhang)
+
+斜体字的最后一个字符向右倾斜，其墨水可能超出逻辑宽度；第一个字符可能向左突出 x=0。
+
+```kotlin
+// ⚠️ 关键：补偿值必须使用 px 单位，不能用 sp 的数值直接加到 px 宽度上
+val fontSizePx = with(density) { context.fontSize.toPx() }
+
+val rightOverhang = if (context.fontStyle == FontStyle.Italic && text.isNotEmpty()) {
+    when {
+        text.last().isUpperCase() -> fontSizePx * 0.15f
+        text.last().isLowerCase() -> fontSizePx * 0.12f
+        else -> fontSizePx * 0.08f
+    }
+} else 0f
+
+val leftOverhang = if (context.fontStyle == FontStyle.Italic && text.isNotEmpty()) {
+    when {
+        text.first() in "FTVWYfv" -> fontSizePx * 0.05f  // 向左突出字符
+        else -> 0f
+    }
+} else 0f
+
+// width 必须包含两侧悬伸
+val totalWidth = logicalWidth + leftOverhang + rightOverhang
+
+// draw 时向右偏移 leftOverhang，确保墨水不超出 x=0
+draw = { x, y -> drawText(result, topLeft = Offset(x + leftOverhang, y)) }
+```
+
+**严禁将 `TextUnit.value`（sp 数值）直接加到像素值上**。在 2x/3x 密度屏幕上，这会导致补偿严重不足。
+
+#### (b) Stroke 半宽溢出
+
+使用 `Stroke(width = W)` 绘制 Path 或 Line 时，笔画会向路径两侧各扩展 `W/2`：
+
+```kotlin
+// 根号 V 形钩子 — 宽度必须包含 Stroke 半宽
+val strokeHalf = strokeWidth / 2f
+val totalWidth = pathRightEdge + strokeHalf  // 右侧补偿
+// 如果 Path 最左端是 x=0，还需要 leftPadding = strokeHalf
+// 更好的做法：Path 构建时最左端从 strokeHalf 开始，而非 0
+```
+
+**规则**：凡是使用 `Stroke` 绘制的 Path/Line，其 `NodeLayout.width/height` 必须包含 `strokeWidth / 2` 的边距补偿。
+
+#### (c) 大型运算符的视觉宽度 vs glyph 宽度
+
+积分号等通过缩放或特殊字体绘制的运算符，其实际 glyph 宽度可能远大于"视觉有效宽度"。
+
+```kotlin
+// ❌ 错误：用"视觉宽度"作为 layout 宽度，glyph 实际更宽，右侧被裁切
+val width = opVisualWidth * 1.1f
+
+// ✅ 正确：取 glyph 实际宽度与视觉宽度的较大值
+val width = max(opGlyphLayout.width, opVisualWidth)
+```
+
+### 2.3 垂直方向溢出的来源与补偿
+
+#### (a) scale 变换后的实际高度
+
+使用 `withTransform { scale }` 垂直拉伸元素时，`NodeLayout.height` 必须反映拉伸后的高度：
+
+```kotlin
+// ❌ 错误：height 使用未缩放的高度，缩放后上下溢出
+val height = opLayout.height  // 原始高度
+// draw 中 withTransform { scale(scaleY = 2.0f) }  → 实际占 2x 高度
+
+// ✅ 正确：height 为缩放后的高度
+val height = opLayout.height * verticalScale
+```
+
+#### (b) 装饰符号的绘制偏移
+
+重音符号（hat/vec）在居中对齐时可能因 `italicCorrection` 偏移导致右侧溢出：
+
+```kotlin
+// 装饰居中位置 = contentCenter + italicCorrection
+// width 必须容纳偏移后的装饰完整宽度
+val accentRight = contentCenterX + italicCorrection + accentWidth / 2f
+val totalWidth = max(contentWidth, accentRight)
+```
+
+#### (c) 定界符放大后的 glyph 溢出
+
+字体放大后，glyph 的墨水边界可能超出 `TextLayoutResult.size`（尤其是 descent 方向）：
+
+```kotlin
+// 对放大的定界符，添加保守的垂直余量
+val verticalOverflow = if (scaleFactor > 1.5f) fontSizePx * 0.05f * scaleFactor else 0f
+val totalHeight = measuredHeight + verticalOverflow * 2
+```
+
+### 2.4 外层 Canvas 的内边距模型
+
+NodeLayout 内部的 width/height 必须精确包含墨水边界（**内部紧贴**原则）。在此基础上，最外层 Canvas 添加统一的内边距，使内容区与父容器保持间距：
+
+```kotlin
+@Composable
+fun LatexDocument(layout: NodeLayout, context: RenderContext, ...) {
+    val density = LocalDensity.current
+    val fontSizePx = with(density) { context.fontSize.toPx() }
+
+    // 外层内边距：内容区与 Canvas 边缘的间距
+    val horizontalPadding = fontSizePx * 0.15f   // 左右各 15% fontSize
+    val verticalPadding = fontSizePx * 0.10f     // 上下各 10% fontSize
+
+    val canvasWidth = layout.width + horizontalPadding * 2
+    val canvasHeight = layout.height + verticalPadding * 2
+
+    Canvas(modifier = Modifier.size(
+        width = with(density) { canvasWidth.toDp() },
+        height = with(density) { canvasHeight.toDp() }
+    )) {
+        // 内容从 (horizontalPadding, verticalPadding) 开始绘制
+        layout.draw(this, horizontalPadding, verticalPadding)
+    }
+}
+```
+
+**设计理由**：
+- **水平内边距**：补偿斜体字形可能的微量残余溢出 + 视觉呼吸空间
+- **垂直内边距**：补偿 descender 尾端、装饰符号顶部等微量溢出 + 避免内容紧贴上下边缘
+- 内边距值与 `fontSize` 成正比，保证在不同字号下视觉一致
+
+### 2.5 边界安全的分层责任
+
+| 层级 | 责任 | 做什么 |
+|------|------|--------|
+| **Measurer（每个节点）** | **精确墨水边界** | width/height 包含 Stroke 半宽、斜体悬伸、glyph 实际墨水范围。内部不留余量。 |
+| **measureGroup（行级组合）** | **基线对齐汇总** | 正确计算 maxAscent/maxDescent，不添加额外 padding。 |
+| **LatexDocument（最外层）** | **统一内边距** | 在 layout.width/height 基础上添加 horizontalPadding/verticalPadding。这是唯一添加"呼吸空间"的地方。 |
+
+**禁止**在中间层（单个 Measurer 或 measureGroup）添加"保险 padding"。如果某个 Measurer 的内容溢出，应修正该 Measurer 的尺寸计算，而非在外层加 padding 掩盖问题。
+
+### 2.6 验证方法：调试边框
+
+开发阶段可开启调试边框，可视化每个 NodeLayout 的边界：
+
+```kotlin
+// 在 draw lambda 的最后（或包装层）绘制半透明红色边框
+fun DrawScope.debugBounds(x: Float, y: Float, width: Float, height: Float) {
+    if (DEBUG_BOUNDS_ENABLED) {
+        drawRect(
+            color = Color.Red.copy(alpha = 0.3f),
+            topLeft = Offset(x, y),
+            size = Size(width, height),
+            style = Stroke(1f)
+        )
+    }
+}
+```
+
+如果任何内容像素出现在红色边框之外，说明该节点的尺寸计算有 bug，需要修正。
+
+---
+
+## 3. Path 构建策略：相对坐标 + translate
+
+### 3.1 核心矛盾与解决方案
+
+Path 对象包含的是绝对坐标点，但 draw 时的 `(x, y)` 只在绘制时确定。有三种策略：
+
+| 策略 | 做法 | 优劣 |
+|------|------|------|
+| **A: 预构建 + translate** | Path 以 `(0,0)` 为原点构建，draw 时用 `translate(x, y)` 偏移 | ✅ 推荐：Path 只创建一次，性能最优 |
+| B: draw 时构建 | 每次 draw 时创建新 Path | ❌ 每帧分配对象，GC 压力 |
+| C: Path 参数化 | 抽象为函数，传入 offset | ❌ 过度抽象，可读性差 |
+
+### 3.2 标准写法
+
+```kotlin
+// Measure 阶段：以 (0,0) 为原点构建 Path
+val sqrtPath = Path().apply {
+    moveTo(0f, hookHeight)
+    lineTo(hookWidth, totalHeight)       // V 形底部
+    lineTo(hookWidth + checkWidth, 0f)   // V 形顶部
+    lineTo(totalWidth, 0f)               // 水平顶线终点
+}
+
+// Draw 阶段：translate 到实际位置后绘制
+draw = { x, y ->
+    withTransform({ translate(left = x, top = y) }) {
+        drawPath(sqrtPath, color = color, style = Stroke(strokeWidth))
+    }
+    contentLayout.draw(this, x + contentOffsetX, y + contentOffsetY)
+}
+```
+
+### 3.3 Path 复用与共享
+
+同类型但不同尺寸的 Path **不要**试图复用（如不同大小的根号），每个 NodeLayout 实例持有自己的 Path 实例。但相同的 Path 构建逻辑应抽取为工厂函数：
+
+```kotlin
+object PathFactory {
+    fun createSqrtPath(hookWidth: Float, checkWidth: Float, totalWidth: Float, totalHeight: Float): Path { ... }
+    fun createBracePath(width: Float, height: Float, isOver: Boolean): Path { ... }
+    fun createArrowPath(width: Float, headSize: Float, direction: Direction): Path { ... }
+}
+```
+
+---
+
+## 4. 文本渲染：TextLayoutResult 预计算
+
+### 4.1 标准流程
+
+```kotlin
+// Measure 阶段
+val textLayoutResult = textMeasurer.measure(
+    text = AnnotatedString(content),
+    style = resolvedTextStyle   // 字体、大小、颜色等已在此确定
+)
+val width = textLayoutResult.size.width.toFloat()
+val height = textLayoutResult.size.height.toFloat()
+val baseline = textLayoutResult.firstBaseline
+
+// draw lambda 中 — 只传入预计算好的 TextLayoutResult
+draw = { x, y ->
+    drawText(textLayoutResult, topLeft = Offset(x, y))
+}
+```
+
+### 4.2 TextStyle 缓存策略
+
+`TextStyle` 创建虽然轻量但在递归测量数千个节点时累积明显。应在 `RenderContext` 中缓存常用样式：
+
+```kotlin
+class RenderContext(
+    val fontSize: TextUnit,
+    val textColor: Color,
+    val fontFamily: FontFamily,
+    val fontWeight: FontWeight,
+    val fontStyle: FontStyle,
+    // 缓存常用样式变体（lazy 初始化，避免未使用时的开销）
+    // ...
+) {
+    // 对外提供的样式获取方法，内部可做缓存
+    fun textStyle(): TextStyle = TextStyle(
+        fontSize = fontSize,
+        color = textColor,
+        fontFamily = fontFamily,
+        fontWeight = fontWeight,
+        fontStyle = fontStyle,
+    )
+}
+```
+
+---
+
+## 5. 跨平台一致性
+
+### 5.1 字体策略：内嵌字体优先，回退集中管理
+
+**核心原则**：跨平台一致性的最大敌人是字体差异。必须内嵌数学字体（如 Computer Modern 系列），使所有平台使用同一套字形。
+
+**回退策略集中管理**：
+
+```kotlin
+/**
+ * 集中管理字体回退策略。
+ * 所有字体选择逻辑归口此处，Measurer 中禁止直接判断平台选择字体。
+ */
+object FontResolver {
+    /**
+     * 已知在特定平台有渲染缺陷的字形映射。
+     * key = 字形字符串, value = 需要回退的平台集合。
+     * 维护者应在此表中记录每一个已知的平台字体缺陷。
+     */
+    private val knownDefects: Map<String, Set<PlatformType>> = mapOf(
+        "(" to setOf(PlatformType.JVM, PlatformType.JS, PlatformType.WASM),
+        ")" to setOf(PlatformType.JVM, PlatformType.JS, PlatformType.WASM),
+        "[" to setOf(PlatformType.JVM, PlatformType.JS, PlatformType.WASM),
+        "]" to setOf(PlatformType.JVM, PlatformType.JS, PlatformType.WASM),
+    )
+
+    fun resolve(
+        glyph: String,
+        category: FontCategory,
+        context: RenderContext,
+        platform: PlatformType
+    ): FontFamily {
+        // 1. 检查已知缺陷
+        if (knownDefects[glyph]?.contains(platform) == true) {
+            return getFallbackFont(category, platform)
+        }
+        // 2. 使用内嵌字体
+        return context.fontFamilies?.getFont(category)
+            ?: getFallbackFont(category, platform)
+    }
+
+    private fun getFallbackFont(category: FontCategory, platform: PlatformType): FontFamily {
+        return when {
+            platform.isMobile -> FontFamily.Serif
+            else -> FontFamily.SansSerif
+        }
+    }
+}
+```
+
+**为什么不用 expect/actual**：字体回退需要根据 **字形内容** + **字体类别** + **平台** 三个维度联合决策。`expect/actual` 只能按平台分文件，无法表达"某个字形在某个平台的某个字体下有缺陷"这种细粒度逻辑。集中管理的映射表可维护性更强，新增缺陷只需加一行，无需修改 5 个平台文件。
+
+### 5.2 坐标单位
+
+- 内部计算统一使用 **px**
+- 用户面向的配置使用 `TextUnit`（sp）和 `Dp`
+- 转换通过 `Density` 进行，禁止硬编码密度因子
+- `Density` 在顶层 Composable 获取后注入到 `RenderContext`，递归过程中传递同一实例
+
+### 5.3 颜色管理
+
+```kotlin
+// ✅ 所有颜色从 RenderContext 获取
+context.textColor       // 主文本颜色
+context.errorColor      // 错误回退颜色
+context.lineColor       // 分数线、根号线等结构线颜色（通常 = textColor）
+
+// ❌ 禁止
+Color.Black / Color.Red / Color(0xFF...)  // 硬编码颜色无法适应深色模式
+```
+
+颜色应在最外层 Composable 根据 `isSystemInDarkTheme()` 解析后注入 `RenderContext`，内部绘制逻辑不感知主题。
+
+---
+
+## 6. 基线对齐系统
+
+### 6.1 水平排列的基线对齐（核心公式）
+
+将多个元素水平排成一行时：
+
+```
+// 第一遍：找到统一基线
+maxAscent  = max(child_i.baseline)                    // 最大上升
+maxDescent = max(child_i.height - child_i.baseline)   // 最大下降
+groupHeight = maxAscent + maxDescent
+groupBaseline = maxAscent
+
+// 第二遍：每个子元素的 y 偏移（基线对齐）
+childY(i) = groupY + (maxAscent - child_i.baseline)
+
+// x 方向逐个排列
+childX(i) = childX(i-1) + child_(i-1).width
+```
+
+**严禁使用顶部对齐或中心对齐排列行内元素**。唯一的例外是独立的块级结构（如多行公式的行间排列可使用中心对齐）。
+
+### 6.2 数学轴 (Math Axis)
+
+数学轴是分数线、加减号等元素的垂直对称中心，通常位于基线上方约 0.5 × x-height 的位置。
+
+**计算方法**：测量字符 "−"（U+2212 MINUS SIGN）或 "+" 的垂直中心位置相对于基线的偏移：
+
+```kotlin
+fun computeAxisHeight(textMeasurer: TextMeasurer, style: TextStyle): Float {
+    val result = textMeasurer.measure(AnnotatedString("\u2212"), style)
+    val baseline = result.firstBaseline
+    val charMidY = result.size.height / 2f
+    return baseline - charMidY
+}
+```
+
+`axisHeight` 的用途：
+- **分数线** y 坐标 = elementY + baseline - axisHeight
+- **大型运算符**的垂直居中点 = baseline - axisHeight
+- **自动伸缩定界符**的垂直居中点 = 内容 baseline - axisHeight
+
+**缓存**：`axisHeight` 只取决于字体和字号，应在 `RenderContext` 中缓存，避免每个节点重复测量。
+
+### 6.3 上下标定位
+
+```
+上标顶部位置 = base.baseline - base.baseline * SUPERSCRIPT_SHIFT - sup.height
+下标顶部位置 = base.baseline + base.baseline * SUBSCRIPT_SHIFT - sub.baseline
+
+当上下标同时存在时，确保两者不重叠：
+  如果 supBottom + minGap > subTop，则均匀推开
+```
+
+---
+
+## 7. 数学排版间距规范
+
+### 7.1 间距类型（参考 TeX 标准）
+
+LaTeX 间距的底层单位是 **mu**（math unit），1 em = 18 mu。间距应定义为 fontSize 的比例系数：
+
+```kotlin
+object MathSpacing {
+    // 基础间距（fontSize 的比例系数）
+    const val THIN   = 3f / 18f    // \, = 3mu  ≈ 0.167em
+    const val MEDIUM = 4f / 18f    // \: = 4mu  ≈ 0.222em  (仅 display/text style)
+    const val THICK  = 5f / 18f    // \; = 5mu  ≈ 0.278em  (仅 display/text style)
+    const val QUAD   = 1f          // \quad = 18mu = 1em
+    const val NEGATIVE_THIN = -3f / 18f  // \! = -3mu
+
+    /**
+     * 根据左右原子类型确定间距。
+     * 参考 TeXbook Chapter 18 的间距规则表。
+     */
+    fun spaceBetween(left: AtomType, right: AtomType, style: MathStyle): Float {
+        return SPACING_TABLE[left]?.get(right)?.let { rule ->
+            when (rule) {
+                SpaceRule.NONE -> 0f
+                SpaceRule.THIN -> THIN
+                SpaceRule.MEDIUM -> if (style.isScript) 0f else MEDIUM
+                SpaceRule.THICK -> if (style.isScript) 0f else THICK
+            }
+        } ?: 0f
+    }
+}
+```
+
+### 7.2 原子类型间距表（TeX 标准简化版）
+
+| 左 \ 右 | Ord | Op | Bin | Rel | Open | Close | Punct |
+|---------|-----|----|-----|-----|------|-------|-------|
+| **Ord**   | 0 | thin | med | thick | 0 | 0 | 0 |
+| **Op**    | thin | thin | - | thick | 0 | 0 | 0 |
+| **Bin**   | med | med | - | - | med | - | - |
+| **Rel**   | thick | thick | - | 0 | thick | 0 | 0 |
+| **Open**  | 0 | 0 | - | 0 | 0 | 0 | 0 |
+| **Close** | 0 | thin | med | thick | 0 | 0 | 0 |
+| **Punct** | thin | thin | - | thin | thin | thin | thin |
+
+> `-` 表示该组合不应出现；`med` 和 `thick` 在 script/scriptscript 样式中降为 0。
+
+### 7.3 数学样式与缩放
+
+TeX 定义了 4 种数学样式，影响字号和间距：
+
+```kotlin
+enum class MathStyle(val scriptLevel: Int) {
+    DISPLAY(0),        // 独立行公式 — 全尺寸
+    TEXT(0),           // 行内公式 — 全尺寸
+    SCRIPT(1),         // 上下标 — 缩小
+    SCRIPT_SCRIPT(2);  // 上下标的上下标 — 更小
+
+    val isScript get() = scriptLevel > 0
+
+    fun scaleFactor(): Float = when (this) {
+        DISPLAY, TEXT -> 1.0f
+        SCRIPT -> 0.7f
+        SCRIPT_SCRIPT -> 0.5f
+    }
+}
+```
+
+**规则**：
+- 上下标内容使用 `SCRIPT` 样式（0.7x）
+- 上下标的上下标使用 `SCRIPT_SCRIPT` 样式（0.5x）
+- `SCRIPT_SCRIPT` 不再继续缩小（最小阈值）
+- 分数线上下在 `DISPLAY` 下使用 `TEXT`，在 `TEXT` 下使用 `SCRIPT`
+
+---
+
+## 8. 缩放与变换
+
+### 8.1 何时使用 scale vs 重新测量
+
+| 场景 | 方案 | 原因 |
+|------|------|------|
+| 上下标缩小 | **重新测量**（用更小的 fontSize） | 文本清晰度，避免模糊 |
+| 大型运算符放大 | **重新测量**（放大 fontSize）+ 可选垂直 scale | 字体引擎以目标字号光栅化，质量最优 |
+| 定界符伸缩 | **重新测量**（放大 fontSize + FontWeight 补偿） | 统一方案，详见第 9.3 节 |
+
+### 8.2 scale 变换的笔画补偿
+
+当使用 `scale` 放大文本时，笔画粗细会等比变粗，视觉上不自然。必须通过降低 `FontWeight` 补偿：
+
+```kotlin
+fun compensatedFontWeight(baseWeight: Int, scaleFactor: Float): FontWeight {
+    // scaleFactor = 1.0 → weight 不变
+    // scaleFactor = 2.0 → weight 降至约 100
+    // 线性插值，且限制在 [100, baseWeight] 范围内
+    val compensated = baseWeight - ((scaleFactor - 1.0f) * (baseWeight - 100) / 1.0f).toInt()
+    return FontWeight(compensated.coerceIn(100, baseWeight))
+}
+```
+
+对于 `Stroke` 绘制的线条，直接反比补偿：
+
+```kotlin
+fun compensatedStrokeWidth(baseStroke: Float, scaleFactor: Float): Float {
+    return (baseStroke / scaleFactor).coerceAtLeast(0.5f)  // 最小 0.5px 防止消失
+}
+```
+
+---
+
+## 9. 字体体系与定界符绘制策略
+
+### 9.1 项目字体文件能力总览
+
+项目内嵌 Computer Modern 系列字体，分三大类：
+
+#### 文本字体
+
+| 字体文件 | 槽位 | 提供的字形 | 用途 |
+|---------|------|-----------|------|
+| `cmr10.ttf` | roman (Normal) | 拉丁字母、数字、标点 | `\text{}`、`\mathrm{}` |
+| `cmti10.ttf` | roman (Italic) | 拉丁斜体字母 | 文本斜体 |
+| `cmss10.ttf` | sansSerif (Normal) | 无衬线拉丁字母 | `\mathsf{}` |
+| `cmssi10.ttf` | sansSerif (Italic) | 无衬线斜体 | `\mathsf{}` 斜体 |
+| `cmtt10.ttf` | monospace | 等宽字母 | `\mathtt{}` |
+| `cmbx10.ttf` | — (预留) | 粗体拉丁字母 | `\mathbf{}` (待启用) |
+| `cmbxti10.ttf` | — (预留) | 粗斜体 | `\boldsymbol{}` (待启用) |
+
+#### 核心数学字体
+
+| 字体文件 | 槽位 | 提供的字形 | 关键能力 |
+|---------|------|-----------|---------|
+| **`cmmi10.ttf`** | mathItalic | 拉丁斜体变量、**希腊字母**(α,β,γ...) | 数学变量的默认字体 |
+| **`cmsy10.ttf`** | symbol | 运算符(+,×,≤)、**小型定界符** `( ) [ ] { } \|`、逻辑符号(∀,∃) | 行内公式的括号、运算符 |
+| **`cmex10.ttf`** | extension | **大型运算符**(∑,∫,∏,∮)、**大型定界符**、根号√ | Display 模式的大符号 |
+
+#### 特殊数学字体
+
+| 字体文件 | 槽位 | 提供的字形 |
+|---------|------|-----------|
+| `msbm10.ttf` | blackboardBold | 黑板粗体：ℝ, ℕ, ℤ, ℂ |
+| `msam10.ttf` | (AMS symbols) | AMS 数学关系符号 |
+| `eufm10.ttf` | fraktur | 哥特体：𝔤, 𝔰𝔲 |
+| `rsfs10.ttf` | script | 手写花体：𝓛, ℋ |
+
+### 9.2 各平台已知字体问题
+
+| 字形 | Android | iOS | JVM Desktop | JS/WASM Web | 根因 |
+|------|---------|-----|-------------|-------------|------|
+| `( ) [ ]` (cmsy10) | ✅ 正常 | ✅ 正常 | ❌ 字形错误 | ❌ 字形错误 | cmsy10 使用 TeX 内部编码，桌面端字体引擎解码方式不同 |
+| `{ } \| ‖` (cmsy10) | ✅ 正常 | ✅ 正常 | ✅ 正常 | ✅ 正常 | — |
+| `∑ ∫ ∏` (cmex10) | ✅ 正常 | ✅ 正常 | ✅ 正常 | ✅ 正常 | — |
+| cmex10 descent | ⚠️ descent 极大 | ⚠️ descent 极大 | ⚠️ descent 极大 | ⚠️ descent 极大 | glyph 包含大量空白，全平台一致，需用 fontSize 估算视觉高度 |
+| cmmi10 希腊字母 | ✅ 正常 | ✅ 正常 | ✅ 正常 | ✅ 正常 | — |
+
+**核心结论**：跨平台字体问题非常有限，仅 `( ) [ ]` 在 cmsy10 + 桌面端有兼容性问题。
+
+### 9.3 定界符渲染策略：字体缩放优先，避免 Path 手绘
+
+> **核心原则**：尽可能使用字体渲染定界符，避免 Path 手动绘制。字体渲染的笔画粗细、衬线细节、曲线质量远优于手绘 Path，且自动适配 hinting 和子像素渲染。
+
+#### 统一方案：fontSize 直接缩放
+
+所有尺寸的定界符均采用 **调整 fontSize + 动态 FontWeight 补偿** 的方案：
+
+```kotlin
+fun measureDelimiterScaled(
+    delimiter: String,
+    context: RenderContext,
+    textMeasurer: TextMeasurer,
+    targetHeight: Float
+): NodeLayout {
+    // 1. 基础测量：用当前 fontSize 测量默认高度
+    val baseLayout = measureDelimiterText(delimiter, context, textMeasurer)
+    val scale = targetHeight / baseLayout.height
+
+    // 2. FontWeight 补偿：字号放大后笔画变粗，需降低 weight
+    val compensatedWeight = compensatedFontWeight(400, scale)
+
+    // 3. 字体选择：根据字形 + 平台选择正确的字体
+    val fontFamily = FontResolver.resolve(delimiter, FontCategory.SYMBOL, context, platform)
+
+    // 4. 用放大的 fontSize 重新测量
+    val scaledContext = context.copy(
+        fontSize = context.fontSize * scale,
+        fontWeight = compensatedWeight,
+        fontFamily = fontFamily
+    )
+    return measureDelimiterText(delimiter, scaledContext, textMeasurer)
+}
+```
+
+**为什么不用 Canvas scale 变换**：
+- `withTransform { scale }` 会等比拉伸所有像素（包括笔画宽度），导致水平方向笔画失真
+- 直接放大 `fontSize` 让字体引擎以目标字号重新光栅化，笔画质量由引擎保证
+
+**为什么不用 Path 手绘**：
+- 手绘的贝塞尔曲线无法模拟字体的 hinting、子像素渲染和衬线细节
+- 手绘 Path 在不同 DPI 下的视觉粗细不一致
+- 维护成本高（每种括号都要手写几十行 Path 代码）
+- 字体文件天然跨平台一致（相同字体在所有平台产生相同字形）
+
+#### 平台字体回退规则
+
+当 cmsy10 的某些字形在特定平台有渲染缺陷时，通过 `FontResolver` 集中回退（见第 5.1 节），而非降级为 Path 手绘：
+
+```
+cmsy10 字形渲染失败？
+  → 回退到系统字体（SansSerif/Serif）渲染同一字符
+  → 仍然是字体渲染，仍然享受字体引擎的渲染质量
+  
+不要：cmsy10 失败 → Path 手绘（质量下降、维护成本高）
+```
+
+#### cmex10 大型定界符的使用
+
+cmex10 字体包含专门为 Display 模式设计的大型定界符字形。当定界符需要超过普通文本行高时：
+
+```kotlin
+// 优先尝试 cmex10 的大型字形
+val extensionFont = context.fontFamilies?.extension  // cmex10
+if (extensionFont != null && targetHeight > baseLineHeight * 1.5f) {
+    // cmex10 的大型定界符字形天然更大，需要的 scale 更小，质量更好
+    return measureDelimiterScaled(delimiter, context.copy(fontFamily = extensionFont), ...)
+}
+// 回退：用 cmsy10 或系统字体 + fontSize 缩放
+return measureDelimiterScaled(delimiter, context, ...)
+```
+
+**cmex10 descent 处理注意**：cmex10 的 glyph 包含大量 descent 空白，`TextLayoutResult.size.height` 远大于视觉高度。必须用以下方式估算视觉高度：
+
+```kotlin
+val visualHeight = min(textLayoutResult.firstBaseline * 1.1f, textLayoutResult.size.height.toFloat())
+```
+
+#### 矩阵括号统一
+
+矩阵环境（pmatrix, bmatrix 等）的括号也应迁移到字体缩放方案，与 `\left...\right` 和 `\big` 系列定界符使用同一套渲染路径，消除两套方案并存的问题。
+
+### 9.4 Path 绘制的适用场景（严格限定）
+
+Path 手绘**仅用于**以下不可能通过字体表达的图形：
+
+| 图形 | 原因 |
+|------|------|
+| 根号 √ 的 V 形钩 + 水平顶线 | 根号需要根据内容宽度动态延伸顶线，字体字形无法做到 |
+| 分数线 | 简单水平线，drawLine 即可，无需字体 |
+| `\overline` / `\underline` | 简单水平线 |
+| `\overbrace` / `\underbrace` 的曲线 | 需根据内容宽度动态拉伸，字体字形宽度固定 |
+| `\widehat` / `\widetilde` | 需根据内容宽度动态拉伸 |
+| 可伸缩箭头 `\xrightarrow` | 箭头长度动态，字体无法表达 |
+| `\cancel` 斜线 | 简单斜线 |
+
+**判断标准**：如果图形的某个维度（宽度或高度）需要根据内容动态伸缩，且字体字形无法表达这种伸缩性，才使用 Path。否则一律使用字体渲染。
+
+---
+
+## 10. 性能规范
+
+### 10.1 Composable 层级
+
+```kotlin
+@Composable
+fun Latex(latex: String, config: LatexConfig, ...) {
+    // 1. 获取平台工具（TextMeasurer, Density）
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+
+    // 2. 异步解析
+    var document by remember { mutableStateOf<Document?>(null) }
+    LaunchedEffect(latex) {
+        document = withContext(Dispatchers.Default) { parser.parse(latex) }
+    }
+
+    // 3. 同步测量（依赖 textMeasurer，必须在 Composition 中）
+    val layout = remember(document, config, density) {
+        document?.let { measureGroup(it.children, context, textMeasurer, density) }
+    }
+
+    // 4. 绘制
+    layout?.let { lay ->
+        Canvas(modifier = Modifier.size(
+            width = with(density) { lay.width.toDp() },
+            height = with(density) { lay.height.toDp() }
+        )) {
+            lay.draw(this, 0f, 0f)
+        }
+    }
+}
+```
+
+**关键设计决策**：
+- **解析**在 `Dispatchers.Default` 上异步执行（CPU 密集）
+- **测量**在 Composition 主线程同步执行（因为 `TextMeasurer.measure()` 需要在主线程调用，且需要 font 资源加载完成）
+- **绘制**是纯粹的 Canvas 回调，只执行预计算好的绘制指令
+- `remember` 的 key 是 `(document, config, density)`，确保输入不变时不重新测量
+
+### 10.2 Canvas 尺寸与内边距
+
+Canvas 尺寸 = layout 尺寸 + 外层内边距。详见 **第 2.4 节**。
+
+- 必须使用 `Modifier.size(width, height)` 指定精确尺寸
+- 水平和垂直方向均需添加内边距（分别为 fontSize × 0.15 和 fontSize × 0.10）
+- **禁止** `fillMaxSize()` / `fillMaxWidth()`（导致不必要的尺寸变化和重绘）
+- **禁止**仅在水平方向添加 padding 而忽略垂直方向
+
+### 10.3 增量解析
+
+对于流式输入场景（如逐字输入 LaTeX），解析器应支持增量追加：
+- 新输入是上次输入的前缀扩展 → 只解析新增部分
+- 否则 → 清空重新解析
+- 解析结果通过 `mutableStateOf` 驱动重组
+
+---
+
+## 11. 错误处理与容错
+
+### 11.1 空/异常布局
+
+```kotlin
+val EMPTY_LAYOUT = NodeLayout(
+    width = 0f, height = 0f, baseline = 0f,
+    draw = { _, _ -> }
+)
+```
+
+任何测量函数在遇到异常输入时，返回 `EMPTY_LAYOUT` 而非抛出异常或返回 null。
+
+### 11.2 数值安全
+
+所有从测量结果得到的浮点数，在参与布局计算前必须通过安全检查：
+
+```kotlin
+fun Float.sanitized(fallback: Float = 0f): Float = when {
+    isNaN() || isInfinite() -> fallback
+    this < 0f -> 0f
+    else -> this
+}
+```
+
+### 11.3 未识别命令
+
+以**原始文本 + 错误颜色**渲染，确保用户能看到问题所在而非空白：
+
+```kotlin
+// 使用 context.errorColor（而非硬编码 Color.Red）
+val errorStyle = context.textStyle().copy(color = context.errorColor)
+```
+
+---
+
+## 12. 代码组织
+
+### 12.1 Measurer 职责划分
+
+每个 Measurer 负责一类 AST 节点的测量 + 绘制指令生成：
+
+| Measurer | 负责的 LaTeX 结构 |
+|----------|------------------|
+| TextContentMeasurer | 普通文本、符号、运算符、空白 |
+| MathMeasurer | 分数、根号、上下标、大型运算符 |
+| MatrixMeasurer | 矩阵、数组、cases、aligned |
+| DelimiterMeasurer | \left \right 自动伸缩、\big \Big 等手动大小 |
+| AccentMeasurer | \hat \vec \overline \underbrace 等装饰 |
+| StackMeasurer | \overset \underset \stackrel |
+| ExtensibleArrowMeasurer | \xrightarrow \xleftarrow |
+| SpecialEffectMeasurer | \boxed \phantom \cancel |
+
+### 12.2 Measurer 接口
+
+```kotlin
+interface NodeMeasurer<T : LatexNode> {
+    fun measure(
+        node: T,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        density: Density,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,    // 递归测量单节点
+        measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout  // 递归测量节点列表
+    ): NodeLayout
+}
+```
+
+`measureNode` 和 `measureGroup` 作为函数参数注入，实现 Measurer 间的解耦。每个 Measurer 不直接引用其他 Measurer。
+
+### 12.3 命名约定
+
+```kotlin
+// 测量入口
+fun measure[结构名](node, context, ...): NodeLayout
+
+// Path 工厂
+fun create[图形名]Path(参数...): Path
+
+// 间距/尺寸计算
+fun compute[属性名](context): Float
+
+// 样式变体
+fun RenderContext.with[变化](): RenderContext   // 如 withScriptStyle(), withBoldWeight()
+```
+
+---
+
+## 13. 开发检查清单
+
+每次新增或修改绘制功能，逐项检查：
+
+- [ ] **边界安全**：NodeLayout.width/height 包含所有墨水（Stroke 半宽、斜体悬伸、glyph 实际范围）
+- [ ] **边界安全**：斜体补偿使用 px 单位（`density.toPx()`），而非 sp 的 `.value`
+- [ ] **边界安全**：scale 变换后的 height 反映缩放后的实际高度
+- [ ] **边界安全**：外层 Canvas 水平和垂直方向均有内边距
+- [ ] draw lambda 中无测量调用、无对象分配、无平台分支
+- [ ] Path 以 (0,0) 为原点构建，draw 时通过 translate 偏移
+- [ ] 水平排列使用基线对齐（非顶部/中心对齐）
+- [ ] 数学结构以数学轴为中心（分数线、大型运算符）
+- [ ] 间距通过 `MathSpacing.spaceBetween()` 计算，无魔法数字
+- [ ] 颜色来自 `RenderContext`，无硬编码 `Color.Xxx`
+- [ ] 字体通过 `FontResolver.resolve()` 获取，无分散的平台判断
+- [ ] scale 变换有笔画补偿（FontWeight 或 strokeWidth）
+- [ ] 定界符使用字体 fontSize 缩放方案，非 Path 手绘（仅根号钩/分数线/动态宽度装饰用 Path）
+- [ ] 上下标使用 `MathStyle` 缩放，而非直接修改 fontSize
+- [ ] 空输入返回 `EMPTY_LAYOUT`，不抛异常
+- [ ] 浮点数经过 `sanitized()` 检查
+- [ ] `remember` 的 key 是输入数据（AST + config），不是 layout 本身
+- [ ] Canvas 使用精确 `Modifier.size()`
+- [ ] 在 Android / iOS / Desktop(JVM) 三端验证渲染一致

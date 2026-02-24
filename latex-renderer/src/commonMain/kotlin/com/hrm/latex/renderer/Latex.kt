@@ -46,6 +46,7 @@ import com.hrm.latex.renderer.model.LineBreakingConfig
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.defaultLatexFontFamilies
 import com.hrm.latex.renderer.model.toContext
+import com.hrm.latex.renderer.utils.MathConstants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -200,18 +201,22 @@ private fun LatexDocument(
         measureGroup(children, context, measurer, density)
     }
 
-    // 为斜体文字和特殊字体（cmmi10, cmex10 等）预留安全边距，
-    // 防止 glyph 溢出测量宽度导致内容被截断
-    val safetyPadding = with(density) { context.fontSize.toPx() * 0.15f }
-    val widthDp = with(density) { (layout.width + safetyPadding * 2).toDp() }
-    val heightDp = with(density) { layout.height.toDp() }
+    // 外层内边距：内容区与 Canvas 边缘的间距
+    // 水平：补偿斜体字形残余溢出 + 视觉呼吸空间
+    // 垂直：补偿 descender 尾端、装饰符号顶部等溢出
+    val fontSizePx = with(density) { context.fontSize.toPx() }
+    val horizontalPadding = fontSizePx * MathConstants.CANVAS_HORIZONTAL_PADDING
+    val verticalPadding = fontSizePx * MathConstants.CANVAS_VERTICAL_PADDING
+
+    val widthDp = with(density) { (layout.width + horizontalPadding * 2).toDp() }
+    val heightDp = with(density) { (layout.height + verticalPadding * 2).toDp() }
 
     Canvas(modifier = modifier.size(widthDp, heightDp)) {
         // 绘制背景
         if (backgroundColor != Color.Unspecified && backgroundColor != Color.Transparent) {
             drawRect(color = backgroundColor)
         }
-        // 内容绘制时加上左侧安全边距偏移
-        layout.draw(this, safetyPadding, 0f)
+        // 内容从 (horizontalPadding, verticalPadding) 开始绘制
+        layout.draw(this, horizontalPadding, verticalPadding)
     }
 }

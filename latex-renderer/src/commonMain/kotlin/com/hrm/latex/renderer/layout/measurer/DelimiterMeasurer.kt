@@ -23,20 +23,18 @@
 
 package com.hrm.latex.renderer.layout.measurer
 
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
+import com.hrm.latex.renderer.utils.DelimiterRenderer
+import com.hrm.latex.renderer.utils.FontResolver
 import com.hrm.latex.renderer.utils.LayoutUtils
-import com.hrm.latex.renderer.utils.isMobilePlatform
+import com.hrm.latex.renderer.utils.MathConstants
 
 /**
  * 定界符测量器
@@ -97,16 +95,15 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         val rightStr = node.right
 
         // 括号高度应该略高于内容,形成包裹感
-        // 添加上下各 0.15em 的 padding (总共 0.3em)
-        val delimiterPadding = with(density) { (context.fontSize * 0.15f).toPx() }
+        val delimiterPadding = with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
         val delimiterHeight = contentLayout.height + delimiterPadding * 2
 
         val leftLayout = if (leftStr != ".") {
-            measureDelimiterScaled(leftStr, context, measurer, delimiterHeight)
+            DelimiterRenderer.measureScaled(leftStr, context, measurer, delimiterHeight)
         } else null
 
         val rightLayout = if (rightStr != ".") {
-            measureDelimiterScaled(rightStr, context, measurer, delimiterHeight)
+            DelimiterRenderer.measureScaled(rightStr, context, measurer, delimiterHeight)
         } else null
 
         val leftW = leftLayout?.width ?: 0f
@@ -142,77 +139,6 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         }
     }
 
-    private fun delimiterContext(
-        context: RenderContext,
-        delimiter: String,
-        scale: Float = 1.0f
-    ): RenderContext {
-        val weight = when {
-            scale <= 1.0f -> 400
-            scale >= 2.0f -> 100
-            else -> {
-                val t = (scale - 1.0f) / 1.0f
-                (400 - t * 300).toInt().coerceIn(100, 400)
-            }
-        }
-        val fontWeight = FontWeight(weight)
-
-        // cmsy10 的 TeX 编码在桌面端(JVM/JS/WASM)会导致 ( ) [ ] 字形错误。
-        // 桌面端回退到系统 SansSerif 字体；移动端不受影响。
-        val useFallback = !isMobilePlatform() && delimiter in setOf("(", ")", "[", "]")
-        val fontFamily = if (useFallback) {
-            FontFamily.SansSerif
-        } else {
-            context.fontFamilies?.symbol ?: context.fontFamily
-        }
-
-        return context.copy(
-            fontStyle = FontStyle.Normal,
-            fontFamily = fontFamily,
-            fontWeight = fontWeight
-        )
-    }
-
-    private fun measureDelimiterScaled(
-        delimiter: String,
-        context: RenderContext,
-        measurer: TextMeasurer,
-        targetHeight: Float
-    ): NodeLayout {
-        // 先用默认 weight 测量获取基础高度
-        val baseLayout = measureDelimiterText(delimiter, delimiterContext(context, delimiter), measurer)
-        if (baseLayout.height <= 0f || targetHeight <= 0f) {
-            return baseLayout
-        }
-
-        val scale = targetHeight / baseLayout.height
-
-        // 根据缩放比例调整 fontSize 和 fontWeight
-        val adjustedContext = delimiterContext(context, delimiter, scale).copy(
-            fontSize = context.fontSize * scale
-        )
-        val adjustedLayout = measureDelimiterText(delimiter, adjustedContext, measurer)
-
-        // 直接使用调整后的字体大小,不使用 Canvas scale
-        return adjustedLayout
-    }
-
-    private fun measureDelimiterText(
-        delimiter: String,
-        delimiterStyle: RenderContext,
-        measurer: TextMeasurer
-    ): NodeLayout {
-        val textStyle = delimiterStyle.textStyle()
-        val result = measurer.measure(AnnotatedString(delimiter), textStyle)
-        return NodeLayout(
-            result.size.width.toFloat(),
-            result.size.height.toFloat(),
-            result.firstBaseline
-        ) { x, y ->
-            drawText(result, topLeft = androidx.compose.ui.geometry.Offset(x, y))
-        }
-    }
-
     /**
      * 测量手动大小的定界符 (\big, \Big 等)
      *
@@ -227,13 +153,11 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         val delimiter = node.delimiter
         val scaleFactor = node.size
 
-        // 根据 scaleFactor 动态调整 fontWeight
         val delimiterStyle =
-            delimiterContext(context, delimiter, scaleFactor).copy(fontSize = context.fontSize * scaleFactor)
+            FontResolver.delimiterContext(context, delimiter, scaleFactor).copy(fontSize = context.fontSize * scaleFactor)
         val result = measurer.measure(AnnotatedString(delimiter), delimiterStyle.textStyle())
 
         // 括号应该相对于数学轴居中
-        // baseline 应该设置为:数学轴位置 = height/2 + axisHeight
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
         val height = result.size.height.toFloat()
         val baseline = height / 2f + axisHeight

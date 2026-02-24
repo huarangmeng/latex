@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.parseColor
 
 /**
@@ -59,37 +60,78 @@ data class LineBreakingConfig(
 )
 
 /**
+ * 数学样式模式 (TeXbook §702)
+ *
+ * 影响字号缩放和间距行为：
+ * - DISPLAY/TEXT: 全尺寸，MEDIUM/THICK 间距生效
+ * - SCRIPT: 0.7x 缩放，MEDIUM/THICK 间距降为 0
+ * - SCRIPT_SCRIPT: 0.5x 缩放，MEDIUM/THICK 间距降为 0
+ */
+enum class MathStyle(val scriptLevel: Int) {
+    DISPLAY(0),
+    TEXT(0),
+    SCRIPT(1),
+    SCRIPT_SCRIPT(2);
+
+    val isScript get() = scriptLevel > 0
+
+    fun scaleFactor(): Float = when (this) {
+        DISPLAY, TEXT -> 1.0f
+        SCRIPT -> MathConstants.SCRIPT_SCALE
+        SCRIPT_SCRIPT -> MathConstants.SCRIPT_SCRIPT_SCALE
+    }
+
+    /** 进入上下标时的样式转换 */
+    fun toScript(): MathStyle = when (this) {
+        DISPLAY, TEXT -> SCRIPT
+        SCRIPT, SCRIPT_SCRIPT -> SCRIPT_SCRIPT
+    }
+
+    /** 分数子式的样式转换 (TeXbook §694) */
+    fun toFractionChild(): MathStyle = when (this) {
+        DISPLAY -> TEXT
+        TEXT -> SCRIPT
+        SCRIPT -> SCRIPT_SCRIPT
+        SCRIPT_SCRIPT -> SCRIPT_SCRIPT
+    }
+
+    /** 大型运算符上下限的样式转换 */
+    fun toLimit(): MathStyle = toScript()
+}
+
+/**
+ * 字体变体类型
+ */
+enum class FontVariant {
+    NORMAL,
+    BLACKBOARD_BOLD,
+    CALLIGRAPHIC,
+    FRAKTUR,
+    SCRIPT
+}
+
+/**
  * 内部渲染上下文（渲染树遍历过程中的状态）
+ *
+ * 使用 data class 以便利的 copy() 操作。
+ * 注意：不应将 RenderContext 作为 remember 的 key —— 应使用
+ * 产生它的输入（LatexConfig + isDark 等）作为 key。
  */
 internal data class RenderContext(
     val fontSize: TextUnit,
     val color: Color,
+    val errorColor: Color = Color(0xFFCC0000),
     val fontWeight: FontWeight? = null,
     val fontStyle: FontStyle? = null,
     val fontFamily: FontFamily? = null,
     val fontVariant: FontVariant = FontVariant.NORMAL,
     val fontFamilies: LatexFontFamilies? = null,
     val isVariantFontFamily: Boolean = false,
-    val mathStyle: MathStyleMode = MathStyleMode.DISPLAY,
-    val bigOpHeightHint: Float? = null, // 大型运算符（如积分）的高度暗示
+    val mathStyle: MathStyle = MathStyle.DISPLAY,
+    val bigOpHeightHint: Float? = null,
     val maxLineWidth: Float? = null,
     val lineBreakingEnabled: Boolean = false
-) {
-    enum class MathStyleMode {
-        DISPLAY,         // \displaystyle
-        TEXT,            // \textstyle
-        SCRIPT,          // \scriptstyle
-        SCRIPT_SCRIPT    // \scriptscriptstyle
-    }
-
-    enum class FontVariant {
-        NORMAL,
-        BLACKBOARD_BOLD, // \mathbb
-        CALLIGRAPHIC,    // \mathcal
-        FRAKTUR,         // \mathfrak
-        SCRIPT           // \mathscr
-    }
-}
+)
 
 /**
  * 从外部配置创建初始上下文
@@ -104,9 +146,12 @@ internal fun LatexConfig.toContext(
         if (color != Color.Unspecified) color else Color.Black
     }
 
+    val resolvedErrorColor = if (isDark) Color(0xFFFF6666) else Color(0xFFCC0000)
+
     return RenderContext(
         fontSize = fontSize,
         color = resolvedColor,
+        errorColor = resolvedErrorColor,
         fontFamily = baseFontFamily,
         fontFamilies = fontFamilies,
         isVariantFontFamily = false,
@@ -122,6 +167,40 @@ internal fun RenderContext.textStyle(): TextStyle = TextStyle(
     fontStyle = fontStyle,
     fontFamily = fontFamily
 )
+
+/**
+ * 进入上下标时的样式转换：使用 MathStyle 状态机自动决定字号
+ */
+internal fun RenderContext.toScriptStyle(): RenderContext {
+    val newStyle = mathStyle.toScript()
+    return copy(
+        fontSize = fontSize * (newStyle.scaleFactor() / mathStyle.scaleFactor()),
+        mathStyle = newStyle
+    )
+}
+
+/**
+ * 进入分数子式时的样式转换
+ */
+internal fun RenderContext.toFractionChildStyle(): RenderContext {
+    val newStyle = mathStyle.toFractionChild()
+    val scale = MathConstants.FRACTION_CHILD_SCALE * (newStyle.scaleFactor() / mathStyle.scaleFactor())
+    return copy(
+        fontSize = fontSize * scale,
+        mathStyle = newStyle
+    )
+}
+
+/**
+ * 进入大型运算符上下限时的样式转换
+ */
+internal fun RenderContext.toLimitStyle(): RenderContext {
+    val newStyle = mathStyle.toLimit()
+    return copy(
+        fontSize = fontSize * (newStyle.scaleFactor() / mathStyle.scaleFactor()),
+        mathStyle = newStyle
+    )
+}
 
 internal fun RenderContext.shrink(factor: Float): RenderContext = copy(fontSize = fontSize * factor)
 internal fun RenderContext.grow(factor: Float): RenderContext = copy(fontSize = fontSize * factor)
@@ -156,7 +235,7 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         LatexNode.Style.StyleType.BLACKBOARD_BOLD -> {
             val variantFamily = families?.blackboardBold
             copy(
-                fontVariant = RenderContext.FontVariant.BLACKBOARD_BOLD,
+                fontVariant = FontVariant.BLACKBOARD_BOLD,
                 fontFamily = variantFamily ?: fontFamily,
                 fontStyle = FontStyle.Normal,
                 isVariantFontFamily = variantFamily != null
@@ -166,7 +245,7 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         LatexNode.Style.StyleType.CALLIGRAPHIC -> {
             val variantFamily = families?.calligraphic
             copy(
-                fontVariant = RenderContext.FontVariant.CALLIGRAPHIC,
+                fontVariant = FontVariant.CALLIGRAPHIC,
                 fontFamily = variantFamily ?: fontFamily,
                 fontStyle = FontStyle.Normal,
                 isVariantFontFamily = variantFamily != null
@@ -176,7 +255,7 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         LatexNode.Style.StyleType.FRAKTUR -> {
             val variantFamily = families?.fraktur
             copy(
-                fontVariant = RenderContext.FontVariant.FRAKTUR,
+                fontVariant = FontVariant.FRAKTUR,
                 fontFamily = variantFamily ?: fontFamily,
                 fontStyle = FontStyle.Normal,
                 isVariantFontFamily = variantFamily != null
@@ -186,7 +265,7 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         LatexNode.Style.StyleType.SCRIPT -> {
             val variantFamily = families?.script
             copy(
-                fontVariant = RenderContext.FontVariant.SCRIPT,
+                fontVariant = FontVariant.SCRIPT,
                 fontFamily = variantFamily ?: fontFamily,
                 fontStyle = FontStyle.Normal,
                 isVariantFontFamily = variantFamily != null
@@ -200,17 +279,13 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
  */
 internal fun RenderContext.applyMathStyle(mathStyleType: LatexNode.MathStyle.MathStyleType): RenderContext {
     val newMode = when (mathStyleType) {
-        LatexNode.MathStyle.MathStyleType.DISPLAY -> RenderContext.MathStyleMode.DISPLAY
-        LatexNode.MathStyle.MathStyleType.TEXT -> RenderContext.MathStyleMode.TEXT
-        LatexNode.MathStyle.MathStyleType.SCRIPT -> RenderContext.MathStyleMode.SCRIPT
-        LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT -> RenderContext.MathStyleMode.SCRIPT_SCRIPT
+        LatexNode.MathStyle.MathStyleType.DISPLAY -> MathStyle.DISPLAY
+        LatexNode.MathStyle.MathStyleType.TEXT -> MathStyle.TEXT
+        LatexNode.MathStyle.MathStyleType.SCRIPT -> MathStyle.SCRIPT
+        LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT -> MathStyle.SCRIPT_SCRIPT
     }
 
-    val scaleFactor = when (newMode) {
-        RenderContext.MathStyleMode.DISPLAY, RenderContext.MathStyleMode.TEXT -> 1.0f
-        RenderContext.MathStyleMode.SCRIPT -> 0.7f
-        RenderContext.MathStyleMode.SCRIPT_SCRIPT -> 0.5f
-    }
+    val scaleFactor = newMode.scaleFactor() / mathStyle.scaleFactor()
 
     return copy(
         fontSize = fontSize * scaleFactor,
