@@ -50,11 +50,6 @@ import com.hrm.latex.renderer.utils.FontBytesCache
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import latex.latex_renderer.generated.resources.Res
-import latex.latex_renderer.generated.resources.cmex10
-import latex.latex_renderer.generated.resources.cmmi10
-import latex.latex_renderer.generated.resources.cmr10
-import latex.latex_renderer.generated.resources.cmsy10
 import org.jetbrains.compose.resources.getFontResourceBytes
 import org.jetbrains.compose.resources.getSystemResourceEnvironment
 
@@ -91,15 +86,24 @@ fun Latex(
     val fontFamilies = config.fontFamilies ?: defaultLatexFontFamilies()
 
     // 异步加载字体字节数据（用于精确 glyph bounds 测量）
+    // 从 fontFamilies 中获取 FontResource，支持外部自定义字体
     var fontBytesCache by remember { mutableStateOf<FontBytesCache?>(null) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(fontFamilies) {
         if (fontBytesCache == null) {
             fontBytesCache = try {
                 val environment = getSystemResourceEnvironment()
-                val extensionBytes = Res.readBytes("font/cmex10.ttf")
-                val symbolBytes = getFontResourceBytes(environment, Res.font.cmsy10)
-                val mathItalicBytes = getFontResourceBytes(environment, Res.font.cmmi10)
-                val romanBytes = getFontResourceBytes(environment, Res.font.cmr10)
+                val extensionBytes = fontFamilies.extensionResource?.let {
+                    getFontResourceBytes(environment, it)
+                }
+                val symbolBytes = fontFamilies.symbolResource?.let {
+                    getFontResourceBytes(environment, it)
+                }
+                val mathItalicBytes = fontFamilies.mathItalicResource?.let {
+                    getFontResourceBytes(environment, it)
+                }
+                val romanBytes = fontFamilies.romanResource?.let {
+                    getFontResourceBytes(environment, it)
+                }
                 FontBytesCache(extensionBytes, symbolBytes, mathItalicBytes, romanBytes)
             } catch (e: Exception) {
                 HLog.e(TAG, "字体字节加载失败", e)

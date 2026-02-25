@@ -551,11 +551,11 @@ internal object FontResolver {
      * 1. 通过命令名查找（如 "alpha", "Rightarrow", "cup"）
      * 2. 通过 Unicode 字符反向查找（如 "α", "→", "∪"）
      *
-     * 只有当 fontFamilies 不为 null（即加载了 CM 字体文件）时才返回映射结果，
-     * 否则返回 null 让调用方回退到 Unicode 渲染。
+     * 仅当使用内嵌 CM 字体（isDefaultCM = true）时返回映射结果。
+     * 外部自定义字体或未加载字体时返回 null，让调用方回退到 Unicode 渲染。
      *
      * @param symbolName LaTeX 符号命令名（不含反斜杠）或 Unicode 字符
-     * @param fontFamilies 已加载的字体家族集合，null 时回退到 Unicode 渲染
+     * @param fontFamilies 已加载的字体家族集合
      * @return 符号渲染信息，null 表示该符号无需特殊字体路由（使用 Unicode 渲染）
      */
     fun resolveSymbol(
@@ -600,10 +600,50 @@ internal object FontResolver {
      * cmsy10 中使用 TeX 内部编码、Unicode codepoint 与实际字形不对应的定界符。
      * 这些字符必须使用 cmr10（Roman）渲染，因为 cmr10 的 cmap 表中
      * ( ) [ ] 的 Unicode codepoint 与标准 ASCII 一致。
-     *
-     * cmsy10 中可正常渲染的定界符（如 { } | ‖ ⟨ ⟩ ⌊ ⌋ ⌈ ⌉）不在此集合中。
      */
     private val romanDelimiters = setOf("(", ")", "[", "]")
+
+    /**
+     * 定界符 Unicode → cmsy10 TeX char code 映射表
+     *
+     * cmsy10 的 cmap 表使用 TeX 内部编码，Unicode 字符需要映射到对应的 char code。
+     * 数据来源: texSymbolMap 中定界符相关条目。
+     *
+     * 注意: ( ) [ ] 不在此表中，它们使用 cmr10 渲染。
+     */
+    private val delimiterCharMap: Map<String, String> = mapOf(
+        "{" to 102.toChar().toString(),     // lbrace → sy(102)
+        "}" to 103.toChar().toString(),     // rbrace → sy(103)
+        "|" to 106.toChar().toString(),     // vert → sy(106)
+        "‖" to 107.toChar().toString(),     // Vert → sy(107)
+        "∥" to 107.toChar().toString(),     // parallel → sy(107)
+        "⟨" to 104.toChar().toString(),     // langle → sy(104)
+        "⟩" to 105.toChar().toString(),     // rangle → sy(105)
+        "⌊" to 98.toChar().toString(),      // lfloor → sy(98)
+        "⌋" to 99.toChar().toString(),      // rfloor → sy(99)
+        "⌈" to 100.toChar().toString(),     // lceil → sy(100)
+        "⌉" to 101.toChar().toString(),     // rceil → sy(101)
+        "∖" to 110.toChar().toString(),     // backslash → sy(110)
+        "/" to 47.toChar().toString(),       // slash — ASCII 一致，但保留以防万一
+    )
+
+    /**
+     * 将定界符 Unicode 字符转换为 CM 字体中的正确 char code
+     *
+     * 当使用内嵌 CM 字体（isDefaultCM）时，cmsy10 的 cmap 表使用 TeX 内部编码，
+     * 需要将 Unicode 定界符映射到对应的 char code 才能正确渲染。
+     * 对于 ( ) [ ]，因为使用 cmr10 且 cmr10 的 cmap 与 ASCII 一致，所以不需要映射。
+     *
+     * @param delimiter Unicode 定界符字符
+     * @param fontFamilies 字体配置
+     * @return 映射后的渲染字符（可能与输入不同），直接用于 TextMeasurer 渲染
+     */
+    fun resolveDelimiterGlyph(delimiter: String, fontFamilies: LatexFontFamilies?): String {
+        if (fontFamilies == null || !fontFamilies.isDefaultCM) return delimiter
+        // ( ) [ ] 使用 cmr10，ASCII 编码一致，不需要映射
+        if (delimiter in romanDelimiters) return delimiter
+        return delimiterCharMap[delimiter] ?: delimiter
+    }
 
     /**
      * 获取定界符渲染上下文

@@ -254,8 +254,10 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         // glyph 墨水底部 = opGlyphDrawY + glyphVisualPart
         val superTop = if (superLayout != null) {
             if (isIntegral) {
-                // 上标顶部与积分符号墨水顶部对齐
-                opGlyphDrawY
+                // 上标 baseline 与积分符号墨水顶部对齐
+                // superTop + superLayout.baseline = opGlyphDrawY
+                // → superTop = opGlyphDrawY - superLayout.baseline
+                opGlyphDrawY - superLayout.baseline
             } else {
                 opTop - superLayout.height - limitGap
             }

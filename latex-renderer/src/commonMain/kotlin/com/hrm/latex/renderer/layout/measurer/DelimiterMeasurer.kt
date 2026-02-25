@@ -153,9 +153,12 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         val delimiter = node.delimiter
         val scaleFactor = node.size
 
+        // 将 Unicode 定界符转换为 CM 字体中的正确 TeX char code
+        val glyph = FontResolver.resolveDelimiterGlyph(delimiter, context.fontFamilies)
+
         val delimiterStyle =
             FontResolver.delimiterContext(context, delimiter, scaleFactor).copy(fontSize = context.fontSize * scaleFactor)
-        val result = measurer.measure(AnnotatedString(delimiter), delimiterStyle.textStyle())
+        val result = measurer.measure(AnnotatedString(glyph), delimiterStyle.textStyle())
 
         // 括号应该相对于数学轴居中
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)

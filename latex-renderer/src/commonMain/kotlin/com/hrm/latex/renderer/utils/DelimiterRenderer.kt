@@ -23,6 +23,7 @@
 package com.hrm.latex.renderer.utils
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
@@ -46,6 +47,13 @@ internal object DelimiterRenderer {
     /**
      * 测量并缩放定界符至目标高度
      *
+     * 策略：放大 fontSize 让字体引擎以目标字号光栅化（保证高度），
+     * 然后通过水平缩放补偿笔画变粗的问题。
+     *
+     * CM 字体是单 weight 字体，FontWeight 调整无效，因此使用 scaleX 补偿：
+     * - scale <= 1.5 → 不补偿（笔画增粗不明显）
+     * - scale > 1.5  → scaleX = 1/sqrt(scale)，让笔画宽度随放大率开方衰减
+     *
      * @param delimiter 定界符字符串 (如 "(", "[", "{", "|", "‖")
      * @param context 当前渲染上下文
      * @param measurer 文本测量器
@@ -58,7 +66,10 @@ internal object DelimiterRenderer {
         measurer: TextMeasurer,
         targetHeight: Float
     ): NodeLayout {
-        val baseLayout = measureText(delimiter, FontResolver.delimiterContext(context, delimiter), measurer)
+        // 将 Unicode 定界符转换为 CM 字体中的正确 TeX char code
+        val glyph = FontResolver.resolveDelimiterGlyph(delimiter, context.fontFamilies)
+
+        val baseLayout = measureText(glyph, FontResolver.delimiterContext(context, delimiter), measurer)
         if (baseLayout.height <= 0f || targetHeight <= 0f) {
             return baseLayout
         }
@@ -67,7 +78,31 @@ internal object DelimiterRenderer {
         val adjustedContext = FontResolver.delimiterContext(context, delimiter, scale).copy(
             fontSize = context.fontSize * scale
         )
-        return measureText(delimiter, adjustedContext, measurer)
+        val scaledLayout = measureText(glyph, adjustedContext, measurer)
+
+        // 笔画补偿：scale 较大时水平方向压缩，让笔画看起来更细
+        // CM 字体是单 weight，FontWeight 调整无效，因此用 scaleX 补偿
+        if (scale > 1.5f) {
+            val scaleX = 1f / kotlin.math.sqrt(scale).coerceIn(1f, 1.6f)
+            val compensatedWidth = scaledLayout.width * scaleX
+            return NodeLayout(
+                compensatedWidth,
+                scaledLayout.height,
+                scaledLayout.baseline
+            ) { x, y ->
+                // 以原始文本中心为 pivot 做水平缩放，这样文本自动居中
+                val textCenterX = x + compensatedWidth / 2f
+                withTransform({
+                    scale(scaleX = scaleX, scaleY = 1f, pivot = Offset(textCenterX, y))
+                }) {
+                    // scaleX 以 textCenterX 为中心缩放，文本绘制起点需要
+                    // 从 textCenterX 向左偏移原始宽度的一半
+                    scaledLayout.draw(this, textCenterX - scaledLayout.width / 2f, y)
+                }
+            }
+        }
+
+        return scaledLayout
     }
 
     /**

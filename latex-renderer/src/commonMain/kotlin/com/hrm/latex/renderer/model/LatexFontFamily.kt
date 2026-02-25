@@ -36,6 +36,7 @@ import latex.latex_renderer.generated.resources.msam10
 import latex.latex_renderer.generated.resources.msbm10
 import latex.latex_renderer.generated.resources.rsfs10
 import org.jetbrains.compose.resources.Font
+import org.jetbrains.compose.resources.FontResource
 
 /**
  * LaTeX 字体家族配置
@@ -106,6 +107,16 @@ data class LatexFontFamilies(
     val fraktur: FontFamily,         // eufm10 - \mathfrak{g} → 𝔤 (哥特体)
     val script: FontFamily,          // rsfs10 - \mathscr{L} → 𝓛 (手写体)
 
+    // === 字体资源 Font Resources (用于精确 glyph bounds 测量) ===
+    /** cmex10 字体资源 — 大型运算符精确墨水边界测量所需 */
+    val extensionResource: FontResource? = null,
+    /** cmsy10 字体资源 — 符号精确测量所需 */
+    val symbolResource: FontResource? = null,
+    /** cmmi10 字体资源 — 数学斜体精确测量所需 */
+    val mathItalicResource: FontResource? = null,
+    /** cmr10 字体资源 — 正文精确测量所需 */
+    val romanResource: FontResource? = null,
+
     /**
      * 是否为内嵌 Computer Modern 字体（默认字体）。
      *
@@ -165,6 +176,10 @@ internal fun defaultLatexFontFamilies(): LatexFontFamilies {
         calligraphic = calligraphic,
         fraktur = fraktur,
         script = script,
+        extensionResource = Res.font.cmex10,
+        symbolResource = Res.font.cmsy10,
+        mathItalicResource = Res.font.cmmi10,
+        romanResource = Res.font.cmr10,
         isDefaultCM = true
     )
 }
