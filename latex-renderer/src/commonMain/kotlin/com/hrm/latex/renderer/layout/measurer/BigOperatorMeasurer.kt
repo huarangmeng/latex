@@ -77,9 +77,11 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val isIntegral = node.operator.contains("int")
         val isNamedOperator = symbol == node.operator && symbol.all { it.isLetter() }
 
-        // 积分号使用 cmsy10 的 smallint 字形（charCode 115 = 's'）
+        // 积分号在默认 CM 字体下使用 cmsy10 的 smallint 字形（charCode 115）
         // cmsy10 使用 TeX 内部编码，不能直接用 Unicode ∫
-        val renderSymbol = if (isIntegral) CMSY10_SMALLINT.toString() else symbol
+        // 非默认 CM 字体（用户自定义）直接使用 Unicode 字符
+        val useTexEncoding = context.fontFamilies?.isDefaultCM == true
+        val renderSymbol = if (isIntegral && useTexEncoding) CMSY10_SMALLINT.toString() else symbol
 
         val useSideMode = resolveLimitsMode(node, isIntegral, isNamedOperator, context)
         val scaleFactor = resolveScaleFactor(context, useSideMode, isIntegral)
@@ -258,12 +260,16 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
                 MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT,
                 scaleFactor
             )
-            // 积分号使用 cmsy10 (smallint)：笔画更纤细，放大后视觉效果更好
-            // 其他大型运算符（∑ ∏ 等）继续使用 cmex10
-            val fontFamily = if (isIntegral) {
-                context.fontFamilies?.symbol ?: context.fontFamily
+            // 默认 CM 字体：积分号用 cmsy10 (smallint)，其他大型运算符用 cmex10
+            // 自定义字体：不区分，直接用当前字体渲染 Unicode 字符
+            val fontFamily = if (context.fontFamilies?.isDefaultCM == true) {
+                if (isIntegral) {
+                    context.fontFamilies?.symbol ?: context.fontFamily
+                } else {
+                    context.fontFamilies?.extension ?: context.fontFamily
+                }
             } else {
-                context.fontFamilies?.extension ?: context.fontFamily
+                context.fontFamily
             }
             context.grow(scaleFactor).copy(
                 fontFamily = fontFamily,
