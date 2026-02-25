@@ -2,7 +2,7 @@
 description: 
 alwaysApply: true
 enabled: true
-updatedAt: 2026-02-24T07:39:24.310Z
+updatedAt: 2026-02-25T10:00:00.000Z
 provider: 
 ---
 
@@ -185,9 +185,9 @@ val accentRight = contentCenterX + italicCorrection + accentWidth / 2f
 val totalWidth = max(contentWidth, accentRight)
 ```
 
-#### (c) 定界符放大后的 glyph 溢出
+#### (c) 定界符 glyph 溢出
 
-字体放大后，glyph 的墨水边界可能超出 `TextLayoutResult.size`（尤其是 descent 方向）：
+KaTeX Size 字体的字形设计较为规范，但在 fontSize 缩放兜底场景（Size4 仍不够高时）或大型运算符场景下，glyph 的墨水边界仍可能超出 `TextLayoutResult.size`（尤其是 descent 方向）：
 
 ```kotlin
 // 对放大的定界符，添加保守的垂直余量
@@ -354,55 +354,75 @@ class RenderContext(
 
 ## 5. 跨平台一致性
 
-### 5.1 字体策略：内嵌字体优先，回退集中管理
+### 5.1 字体策略：KaTeX 内嵌字体 + 集中路由
 
-**核心原则**：跨平台一致性的最大敌人是字体差异。必须内嵌数学字体（如 Computer Modern 系列），使所有平台使用同一套字形。
+**核心原则**：跨平台一致性的最大敌人是字体差异。项目内嵌 **KaTeX 字体**（标准 Unicode 编码），使所有平台使用同一套字形，彻底消除平台字体引擎编码差异导致的字形错误。
 
-**回退策略集中管理**：
+#### 字体模型：LatexFontFamilies 12 槽位
+
+```kotlin
+data class LatexFontFamilies(
+    val main: FontFamily,           // KaTeX_Main — 文本、运算符、定界符
+    val math: FontFamily,           // KaTeX_Math — 数学斜体变量
+    val ams: FontFamily,            // KaTeX_AMS — 黑板粗体 ℝℕℤℂ
+    val sansSerif: FontFamily,      // KaTeX_SansSerif
+    val monospace: FontFamily,      // KaTeX_Typewriter
+    val caligraphic: FontFamily,    // KaTeX_Caligraphic
+    val fraktur: FontFamily,        // KaTeX_Fraktur
+    val script: FontFamily,         // KaTeX_Script
+    val size1: FontFamily,          // KaTeX_Size1 — \big 定界符
+    val size2: FontFamily,          // KaTeX_Size2 — \Big 定界符
+    val size3: FontFamily,          // KaTeX_Size3 — \bigg 定界符
+    val size4: FontFamily,          // KaTeX_Size4 — \Bigg 定界符
+)
+```
+
+**12 个槽位的设计理由**：KaTeX 的定界符字体（Size1~4）包含独立设计的不同尺寸字形，每个尺寸的笔画粗细经过专门调整，无需 FontWeight 补偿。这是相比旧 CM 字体体系的核心改进。
+
+#### 符号路由：FontResolver 集中管理
 
 ```kotlin
 /**
- * 集中管理字体回退策略。
- * 所有字体选择逻辑归口此处，Measurer 中禁止直接判断平台选择字体。
+ * 集中管理字体选择与符号路由。
+ * 所有字体选择逻辑归口此处，Measurer 中禁止直接选择字体。
  */
 object FontResolver {
     /**
-     * 已知在特定平台有渲染缺陷的字形映射。
-     * key = 字形字符串, value = 需要回退的平台集合。
-     * 维护者应在此表中记录每一个已知的平台字体缺陷。
+     * LaTeX 命令名 → SymbolRenderInfo 映射表。
+     * 约 180+ 条目，覆盖希腊字母、箭头、运算符、关系符、定界符等。
      */
-    private val knownDefects: Map<String, Set<PlatformType>> = mapOf(
-        "(" to setOf(PlatformType.JVM, PlatformType.JS, PlatformType.WASM),
-        ")" to setOf(PlatformType.JVM, PlatformType.JS, PlatformType.WASM),
-        "[" to setOf(PlatformType.JVM, PlatformType.JS, PlatformType.WASM),
-        "]" to setOf(PlatformType.JVM, PlatformType.JS, PlatformType.WASM),
-    )
+    private val symbolMap: Map<String, SymbolRenderInfo> = mapOf(...)
 
-    fun resolve(
-        glyph: String,
-        category: FontCategory,
-        context: RenderContext,
-        platform: PlatformType
-    ): FontFamily {
-        // 1. 检查已知缺陷
-        if (knownDefects[glyph]?.contains(platform) == true) {
-            return getFallbackFont(category, platform)
-        }
-        // 2. 使用内嵌字体
-        return context.fontFamilies?.getFont(category)
-            ?: getFallbackFont(category, platform)
+    /**
+     * FontCategory → FontFamily 映射。
+     * KaTeX 使用标准 Unicode 编码，无需平台特定的字形缺陷映射。
+     */
+    fun resolve(category: FontCategory, fontFamilies: LatexFontFamilies?): FontFamily {
+        return when (category) {
+            FontCategory.ROMAN -> fontFamilies?.main
+            FontCategory.MATH_ITALIC -> fontFamilies?.math
+            FontCategory.SYMBOL -> fontFamilies?.main  // KaTeX: 运算符在 Main 中
+            FontCategory.EXTENSION -> fontFamilies?.size1
+            FontCategory.BLACKBOARD_BOLD -> fontFamilies?.ams
+            FontCategory.CALLIGRAPHIC -> fontFamilies?.caligraphic
+            FontCategory.FRAKTUR -> fontFamilies?.fraktur
+            FontCategory.SCRIPT -> fontFamilies?.script
+            // ...
+        } ?: FontFamily.Default
     }
 
-    private fun getFallbackFont(category: FontCategory, platform: PlatformType): FontFamily {
-        return when {
-            platform.isMobile -> FontFamily.Serif
-            else -> FontFamily.SansSerif
-        }
-    }
+    /** 定界符字体选择：根据缩放比例选择 Size 字体 */
+    fun resolveDelimiterFont(fontFamilies: LatexFontFamilies?, scale: Float): FontFamily { ... }
+
+    /** 手动大小定界符：\big/\Big/\bigg/\Bigg → Size1/2/3/4 直接映射 */
+    fun manualDelimiterFont(fontFamilies: LatexFontFamilies?, scaleFactor: Float): FontFamily { ... }
 }
 ```
 
-**为什么不用 expect/actual**：字体回退需要根据 **字形内容** + **字体类别** + **平台** 三个维度联合决策。`expect/actual` 只能按平台分文件，无法表达"某个字形在某个平台的某个字体下有缺陷"这种细粒度逻辑。集中管理的映射表可维护性更强，新增缺陷只需加一行，无需修改 5 个平台文件。
+**KaTeX vs CM 字体的关键差异**：
+- **标准 Unicode 编码**：KaTeX 字体使用标准 Unicode 码位，所有平台的字体引擎均能正确解码，无需平台特定的 `knownDefects` 映射表
+- **运算符在 Main 字体中**：KaTeX 将运算符、定界符、标点等放在 `KaTeX_Main`，而非独立的 symbol 字体
+- **4 级定界符尺寸字体**：Size1~4 提供独立设计的字形，笔画粗细一致，取代了旧方案中的 fontSize 缩放 + FontWeight 补偿
 
 ### 5.2 坐标单位
 
@@ -566,9 +586,11 @@ enum class MathStyle(val scriptLevel: Int) {
 |------|------|------|
 | 上下标缩小 | **重新测量**（用更小的 fontSize） | 文本清晰度，避免模糊 |
 | 大型运算符放大 | **重新测量**（放大 fontSize）+ 可选垂直 scale | 字体引擎以目标字号光栅化，质量最优 |
-| 定界符伸缩 | **重新测量**（放大 fontSize + FontWeight 补偿） | 统一方案，详见第 9.3 节 |
+| 定界符伸缩 | **KaTeX Size 字体逐级选择**（Main→Size1→Size2→Size3→Size4） | 每级字体包含独立设计的字形，笔画粗细一致，无需 FontWeight 补偿。详见第 9.3 节 |
 
 ### 8.2 scale 变换的笔画补偿
+
+> **注意**：定界符已迁移到 KaTeX Size 字体逐级选择方案，无需 scale 变换和 FontWeight 补偿。以下内容仅适用于大型运算符等仍使用 `withTransform { scale }` 的场景。
 
 当使用 `scale` 放大文本时，笔画粗细会等比变粗，视觉上不自然。必须通过降低 `FontWeight` 补偿：
 
@@ -596,130 +618,159 @@ fun compensatedStrokeWidth(baseStroke: Float, scaleFactor: Float): Float {
 
 ### 9.1 项目字体文件能力总览
 
-项目内嵌 Computer Modern 系列字体，分三大类：
+项目内嵌 **KaTeX** 系列字体（来自 [KaTeX](https://github.com/KaTeX/KaTeX) 项目，MIT 许可证），使用标准 Unicode 编码。共 20 个 TTF 文件，分四大类：
 
-#### 文本字体
+#### 主文本 & 运算符字体
 
-| 字体文件 | 槽位 | 提供的字形 | 用途 |
-|---------|------|-----------|------|
-| `cmr10.ttf` | roman (Normal) | 拉丁字母、数字、标点 | `\text{}`、`\mathrm{}` |
-| `cmti10.ttf` | roman (Italic) | 拉丁斜体字母 | 文本斜体 |
-| `cmss10.ttf` | sansSerif (Normal) | 无衬线拉丁字母 | `\mathsf{}` |
-| `cmssi10.ttf` | sansSerif (Italic) | 无衬线斜体 | `\mathsf{}` 斜体 |
-| `cmtt10.ttf` | monospace | 等宽字母 | `\mathtt{}` |
-| `cmbx10.ttf` | — (预留) | 粗体拉丁字母 | `\mathbf{}` (待启用) |
-| `cmbxti10.ttf` | — (预留) | 粗斜体 | `\boldsymbol{}` (待启用) |
+| 字体文件 | 槽位 | 字重/样式 | 提供的字形 | 用途 |
+|---------|------|----------|-----------|------|
+| `katex_main_regular.ttf` | main (Normal) | Regular | 拉丁字母、数字、标点、运算符、定界符、大写希腊字母 | `\text{}`、`\mathrm{}`、行内运算符 |
+| `katex_main_bold.ttf` | main (Bold) | Bold | 同上（粗体变体） | `\mathbf{}`、`\textbf{}` |
+| `katex_main_italic.ttf` | main (Italic) | Italic | 拉丁斜体字母 | 文本斜体 |
+| `katex_main_bolditalic.ttf` | main (BoldItalic) | BoldItalic | 拉丁粗斜体 | `\boldsymbol{}` 文本 |
 
 #### 核心数学字体
 
-| 字体文件 | 槽位 | 提供的字形 | 关键能力 |
-|---------|------|-----------|---------|
-| **`cmmi10.ttf`** | mathItalic | 拉丁斜体变量、**希腊字母**(α,β,γ...) | 数学变量的默认字体 |
-| **`cmsy10.ttf`** | symbol | 运算符(+,×,≤)、**小型定界符** `( ) [ ] { } \|`、逻辑符号(∀,∃) | 行内公式的括号、运算符 |
-| **`cmex10.ttf`** | extension | **大型运算符**(∑,∫,∏,∮)、**大型定界符**、根号√ | Display 模式的大符号 |
+| 字体文件 | 槽位 | 字重/样式 | 提供的字形 | 关键能力 |
+|---------|------|----------|-----------|---------|
+| **`katex_math_italic.ttf`** | math (Italic) | Italic | 拉丁斜体变量、**希腊字母**(α,β,γ...) | 数学变量的默认字体 |
+| **`katex_math_bolditalic.ttf`** | math (BoldItalic) | BoldItalic | 粗斜体数学变量 | `\boldsymbol{}` 数学模式 |
+| **`katex_ams_regular.ttf`** | ams | Regular | 黑板粗体 ℝℕℤℂ、AMS 数学符号 | `\mathbb{}` |
+
+#### 定界符尺寸字体（KaTeX 独有）
+
+| 字体文件 | 槽位 | 提供的字形 | 对应命令 | 说明 |
+|---------|------|-----------|---------|------|
+| **`katex_size1_regular.ttf`** | size1 | 中号定界符 `( ) [ ] { } \|` | `\big` | 独立设计，笔画粗细与 Main 一致 |
+| **`katex_size2_regular.ttf`** | size2 | 大号定界符 | `\Big` | 字形更大，笔画粗细不变 |
+| **`katex_size3_regular.ttf`** | size3 | 特大号定界符 | `\bigg` | 字形更大，笔画粗细不变 |
+| **`katex_size4_regular.ttf`** | size4 | 最大号定界符、大型运算符(∑,∫,∏) | `\Bigg` | 最大预设尺寸 |
+
+**Size 字体的核心优势**：每个尺寸级别的字形由字体设计师独立绘制，笔画粗细经过专门调整，确保在不同大小下视觉一致。这消除了旧方案中 fontSize 缩放导致的笔画变粗问题，**无需 FontWeight 补偿**。
 
 #### 特殊数学字体
 
-| 字体文件 | 槽位 | 提供的字形 |
-|---------|------|-----------|
-| `msbm10.ttf` | blackboardBold | 黑板粗体：ℝ, ℕ, ℤ, ℂ |
-| `msam10.ttf` | (AMS symbols) | AMS 数学关系符号 |
-| `eufm10.ttf` | fraktur | 哥特体：𝔤, 𝔰𝔲 |
-| `rsfs10.ttf` | script | 手写花体：𝓛, ℋ |
+| 字体文件 | 槽位 | 提供的字形 | 用途 |
+|---------|------|-----------|------|
+| `katex_sansserif_regular.ttf` | sansSerif (Normal) | 无衬线拉丁字母 | `\mathsf{}` |
+| `katex_sansserif_bold.ttf` | sansSerif (Bold) | 无衬线粗体 | `\mathsf{}` 粗体 |
+| `katex_sansserif_italic.ttf` | sansSerif (Italic) | 无衬线斜体 | `\mathsf{}` 斜体 |
+| `katex_typewriter_regular.ttf` | monospace | 等宽字母 | `\mathtt{}` |
+| `katex_caligraphic_regular.ttf` | caligraphic (Normal) | 花体字母 | `\mathcal{}` |
+| `katex_caligraphic_bold.ttf` | caligraphic (Bold) | 花体粗体 | `\mathcal{}` 粗体 |
+| `katex_fraktur_regular.ttf` | fraktur (Normal) | 哥特体 𝔤, 𝔰𝔲 | `\mathfrak{}` |
+| `katex_fraktur_bold.ttf` | fraktur (Bold) | 哥特体粗体 | `\mathfrak{}` 粗体 |
+| `katex_script_regular.ttf` | script | 手写花体 𝓛, ℋ | `\mathscr{}` |
 
-### 9.2 各平台已知字体问题
+### 9.2 跨平台字体兼容性
 
-| 字形 | Android | iOS | JVM Desktop | JS/WASM Web | 根因 |
-|------|---------|-----|-------------|-------------|------|
-| `( ) [ ]` (cmsy10) | ✅ 正常 | ✅ 正常 | ❌ 字形错误 | ❌ 字形错误 | cmsy10 使用 TeX 内部编码，桌面端字体引擎解码方式不同 |
-| `{ } \| ‖` (cmsy10) | ✅ 正常 | ✅ 正常 | ✅ 正常 | ✅ 正常 | — |
-| `∑ ∫ ∏` (cmex10) | ✅ 正常 | ✅ 正常 | ✅ 正常 | ✅ 正常 | — |
-| cmex10 descent | ⚠️ descent 极大 | ⚠️ descent 极大 | ⚠️ descent 极大 | ⚠️ descent 极大 | glyph 包含大量空白，全平台一致，需用 fontSize 估算视觉高度 |
-| cmmi10 希腊字母 | ✅ 正常 | ✅ 正常 | ✅ 正常 | ✅ 正常 | — |
+KaTeX 字体使用**标准 Unicode 码位**编码所有字形，与旧 CM 字体系列（使用 TeX 内部编码）有本质区别：
 
-**核心结论**：跨平台字体问题非常有限，仅 `( ) [ ]` 在 cmsy10 + 桌面端有兼容性问题。
+| 特性 | KaTeX 字体 (当前) | CM 字体 (已弃用) |
+|------|-----------------|-----------------|
+| 字符编码 | 标准 Unicode | TeX 内部编码 |
+| 平台兼容性 | ✅ 全平台一致 | ❌ `( ) [ ]` 在 JVM/JS/WASM 字形错误 |
+| 定界符策略 | 4 级 Size 字体，独立设计 | 单一 cmex10 + fontSize 缩放 |
+| 已知缺陷 | **无** | cmsy10 括号类在桌面端解码错误 |
 
-### 9.3 定界符渲染策略：字体缩放优先，避免 Path 手绘
+**核心结论**：迁移到 KaTeX 字体后，**不存在已知的跨平台字体渲染问题**。`FontResolver` 中无需维护平台特定的 `knownDefects` 映射表。所有平台（Android、iOS、JVM Desktop、JS/WASM Web）均能正确渲染所有字形。
 
-> **核心原则**：尽可能使用字体渲染定界符，避免 Path 手动绘制。字体渲染的笔画粗细、衬线细节、曲线质量远优于手绘 Path，且自动适配 hinting 和子像素渲染。
+### 9.3 定界符渲染策略：KaTeX Size 字体逐级选择
 
-#### 统一方案：fontSize 直接缩放
+> **核心原则**：定界符使用 **KaTeX Size1~4 字体的预设字形**，避免 fontSize 缩放和 Path 手绘。每级 Size 字体包含独立设计的字形，笔画粗细一致，渲染质量远优于缩放方案。
 
-所有尺寸的定界符均采用 **调整 fontSize + 动态 FontWeight 补偿** 的方案：
+#### 自动伸缩策略（\left...\right）
+
+`DelimiterRenderer.measureScaled()` 实现 5 级逐级选择：
 
 ```kotlin
-fun measureDelimiterScaled(
-    delimiter: String,
-    context: RenderContext,
-    textMeasurer: TextMeasurer,
-    targetHeight: Float
-): NodeLayout {
-    // 1. 基础测量：用当前 fontSize 测量默认高度
-    val baseLayout = measureDelimiterText(delimiter, context, textMeasurer)
-    val scale = targetHeight / baseLayout.height
+object DelimiterRenderer {
+    /** 定界符尺寸级别 */
+    private data class SizeLevel(val name: String, val getFont: (LatexFontFamilies) -> FontFamily)
 
-    // 2. FontWeight 补偿：字号放大后笔画变粗，需降低 weight
-    val compensatedWeight = compensatedFontWeight(400, scale)
-
-    // 3. 字体选择：根据字形 + 平台选择正确的字体
-    val fontFamily = FontResolver.resolve(delimiter, FontCategory.SYMBOL, context, platform)
-
-    // 4. 用放大的 fontSize 重新测量
-    val scaledContext = context.copy(
-        fontSize = context.fontSize * scale,
-        fontWeight = compensatedWeight,
-        fontFamily = fontFamily
+    private val sizeLevels = listOf(
+        SizeLevel("main")  { it.main },
+        SizeLevel("size1") { it.size1 },
+        SizeLevel("size2") { it.size2 },
+        SizeLevel("size3") { it.size3 },
+        SizeLevel("size4") { it.size4 },
     )
-    return measureDelimiterText(delimiter, scaledContext, textMeasurer)
+
+    fun measureScaled(
+        delimiter: String,
+        context: RenderContext,
+        textMeasurer: TextMeasurer,
+        targetHeight: Float,
+        density: Density
+    ): NodeLayout {
+        val fontFamilies = context.fontFamilies ?: return measureText(delimiter, context, textMeasurer)
+
+        // 逐级尝试 Main → Size1 → Size2 → Size3 → Size4
+        for (level in sizeLevels) {
+            val font = level.getFont(fontFamilies)
+            val layout = measureText(delimiter, context.copy(fontFamily = font), textMeasurer)
+            if (layout.height >= targetHeight) {
+                return layout  // 找到满足高度要求的最小字形
+            }
+        }
+
+        // Size4 仍不够高 → 对 Size4 做 fontSize 等比缩放（最终兜底）
+        val size4Font = fontFamilies.size4
+        val size4Layout = measureText(delimiter, context.copy(fontFamily = size4Font), textMeasurer)
+        val scale = targetHeight / size4Layout.height
+        val scaledContext = context.copy(
+            fontFamily = size4Font,
+            fontSize = context.fontSize * scale
+        )
+        return measureText(delimiter, scaledContext, textMeasurer)
+    }
 }
 ```
 
-**为什么不用 Canvas scale 变换**：
-- `withTransform { scale }` 会等比拉伸所有像素（包括笔画宽度），导致水平方向笔画失真
-- 直接放大 `fontSize` 让字体引擎以目标字号重新光栅化，笔画质量由引擎保证
+**关键设计决策**：
+- **逐级选择**而非直接缩放：每级 Size 字体的字形由设计师独立绘制，笔画粗细经过调整
+- **无 FontWeight 补偿**：Size 字体间笔画粗细天然一致，不需要 `compensatedFontWeight()`
+- **无 Canvas scale 变换**：不使用 `withTransform { scale(scaleX = ...) }` 来补偿笔画，消除了水平方向笔画失真
+- **fontSize 缩放仅作最终兜底**：仅当 Size4 字形仍不够高时才使用，绝大多数场景不会触发
 
-**为什么不用 Path 手绘**：
-- 手绘的贝塞尔曲线无法模拟字体的 hinting、子像素渲染和衬线细节
-- 手绘 Path 在不同 DPI 下的视觉粗细不一致
-- 维护成本高（每种括号都要手写几十行 Path 代码）
-- 字体文件天然跨平台一致（相同字体在所有平台产生相同字形）
+#### 手动大小定界符（\big \Big \bigg \Bigg）
 
-#### 平台字体回退规则
-
-当 cmsy10 的某些字形在特定平台有渲染缺陷时，通过 `FontResolver` 集中回退（见第 5.1 节），而非降级为 Path 手绘：
-
-```
-cmsy10 字形渲染失败？
-  → 回退到系统字体（SansSerif/Serif）渲染同一字符
-  → 仍然是字体渲染，仍然享受字体引擎的渲染质量
-  
-不要：cmsy10 失败 → Path 手绘（质量下降、维护成本高）
-```
-
-#### cmex10 大型定界符的使用
-
-cmex10 字体包含专门为 Display 模式设计的大型定界符字形。当定界符需要超过普通文本行高时：
+直接映射到对应 Size 字体，**不缩放 fontSize**：
 
 ```kotlin
-// 优先尝试 cmex10 的大型字形
-val extensionFont = context.fontFamilies?.extension  // cmex10
-if (extensionFont != null && targetHeight > baseLineHeight * 1.5f) {
-    // cmex10 的大型定界符字形天然更大，需要的 scale 更小，质量更好
-    return measureDelimiterScaled(delimiter, context.copy(fontFamily = extensionFont), ...)
+// FontResolver 中的映射规则
+fun manualDelimiterFont(fontFamilies: LatexFontFamilies?, scaleFactor: Float): FontFamily {
+    return when {
+        scaleFactor <= 1.2f -> fontFamilies?.size1  // \big
+        scaleFactor <= 1.8f -> fontFamilies?.size2  // \Big
+        scaleFactor <= 2.4f -> fontFamilies?.size3  // \bigg
+        else                -> fontFamilies?.size4  // \Bigg
+    } ?: FontFamily.Default
 }
-// 回退：用 cmsy10 或系统字体 + fontSize 缩放
-return measureDelimiterScaled(delimiter, context, ...)
+
+// DelimiterMeasurer 中的使用
+fun measureManualSizedDelimiter(...): NodeLayout {
+    val delimFont = FontResolver.manualDelimiterFont(context.fontFamilies, scaleFactor)
+    val delimContext = context.copy(fontFamily = delimFont)
+    // 直接用 Size 字体测量，无需放大 fontSize
+    val layout = measurer.measure(AnnotatedString(delimChar), delimContext.textStyle())
+    // ...
+}
 ```
 
-**cmex10 descent 处理注意**：cmex10 的 glyph 包含大量 descent 空白，`TextLayoutResult.size.height` 远大于视觉高度。必须用以下方式估算视觉高度：
+**vs 旧方案对比**：
 
-```kotlin
-val visualHeight = min(textLayoutResult.firstBaseline * 1.1f, textLayoutResult.size.height.toFloat())
-```
+| 维度 | 旧方案 (CM 字体) | 新方案 (KaTeX Size 字体) |
+|------|-----------------|------------------------|
+| 字体来源 | 单一 cmex10 + fontSize 缩放 | Size1~4 独立字形 |
+| 笔画粗细 | 缩放导致变粗，需 FontWeight 补偿 | 天然一致，无需补偿 |
+| 渲染质量 | 依赖 scaleX 反向补偿，有失真 | 字体引擎原生光栅化，质量最优 |
+| 代码复杂度 | `compensatedFontWeight()` + `withTransform { scale }` | 直接选择字体，逻辑简洁 |
+| 平台一致性 | cmsy10 括号在桌面端有字形错误 | 全平台一致 |
 
 #### 矩阵括号统一
 
-矩阵环境（pmatrix, bmatrix 等）的括号也应迁移到字体缩放方案，与 `\left...\right` 和 `\big` 系列定界符使用同一套渲染路径，消除两套方案并存的问题。
+矩阵环境（pmatrix, bmatrix 等）的括号与 `\left...\right` 和 `\big` 系列定界符使用同一套渲染路径（`DelimiterRenderer.measureScaled()`），确保所有定界符的渲染方案统一。
 
 ### 9.4 Path 绘制的适用场景（严格限定）
 
@@ -899,9 +950,9 @@ fun RenderContext.with[变化](): RenderContext   // 如 withScriptStyle(), with
 - [ ] 数学结构以数学轴为中心（分数线、大型运算符）
 - [ ] 间距通过 `MathSpacing.spaceBetween()` 计算，无魔法数字
 - [ ] 颜色来自 `RenderContext`，无硬编码 `Color.Xxx`
-- [ ] 字体通过 `FontResolver.resolve()` 获取，无分散的平台判断
-- [ ] scale 变换有笔画补偿（FontWeight 或 strokeWidth）
-- [ ] 定界符使用字体 fontSize 缩放方案，非 Path 手绘（仅根号钩/分数线/动态宽度装饰用 Path）
+- [ ] 字体通过 `FontResolver` 路由获取，无分散的字体选择逻辑
+- [ ] 定界符使用 KaTeX Size1~4 字体逐级选择（仅 Size4 仍不够时才 fontSize 缩放兜底）
+- [ ] 手动大小定界符（`\big` 等）直接使用对应 Size 字体，不缩放 fontSize
 - [ ] 上下标使用 `MathStyle` 缩放，而非直接修改 fontSize
 - [ ] 空输入返回 `EMPTY_LAYOUT`，不抛异常
 - [ ] 浮点数经过 `sanitized()` 检查
