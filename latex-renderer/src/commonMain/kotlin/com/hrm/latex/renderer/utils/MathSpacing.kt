@@ -116,8 +116,12 @@ object MathSpacing {
         "rightarrow", "leftarrow", "leftrightarrow",
         "Rightarrow", "Leftarrow", "Leftrightarrow",
         "longrightarrow", "longleftarrow", "longleftrightarrow",
-        "mapsto", "to",
-        "propto", "perp", "parallel", "mid"
+        "Longleftarrow", "Longrightarrow", "Longleftrightarrow",
+        "implies", "iff",
+        "mapsto", "to", "longmapsto",
+        "propto", "perp", "parallel", "mid",
+        "prec", "succ", "preceq", "succeq",
+        "vdash", "dashv"
     )
 
     /**

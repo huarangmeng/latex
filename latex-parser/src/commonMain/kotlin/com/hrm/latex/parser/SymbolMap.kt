@@ -78,6 +78,7 @@ object SymbolMap {
         "pm" to "±",
         "mp" to "∓",
         "cdot" to "⋅",
+        "cdotp" to "⋅",
         "ast" to "∗",
         "star" to "⋆",
         "circ" to "∘",
@@ -87,6 +88,14 @@ object SymbolMap {
         "otimes" to "⊗",
         "oslash" to "⊘",
         "odot" to "⊙",
+        "diamond" to "◇",
+        "bigcirc" to "○",
+        "minus" to "−",
+        "uplus" to "⊎",
+        "sqcup" to "⊔",
+        "sqcap" to "⊓",
+        "wr" to "≀",
+        "amalg" to "∐",
         
         // 关系符号
         "leq" to "≤",
@@ -107,16 +116,29 @@ object SymbolMap {
         "supset" to "⊃",
         "subseteq" to "⊆",
         "supseteq" to "⊇",
+        "sqsubseteq" to "⊑",
+        "sqsupseteq" to "⊒",
         "in" to "∈",
         "notin" to "∉",
         "ni" to "∋",
+        "owns" to "∋",
         "perp" to "⊥",
         "parallel" to "∥",
+        "asymp" to "≍",
+        "prec" to "≺",
+        "succ" to "≻",
+        "preceq" to "≼",
+        "succeq" to "≽",
+        "vdash" to "⊢",
+        "dashv" to "⊣",
+        "top" to "⊤",
+        "bot" to "⊥",
         
         // 箭头
         "leftarrow" to "←",
         "rightarrow" to "→",
         "to" to "→",  // \to 是 \rightarrow 的简写
+        "gets" to "←", // \gets 是 \leftarrow 的简写
         "leftrightarrow" to "↔",
         "Leftarrow" to "⇐",
         "Rightarrow" to "⇒",
@@ -131,6 +153,18 @@ object SymbolMap {
         "longrightarrow" to "⟶",
         "longleftarrow" to "⟵",
         "longleftrightarrow" to "⟷",
+        "Longleftarrow" to "⟸",
+        "Longrightarrow" to "⟹",
+        "Longleftrightarrow" to "⟺",
+        "longmapsto" to "⟼",
+        "nearrow" to "↗",
+        "searrow" to "↘",
+        "nwarrow" to "↖",
+        "swarrow" to "↙",
+        "leftharpoonup" to "↼",
+        "leftharpoondown" to "↽",
+        "rightharpoonup" to "⇀",
+        "rightharpoondown" to "⇁",
         
         // 集合符号
         "emptyset" to "∅",
@@ -138,12 +172,14 @@ object SymbolMap {
         "cap" to "∩",
         "cup" to "∪",
         "setminus" to "∖",
+        "backslash" to "∖",
         "forall" to "∀",
         "exists" to "∃",
         "nexists" to "∄",
         
         // 逻辑符号
         "neg" to "¬",
+        "lnot" to "¬",
         "land" to "∧",
         "lor" to "∨",
         "wedge" to "∧",
@@ -176,6 +212,22 @@ object SymbolMap {
         "Re" to "ℜ",
         "Im" to "ℑ",
         "aleph" to "ℵ",
+        "triangle" to "△",
+        "imath" to "ı",
+        "jmath" to "ȷ",
+        "flat" to "♭",
+        "natural" to "♮",
+        "sharp" to "♯",
+        "smile" to "⌣",
+        "frown" to "⌢",
+        "S" to "§",
+        "P" to "¶",
+        "dagger" to "†",
+        "ddagger" to "‡",
+        "clubsuit" to "♣",
+        "diamondsuit" to "♢",
+        "heartsuit" to "♡",
+        "spadesuit" to "♠",
         
         // 括号和分隔符
         "langle" to "⟨",
@@ -184,6 +236,10 @@ object SymbolMap {
         "rfloor" to "⌋",
         "lceil" to "⌈",
         "rceil" to "⌉",
+        "vert" to "|",
+        "Vert" to "‖",
+        "lbrace" to "{",
+        "rbrace" to "}",
         
         // 其他
         "sum" to "∑",
@@ -194,7 +250,12 @@ object SymbolMap {
         "bigvee" to "⋁",
         "bigwedge" to "⋀",
         "bigoplus" to "⨁",
-        "bigotimes" to "⨂"
+        "bigotimes" to "⨂",
+        "bigsqcup" to "⨆",
+        "bigodot" to "⨀",
+        "biguplus" to "⨄",
+        "triangleright" to "▷",
+        "triangleleft" to "◁"
     )
     
     fun getSymbol(name: String): String? = symbols[name]

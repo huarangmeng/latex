@@ -1,4 +1,3 @@
-import com.android.utils.withResources
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
@@ -15,6 +14,7 @@ kotlin {
     androidLibrary {
         namespace = "com.hrm.latex.renderer"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
         androidResources.enable = true
 
         withJava()
@@ -55,7 +55,7 @@ kotlin {
         }
         commonMain.dependencies {
             api(projects.latexParser)
-            
+
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -78,18 +78,24 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("io.github.huarangmeng", "latex-renderer", rootProject.property("VERSION").toString())
+    coordinates(
+        "io.github.huarangmeng",
+        "latex-renderer",
+        rootProject.property("VERSION").toString()
+    )
 
     pom {
         name.set("Kotlin Multiplatform LaTeX Rendering Engine")
-        description.set("""
+        description.set(
+            """
             Cross-platform LaTeX math rendering solution with:
             - Full LaTeX syntax support (math mode)
             - Custom command definitions
             - Chemical formula rendering
             - Compose Multiplatform UI integration
             - Multi-module architecture (base/parser/renderer)
-        """.trimIndent())
+        """.trimIndent()
+        )
         inceptionYear.set("2026")
         url.set("https://github.com/huarangmeng/latex")
         licenses {

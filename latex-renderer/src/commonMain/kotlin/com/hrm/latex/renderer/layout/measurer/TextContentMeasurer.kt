@@ -36,6 +36,7 @@ import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.FontVariant
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
+import com.hrm.latex.renderer.utils.FontResolver
 import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.MathFontUtils
 import com.hrm.latex.renderer.utils.isCenteredSymbol
@@ -112,6 +113,32 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
     private fun measureSymbol(
         node: LatexNode.Symbol, context: RenderContext, measurer: TextMeasurer, density: Density
     ): NodeLayout {
+        // 1. 尝试通过 FontResolver 获取 CM 字体映射
+        //    优先用命令名查找，失败时用 unicode 字符反向查找
+        val symbolInfo = FontResolver.resolveSymbol(node.symbol, context.fontFamilies)
+            ?: FontResolver.resolveSymbol(node.unicode, context.fontFamilies)
+
+        if (symbolInfo != null) {
+            // 使用 CM 字体 TTF char code 渲染
+            val fontFamily = FontResolver.getFontForSymbol(symbolInfo, context.fontFamilies)
+            var resolvedStyle = context.copy(
+                fontStyle = symbolInfo.fontStyle,
+                fontFamily = fontFamily ?: context.fontFamily
+            )
+
+            if (needsLightWeight(node.symbol)) {
+                resolvedStyle = resolvedStyle.copy(fontWeight = FontWeight.ExtraLight)
+            }
+
+            val layout = measureAnnotatedText(symbolInfo.texGlyph, resolvedStyle, measurer, density)
+
+            if (isCenteredSymbol(node.symbol) || isCenteredSymbol(node.unicode)) {
+                return NodeLayout(layout.width, layout.height, layout.height * MathConstants.CENTERED_SYMBOL_BASELINE, layout.draw)
+            }
+            return layout
+        }
+
+        // 2. 回退：无 CM 字体映射时，使用 Unicode 字符渲染（原有逻辑）
         val text = if (node.unicode.isEmpty()) node.symbol else node.unicode
 
         var resolvedStyle = if (context.fontStyle == null) {
@@ -124,14 +151,13 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
             context
         }
 
-        // 对某些符号（如 ℏ, ∇, ∂）应用极细字重，避免笔画过粗
         if (needsLightWeight(node.symbol)) {
             resolvedStyle = resolvedStyle.copy(fontWeight = FontWeight.ExtraLight)
         }
 
         val layout = measureAnnotatedText(text, resolvedStyle, measurer, density)
 
-        if (isCenteredSymbol(node.symbol)) {
+        if (isCenteredSymbol(node.symbol) || isCenteredSymbol(node.unicode)) {
             return NodeLayout(layout.width, layout.height, layout.height * MathConstants.CENTERED_SYMBOL_BASELINE, layout.draw)
         }
 

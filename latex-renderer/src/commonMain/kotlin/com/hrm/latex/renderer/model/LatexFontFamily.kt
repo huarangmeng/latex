@@ -104,7 +104,17 @@ data class LatexFontFamilies(
     val blackboardBold: FontFamily,  // msbm10 - \mathbb{R} → ℝ (数集)
     val calligraphic: FontFamily,    // msam10 - \mathcal{F} → 𝓕 (花体)
     val fraktur: FontFamily,         // eufm10 - \mathfrak{g} → 𝔤 (哥特体)
-    val script: FontFamily           // rsfs10 - \mathscr{L} → 𝓛 (手写体)
+    val script: FontFamily,          // rsfs10 - \mathscr{L} → 𝓛 (手写体)
+
+    /**
+     * 是否为内嵌 Computer Modern 字体（默认字体）。
+     *
+     * 仅当使用 [defaultLatexFontFamilies] 创建时为 true。
+     * CM 字体的 TTF 使用特殊的 TeX 编码（cmap 表中的 codepoint 与标准 Unicode 不同），
+     * 需要通过 FontResolver 的 TeX 编码映射表来路由正确的 char code。
+     * 外部传入的自定义字体通常使用标准 Unicode 编码，不需要此映射。
+     */
+    val isDefaultCM: Boolean = false
 )
 
 /**
@@ -154,7 +164,8 @@ internal fun defaultLatexFontFamilies(): LatexFontFamilies {
         blackboardBold = blackboardBold,
         calligraphic = calligraphic,
         fraktur = fraktur,
-        script = script
+        script = script,
+        isDefaultCM = true
     )
 }
 

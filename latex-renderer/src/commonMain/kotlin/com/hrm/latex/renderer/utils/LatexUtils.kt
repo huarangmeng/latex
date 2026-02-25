@@ -195,16 +195,25 @@ fun isCenteredSymbol(symbol: String): Boolean {
         "rightarrow", "leftarrow", "leftrightarrow",
         "Rightarrow", "Leftarrow", "Leftrightarrow",
         "longrightarrow", "longleftarrow", "longleftrightarrow",
+        "Longleftarrow", "Longrightarrow", "Longleftrightarrow",
         "uparrow", "downarrow", "updownarrow",
         "Uparrow", "Downarrow", "Updownarrow",
-        "mapsto", "to",
+        "mapsto", "to", "longmapsto",
+        "implies", "iff",
+        "nearrow", "searrow", "nwarrow", "swarrow",
         // 等号和关系符号
-        "equals", "neq", "approx", "equiv", "sim",
-        "leq", "geq", "ll", "gg",
+        "equals", "neq", "approx", "equiv", "sim", "simeq", "cong",
+        "leq", "geq", "ll", "gg", "le", "ge",
         "subset", "supset", "subseteq", "supseteq",
+        "prec", "succ", "preceq", "succeq",
+        "in", "ni", "notin",
+        "propto", "perp", "parallel",
+        "vdash", "dashv",
         // 二元运算符
         "plus", "minus", "times", "div", "cdot",
         "pm", "mp", "ast", "star", "circ",
-        "oplus", "ominus", "otimes", "oslash"
+        "oplus", "ominus", "otimes", "oslash",
+        "cup", "cap", "setminus", "wedge", "vee",
+        "land", "lor"
     )
 }
