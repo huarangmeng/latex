@@ -28,7 +28,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.model.LatexNode
@@ -36,8 +35,8 @@ import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.grow
-import com.hrm.latex.renderer.model.toLimitStyle
 import com.hrm.latex.renderer.model.textStyle
+import com.hrm.latex.renderer.model.toLimitStyle
 import com.hrm.latex.renderer.utils.FontResolver
 import com.hrm.latex.renderer.utils.InkBoundsEstimator
 import com.hrm.latex.renderer.utils.InkFontCategory
@@ -46,6 +45,8 @@ import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.mapBigOp
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 /**
  * 大型运算符测量器 — 处理 \sum, \int, \prod 等
@@ -59,6 +60,11 @@ import kotlin.math.min
  */
 internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
 
+    companion object {
+        /** cmsy10 中 smallint (∫) 的 charCode 115 对应字符 */
+        private val CMSY10_SMALLINT: Char = 115.toChar()
+    }
+
     override fun measure(
         node: LatexNode.BigOperator,
         context: RenderContext,
@@ -71,75 +77,132 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val isIntegral = node.operator.contains("int")
         val isNamedOperator = symbol == node.operator && symbol.all { it.isLetter() }
 
-        val useSideMode = resolveLimitsMode(node, isIntegral, isNamedOperator, context)
-        val scaleFactor = resolveScaleFactor(context, useSideMode)
+        // 积分号使用 cmsy10 的 smallint 字形（charCode 115 = 's'）
+        // cmsy10 使用 TeX 内部编码，不能直接用 Unicode ∫
+        val renderSymbol = if (isIntegral) CMSY10_SMALLINT.toString() else symbol
 
-        val opStyle = buildOperatorStyle(context, isNamedOperator, scaleFactor)
+        val useSideMode = resolveLimitsMode(node, isIntegral, isNamedOperator, context)
+        val scaleFactor = resolveScaleFactor(context, useSideMode, isIntegral)
+
+        val opStyle = buildOperatorStyle(context, isNamedOperator, isIntegral, scaleFactor)
         val limitStyle = context.toLimitStyle()
 
-        val opResult = measurer.measure(AnnotatedString(symbol), opStyle.textStyle())
+        // ── 积分混合拉伸策略 ──
+        // 目标：将总高度拉伸分解为 fontSize 均匀放大 + 剩余垂直 Canvas scale
+        // fontSize 放大保持自然宽高比和笔画粗细，Canvas scale 仅处理剩余部分
+        // 这样非均匀分量很小，避免水平压缩感；同时笔画不会过粗
 
-        var verticalScale = 1.0f
-        if (isIntegral && context.bigOpHeightHint != null && context.mathStyle == MathStyle.DISPLAY) {
-            val targetHeight = context.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
-            val currentHeight = opResult.size.height.toFloat()
-            if (targetHeight > currentHeight) {
-                verticalScale = targetHeight / currentHeight
-            }
+        // 1. 先用基础字号测量，得到基础墨水高度
+        val baseOpResult = measurer.measure(AnnotatedString(renderSymbol), opStyle.textStyle())
+        val baseFontCategory = when {
+            isNamedOperator -> InkFontCategory.TEXT
+            isIntegral -> InkFontCategory.EXTENSION // cmsy10 smallint 的墨水估算仍用 EXTENSION 类别
+            else -> InkFontCategory.EXTENSION
         }
+        val baseFontBytes = when {
+            isNamedOperator -> null
+            isIntegral -> context.fontBytesCache?.symbolBytes   // cmsy10
+            else -> context.fontBytesCache?.extensionBytes      // cmex10
+        }
+        val baseFontSizePx = with(density) { opStyle.fontSize.toPx() }
+        val baseFontWeightVal = opStyle.fontWeight?.weight ?: 400
 
-        val adjustedOpStyle = applyVerticalScaleWeightCompensation(opStyle, verticalScale)
-        val finalOpResult = if (adjustedOpStyle != opStyle) {
-            measurer.measure(AnnotatedString(symbol), adjustedOpStyle.textStyle())
-        } else opResult
-
-        val opWidth = finalOpResult.size.width.toFloat()
-
-        // 使用精确 glyph bounds 测量墨水边界（优先）
-        // 通过平台原生 API (Android: Paint.getTextBounds, 其他: Skia Font.getBounds)
-        // 获取字形的精确 bounding box，消除行框的 ascent/descent 空白
-        val fontCategory = if (isNamedOperator) InkFontCategory.TEXT else InkFontCategory.EXTENSION
-        val fontBytes = if (!isNamedOperator) context.fontBytesCache?.extensionBytes else null
-        val fontSizePxForMeasure = with(density) { adjustedOpStyle.fontSize.toPx() }
-        val fontWeightVal = adjustedOpStyle.fontWeight?.weight ?: 400
-
-        val inkBounds = if (fontBytes != null) {
-            // 精确测量：使用平台原生 API
+        val baseInkBounds = if (baseFontBytes != null) {
             InkBoundsEstimator.measurePrecise(
-                text = symbol,
-                fontSizePx = fontSizePxForMeasure,
-                fontBytes = fontBytes,
-                baseline = finalOpResult.firstBaseline,
-                fontWeightValue = fontWeightVal
-            ) ?: InkBoundsEstimator.estimate(finalOpResult, fontCategory)
+                text = renderSymbol,
+                fontSizePx = baseFontSizePx,
+                fontBytes = baseFontBytes,
+                baseline = baseOpResult.firstBaseline,
+                fontWeightValue = baseFontWeightVal
+            ) ?: InkBoundsEstimator.estimate(baseOpResult, baseFontCategory)
         } else {
-            // 回退：字体字节未加载，使用启发式估算
-            InkBoundsEstimator.estimate(finalOpResult, fontCategory)
+            InkBoundsEstimator.estimate(baseOpResult, baseFontCategory)
         }
 
-        // 应用垂直拉伸到墨水高度
-        val opInkHeight = inkBounds.inkHeight * verticalScale
-        val opInkTopOffset = inkBounds.inkTopOffset * verticalScale
-        val opInkBaseline = inkBounds.inkBaseline * verticalScale
+        // 2. 计算总需要的垂直拉伸倍数（相对于基础墨水高度）
+        var totalVerticalScale = 1.0f
+        if (isIntegral && context.mathStyle == MathStyle.DISPLAY) {
+            if (context.bigOpHeightHint != null) {
+                val targetHeight =
+                    context.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
+                val currentInkHeight = baseInkBounds.inkHeight
+                if (currentInkHeight > 0f && targetHeight > currentInkHeight) {
+                    totalVerticalScale = targetHeight / currentInkHeight
+                }
+            }
+            totalVerticalScale = totalVerticalScale.coerceAtLeast(MathConstants.INTEGRAL_MIN_VERTICAL_SCALE)
+        }
+
+        // 3. 混合分解：fontSize 均匀放大 + 剩余垂直 scale
+        //    fontScaleUp = totalVerticalScale ^ ratio  （均匀放大部分）
+        //    remainingVerticalScale = totalVerticalScale / fontScaleUp （剩余垂直拉伸）
+        //    ratio=0.5 时，两者均为 sqrt(totalVerticalScale)
+        val fontScaleUp: Float
+        val verticalScale: Float
+        if (totalVerticalScale > 1.0f && isIntegral) {
+            val ratio = MathConstants.INTEGRAL_FONT_SCALE_RATIO
+            fontScaleUp = totalVerticalScale.toDouble().pow(ratio.toDouble()).toFloat()
+            verticalScale = totalVerticalScale / fontScaleUp
+        } else {
+            fontScaleUp = 1.0f
+            verticalScale = 1.0f
+        }
+
+        // 4. 用放大后的 fontSize 重新测量
+        val finalOpStyle = if (fontScaleUp > 1.0f) {
+            val weight = FontResolver.compensatedFontWeight(
+                MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT,
+                scaleFactor * fontScaleUp
+            )
+            opStyle.grow(fontScaleUp).copy(fontWeight = weight)
+        } else {
+            opStyle
+        }
+        val opResult = measurer.measure(AnnotatedString(renderSymbol), finalOpStyle.textStyle())
+
+        // 5. 重新测量放大后的墨水边界
+        val finalFontSizePx = with(density) { finalOpStyle.fontSize.toPx() }
+        val finalFontWeightVal = finalOpStyle.fontWeight?.weight ?: 400
+
+        val finalInkBounds = if (baseFontBytes != null) {
+            InkBoundsEstimator.measurePrecise(
+                text = renderSymbol,
+                fontSizePx = finalFontSizePx,
+                fontBytes = baseFontBytes,
+                baseline = opResult.firstBaseline,
+                fontWeightValue = finalFontWeightVal
+            ) ?: InkBoundsEstimator.estimate(opResult, baseFontCategory)
+        } else {
+            InkBoundsEstimator.estimate(opResult, baseFontCategory)
+        }
+
+        val opWidth = opResult.size.width.toFloat()
+
+        // 应用剩余垂直拉伸到墨水尺寸
+        // verticalScale 现在仅是 sqrt(totalScale) 级别，非均匀分量很小
+        val opInkHeight = finalInkBounds.inkHeight * verticalScale
+        val opInkTopOffset = finalInkBounds.inkTopOffset
+        val opInkBaseline = finalInkBounds.inkBaseline * verticalScale
 
         val opLayout = NodeLayout(opWidth, opInkHeight, opInkBaseline) { x, y ->
-            if (verticalScale != 1.0f) {
-                val rawHeight = finalOpResult.size.height.toFloat()
+            if (verticalScale > 1.0f) {
+                // 剩余垂直拉伸：非均匀分量很小（~sqrt 级别），水平压缩感轻微
+                val scaledInkCenter = y + opInkHeight / 2f
                 withTransform({
-                    scale(1.0f, verticalScale, pivot = Offset(x + opWidth / 2f, y + opInkHeight / 2f))
+                    scale(1.0f, verticalScale, pivot = Offset(x + opWidth / 2f, scaledInkCenter))
                 }) {
-                    drawText(finalOpResult, topLeft = Offset(x, y - opInkTopOffset / verticalScale))
+                    val textY = scaledInkCenter - finalInkBounds.inkHeight / 2f - opInkTopOffset
+                    drawText(opResult, topLeft = Offset(x, textY))
                 }
             } else {
-                // 向上偏移 inkTopOffset，将墨水区域对齐到 NodeLayout 的 y=0
-                drawText(finalOpResult, topLeft = Offset(x, y - opInkTopOffset))
+                drawText(opResult, topLeft = Offset(x, y - opInkTopOffset))
             }
         }
 
         val superLayout = node.superscript?.let { measureGroup(listOf(it), limitStyle) }
         val subLayout = node.subscript?.let { measureGroup(listOf(it), limitStyle) }
 
-        val fontSizePx = with(density) { opStyle.fontSize.toPx() }
+        val fontSizePx = with(density) { finalOpStyle.fontSize.toPx() }
         // opLayout 已经是墨水高度了，直接使用
         val opVisualHeight = if (isNamedOperator) {
             min(fontSizePx * MathConstants.BIG_OP_NAMED_VISUAL_HEIGHT, opLayout.height)
@@ -148,16 +211,23 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         }
 
         return if (useSideMode) {
-            layoutSideMode(context, density, measurer, opLayout, superLayout, subLayout,
-                isIntegral, isNamedOperator, opVisualHeight, symbol)
+            layoutSideMode(
+                context, density, measurer, opLayout, superLayout, subLayout,
+                isIntegral, isNamedOperator, opVisualHeight, symbol
+            )
         } else {
-            layoutDisplayMode(context, density, measurer, opLayout, superLayout, subLayout,
-                isNamedOperator, opVisualHeight)
+            layoutDisplayMode(
+                context, density, measurer, opLayout, superLayout, subLayout,
+                isNamedOperator, opVisualHeight
+            )
         }
     }
 
     private fun resolveLimitsMode(
-        node: LatexNode.BigOperator, isIntegral: Boolean, isNamedOperator: Boolean, context: RenderContext
+        node: LatexNode.BigOperator,
+        isIntegral: Boolean,
+        isNamedOperator: Boolean,
+        context: RenderContext
     ): Boolean = when (node.limitsMode) {
         LatexNode.BigOperator.LimitsMode.LIMITS -> false
         LatexNode.BigOperator.LimitsMode.NOLIMITS -> true
@@ -168,43 +238,48 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         }
     }
 
-    private fun resolveScaleFactor(context: RenderContext, useSideMode: Boolean): Float = when {
+    private fun resolveScaleFactor(context: RenderContext, useSideMode: Boolean, isIntegral: Boolean): Float = when {
+        // 积分号使用较小的基础字号，高度通过 verticalScale 纯垂直拉伸实现
+        // 这样水平方向笔画保持纤细，不会因字号放大而变粗
+        isIntegral && context.mathStyle == MathStyle.DISPLAY -> MathConstants.BIG_OP_INTEGRAL_DISPLAY_SCALE
         context.mathStyle == MathStyle.DISPLAY -> MathConstants.BIG_OP_DISPLAY_SCALE
         useSideMode -> MathConstants.BIG_OP_INLINE_SCALE
         else -> MathConstants.BIG_OP_DEFAULT_SCALE
     }
 
-    private fun buildOperatorStyle(context: RenderContext, isNamedOperator: Boolean, scaleFactor: Float): RenderContext {
+    private fun buildOperatorStyle(
+        context: RenderContext,
+        isNamedOperator: Boolean,
+        isIntegral: Boolean,
+        scaleFactor: Float
+    ): RenderContext {
         return if (!isNamedOperator) {
-            val weight = FontResolver.compensatedFontWeight(MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT, scaleFactor)
+            val weight = FontResolver.compensatedFontWeight(
+                MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT,
+                scaleFactor
+            )
+            // 积分号使用 cmsy10 (smallint)：笔画更纤细，放大后视觉效果更好
+            // 其他大型运算符（∑ ∏ 等）继续使用 cmex10
+            val fontFamily = if (isIntegral) {
+                context.fontFamilies?.symbol ?: context.fontFamily
+            } else {
+                context.fontFamilies?.extension ?: context.fontFamily
+            }
             context.grow(scaleFactor).copy(
-                fontFamily = context.fontFamilies?.extension ?: context.fontFamily,
+                fontFamily = fontFamily,
                 fontStyle = FontStyle.Normal,
                 fontWeight = weight
             )
         } else {
-            val weight = FontResolver.compensatedFontWeight(MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT, scaleFactor)
+            val weight = FontResolver.compensatedFontWeight(
+                MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT,
+                scaleFactor
+            )
             context.grow(scaleFactor).copy(
                 fontStyle = FontStyle.Normal,
                 fontWeight = weight
             )
         }
-    }
-
-    private fun applyVerticalScaleWeightCompensation(opStyle: RenderContext, verticalScale: Float): RenderContext {
-        if (verticalScale <= 1.0f) return opStyle
-        val currentWeight = opStyle.fontWeight?.weight ?: MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT
-        val additionalReduction = when {
-            verticalScale >= 2.0f -> MathConstants.BIG_OP_VERTICAL_SCALE_WEIGHT_REDUCTION
-            else -> {
-                val t = (verticalScale - 1.0f) / 1.0f
-                (t * MathConstants.BIG_OP_VERTICAL_SCALE_WEIGHT_REDUCTION).toInt()
-            }
-        }
-        val finalWeight = (currentWeight - additionalReduction).coerceIn(
-            MathConstants.BIG_OP_SYMBOL_MIN_WEIGHT, MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT
-        )
-        return opStyle.copy(fontWeight = FontWeight(finalWeight))
     }
 
     private fun layoutSideMode(
@@ -221,16 +296,26 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
             else -> opLayout.width
         }
 
-        val opDrawX = if (isIntegral || isNamedOperator) max(0f, (opVisualWidth - opLayout.width) / 2f) else 0f
+        val opDrawX = if (isIntegral || isNamedOperator) max(
+            0f,
+            (opVisualWidth - opLayout.width) / 2f
+        ) else 0f
         val opActualLeft = if (opDrawX == 0f) opLayout.width else opVisualWidth
 
         // opLayout 已经是墨水高度，不需要额外估算
         val glyphVisualPart = opLayout.height
 
-        val opTop = -axisHeight - opVisualHeight / 2f
-        val opBottom = opTop + opVisualHeight
-        val opGlyphDrawY = opTop + (opVisualHeight - glyphVisualPart) / 2f
+        // 积分符号定位策略：
+        // 用原始（未拉伸）高度以数学轴为中心确定基准位置
+        val opCenter = -axisHeight  // 数学轴 y 坐标
+
+        // opTop/opBottom 用于非积分运算符和边界计算
+        val opTop = opCenter - opVisualHeight / 2f
+        val opBottom = opCenter + opVisualHeight / 2f
         val opVisualRight = opActualLeft
+
+        // 拉伸后的 glyph 绘制位置：以数学轴为中心上下扩展
+        val opGlyphDrawY = opCenter - glyphVisualPart / 2f
 
         val limitSpacing = when {
             isIntegral -> 0f
@@ -249,14 +334,10 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
             else -> fontSizePx * MathConstants.SYMBOL_OP_LIMIT_GAP
         }
 
-        // 积分上下标定位：基于 glyph 墨水区域
-        // opGlyphDrawY 是 glyph 墨水顶部相对于 baseline 的 y 坐标
-        // glyph 墨水底部 = opGlyphDrawY + glyphVisualPart
+        // 积分上下标定位：基于拉伸后的 glyph 墨水区域
         val superTop = if (superLayout != null) {
             if (isIntegral) {
-                // 上标 baseline 与积分符号墨水顶部对齐
-                // superTop + superLayout.baseline = opGlyphDrawY
-                // → superTop = opGlyphDrawY - superLayout.baseline
+                // 上标 baseline 与拉伸后积分符号墨水顶部对齐
                 opGlyphDrawY - superLayout.baseline
             } else {
                 opTop - superLayout.height - limitGap
@@ -265,7 +346,7 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
 
         val subTop = if (subLayout != null) {
             if (isIntegral) {
-                // 下标顶部紧贴积分符号墨水底部（baseline 对齐到底部附近）
+                // 下标 baseline 与拉伸后积分符号墨水底部对齐
                 val glyphInkBottom = opGlyphDrawY + glyphVisualPart
                 glyphInkBottom - subLayout.baseline * MathConstants.INTEGRAL_SUBSCRIPT_OVERLAP
             } else {
@@ -273,14 +354,26 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
             }
         } else opBottom
 
-        val minTop = if (superLayout != null) superTop else opTop
-        val maxBottom = if (subLayout != null) subTop + subLayout.height else opBottom
+        // 边界计算：取所有元素的最小顶部和最大底部
+        val glyphTop = opGlyphDrawY
+        val glyphBottom = opGlyphDrawY + glyphVisualPart
+        val minTop = minOf(
+            if (superLayout != null) superTop else opTop,
+            glyphTop
+        )
+        val maxBottom = maxOf(
+            if (subLayout != null) subTop + subLayout.height else opBottom,
+            glyphBottom
+        )
         val totalHeight = maxBottom - minTop
         val baseline = -minTop
 
         val superRightEdge = superX + (superLayout?.width ?: 0f)
         val subRightEdge = subX + (subLayout?.width ?: 0f)
-        val width = max(opActualLeft * MathConstants.BIG_OP_WIDTH_OVERFLOW_FACTOR, max(superRightEdge, subRightEdge))
+        val width = max(
+            opActualLeft * MathConstants.BIG_OP_WIDTH_OVERFLOW_FACTOR,
+            max(superRightEdge, subRightEdge)
+        )
 
         return NodeLayout(width, totalHeight, baseline) { x, y ->
             opLayout.draw(this, x + opDrawX, y + baseline + opGlyphDrawY)

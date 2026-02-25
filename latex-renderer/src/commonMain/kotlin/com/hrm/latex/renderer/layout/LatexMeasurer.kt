@@ -195,33 +195,33 @@ internal fun measureGroup(
     val hasIntegrals = nodes.any { it is LatexNode.BigOperator && it.operator.contains("int") }
     
     val finalMeasuredNodes = if (hasIntegrals && context.mathStyle == MathStyle.DISPLAY) {
-        // 计算除了积分以外的其他内容的最大高度
-        var maxContentAscent = 0f
-        var maxContentDescent = 0f
-        
-        nodes.forEachIndexed { index, node ->
+        // 为每个积分计算其右侧相邻内容的高度（而非整行最大高度）
+        // 避免积分被拉伸到与同行其他大型结构（如求和+分数）一样高
+        nodes.mapIndexed { index, node ->
             val isIntegral = node is LatexNode.BigOperator && node.operator.contains("int")
-            if (!isIntegral) {
-                val layout = initialLayouts[index]
-                if (layout.baseline > maxContentAscent) maxContentAscent = layout.baseline
-                if (layout.height - layout.baseline > maxContentDescent) maxContentDescent = layout.height - layout.baseline
-            }
-        }
-        
-        val contentHeight = maxContentAscent + maxContentDescent
-        
-        // 如果有明显的高度（例如分式），则重新测量积分以匹配高度
-        if (contentHeight > 0) {
-            nodes.mapIndexed { index, node ->
-                val isIntegral = node is LatexNode.BigOperator && node.operator.contains("int")
-                if (isIntegral) {
-                    measureNode(node, context.copy(bigOpHeightHint = contentHeight), measurer, density)
+            if (isIntegral) {
+                // 收集积分右侧相邻非运算符节点的高度
+                var rightContentAscent = 0f
+                var rightContentDescent = 0f
+                for (j in (index + 1) until nodes.size) {
+                    val rightNode = nodes[j]
+                    // 遇到下一个大型运算符则停止
+                    if (rightNode is LatexNode.BigOperator) break
+                    // 跳过空白节点
+                    if (rightNode is LatexNode.Space || rightNode is LatexNode.HSpace) continue
+                    val layout = initialLayouts[j]
+                    if (layout.baseline > rightContentAscent) rightContentAscent = layout.baseline
+                    if (layout.height - layout.baseline > rightContentDescent) rightContentDescent = layout.height - layout.baseline
+                }
+                val rightContentHeight = rightContentAscent + rightContentDescent
+                if (rightContentHeight > 0) {
+                    measureNode(node, context.copy(bigOpHeightHint = rightContentHeight), measurer, density)
                 } else {
                     initialLayouts[index]
                 }
+            } else {
+                initialLayouts[index]
             }
-        } else {
-            initialLayouts
         }
     } else {
         initialLayouts

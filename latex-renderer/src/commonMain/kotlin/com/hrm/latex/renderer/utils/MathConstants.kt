@@ -99,6 +99,21 @@ internal object MathConstants {
     /** Display 模式下运算符的字号放大因子 */
     const val BIG_OP_DISPLAY_SCALE = 1.5f
 
+    /**
+     * Display 模式下积分符号的基础字号放大因子。
+     * 实际渲染采用混合策略：将总拉伸 = fontSize均匀放大 + 剩余垂直scale。
+     * 此值作为初始基础，后续会根据 verticalScale 做混合分解。
+     */
+    const val BIG_OP_INTEGRAL_DISPLAY_SCALE = 1.0f
+
+    /**
+     * 混合拉伸中 fontSize 均匀放大的分摊比例（0~1）。
+     * 0.5 表示总拉伸的平方根分配给 fontSize，平方根分配给 Canvas scale。
+     * 值越大 fontSize 分摊越多（笔画越粗但比例越自然），
+     * 值越小 Canvas scale 分摊越多（笔画越细但可能有轻微压缩感）。
+     */
+    const val INTEGRAL_FONT_SCALE_RATIO = 0.5f
+
     /** 行内模式下运算符的字号放大因子 */
     const val BIG_OP_INLINE_SCALE = 1.2f
 
@@ -134,6 +149,9 @@ internal object MathConstants {
 
     /** 积分高度暗示的过大化系数 */
     const val INTEGRAL_HEIGHT_HINT_OVERSHOOT = 1.05f
+
+    /** 积分符号最小垂直拉伸倍数（保证无右侧内容时仍有合理高度） */
+    const val INTEGRAL_MIN_VERTICAL_SCALE = 1.5f
 
     /** 运算符宽度溢出保护系数 */
     const val BIG_OP_WIDTH_OVERFLOW_FACTOR = 1.1f
