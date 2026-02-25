@@ -220,7 +220,7 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         LatexNode.Style.StyleType.ITALIC -> copy(fontStyle = FontStyle.Italic)
         LatexNode.Style.StyleType.ROMAN -> copy(
             fontStyle = FontStyle.Normal,
-            fontFamily = families?.roman ?: fontFamily,
+            fontFamily = families?.main ?: fontFamily,
             isVariantFontFamily = false
         )
 
@@ -235,7 +235,7 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         )
 
         LatexNode.Style.StyleType.BLACKBOARD_BOLD -> {
-            val variantFamily = families?.blackboardBold
+            val variantFamily = families?.ams
             copy(
                 fontVariant = FontVariant.BLACKBOARD_BOLD,
                 fontFamily = variantFamily ?: fontFamily,
@@ -245,7 +245,7 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         }
 
         LatexNode.Style.StyleType.CALLIGRAPHIC -> {
-            val variantFamily = families?.calligraphic
+            val variantFamily = families?.caligraphic
             copy(
                 fontVariant = FontVariant.CALLIGRAPHIC,
                 fontFamily = variantFamily ?: fontFamily,

@@ -123,6 +123,10 @@ dependencies {
 
 For a detailed list of supported features, please refer to: [PARSER_COVERAGE_ANALYSIS.md](./latex-parser/PARSER_COVERAGE_ANALYSIS.md)
 
+## 🙏 Acknowledgements
+
+- [KaTeX](https://github.com/KaTeX/KaTeX) — This project uses font files from KaTeX for mathematical formula rendering. KaTeX is licensed under the [MIT License](https://github.com/KaTeX/KaTeX/blob/main/LICENSE).
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

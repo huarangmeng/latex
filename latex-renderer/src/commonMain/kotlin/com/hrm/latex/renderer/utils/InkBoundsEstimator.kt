@@ -29,12 +29,12 @@ import kotlin.math.min
  * 字体类别，决定墨水边界的估算策略。
  *
  * 不同字体的 ascent/descent 空白比例差异很大：
- * - cmex10 (EXTENSION): descent 极大，大量空白
- * - cmsy10 (SYMBOL): descent 中等
- * - cmr10/cmmi10 (TEXT/MATH_ITALIC): 行框基本等于墨水区域
+ * - KaTeX_Size1~4 (EXTENSION): 大型定界符，可能有较大 descent
+ * - KaTeX_Main (SYMBOL): 大型运算符 (∑, ∫ 等)，标准 Unicode 编码
+ * - KaTeX_Main/KaTeX_Math (TEXT): 行框基本等于墨水区域
  */
 enum class InkFontCategory {
-    /** cmex10 大型运算符/定界符 — glyph 包含大量 descent 空白 */
+    /** 大型运算符/定界符 — glyph 可能包含较大 descent 空白 */
     EXTENSION,
     /** 普通文本/数学字体 — 行框高度已接近墨水边界 */
     TEXT
@@ -44,7 +44,7 @@ enum class InkFontCategory {
  * 文字墨水边界结果。
  *
  * 传统 TextLayoutResult.size 返回的是行框高度（含 ascent/descent/leading 空白），
- * 对于 cmex10 等数学字体，行框远大于实际墨水区域。
+ * 对于大型数学符号字体，行框可能大于实际墨水区域。
  * 本类提供去除空白后的精确墨水度量。
  *
  * @property inkHeight  墨水区域高度（不含空白）
@@ -65,10 +65,10 @@ class InkBounds(
  */
 internal object InkBoundsEstimator {
 
-    /** cmex10 墨水高度估算系数（回退策略） */
+    /** 大型运算符墨水高度估算系数（回退策略） */
     private const val EXTENSION_INK_HEIGHT_RATIO = 0.92f
 
-    /** cmex10 墨水底部估算系数（回退策略） */
+    /** 大型运算符墨水底部估算系数（回退策略） */
     private const val EXTENSION_INK_BOTTOM_RATIO = 1.02f
 
     /**
@@ -134,7 +134,7 @@ internal object InkBoundsEstimator {
     }
 
     /**
-     * cmex10 字体的墨水边界估算（回退方案）。
+     * 大型运算符字体的墨水边界估算（回退方案）。
      */
     private fun estimateExtension(height: Float, baseline: Float): InkBounds {
         val inkBottom = min(baseline * EXTENSION_INK_BOTTOM_RATIO, height)

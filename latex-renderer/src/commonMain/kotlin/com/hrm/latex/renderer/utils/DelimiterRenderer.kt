@@ -23,10 +23,10 @@
 package com.hrm.latex.renderer.utils
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
@@ -38,27 +38,45 @@ import com.hrm.latex.renderer.model.textStyle
  * 消除 MathMeasurer / DelimiterMeasurer / MatrixMeasurer 三处重复的
  * `measureDelimiterScaled()` 实现。
  *
- * 设计理由：
- * - 定界符渲染策略统一为"fontSize 缩放 + FontWeight 补偿"，由 FontResolver 管理字体回退。
+ * 设计理由（KaTeX 字体方案）：
+ * - KaTeX 提供 Size1~4 四套独立设计的定界符字体，每套字形大小不同但笔画粗细一致。
+ * - 自动伸缩策略：Main → Size1 → Size2 → Size3 → Size4 逐级尝试，选能包含内容的最小字形。
+ * - 若 Size4 仍不够高，则对 Size4 字形进行 fontSize 微调缩放。
  * - 此处不做 Path 手绘，所有定界符均使用字体字形渲染。
  */
 internal object DelimiterRenderer {
 
     /**
+     * 逐级尝试的字体级别列表
+     *
+     * 按 KaTeX 规范：Main → Size1 → Size2 → Size3 → Size4
+     */
+    private data class SizeLevel(
+        val name: String,
+        val getFont: (com.hrm.latex.renderer.model.LatexFontFamilies) -> FontFamily
+    )
+
+    private val sizeLevels = listOf(
+        SizeLevel("main") { it.main },
+        SizeLevel("size1") { it.size1 },
+        SizeLevel("size2") { it.size2 },
+        SizeLevel("size3") { it.size3 },
+        SizeLevel("size4") { it.size4 },
+    )
+
+    /**
      * 测量并缩放定界符至目标高度
      *
-     * 策略：放大 fontSize 让字体引擎以目标字号光栅化（保证高度），
-     * 然后通过水平缩放补偿笔画变粗的问题。
-     *
-     * CM 字体是单 weight 字体，FontWeight 调整无效，因此使用 scaleX 补偿：
-     * - scale <= 1.5 → 不补偿（笔画增粗不明显）
-     * - scale > 1.5  → scaleX = 1/sqrt(scale)，让笔画宽度随放大率开方衰减
+     * KaTeX 策略：
+     * 1. 从 Main → Size1 → Size2 → Size3 → Size4 逐级测量
+     * 2. 选择高度 >= targetHeight 的最小尺寸字形
+     * 3. 如果 Size4 仍不够高，对 Size4 做 fontSize 等比缩放
      *
      * @param delimiter 定界符字符串 (如 "(", "[", "{", "|", "‖")
      * @param context 当前渲染上下文
      * @param measurer 文本测量器
      * @param targetHeight 目标高度（像素）
-     * @return 包含缩放后定界符的 NodeLayout
+     * @return 包含定界符的 NodeLayout
      */
     fun measureScaled(
         delimiter: String,
@@ -66,43 +84,47 @@ internal object DelimiterRenderer {
         measurer: TextMeasurer,
         targetHeight: Float
     ): NodeLayout {
-        // 将 Unicode 定界符转换为 CM 字体中的正确 TeX char code
         val glyph = FontResolver.resolveDelimiterGlyph(delimiter, context.fontFamilies)
+        val fontFamilies = context.fontFamilies
 
-        val baseLayout = measureText(glyph, FontResolver.delimiterContext(context, delimiter), measurer)
-        if (baseLayout.height <= 0f || targetHeight <= 0f) {
-            return baseLayout
+        if (fontFamilies == null || targetHeight <= 0f) {
+            return measureText(glyph, FontResolver.delimiterContext(context, delimiter), measurer)
         }
 
-        val scale = targetHeight / baseLayout.height
-        val adjustedContext = FontResolver.delimiterContext(context, delimiter, scale).copy(
-            fontSize = context.fontSize * scale
-        )
-        val scaledLayout = measureText(glyph, adjustedContext, measurer)
+        // 逐级尝试 Main → Size1 → Size2 → Size3 → Size4
+        var bestLayout: NodeLayout? = null
+        var bestContext: RenderContext? = null
 
-        // 笔画补偿：scale 较大时水平方向压缩，让笔画看起来更细
-        // CM 字体是单 weight，FontWeight 调整无效，因此用 scaleX 补偿
-        if (scale > 1.5f) {
-            val scaleX = 1f / kotlin.math.sqrt(scale).coerceIn(1f, 1.6f)
-            val compensatedWidth = scaledLayout.width * scaleX
-            return NodeLayout(
-                compensatedWidth,
-                scaledLayout.height,
-                scaledLayout.baseline
-            ) { x, y ->
-                // 以原始文本中心为 pivot 做水平缩放，这样文本自动居中
-                val textCenterX = x + compensatedWidth / 2f
-                withTransform({
-                    scale(scaleX = scaleX, scaleY = 1f, pivot = Offset(textCenterX, y))
-                }) {
-                    // scaleX 以 textCenterX 为中心缩放，文本绘制起点需要
-                    // 从 textCenterX 向左偏移原始宽度的一半
-                    scaledLayout.draw(this, textCenterX - scaledLayout.width / 2f, y)
-                }
+        for (level in sizeLevels) {
+            val font = level.getFont(fontFamilies)
+            val levelContext = context.copy(
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Normal,
+                fontFamily = font,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+            )
+            val layout = measureText(glyph, levelContext, measurer)
+
+            // 记录每一级的结果，最后选择合适的
+            bestLayout = layout
+            bestContext = levelContext
+
+            // 如果该级字形已经足够高，直接使用
+            if (layout.height >= targetHeight) {
+                return layout
             }
         }
 
-        return scaledLayout
+        // 所有 Size 字体都不够高 → 对 Size4 做 fontSize 缩放
+        val size4Layout = bestLayout!!
+        val size4Context = bestContext!!
+
+        if (size4Layout.height <= 0f) return size4Layout
+
+        val scale = targetHeight / size4Layout.height
+        val scaledContext = size4Context.copy(
+            fontSize = context.fontSize * scale
+        )
+        return measureText(glyph, scaledContext, measurer)
     }
 
     /**

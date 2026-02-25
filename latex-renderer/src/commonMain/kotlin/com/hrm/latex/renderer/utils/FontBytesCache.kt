@@ -23,7 +23,7 @@
 package com.hrm.latex.renderer.utils
 
 /**
- * 字体字节数据缓存。
+ * 字体字节数据缓存（KaTeX 字体体系）。
  *
  * 持有从 Compose Resources 加载的字体 TTF 文件字节数据，
  * 供 [measureGlyphBounds] 在各平台创建原生字体对象进行精确墨水边界测量。
@@ -34,15 +34,13 @@ package com.hrm.latex.renderer.utils
  * 使用 class 而非 data class：字节数组不应参与 equals/hashCode。
  */
 class FontBytesCache(
-    /** cmex10.ttf — 大型运算符/定界符 (∑, ∫, ∏, √, 大括号) */
-    val extensionBytes: ByteArray? = null,
-    /** cmsy10.ttf — 运算符/小型定界符 */
-    val symbolBytes: ByteArray? = null,
-    /** cmmi10.ttf — 数学斜体变量/希腊字母 */
-    val mathItalicBytes: ByteArray? = null,
-    /** cmr10.ttf — 正文文本 */
-    val romanBytes: ByteArray? = null
+    /** KaTeX_Main — 正文、数字、标点、运算符、大型运算符 */
+    val mainBytes: ByteArray? = null,
+    /** KaTeX_Math — 数学斜体变量、希腊字母 */
+    val mathBytes: ByteArray? = null,
+    /** KaTeX_Size1 — 大型定界符 (\big 级别) */
+    val size1Bytes: ByteArray? = null
 ) {
-    /** 是否已加载扩展字体（大型运算符所需） */
-    val hasExtension: Boolean get() = extensionBytes != null
+    /** 是否已加载主字体（大型运算符精确测量所需） */
+    val hasMain: Boolean get() = mainBytes != null
 }

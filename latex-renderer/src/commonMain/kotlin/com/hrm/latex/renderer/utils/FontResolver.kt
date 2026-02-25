@@ -30,29 +30,34 @@ import com.hrm.latex.renderer.model.RenderContext
 
 /**
  * 字体类别，用于选择对应的字体家族
+ *
+ * KaTeX 字体体系下的类别划分：
+ * - ROMAN → KaTeX_Main (正文、数字、标点、运算符)
+ * - MATH_ITALIC → KaTeX_Math (数学变量)
+ * - SYMBOL → KaTeX_Main (KaTeX 中运算符在 Main 字体中)
+ * - EXTENSION → KaTeX_Size1 (大型定界符)
+ * - 其他特殊字体类别映射到对应的 KaTeX 字体
  */
 enum class FontCategory {
-    ROMAN,           // 正文文本 (cmr10)
-    MATH_ITALIC,     // 数学变量 (cmmi10)
-    SYMBOL,          // 运算符、小型定界符 (cmsy10)
-    EXTENSION,       // 大型运算符、大型定界符 (cmex10)
-    SANS_SERIF,
-    MONOSPACE,
-    BLACKBOARD_BOLD,
-    CALLIGRAPHIC,
-    FRAKTUR,
-    SCRIPT
+    ROMAN,           // 正文文本 (KaTeX_Main)
+    MATH_ITALIC,     // 数学变量 (KaTeX_Math)
+    SYMBOL,          // 运算符、小型定界符 (KaTeX_Main)
+    EXTENSION,       // 大型运算符、大型定界符 (KaTeX_Size1)
+    SANS_SERIF,      // 无衬线 (KaTeX_SansSerif)
+    MONOSPACE,       // 等宽 (KaTeX_Typewriter)
+    BLACKBOARD_BOLD, // 黑板粗体 (KaTeX_AMS)
+    CALLIGRAPHIC,    // 花体 (KaTeX_Caligraphic)
+    FRAKTUR,         // 哥特体 (KaTeX_Fraktur)
+    SCRIPT           // 手写花体 (KaTeX_Script)
 }
 
 /**
- * 符号渲染信息：包含 TTF cmap 中的 Unicode codepoint 字符、字体类别和字体样式
+ * 符号渲染信息
  *
- * CM 字体的 TTF 版本使用标准 ASCII/Latin-1 cmap 表。MicroTeX 项目的
- * `.def.cpp` 文件中定义了每个符号对应的 char code（即 TTF cmap 中的
- * Unicode codepoint）。本类直接使用这些 char code，无需额外偏移计算。
+ * KaTeX 字体使用标准 Unicode 编码，texGlyph 直接是 Unicode 字符。
  *
- * @param texGlyph TTF cmap 中的 Unicode codepoint 对应的字符（用于实际渲染）
- * @param fontCategory 应使用的字体类别（决定使用 cmsy10/cmmi10/cmex10/cmr10）
+ * @param texGlyph 用于渲染的 Unicode 字符
+ * @param fontCategory 应使用的字体类别
  * @param fontStyle 字体样式（Normal 或 Italic）
  */
 data class SymbolRenderInfo(
@@ -64,407 +69,338 @@ data class SymbolRenderInfo(
 /**
  * 集中管理字体选择和符号字体路由。
  *
- * 所有字体选择逻辑归口此处，Measurer 中禁止直接选择字体。
+ * KaTeX 字体使用标准 Unicode 编码，所有符号直接使用 Unicode 字符渲染，
+ * 无需 CM 字体的 TeX 编码映射。
  *
- * ## 符号字体路由
- *
- * CM 字体的 TTF 版本使用标准 ASCII/Latin-1 cmap 表，而非 TeX 内部编码。
- * 映射数据来源于 MicroTeX 项目的 `src/res/sym/base.def.cpp`，
- * 其中 `E(fontId, charCode, symbolName)` 定义了每个符号在 TTF 中的 char code。
- *
- * Font ID 对应关系（参考 MicroTeX `builtin_font_reg.cpp`）：
- * - 1  = cmex10 (Extension)
- * - 2  = cmmi10 (Math Italic)
- * - 5  = cmmi10_unchanged（与 cmmi10 共用同一 TTF 文件）
- * - 8  = cmsy10 (Symbol)
- * - 18 = cmr10  (Roman)
- *
- * 所有平台统一使用 CM 字体 + 正确的 char code 渲染，无需平台判断。
+ * 符号路由规则：
+ * - 希腊字母（小写）→ KaTeX_Math (Italic)
+ * - 希腊字母（大写）→ KaTeX_Main (Normal)
+ * - 运算符、关系符 → KaTeX_Main (Normal)
+ * - 大型运算符 → KaTeX_Main (Normal)，Display 模式下字号放大
+ * - 定界符 → KaTeX_Main (行内) 或 KaTeX_Size1~4 (放大)
  */
 internal object FontResolver {
 
     // =========================================================================
-    // 符号命令名 → (charCode, fontCategory) 映射表
+    // 符号命令名 → Unicode 字符 + 字体类别 映射表
     //
-    // charCode 直接来自 MicroTeX `base.def.cpp` 中的 E(fontId, charCode, name)
-    // 即 TTF cmap 表中的 Unicode codepoint，直接转为 Char 即可渲染。
+    // KaTeX 字体使用标准 Unicode，直接映射到 Unicode 字符即可。
     // =========================================================================
 
-    /**
-     * 快捷构造 cmsy10 (FontCategory.SYMBOL) 的 SymbolRenderInfo
-     * @param charCode MicroTeX base.def.cpp 中 E(8, charCode, name) 的 charCode
-     */
-    private fun sy(charCode: Int): SymbolRenderInfo =
-        SymbolRenderInfo(charCode.toChar().toString(), FontCategory.SYMBOL, FontStyle.Normal)
+    /** 快捷构造 Main 字体 (运算符/关系符/大写希腊) */
+    private fun main(unicode: String, style: FontStyle = FontStyle.Normal): SymbolRenderInfo =
+        SymbolRenderInfo(unicode, FontCategory.ROMAN, style)
+
+    /** 快捷构造 Math 字体 (数学变量/小写希腊) */
+    private fun math(unicode: String, style: FontStyle = FontStyle.Italic): SymbolRenderInfo =
+        SymbolRenderInfo(unicode, FontCategory.MATH_ITALIC, style)
+
+    /** 快捷构造 Main 字体的符号类 (运算符在 KaTeX_Main 中) */
+    private fun sym(unicode: String): SymbolRenderInfo =
+        SymbolRenderInfo(unicode, FontCategory.SYMBOL, FontStyle.Normal)
 
     /**
-     * 快捷构造 cmmi10 (FontCategory.MATH_ITALIC) 的 SymbolRenderInfo
-     * @param charCode MicroTeX base.def.cpp 中 E(2/5, charCode, name) 的 charCode
-     */
-    private fun mi(charCode: Int, style: FontStyle = FontStyle.Italic): SymbolRenderInfo =
-        SymbolRenderInfo(charCode.toChar().toString(), FontCategory.MATH_ITALIC, style)
-
-    /**
-     * 快捷构造 cmex10 (FontCategory.EXTENSION) 的 SymbolRenderInfo
-     * @param charCode MicroTeX base.def.cpp 中 E(1, charCode, name) 的 charCode
-     */
-    private fun ex(charCode: Int): SymbolRenderInfo =
-        SymbolRenderInfo(charCode.toChar().toString(), FontCategory.EXTENSION, FontStyle.Normal)
-
-    /**
-     * 快捷构造 cmr10 (FontCategory.ROMAN) 的 SymbolRenderInfo
-     * @param charCode MicroTeX base.def.cpp 中 E(18, charCode, name) 的 charCode
-     */
-    private fun ro(charCode: Int, style: FontStyle = FontStyle.Normal): SymbolRenderInfo =
-        SymbolRenderInfo(charCode.toChar().toString(), FontCategory.ROMAN, style)
-
-    /**
-     * cmsy10 符号映射表 (Font ID 8 in MicroTeX)
+     * 符号命令名 → SymbolRenderInfo 映射表
      *
-     * 数据来源: MicroTeX src/res/sym/base.def.cpp 中所有 E(8, ...) 条目
+     * KaTeX 中大部分符号都在 KaTeX_Main 字体中（标准 Unicode），
+     * 希腊字母小写在 KaTeX_Math 中。
      */
-    private val cmsy10Symbols: Map<String, SymbolRenderInfo> = mapOf(
-        // --- 箭头 (charCode 33-46, 108-109, 195-196) ---
-        "rightarrow" to sy(33),         // →
-        "to" to sy(33),                 // → (别名)
-        "uparrow" to sy(34),            // ↑
-        "downarrow" to sy(35),          // ↓
-        "leftrightarrow" to sy(36),     // ↔
-        "nearrow" to sy(37),            // ↗
-        "searrow" to sy(38),            // ↘
-        "simeq" to sy(39),             // ≃
-        "Leftarrow" to sy(40),          // ⇐
-        "Rightarrow" to sy(41),         // ⇒
-        "Uparrow" to sy(42),            // ⇑
-        "Downarrow" to sy(43),          // ⇓
-        "Leftrightarrow" to sy(44),     // ⇔
-        "nwarrow" to sy(45),            // ↖
-        "swarrow" to sy(46),            // ↙
-        "updownarrow" to sy(108),       // ↕
-        "Updownarrow" to sy(109),       // ⇕
-        "leftarrow" to sy(195),         // ←
-        "gets" to sy(195),              // ← (别名)
+    private val symbolMap: Map<String, SymbolRenderInfo> = buildMap {
+        // === 小写希腊字母 → KaTeX_Math (Italic) ===
+        put("alpha", math("α"))
+        put("beta", math("β"))
+        put("gamma", math("γ"))
+        put("delta", math("δ"))
+        put("epsilon", math("ϵ"))
+        put("varepsilon", math("ε"))
+        put("zeta", math("ζ"))
+        put("eta", math("η"))
+        put("theta", math("θ"))
+        put("vartheta", math("ϑ"))
+        put("iota", math("ι"))
+        put("kappa", math("κ"))
+        put("lambda", math("λ"))
+        put("mu", math("μ"))
+        put("nu", math("ν"))
+        put("xi", math("ξ"))
+        put("omicron", math("ο"))
+        put("pi", math("π"))
+        put("varpi", math("ϖ"))
+        put("rho", math("ρ"))
+        put("varrho", math("ϱ"))
+        put("sigma", math("σ"))
+        put("varsigma", math("ς"))
+        put("tau", math("τ"))
+        put("upsilon", math("υ"))
+        put("phi", math("ϕ"))
+        put("varphi", math("φ"))
+        put("chi", math("χ"))
+        put("psi", math("ψ"))
+        put("omega", math("ω"))
 
-        // --- 杂项符号 (charCode 47-64) ---
-        "propto" to sy(47),             // ∝
-        "prime" to sy(48),              // ′
-        "infty" to sy(49),              // ∞
-        "in" to sy(50),                 // ∈
-        "ni" to sy(51),                 // ∋
-        "owns" to sy(51),               // ∋ (别名)
-        "triangle" to sy(52),           // △
-        "not" to sy(54),                // negation slash
-        "mapstochar" to sy(55),         // ↦ char
-        "forall" to sy(56),             // ∀
-        "exists" to sy(57),             // ∃
-        "neg" to sy(58),                // ¬
-        "lnot" to sy(58),              // ¬ (别名)
-        "emptyset" to sy(59),           // ∅
-        "Re" to sy(60),                 // ℜ
-        "Im" to sy(61),                 // ℑ
-        "top" to sy(62),                // ⊤
-        "bot" to sy(63),                // ⊥
-        "perp" to sy(63),               // ⊥ (别名)
-        "aleph" to sy(64),              // ℵ
+        // === 大写希腊字母 → KaTeX_Main (Normal) ===
+        put("Gamma", main("Γ"))
+        put("Delta", main("Δ"))
+        put("Theta", main("Θ"))
+        put("Lambda", main("Λ"))
+        put("Xi", main("Ξ"))
+        put("Pi", main("Π"))
+        put("Sigma", main("Σ"))
+        put("Upsilon", main("Υ"))
+        put("Phi", main("Φ"))
+        put("Psi", main("Ψ"))
+        put("Omega", main("Ω"))
 
-        // --- 集合运算符 (charCode 91-95) ---
-        "cup" to sy(91),                // ∪
-        "cap" to sy(92),                // ∩
-        "uplus" to sy(93),              // ⊎
-        "wedge" to sy(94),              // ∧
-        "land" to sy(94),               // ∧ (别名)
-        "vee" to sy(95),                // ∨
-        "lor" to sy(95),                // ∨ (别名)
+        // === 大写希腊字母斜体变体 → KaTeX_Math (Italic) ===
+        put("varGamma", math("Γ"))
+        put("varDelta", math("Δ"))
+        put("varTheta", math("Θ"))
+        put("varLambda", math("Λ"))
+        put("varXi", math("Ξ"))
+        put("varPi", math("Π"))
+        put("varSigma", math("Σ"))
+        put("varUpsilon", math("Υ"))
+        put("varPhi", math("Φ"))
+        put("varPsi", math("Ψ"))
+        put("varOmega", math("Ω"))
 
-        // --- 其他运算符和关系 (charCode 96-126) ---
-        "vdash" to sy(96),              // ⊢
-        "dashv" to sy(97),              // ⊣
-        "lfloor" to sy(98),             // ⌊
-        "rfloor" to sy(99),             // ⌋
-        "lceil" to sy(100),             // ⌈
-        "rceil" to sy(101),             // ⌉
-        "lbrace" to sy(102),            // {
-        "lacc" to sy(102),              // { (别名)
-        "rbrace" to sy(103),            // }
-        "racc" to sy(103),              // } (别名)
-        "langle" to sy(104),            // ⟨
-        "rangle" to sy(105),            // ⟩
-        "vert" to sy(106),              // |
-        "mid" to sy(106),               // | (别名)
-        "Vert" to sy(107),              // ‖
-        "parallel" to sy(107),          // ‖ (别名)
-        "backslash" to sy(110),         // ∖
-        "setminus" to sy(110),          // ∖ (别名)
-        "wr" to sy(111),                // ≀
-        "sqrt" to sy(112),              // √
-        "surdsign" to sy(112),          // √ (别名)
-        "amalg" to sy(113),             // ∐
-        "nabla" to sy(114),             // ∇
-        "smallint" to sy(115),          // ∫ (small)
-        "sqcup" to sy(116),             // ⊔
-        "sqcap" to sy(117),             // ⊓
-        "sqsubseteq" to sy(118),        // ⊑
-        "sqsupseteq" to sy(119),        // ⊒
-        "S" to sy(120),                 // §
-        "dagger" to sy(121),            // †
-        "ddagger" to sy(122),           // ‡
-        "P" to sy(123),                 // ¶
-        "clubsuit" to sy(124),          // ♣
-        "diamondsuit" to sy(125),       // ♢
-        "heartsuit" to sy(126),         // ♡
+        // === 箭头 → KaTeX_Main ===
+        put("leftarrow", main("←"))
+        put("gets", main("←"))
+        put("rightarrow", main("→"))
+        put("to", main("→"))
+        put("uparrow", main("↑"))
+        put("downarrow", main("↓"))
+        put("leftrightarrow", main("↔"))
+        put("updownarrow", main("↕"))
+        put("Leftarrow", main("⇐"))
+        put("Rightarrow", main("⇒"))
+        put("Uparrow", main("⇑"))
+        put("Downarrow", main("⇓"))
+        put("Leftrightarrow", main("⇔"))
+        put("Updownarrow", main("⇕"))
+        put("nearrow", main("↗"))
+        put("searrow", main("↘"))
+        put("nwarrow", main("↖"))
+        put("swarrow", main("↙"))
+        put("mapsto", main("↦"))
+        put("longrightarrow", main("⟶"))
+        put("longleftarrow", main("⟵"))
+        put("longleftrightarrow", main("⟷"))
+        put("Longleftarrow", main("⟸"))
+        put("Longrightarrow", main("⟹"))
+        put("Longleftrightarrow", main("⟺"))
+        put("longmapsto", main("⟼"))
+        put("leftharpoonup", main("↼"))
+        put("leftharpoondown", main("↽"))
+        put("rightharpoonup", main("⇀"))
+        put("rightharpoondown", main("⇁"))
+        put("hookrightarrow", main("↪"))
+        put("hookleftarrow", main("↩"))
 
-        // --- 二元运算符 (charCode 161-178) ---
-        "minus" to sy(161),             // −
-        "cdotp" to sy(162),             // ⋅
-        "cdot" to sy(162),              // ⋅ (别名)
-        "times" to sy(163),             // ×
-        "ast" to sy(164),               // ∗
-        "div" to sy(165),               // ÷
-        "diamond" to sy(166),           // ◇
-        "pm" to sy(167),                // ±
-        "mp" to sy(168),                // ∓
-        "oplus" to sy(169),             // ⊕
-        "ominus" to sy(170),            // ⊖
-        "otimes" to sy(171),            // ⊗
-        "oslash" to sy(174),            // ⊘
-        "odot" to sy(175),              // ⊙
-        "bigcirc" to sy(176),           // ○
-        "circ" to sy(177),              // ∘
-        "bullet" to sy(178),            // •
+        // === 二元运算符 → KaTeX_Main ===
+        put("plus", main("+"))
+        put("minus", main("−"))
+        put("times", main("×"))
+        put("div", main("÷"))
+        put("pm", main("±"))
+        put("mp", main("∓"))
+        put("cdot", main("⋅"))
+        put("cdotp", main("⋅"))
+        put("ast", main("∗"))
+        put("star", main("⋆"))
+        put("circ", main("∘"))
+        put("bullet", main("•"))
+        put("diamond", main("◇"))
+        put("bigcirc", main("○"))
+        put("oplus", main("⊕"))
+        put("ominus", main("⊖"))
+        put("otimes", main("⊗"))
+        put("oslash", main("⊘"))
+        put("odot", main("⊙"))
+        put("amalg", main("∐"))
+        put("wr", main("≀"))
+        put("uplus", main("⊎"))
+        put("sqcup", main("⊔"))
+        put("sqcap", main("⊓"))
+        put("cap", main("∩"))
+        put("cup", main("∪"))
+        put("wedge", main("∧"))
+        put("land", main("∧"))
+        put("vee", main("∨"))
+        put("lor", main("∨"))
+        put("setminus", main("∖"))
+        put("backslash", main("∖"))
 
-        // --- 关系符号 (charCode 179-196) ---
-        "asymp" to sy(179),             // ≍
-        "equiv" to sy(180),             // ≡
-        "subseteq" to sy(181),          // ⊆
-        "supseteq" to sy(182),          // ⊇
-        "leq" to sy(183),              // ≤
-        "le" to sy(183),               // ≤ (别名)
-        "geq" to sy(184),              // ≥
-        "ge" to sy(184),               // ≥ (别名)
-        "preceq" to sy(185),            // ≼
-        "succeq" to sy(186),            // ≽
-        "sim" to sy(187),               // ∼
-        "approx" to sy(188),            // ≈
-        "subset" to sy(189),            // ⊂
-        "supset" to sy(190),            // ⊃
-        "ll" to sy(191),                // ≪
-        "gg" to sy(192),                // ≫
-        "prec" to sy(193),              // ≺
-        "succ" to sy(194),              // ≻
-        "spadesuit" to sy(196),         // ♠
-    )
+        // === 关系符号 → KaTeX_Main ===
+        put("leq", main("≤"))
+        put("le", main("≤"))
+        put("geq", main("≥"))
+        put("ge", main("≥"))
+        put("neq", main("≠"))
+        put("ne", main("≠"))
+        put("equiv", main("≡"))
+        put("approx", main("≈"))
+        put("cong", main("≅"))
+        put("sim", main("∼"))
+        put("simeq", main("≃"))
+        put("propto", main("∝"))
+        put("asymp", main("≍"))
+        put("ll", main("≪"))
+        put("gg", main("≫"))
+        put("prec", main("≺"))
+        put("succ", main("≻"))
+        put("preceq", main("≼"))
+        put("succeq", main("≽"))
+        put("subset", main("⊂"))
+        put("supset", main("⊃"))
+        put("subseteq", main("⊆"))
+        put("supseteq", main("⊇"))
+        put("sqsubseteq", main("⊑"))
+        put("sqsupseteq", main("⊒"))
+        put("in", main("∈"))
+        put("notin", main("∉"))
+        put("ni", main("∋"))
+        put("owns", main("∋"))
+        put("vdash", main("⊢"))
+        put("dashv", main("⊣"))
+        put("perp", main("⊥"))
+        put("parallel", main("∥"))
+        put("mid", main("∣"))
 
-    /**
-     * cmmi10 符号映射表 (Font ID 2/5 in MicroTeX)
-     *
-     * 数据来源: MicroTeX src/res/sym/base.def.cpp 中 E(2, ...) 和 E(5, ...) 条目
-     * Font 2 = cmmi10, Font 5 = cmmi10_unchanged（共用同一 TTF 文件）
-     */
-    private val cmmi10Symbols: Map<String, SymbolRenderInfo> = buildMap {
-        // --- 小写希腊字母 (Font 5, charCode 174-196) ---
-        put("alpha", mi(174))
-        put("beta", mi(175))
-        put("gamma", mi(176))
-        put("delta", mi(177))
-        put("epsilon", mi(178))
-        put("zeta", mi(179))
-        put("eta", mi(180))
-        put("theta", mi(181))
-        put("iota", mi(182))
-        put("kappa", mi(183))
-        put("lambda", mi(184))
-        put("mu", mi(185))
-        put("nu", mi(186))
-        put("xi", mi(187))
-        put("pi", mi(188))
-        put("rho", mi(189))
-        put("sigma", mi(190))
-        put("tau", mi(191))
-        put("upsilon", mi(192))
-        put("phi", mi(193))
-        put("chi", mi(194))
-        put("psi", mi(195))
+        // === 杂项符号 → KaTeX_Main ===
+        put("infty", main("∞"))
+        put("partial", main("∂"))
+        put("nabla", main("∇"))
+        put("forall", main("∀"))
+        put("exists", main("∃"))
+        put("nexists", main("∄"))
+        put("neg", main("¬"))
+        put("lnot", main("¬"))
+        put("emptyset", main("∅"))
+        put("varnothing", main("∅"))
+        put("top", main("⊤"))
+        put("bot", main("⊥"))
+        put("prime", main("′"))
+        put("hbar", main("ℏ"))
+        put("ell", main("ℓ"))
+        put("wp", main("℘"))
+        put("Re", main("ℜ"))
+        put("Im", main("ℑ"))
+        put("aleph", main("ℵ"))
+        put("not", main("/"))       // negation slash
+        put("triangle", main("△"))
+        put("S", main("§"))
+        put("P", main("¶"))
+        put("dagger", main("†"))
+        put("ddagger", main("‡"))
+        put("clubsuit", main("♣"))
+        put("diamondsuit", main("♢"))
+        put("heartsuit", main("♡"))
+        put("spadesuit", main("♠"))
+        put("imath", math("ı"))
+        put("jmath", math("ȷ"))
 
-        // --- 希腊变体 (Font 5, charCode 33-39) ---
-        put("omega", mi(33))
-        put("varepsilon", mi(34))
-        put("vartheta", mi(35))
-        put("varpi", mi(36))
-        put("varrho", mi(37))
-        put("varsigma", mi(38))
-        put("varphi", mi(39))
+        // === 定界符 → KaTeX_Main ===
+        put("lbrace", main("{"))
+        put("lacc", main("{"))
+        put("rbrace", main("}"))
+        put("racc", main("}"))
+        put("langle", main("⟨"))
+        put("rangle", main("⟩"))
+        put("lfloor", main("⌊"))
+        put("rfloor", main("⌋"))
+        put("lceil", main("⌈"))
+        put("rceil", main("⌉"))
+        put("vert", main("∣"))
+        put("Vert", main("∥"))
+        put("lbrack", main("("))
+        put("rbrack", main(")"))
+        put("lsqbrack", main("["))
+        put("rsqbrack", main("]"))
 
-        // --- 箭头钩 (Font 5, charCode 40-47) ---
-        put("leftharpoonup", mi(40))
-        put("leftharpoondown", mi(41))
-        put("rightharpoonup", mi(42))
-        put("rightharpoondown", mi(43))
-        put("lhook", mi(44))
-        put("rhook", mi(45))
-        put("triangleright", mi(46))
-        put("triangleleft", mi(47))
+        // === 标点与杂项 ===
+        put("faculty", main("!"))
+        put("mathsharp", main("#"))
+        put("textdollar", main("$"))
+        put("textpercent", main("%"))
+        put("textampersand", main("&"))
+        put("colon", main(":"))
+        put("semicolon", main(";"))
+        put("equals", main("="))
+        put("Relbar", main("="))
+        put("question", main("?"))
+        put("matharobase", main("@"))
+        put("plus", main("+"))
+        put("textminus", main("-"))
+        put("textfractionsolidus", main("/"))
+        put("slashdel", main("/"))
+        put("ldotp", main("."))
+        put("normaldot", main("."))
+        put("comma", main(","))
+        put("lt", main("<"))
+        put("gt", main(">"))
+        put("slash", main("/"))
+        put("smallint", main("∫"))
+        put("sqrt", main("√"))
+        put("surdsign", main("√"))
 
-        // --- 标点和杂项 (Font 5) ---
-        put("ldotp", mi(58, FontStyle.Normal))
-        put("normaldot", mi(58, FontStyle.Normal))
-        put("comma", mi(59, FontStyle.Normal))
-        put("lt", mi(60, FontStyle.Normal))
-        put("slash", mi(61, FontStyle.Normal))
-        put("gt", mi(62, FontStyle.Normal))
-        put("star", mi(63, FontStyle.Normal))
-        put("partial", mi(64))
-        put("flat", mi(91, FontStyle.Normal))
-        put("natural", mi(92, FontStyle.Normal))
-        put("sharp", mi(93, FontStyle.Normal))
-        put("smile", mi(94, FontStyle.Normal))
-        put("frown", mi(95, FontStyle.Normal))
-        put("ell", mi(96))
-        put("omicron", mi(111))
-        put("imath", mi(123))
-        put("jmath", mi(124))
-        put("wp", mi(125))
-        put("vec", mi(126))
+        // === 装饰重音符号 → KaTeX_Main ===
+        put("hat", main("^"))
+        put("dot", main("˙"))
+        put("grave", main("`"))
+        put("acute", main("´"))
+        put("check", main("ˇ"))
+        put("breve", main("˘"))
+        put("bar", main("¯"))
+        put("mathring", main("˚"))
+        put("bmathring", main("˚"))
+        put("tilde", main("~"))
+        put("ddot", main("¨"))
+        put("vec", main("⃗"))
+        put("flat", main("♭"))
+        put("natural", main("♮"))
+        put("sharp", main("♯"))
+        put("smile", main("⌣"))
+        put("frown", main("⌢"))
 
-        // --- 大写希腊斜体变体 (Font 2, charCode 161-171) ---
-        // varGamma 等是 cmmi10 中的斜体大写希腊字母
-        put("varGamma", mi(161, FontStyle.Normal))
-        put("varDelta", mi(162, FontStyle.Normal))
-        put("varTheta", mi(163, FontStyle.Normal))
-        put("varLambda", mi(164, FontStyle.Normal))
-        put("varXi", mi(165, FontStyle.Normal))
-        put("varPi", mi(166, FontStyle.Normal))
-        put("varSigma", mi(167, FontStyle.Normal))
-        put("varUpsilon", mi(168, FontStyle.Normal))
-        put("varPhi", mi(169, FontStyle.Normal))
-        put("varPsi", mi(170, FontStyle.Normal))
-        put("varOmega", mi(171, FontStyle.Normal))
-    }
+        // === 大型运算符 → KaTeX_Main (Display 模式字号放大) ===
+        put("sum", main("∑"))
+        put("prod", main("∏"))
+        put("coprod", main("∐"))
+        put("int", main("∫"))
+        put("oint", main("∮"))
+        put("bigcup", main("⋃"))
+        put("bigcap", main("⋂"))
+        put("bigvee", main("⋁"))
+        put("bigwedge", main("⋀"))
+        put("bigoplus", main("⨁"))
+        put("bigotimes", main("⨂"))
+        put("bigsqcup", main("⨆"))
+        put("bigodot", main("⨀"))
+        put("biguplus", main("⨄"))
 
-    /**
-     * cmex10 符号映射表 (Font ID 1 in MicroTeX)
-     *
-     * 数据来源: MicroTeX src/res/sym/base.def.cpp 中 E(1, ...) 条目
-     * 大型运算符主要由 BigOperatorMeasurer 通过 mapBigOp() 直接处理，
-     * 此处补充通过符号命令名路由的条目。
-     */
-    private val cmex10Symbols: Map<String, SymbolRenderInfo> = mapOf(
-        "lgroup" to ex(58),
-        "rgroup" to ex(59),
-        "bracevert" to ex(62),
-        "bigsqcup" to ex(70),
-        "oint" to ex(72),
-        "bigodot" to ex(74),
-        "bigoplus" to ex(76),
-        "bigotimes" to ex(78),
-        "sum" to ex(80),
-        "prod" to ex(81),
-        "int" to ex(82),
-        "bigcup" to ex(83),
-        "bigcap" to ex(84),
-        "biguplus" to ex(85),
-        "bigwedge" to ex(86),
-        "bigvee" to ex(87),
-        "coprod" to ex(96),
-        "widehat" to ex(98),
-        "widetilde" to ex(101),
-    )
-
-    /**
-     * cmr10 符号映射表 (Font ID 18 in MicroTeX)
-     *
-     * 数据来源: MicroTeX src/res/sym/base.def.cpp 中 E(18, ...) 条目
-     * 大写希腊字母在 cmr10 中是直立体（非斜体）。
-     */
-    private val cmr10Symbols: Map<String, SymbolRenderInfo> = mapOf(
-        // --- 大写希腊字母 (charCode 161-171) ---
-        "Gamma" to ro(161),
-        "Delta" to ro(162),
-        "Theta" to ro(163),
-        "Lambda" to ro(164),
-        "Xi" to ro(165),
-        "Pi" to ro(166),
-        "Sigma" to ro(167),
-        "Upsilon" to ro(168),
-        "Phi" to ro(169),
-        "Psi" to ro(170),
-        "Omega" to ro(171),
-
-        // --- 标点和杂项 ---
-        "faculty" to ro(33),             // !
-        "mathsharp" to ro(35),           // #
-        "textdollar" to ro(36),          // $
-        "textpercent" to ro(37),         // %
-        "textampersand" to ro(38),       // &
-        "textapos" to ro(39),            // '
-        "lbrack" to ro(40),              // (
-        "rbrack" to ro(41),              // )
-        "plus" to ro(43),                // +
-        "textminus" to ro(45),           // -
-        "textfractionsolidus" to ro(47), // /
-        "slashdel" to ro(47),            // / (别名)
-        "colon" to ro(58),               // :
-        "semicolon" to ro(59),           // ;
-        "Relbar" to ro(61),              // =
-        "equals" to ro(61),              // = (别名)
-        "questiondown" to ro(62),        // ¿
-        "question" to ro(63),            // ?
-        "matharobase" to ro(64),         // @
-        "lsqbrack" to ro(91),            // [
-        "rsqbrack" to ro(93),            // ]
-        "hat" to ro(94),                 // ^
-        "dot" to ro(95),                 // ˙
-        "mathlapos" to ro(96),           // `
-        "textendash" to ro(123),         // –
-        "textemdash" to ro(124),         // —
-        "doubleacute" to ro(125),        // ˝
-        "tilde" to ro(126),              // ~
-
-        // --- 装饰重音符号 ---
-        "grave" to ro(181),
-        "acute" to ro(182),
-        "check" to ro(183),
-        "breve" to ro(184),
-        "bar" to ro(185),
-        "mathring" to ro(186),
-        "bmathring" to ro(186),
-        "polishlcross" to ro(195),
-        "ddot" to ro(196),
-        "ogonek" to ro(197),
-    )
-
-    /**
-     * 合并的完整符号映射表（命令名 → SymbolRenderInfo）
-     *
-     * 查找优先级: cmr10 (大写希腊等) > cmsy10 (运算符、箭头) > cmmi10 (希腊变量) > cmex10 (大型运算符)
-     * 注意: cmr10 中的 Gamma/Delta 等大写希腊字母覆盖 cmmi10 中的 varGamma/varDelta 等
-     */
-    private val texSymbolMap: Map<String, SymbolRenderInfo> = buildMap {
-        putAll(cmex10Symbols)
-        putAll(cmmi10Symbols)
-        putAll(cmsy10Symbols)
-        putAll(cmr10Symbols)    // cmr10 最高优先级（大写希腊直立体）
+        // === 宽装饰 ===
+        put("widehat", main("^"))
+        put("widetilde", main("~"))
     }
 
     /**
      * Unicode 字符 → SymbolRenderInfo 的反向映射表
      *
-     * 基于 SymbolMap 中 "命令名 → Unicode" 的对应关系，构建 "Unicode → SymbolRenderInfo"。
-     * 这样当 LatexNode.Symbol 的 unicode 字段是 Unicode 字符时，也能正确路由到 CM 字体。
-     *
-     * 注意：多个命令名可能映射到同一个 Unicode（如 "le" 和 "leq" 都映射到 "≤"），
-     * 这里取最后一个覆盖，因为它们指向同一个 SymbolRenderInfo。
+     * 当 LatexNode.Symbol 的 unicode 字段是 Unicode 字符时，
+     * 通过此表路由到正确的字体。
      */
     private val unicodeToSymbolMap: Map<String, SymbolRenderInfo> by lazy {
-        // 命令名 → Unicode 的映射（与 SymbolMap 保持一致）
         val cmdToUnicode = mapOf(
             // 希腊字母（小写）
             "alpha" to "α", "beta" to "β", "gamma" to "γ", "delta" to "δ",
-            "epsilon" to "ε", "varepsilon" to "ε", "zeta" to "ζ", "eta" to "η",
+            "epsilon" to "ϵ", "varepsilon" to "ε", "zeta" to "ζ", "eta" to "η",
             "theta" to "θ", "vartheta" to "ϑ", "iota" to "ι", "kappa" to "κ",
             "lambda" to "λ", "mu" to "μ", "nu" to "ν", "xi" to "ξ",
             "pi" to "π", "varpi" to "ϖ", "rho" to "ρ", "varrho" to "ϱ",
             "sigma" to "σ", "varsigma" to "ς", "tau" to "τ", "upsilon" to "υ",
-            "phi" to "φ", "varphi" to "ϕ", "chi" to "χ", "psi" to "ψ", "omega" to "ω",
+            "phi" to "ϕ", "varphi" to "φ", "chi" to "χ", "psi" to "ψ", "omega" to "ω",
             // 希腊字母（大写）
             "Gamma" to "Γ", "Delta" to "Δ", "Theta" to "Θ", "Lambda" to "Λ",
             "Xi" to "Ξ", "Pi" to "Π", "Sigma" to "Σ", "Upsilon" to "Υ",
@@ -530,13 +466,11 @@ internal object FontResolver {
             "sqcup" to "⊔", "sqcap" to "⊓",
             "uplus" to "⊎",
             "triangle" to "△",
-            // lbrack/rbrack 是 ( )，属于普通定界符，不放入 unicodeToSymbolMap
-            // 避免其他节点的 unicode 字段恰好是 "(" 时被错误路由
         )
 
         buildMap {
             for ((cmdName, unicode) in cmdToUnicode) {
-                val info = texSymbolMap[cmdName]
+                val info = symbolMap[cmdName]
                 if (info != null) {
                     put(unicode, info)
                 }
@@ -545,27 +479,21 @@ internal object FontResolver {
     }
 
     /**
-     * 解析符号对应的 TTF char code 和字体信息
+     * 解析符号对应的 Unicode 字符和字体信息
      *
-     * 这是符号渲染的核心入口。支持两种查找方式：
-     * 1. 通过命令名查找（如 "alpha", "Rightarrow", "cup"）
-     * 2. 通过 Unicode 字符反向查找（如 "α", "→", "∪"）
-     *
-     * 仅当使用内嵌 CM 字体（isDefaultCM = true）时返回映射结果。
-     * 外部自定义字体或未加载字体时返回 null，让调用方回退到 Unicode 渲染。
+     * KaTeX 字体使用标准 Unicode，直接返回 Unicode 字符和对应的字体类别。
      *
      * @param symbolName LaTeX 符号命令名（不含反斜杠）或 Unicode 字符
      * @param fontFamilies 已加载的字体家族集合
-     * @return 符号渲染信息，null 表示该符号无需特殊字体路由（使用 Unicode 渲染）
+     * @return 符号渲染信息，null 表示该符号无需特殊字体路由
      */
     fun resolveSymbol(
         symbolName: String,
         fontFamilies: LatexFontFamilies?
     ): SymbolRenderInfo? {
-        // 只有使用内嵌 CM 字体时才走 TeX 编码映射，外部自定义字体使用标准 Unicode
-        if (fontFamilies == null || !fontFamilies.isDefaultCM) return null
+        if (fontFamilies == null) return null
         // 1. 优先按命令名查找
-        texSymbolMap[symbolName]?.let { return it }
+        symbolMap[symbolName]?.let { return it }
         // 2. 按 Unicode 字符反向查找
         return unicodeToSymbolMap[symbolName]
     }
@@ -582,12 +510,6 @@ internal object FontResolver {
 
     /**
      * 解析给定字体类别应使用的字体家族
-     *
-     * 所有平台统一使用内嵌 CM 字体，不做平台判断。
-     *
-     * @param category 字体类别（决定使用哪个字体槽位）
-     * @param fontFamilies 已加载的字体家族集合
-     * @return 应使用的 FontFamily，null 表示使用默认字体
      */
     fun resolve(
         category: FontCategory,
@@ -597,101 +519,85 @@ internal object FontResolver {
     }
 
     /**
-     * cmsy10 中使用 TeX 内部编码、Unicode codepoint 与实际字形不对应的定界符。
-     * 这些字符必须使用 cmr10（Roman）渲染，因为 cmr10 的 cmap 表中
-     * ( ) [ ] 的 Unicode codepoint 与标准 ASCII 一致。
-     */
-    private val romanDelimiters = setOf("(", ")", "[", "]")
-
-    /**
-     * 定界符 Unicode → cmsy10 TeX char code 映射表
+     * 将定界符 Unicode 字符转换为渲染用字符
      *
-     * cmsy10 的 cmap 表使用 TeX 内部编码，Unicode 字符需要映射到对应的 char code。
-     * 数据来源: texSymbolMap 中定界符相关条目。
-     *
-     * 注意: ( ) [ ] 不在此表中，它们使用 cmr10 渲染。
-     */
-    private val delimiterCharMap: Map<String, String> = mapOf(
-        "{" to 102.toChar().toString(),     // lbrace → sy(102)
-        "}" to 103.toChar().toString(),     // rbrace → sy(103)
-        "|" to 106.toChar().toString(),     // vert → sy(106)
-        "‖" to 107.toChar().toString(),     // Vert → sy(107)
-        "∥" to 107.toChar().toString(),     // parallel → sy(107)
-        "⟨" to 104.toChar().toString(),     // langle → sy(104)
-        "⟩" to 105.toChar().toString(),     // rangle → sy(105)
-        "⌊" to 98.toChar().toString(),      // lfloor → sy(98)
-        "⌋" to 99.toChar().toString(),      // rfloor → sy(99)
-        "⌈" to 100.toChar().toString(),     // lceil → sy(100)
-        "⌉" to 101.toChar().toString(),     // rceil → sy(101)
-        "∖" to 110.toChar().toString(),     // backslash → sy(110)
-        "/" to 47.toChar().toString(),       // slash — ASCII 一致，但保留以防万一
-    )
-
-    /**
-     * 将定界符 Unicode 字符转换为 CM 字体中的正确 char code
-     *
-     * 当使用内嵌 CM 字体（isDefaultCM）时，cmsy10 的 cmap 表使用 TeX 内部编码，
-     * 需要将 Unicode 定界符映射到对应的 char code 才能正确渲染。
-     * 对于 ( ) [ ]，因为使用 cmr10 且 cmr10 的 cmap 与 ASCII 一致，所以不需要映射。
-     *
-     * @param delimiter Unicode 定界符字符
-     * @param fontFamilies 字体配置
-     * @return 映射后的渲染字符（可能与输入不同），直接用于 TextMeasurer 渲染
+     * KaTeX 字体使用标准 Unicode 编码，直接返回原字符。
      */
     fun resolveDelimiterGlyph(delimiter: String, fontFamilies: LatexFontFamilies?): String {
-        if (fontFamilies == null || !fontFamilies.isDefaultCM) return delimiter
-        // ( ) [ ] 使用 cmr10，ASCII 编码一致，不需要映射
-        if (delimiter in romanDelimiters) return delimiter
-        return delimiterCharMap[delimiter] ?: delimiter
+        return delimiter
     }
 
     /**
      * 获取定界符渲染上下文
      *
-     * 统一替代散落在 MathMeasurer/DelimiterMeasurer/MatrixMeasurer 中的 delimiterContext 方法。
+     * KaTeX 策略：根据缩放比例选择 Main / Size1 / Size2 / Size3 / Size4 字体。
+     * 每个 Size 字体包含独立设计的定界符字形，笔画粗细一致，无需 FontWeight 补偿。
      *
-     * - 使用内嵌 CM 字体（isDefaultCM）时，根据定界符字符选择正确的字体槽位：
-     *   - ( ) [ ] → cmr10 (Roman)，因为 cmsy10 的 TeX 编码与 Unicode 不对应
-     *   - { } | ‖ ⟨ ⟩ ⌊ ⌋ ⌈ ⌉ 等 → cmsy10 (Symbol)
-     * - 使用外部自定义字体时，不切换字体槽位，保持 context 原有字体
+     * @param context 当前渲染上下文
+     * @param delimiter 定界符字符
+     * @param scale 缩放比例（1.0 = 原始大小）
      */
     fun delimiterContext(
         context: RenderContext,
         delimiter: String = "(",
         scale: Float = 1.0f
     ): RenderContext {
-        val fontWeight = compensatedFontWeight(400, scale)
-
-        // 外部自定义字体：不切换字体槽位，使用标准 Unicode 渲染
-        val fontFamilies = context.fontFamilies
-        if (fontFamilies == null || !fontFamilies.isDefaultCM) {
-            return context.copy(
-                fontStyle = FontStyle.Normal,
-                fontWeight = fontWeight
-            )
-        }
-
-        // 内嵌 CM 字体：根据定界符选择正确的字体槽位
-        val fontCategory = if (delimiter in romanDelimiters) {
-            FontCategory.ROMAN
-        } else {
-            FontCategory.SYMBOL
-        }
-        val fontFamily = getFont(fontCategory, fontFamilies)
+        val fontFamily = resolveDelimiterFont(context.fontFamilies, scale)
+            ?: context.fontFamily
 
         return context.copy(
             fontStyle = FontStyle.Normal,
-            fontFamily = fontFamily ?: context.fontFamily,
-            fontWeight = fontWeight
+            fontFamily = fontFamily,
+            fontWeight = FontWeight.Normal
         )
     }
 
     /**
-     * 根据缩放比例计算补偿后的 FontWeight
+     * 根据缩放比例选择定界符字体
      *
-     * 字号放大后笔画变粗，需降低 weight 补偿：
-     * - scaleFactor = 1.0 → weight 不变
-     * - scaleFactor = 2.0 → weight 降至约 100
+     * KaTeX 定界符字体选择规则：
+     * - scale <= 1.0  → Main (行内默认大小)
+     * - scale <= 1.2  → Size1 (\big)
+     * - scale <= 1.8  → Size2 (\Big)
+     * - scale <= 2.4  → Size3 (\bigg)
+     * - scale > 2.4   → Size4 (\Bigg)
+     */
+    fun resolveDelimiterFont(
+        fontFamilies: LatexFontFamilies?,
+        scale: Float
+    ): FontFamily? {
+        if (fontFamilies == null) return null
+        return when {
+            scale <= 1.0f -> fontFamilies.main
+            scale <= 1.2f -> fontFamilies.size1
+            scale <= 1.8f -> fontFamilies.size2
+            scale <= 2.4f -> fontFamilies.size3
+            else -> fontFamilies.size4
+        }
+    }
+
+    /**
+     * \big/\Big/\bigg/\Bigg 手动大小命令到 Size 字体的直接映射
+     *
+     * 手动大小定界符直接使用对应的 Size 字体字形（不缩放 fontSize），
+     * 因为 KaTeX Size1~4 字体的字形已按正确大小设计。
+     */
+    fun manualDelimiterFont(
+        fontFamilies: LatexFontFamilies?,
+        scaleFactor: Float
+    ): FontFamily? {
+        if (fontFamilies == null) return null
+        return when {
+            scaleFactor <= 1.0f -> fontFamilies.main
+            scaleFactor <= 1.2f -> fontFamilies.size1   // \big  = 1.2
+            scaleFactor <= 1.8f -> fontFamilies.size2   // \Big  = 1.8
+            scaleFactor <= 2.4f -> fontFamilies.size3   // \bigg = 2.4
+            else -> fontFamilies.size4                   // \Bigg = 3.0
+        }
+    }
+
+    /**
+     * 根据缩放比例计算补偿后的 FontWeight
      */
     fun compensatedFontWeight(baseWeight: Int, scaleFactor: Float): FontWeight {
         val compensated = when {
@@ -712,14 +618,14 @@ internal object FontResolver {
     private fun getFont(category: FontCategory, fontFamilies: LatexFontFamilies?): FontFamily? {
         if (fontFamilies == null) return null
         return when (category) {
-            FontCategory.ROMAN -> fontFamilies.roman
-            FontCategory.MATH_ITALIC -> fontFamilies.mathItalic
-            FontCategory.SYMBOL -> fontFamilies.symbol
-            FontCategory.EXTENSION -> fontFamilies.extension
+            FontCategory.ROMAN -> fontFamilies.main
+            FontCategory.MATH_ITALIC -> fontFamilies.math
+            FontCategory.SYMBOL -> fontFamilies.main      // KaTeX: 运算符在 Main 中
+            FontCategory.EXTENSION -> fontFamilies.size1   // KaTeX: 大型定界符用 Size1
             FontCategory.SANS_SERIF -> fontFamilies.sansSerif
             FontCategory.MONOSPACE -> fontFamilies.monospace
-            FontCategory.BLACKBOARD_BOLD -> fontFamilies.blackboardBold
-            FontCategory.CALLIGRAPHIC -> fontFamilies.calligraphic
+            FontCategory.BLACKBOARD_BOLD -> fontFamilies.ams
+            FontCategory.CALLIGRAPHIC -> fontFamilies.caligraphic
             FontCategory.FRAKTUR -> fontFamilies.fraktur
             FontCategory.SCRIPT -> fontFamilies.script
         }

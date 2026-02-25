@@ -92,19 +92,16 @@ fun Latex(
         if (fontBytesCache == null) {
             fontBytesCache = try {
                 val environment = getSystemResourceEnvironment()
-                val extensionBytes = fontFamilies.extensionResource?.let {
+                val mainBytes = fontFamilies.mainResource?.let {
                     getFontResourceBytes(environment, it)
                 }
-                val symbolBytes = fontFamilies.symbolResource?.let {
+                val mathBytes = fontFamilies.mathResource?.let {
                     getFontResourceBytes(environment, it)
                 }
-                val mathItalicBytes = fontFamilies.mathItalicResource?.let {
+                val size1Bytes = fontFamilies.size1Resource?.let {
                     getFontResourceBytes(environment, it)
                 }
-                val romanBytes = fontFamilies.romanResource?.let {
-                    getFontResourceBytes(environment, it)
-                }
-                FontBytesCache(extensionBytes, symbolBytes, mathItalicBytes, romanBytes)
+                FontBytesCache(mainBytes, mathBytes, size1Bytes)
             } catch (e: Exception) {
                 HLog.e(TAG, "字体字节加载失败", e)
                 null

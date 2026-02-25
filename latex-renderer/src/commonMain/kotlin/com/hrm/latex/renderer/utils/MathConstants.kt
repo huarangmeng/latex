@@ -196,7 +196,7 @@ internal object MathConstants {
     /** hat 装饰高度 / fontSize */
     const val ACCENT_HAT_HEIGHT = 0.52f
     /** hat 装饰下沉偏移 / fontSize */
-    const val ACCENT_HAT_OFFSET = 0.20f
+    const val ACCENT_HAT_OFFSET = 0.10f
 
     /** tilde 装饰高度 / fontSize */
     const val ACCENT_TILDE_HEIGHT = 0.48f

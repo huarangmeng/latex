@@ -123,6 +123,10 @@ dependencies {
 
 详细的功能支持列表请参阅：[PARSER_COVERAGE_ANALYSIS.md](./latex-parser/PARSER_COVERAGE_ANALYSIS.md)
 
+## 🙏 致谢
+
+- [KaTeX](https://github.com/KaTeX/KaTeX) — 本项目使用了 KaTeX 的字体文件用于数学公式渲染。KaTeX 基于 [MIT License](https://github.com/KaTeX/KaTeX/blob/main/LICENSE) 开源。
+
 ## 📄 开源协议
 
 本项目采用 MIT License 开源协议 - 详见 [LICENSE](LICENSE) 文件。

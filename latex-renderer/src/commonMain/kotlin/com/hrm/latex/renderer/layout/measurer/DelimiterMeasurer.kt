@@ -140,9 +140,13 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
     }
 
     /**
-     * 测量手动大小的定界符 (\big, \Big 等)
+     * 测量手动大小的定界符 (\big, \Big, \bigg, \Bigg)
      *
-     * 这些定界符作为独立的符号存在,不包裹内容。
+     * KaTeX 策略：直接使用对应的 Size 字体字形，无需放大 fontSize。
+     * - \big  (1.2) → Size1
+     * - \Big  (1.8) → Size2
+     * - \bigg (2.4) → Size3
+     * - \Bigg (3.0) → Size4
      */
     private fun measureManualSizedDelimiter(
         node: LatexNode.ManualSizedDelimiter,
@@ -153,11 +157,17 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         val delimiter = node.delimiter
         val scaleFactor = node.size
 
-        // 将 Unicode 定界符转换为 CM 字体中的正确 TeX char code
         val glyph = FontResolver.resolveDelimiterGlyph(delimiter, context.fontFamilies)
 
-        val delimiterStyle =
-            FontResolver.delimiterContext(context, delimiter, scaleFactor).copy(fontSize = context.fontSize * scaleFactor)
+        // 直接用对应的 Size 字体，不放大 fontSize
+        val fontFamily = FontResolver.manualDelimiterFont(context.fontFamilies, scaleFactor)
+            ?: context.fontFamily
+        val delimiterStyle = context.copy(
+            fontStyle = androidx.compose.ui.text.font.FontStyle.Normal,
+            fontFamily = fontFamily,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+        )
+
         val result = measurer.measure(AnnotatedString(glyph), delimiterStyle.textStyle())
 
         // 括号应该相对于数学轴居中

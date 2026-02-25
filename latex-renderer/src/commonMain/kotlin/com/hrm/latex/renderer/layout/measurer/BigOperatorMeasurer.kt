@@ -60,11 +60,6 @@ import kotlin.math.sqrt
  */
 internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
 
-    companion object {
-        /** cmsy10 中 smallint (∫) 的 charCode 115 对应字符 */
-        private val CMSY10_SMALLINT: Char = 115.toChar()
-    }
-
     override fun measure(
         node: LatexNode.BigOperator,
         context: RenderContext,
@@ -77,11 +72,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val isIntegral = node.operator.contains("int")
         val isNamedOperator = symbol == node.operator && symbol.all { it.isLetter() }
 
-        // 积分号在默认 CM 字体下使用 cmsy10 的 smallint 字形（charCode 115）
-        // cmsy10 使用 TeX 内部编码，不能直接用 Unicode ∫
-        // 非默认 CM 字体（用户自定义）直接使用 Unicode 字符
-        val useTexEncoding = context.fontFamilies?.isDefaultCM == true
-        val renderSymbol = if (isIntegral && useTexEncoding) CMSY10_SMALLINT.toString() else symbol
+        // KaTeX 字体使用标准 Unicode 编码，直接使用 Unicode 字符渲染
+        val renderSymbol = symbol
 
         val useSideMode = resolveLimitsMode(node, isIntegral, isNamedOperator, context)
         val scaleFactor = resolveScaleFactor(context, useSideMode, isIntegral)
@@ -98,13 +90,11 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val baseOpResult = measurer.measure(AnnotatedString(renderSymbol), opStyle.textStyle())
         val baseFontCategory = when {
             isNamedOperator -> InkFontCategory.TEXT
-            isIntegral -> InkFontCategory.EXTENSION // cmsy10 smallint 的墨水估算仍用 EXTENSION 类别
             else -> InkFontCategory.EXTENSION
         }
         val baseFontBytes = when {
             isNamedOperator -> null
-            isIntegral -> context.fontBytesCache?.symbolBytes   // cmsy10
-            else -> context.fontBytesCache?.extensionBytes      // cmex10
+            else -> context.fontBytesCache?.mainBytes  // KaTeX_Main 包含大型运算符
         }
         val baseFontSizePx = with(density) { opStyle.fontSize.toPx() }
         val baseFontWeightVal = opStyle.fontWeight?.weight ?: 400
@@ -260,17 +250,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
                 MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT,
                 scaleFactor
             )
-            // 默认 CM 字体：积分号用 cmsy10 (smallint)，其他大型运算符用 cmex10
-            // 自定义字体：不区分，直接用当前字体渲染 Unicode 字符
-            val fontFamily = if (context.fontFamilies?.isDefaultCM == true) {
-                if (isIntegral) {
-                    context.fontFamilies?.symbol ?: context.fontFamily
-                } else {
-                    context.fontFamilies?.extension ?: context.fontFamily
-                }
-            } else {
-                context.fontFamily
-            }
+            // KaTeX 字体：大型运算符 (∑, ∫ 等) 均在 KaTeX_Main 中，使用标准 Unicode
+            val fontFamily = context.fontFamilies?.main ?: context.fontFamily
             context.grow(scaleFactor).copy(
                 fontFamily = fontFamily,
                 fontStyle = FontStyle.Normal,
@@ -329,7 +310,9 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
             else -> with(density) { MathConstants.SCRIPT_KERN_DP.dp.toPx() }
         }
 
-        val superX = opVisualRight + limitSpacing
+        // 积分上标需要额外右移，避免与积分号顶部弯钩重叠
+        val integralSuperKern = if (isIntegral) fontSizePx * 0.15f else 0f
+        val superX = opVisualRight + limitSpacing + integralSuperKern
         val subX = if (isIntegral) {
             opVisualRight + limitSpacing - fontSizePx * MathConstants.INTEGRAL_SUBSCRIPT_INSET
         } else opVisualRight + limitSpacing
@@ -343,8 +326,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         // 积分上下标定位：基于拉伸后的 glyph 墨水区域
         val superTop = if (superLayout != null) {
             if (isIntegral) {
-                // 上标 baseline 与拉伸后积分符号墨水顶部对齐
-                opGlyphDrawY - superLayout.baseline
+                // 上标顶部与积分号墨水顶部对齐
+                opGlyphDrawY
             } else {
                 opTop - superLayout.height - limitGap
             }
@@ -407,12 +390,12 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         // opLayout 已经是墨水高度，不需要额外估算
         val glyphVisualPart = opLayout.height
 
-        // 上限墨水底部：使用 baseline 而非 height，因为 height 包含 descent 空白
-        val superInkBottom = superLayout?.baseline ?: 0f
+        // 上限实际底部：使用 height（完整绘制区域），避免 descent 部分与运算符重叠
+        val superBottom = superLayout?.height ?: 0f
 
         // 布局坐标 (y=0 = NodeLayout 顶部):
         val superDrawY = 0f
-        val opDrawY = superInkBottom + spacing
+        val opDrawY = superBottom + spacing
         val subDrawY = opDrawY + glyphVisualPart + spacing
         val totalHeight = subDrawY + (subLayout?.height ?: 0f)
 
