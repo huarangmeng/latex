@@ -39,6 +39,8 @@ import com.hrm.latex.renderer.model.grow
 import com.hrm.latex.renderer.model.toLimitStyle
 import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.utils.FontResolver
+import com.hrm.latex.renderer.utils.InkBoundsEstimator
+import com.hrm.latex.renderer.utils.InkFontCategory
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.mapBigOp
@@ -92,17 +94,45 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         } else opResult
 
         val opWidth = finalOpResult.size.width.toFloat()
-        val opHeight = finalOpResult.size.height.toFloat() * verticalScale
 
-        val opLayout = NodeLayout(opWidth, opHeight, finalOpResult.firstBaseline * verticalScale) { x, y ->
+        // 使用精确 glyph bounds 测量墨水边界（优先）
+        // 通过平台原生 API (Android: Paint.getTextBounds, 其他: Skia Font.getBounds)
+        // 获取字形的精确 bounding box，消除行框的 ascent/descent 空白
+        val fontCategory = if (isNamedOperator) InkFontCategory.TEXT else InkFontCategory.EXTENSION
+        val fontBytes = if (!isNamedOperator) context.fontBytesCache?.extensionBytes else null
+        val fontSizePxForMeasure = with(density) { adjustedOpStyle.fontSize.toPx() }
+        val fontWeightVal = adjustedOpStyle.fontWeight?.weight ?: 400
+
+        val inkBounds = if (fontBytes != null) {
+            // 精确测量：使用平台原生 API
+            InkBoundsEstimator.measurePrecise(
+                text = symbol,
+                fontSizePx = fontSizePxForMeasure,
+                fontBytes = fontBytes,
+                baseline = finalOpResult.firstBaseline,
+                fontWeightValue = fontWeightVal
+            ) ?: InkBoundsEstimator.estimate(finalOpResult, fontCategory)
+        } else {
+            // 回退：字体字节未加载，使用启发式估算
+            InkBoundsEstimator.estimate(finalOpResult, fontCategory)
+        }
+
+        // 应用垂直拉伸到墨水高度
+        val opInkHeight = inkBounds.inkHeight * verticalScale
+        val opInkTopOffset = inkBounds.inkTopOffset * verticalScale
+        val opInkBaseline = inkBounds.inkBaseline * verticalScale
+
+        val opLayout = NodeLayout(opWidth, opInkHeight, opInkBaseline) { x, y ->
             if (verticalScale != 1.0f) {
+                val rawHeight = finalOpResult.size.height.toFloat()
                 withTransform({
-                    scale(1.0f, verticalScale, pivot = Offset(x + opWidth / 2f, y + opHeight / 2f))
+                    scale(1.0f, verticalScale, pivot = Offset(x + opWidth / 2f, y + opInkHeight / 2f))
                 }) {
-                    drawText(finalOpResult, topLeft = Offset(x, y + (opHeight - finalOpResult.size.height) / 2f))
+                    drawText(finalOpResult, topLeft = Offset(x, y - opInkTopOffset / verticalScale))
                 }
             } else {
-                drawText(finalOpResult, topLeft = Offset(x, y))
+                // 向上偏移 inkTopOffset，将墨水区域对齐到 NodeLayout 的 y=0
+                drawText(finalOpResult, topLeft = Offset(x, y - opInkTopOffset))
             }
         }
 
@@ -110,15 +140,11 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val subLayout = node.subscript?.let { measureGroup(listOf(it), limitStyle) }
 
         val fontSizePx = with(density) { opStyle.fontSize.toPx() }
-        // 积分符号：用 glyph 实际墨水高度（不被 fontSizePx 截断）
-        // 非积分符号：用 fontSizePx 或 glyph height 的较小值
-        val glyphInkHeight = min(opLayout.baseline * 1.1f, opLayout.height)
+        // opLayout 已经是墨水高度了，直接使用
         val opVisualHeight = if (isNamedOperator) {
             min(fontSizePx * MathConstants.BIG_OP_NAMED_VISUAL_HEIGHT, opLayout.height)
-        } else if (isIntegral) {
-            glyphInkHeight
         } else {
-            min(fontSizePx, opLayout.height)
+            opLayout.height
         }
 
         return if (useSideMode) {
@@ -198,8 +224,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val opDrawX = if (isIntegral || isNamedOperator) max(0f, (opVisualWidth - opLayout.width) / 2f) else 0f
         val opActualLeft = if (opDrawX == 0f) opLayout.width else opVisualWidth
 
-        // glyph 实际墨水高度（去除 cmex10 的 descent 空白）
-        val glyphVisualPart = min(opLayout.baseline * 1.1f, opLayout.height)
+        // opLayout 已经是墨水高度，不需要额外估算
+        val glyphVisualPart = opLayout.height
 
         val opTop = -axisHeight - opVisualHeight / 2f
         val opBottom = opTop + opVisualHeight
@@ -223,12 +249,12 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
             else -> fontSizePx * MathConstants.SYMBOL_OP_LIMIT_GAP
         }
 
-        // 积分上下标定位：基于 glyph 墨水区域而非被截断的 opVisualHeight
+        // 积分上下标定位：基于 glyph 墨水区域
         // opGlyphDrawY 是 glyph 墨水顶部相对于 baseline 的 y 坐标
         // glyph 墨水底部 = opGlyphDrawY + glyphVisualPart
         val superTop = if (superLayout != null) {
             if (isIntegral) {
-                // 上标顶部对齐积分符号墨水顶部
+                // 上标顶部与积分符号墨水顶部对齐
                 opGlyphDrawY
             } else {
                 opTop - superLayout.height - limitGap
@@ -237,7 +263,7 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
 
         val subTop = if (subLayout != null) {
             if (isIntegral) {
-                // 下标顶部（baseline 附近）紧贴积分符号墨水底部
+                // 下标顶部紧贴积分符号墨水底部（baseline 对齐到底部附近）
                 val glyphInkBottom = opGlyphDrawY + glyphVisualPart
                 glyphInkBottom - subLayout.baseline * MathConstants.INTEGRAL_SUBSCRIPT_OVERLAP
             } else {
@@ -277,9 +303,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
 
         val maxWidth = max(opLayout.width, max(superLayout?.width ?: 0f, subLayout?.width ?: 0f))
 
-        // cmex10 glyph height 包含大量 descent 空白。
-        // 使用 baseline * 1.1 估算实际墨水区域高度。
-        val glyphVisualPart = min(opLayout.baseline * 1.1f, opLayout.height)
+        // opLayout 已经是墨水高度，不需要额外估算
+        val glyphVisualPart = opLayout.height
 
         // 上限墨水底部：使用 baseline 而非 height，因为 height 包含 descent 空白
         val superInkBottom = superLayout?.baseline ?: 0f

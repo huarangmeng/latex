@@ -46,9 +46,17 @@ import com.hrm.latex.renderer.model.LineBreakingConfig
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.defaultLatexFontFamilies
 import com.hrm.latex.renderer.model.toContext
+import com.hrm.latex.renderer.utils.FontBytesCache
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import latex.latex_renderer.generated.resources.Res
+import latex.latex_renderer.generated.resources.cmex10
+import latex.latex_renderer.generated.resources.cmmi10
+import latex.latex_renderer.generated.resources.cmr10
+import latex.latex_renderer.generated.resources.cmsy10
+import org.jetbrains.compose.resources.getFontResourceBytes
+import org.jetbrains.compose.resources.getSystemResourceEnvironment
 
 private const val TAG = "Latex"
 
@@ -82,8 +90,28 @@ fun Latex(
     }
     val fontFamilies = config.fontFamilies ?: defaultLatexFontFamilies()
 
+    // 异步加载字体字节数据（用于精确 glyph bounds 测量）
+    var fontBytesCache by remember { mutableStateOf<FontBytesCache?>(null) }
+    LaunchedEffect(Unit) {
+        if (fontBytesCache == null) {
+            fontBytesCache = try {
+                val environment = getSystemResourceEnvironment()
+                val extensionBytes = Res.readBytes("font/cmex10.ttf")
+                val symbolBytes = getFontResourceBytes(environment, Res.font.cmsy10)
+                val mathItalicBytes = getFontResourceBytes(environment, Res.font.cmmi10)
+                val romanBytes = getFontResourceBytes(environment, Res.font.cmr10)
+                FontBytesCache(extensionBytes, symbolBytes, mathItalicBytes, romanBytes)
+            } catch (e: Exception) {
+                HLog.e(TAG, "字体字节加载失败", e)
+                null
+            }
+        }
+    }
+
     // 构建初始渲染上下文
-    val context = config.toContext(isDarkTheme, fontFamilies)
+    val context = config.toContext(isDarkTheme, fontFamilies).let {
+        if (fontBytesCache != null) it.copy(fontBytesCache = fontBytesCache) else it
+    }
 
     // 复用解析器实例以支持真正的增量解析
     val parser = remember { IncrementalLatexParser() }

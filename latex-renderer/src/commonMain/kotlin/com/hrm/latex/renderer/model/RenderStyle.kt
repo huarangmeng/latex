@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.renderer.utils.FontBytesCache
 import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.parseColor
 
@@ -130,7 +131,8 @@ internal data class RenderContext(
     val mathStyle: MathStyle = MathStyle.DISPLAY,
     val bigOpHeightHint: Float? = null,
     val maxLineWidth: Float? = null,
-    val lineBreakingEnabled: Boolean = false
+    val lineBreakingEnabled: Boolean = false,
+    val fontBytesCache: FontBytesCache? = null
 )
 
 /**

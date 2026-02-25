@@ -1,3 +1,4 @@
+import com.android.utils.withResources
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
@@ -14,6 +15,7 @@ kotlin {
     androidLibrary {
         namespace = "com.hrm.latex.renderer"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
+        androidResources.enable = true
 
         withJava()
         withHostTestBuilder {}.configure {}

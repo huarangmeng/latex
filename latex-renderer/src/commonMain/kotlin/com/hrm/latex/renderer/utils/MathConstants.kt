@@ -126,8 +126,8 @@ internal object MathConstants {
     /** 符号运算符 limit 间距 / fontSize */
     const val SYMBOL_OP_LIMIT_GAP = 0.1f
 
-    /** 积分下标垂直对齐系数 (下标底部与运算符底部的重叠比例) */
-    const val INTEGRAL_SUBSCRIPT_OVERLAP = 0.65f
+    /** 积分下标垂直对齐系数 (下标 baseline 与运算符底部的重叠比例，越大下标越靠上) */
+    const val INTEGRAL_SUBSCRIPT_OVERLAP = 0.85f
 
     /** 积分下标水平内推偏移 / fontSize */
     const val INTEGRAL_SUBSCRIPT_INSET = 0.12f
