@@ -77,7 +77,7 @@ fun MyScreen() {
 
 ```toml
 [versions]
-latex = "1.0.3"
+latex = "1.1.1"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
