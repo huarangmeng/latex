@@ -34,20 +34,31 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.visitor.AccessibilityVisitor
+import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.layout.measureGroup
+import com.hrm.latex.renderer.layout.measureNode
+import com.hrm.latex.renderer.model.HighlightRange
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LineBreakingConfig
+import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.defaultLatexFontFamilies
 import com.hrm.latex.renderer.model.toContext
 import com.hrm.latex.renderer.utils.FontBytesCache
 import com.hrm.latex.renderer.utils.MathConstants
+import com.hrm.latex.renderer.utils.MathSpacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getFontResourceBytes
@@ -160,11 +171,19 @@ fun Latex(
         document = result
     }
 
+    // 无障碍描述：当启用时，使用 AccessibilityVisitor 生成屏幕阅读器文本
+    val accessibilityDescription = if (config.accessibilityEnabled) {
+        remember(document) {
+            AccessibilityVisitor.describe(document)
+        }
+    } else null
+
     LatexDocument(
         modifier = modifier,
         children = document.children,
         context = context,
-        backgroundColor = resolvedBackgroundColor
+        backgroundColor = resolvedBackgroundColor,
+        contentDescription = accessibilityDescription
     )
 }
 
@@ -215,13 +234,15 @@ fun LatexAutoWrap(
  * @param children 文档根节点
  * @param context 渲染上下文
  * @param backgroundColor 背景颜色
+ * @param contentDescription 无障碍描述文本（非空时启用 semantics）
  */
 @Composable
 private fun LatexDocument(
     modifier: Modifier = Modifier,
     children: List<LatexNode>,
     context: RenderContext,
-    backgroundColor: Color = Color.Transparent
+    backgroundColor: Color = Color.Transparent,
+    contentDescription: String? = null
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -240,12 +261,176 @@ private fun LatexDocument(
     val widthDp = with(density) { (layout.width + horizontalPadding * 2).toDp() }
     val heightDp = with(density) { (layout.height + verticalPadding * 2).toDp() }
 
-    Canvas(modifier = modifier.size(widthDp, heightDp)) {
+    // 计算高亮区域（仅在配置了 highlight 时计算）
+    val highlightRanges = context.highlightRanges
+    val highlightRects = remember(children, highlightRanges, context, density) {
+        if (highlightRanges.isEmpty()) {
+            emptyList()
+        } else {
+            computeHighlightRects(children, highlightRanges, context, measurer, density, layout)
+        }
+    }
+
+    val canvasModifier = if (contentDescription != null) {
+        modifier
+            .semantics { this.contentDescription = contentDescription }
+            .size(widthDp, heightDp)
+    } else {
+        modifier.size(widthDp, heightDp)
+    }
+
+    Canvas(modifier = canvasModifier) {
         // 绘制背景
         if (backgroundColor != Color.Unspecified && backgroundColor != Color.Transparent) {
             drawRect(color = backgroundColor)
         }
+
+        // 绘制高亮背景（在内容之前绘制，作为底层）
+        for ((rect, range) in highlightRects) {
+            drawRect(
+                color = range.color,
+                topLeft = Offset(
+                    rect.x + horizontalPadding,
+                    rect.y + verticalPadding
+                ),
+                size = Size(rect.width, rect.height)
+            )
+            range.borderColor?.let { borderColor ->
+                drawRect(
+                    color = borderColor,
+                    topLeft = Offset(
+                        rect.x + horizontalPadding,
+                        rect.y + verticalPadding
+                    ),
+                    size = Size(rect.width, rect.height),
+                    style = Stroke(1f)
+                )
+            }
+        }
+
         // 内容从 (horizontalPadding, verticalPadding) 开始绘制
         layout.draw(this, horizontalPadding, verticalPadding)
+    }
+}
+
+/**
+ * 高亮矩形区域
+ */
+private data class HighlightRect(
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float
+)
+
+/**
+ * 计算高亮区域的边界矩形
+ *
+ * 对于 nodeIndices 模式：测量指定索引范围的子节点，计算其联合边界
+ * 对于 pattern 模式：遍历子节点找到包含匹配文本的节点，计算其边界
+ */
+private fun computeHighlightRects(
+    children: List<LatexNode>,
+    ranges: List<HighlightRange>,
+    context: RenderContext,
+    measurer: androidx.compose.ui.text.TextMeasurer,
+    density: androidx.compose.ui.unit.Density,
+    groupLayout: NodeLayout
+): List<Pair<HighlightRect, HighlightRange>> {
+    if (children.isEmpty()) return emptyList()
+
+    // 预测量每个子节点的尺寸，用于计算 x 偏移
+    val childLayouts = children.map { measureNode(it, context, measurer, density) }
+    val fontSizePx = with(density) { context.fontSize.toPx() }
+
+    // 计算基线对齐参数
+    var maxAscent = 0f
+    var maxDescent = 0f
+    for (layout in childLayouts) {
+        val ascent = layout.baseline
+        val descent = layout.height - layout.baseline
+        if (ascent > maxAscent) maxAscent = ascent
+        if (descent > maxDescent) maxDescent = descent
+    }
+
+    // 计算 TeX 标准原子间距（与 measureGroup 中的逻辑一致）
+    val isScript = context.mathStyle == MathStyle.SCRIPT ||
+            context.mathStyle == MathStyle.SCRIPT_SCRIPT
+    val spacings = FloatArray(children.size) { 0f }
+    for (i in 0 until children.size - 1) {
+        val leftNode = children[i]
+        val rightNode = children[i + 1]
+        if (leftNode is LatexNode.Space || leftNode is LatexNode.HSpace ||
+            rightNode is LatexNode.Space || rightNode is LatexNode.HSpace) {
+            continue
+        }
+        val leftType = MathSpacing.classifyNode(leftNode)
+        val rightType = MathSpacing.classifyNode(rightNode)
+        val spacingFactor = MathSpacing.spaceBetween(leftType, rightType, isScript)
+        spacings[i] = spacingFactor * fontSizePx
+    }
+
+    // 计算每个子节点的 x 偏移
+    val xOffsets = FloatArray(children.size)
+    var currentX = 0f
+    for (i in children.indices) {
+        xOffsets[i] = currentX
+        currentX += childLayouts[i].width
+        if (i < spacings.size) currentX += spacings[i]
+    }
+
+    val result = mutableListOf<Pair<HighlightRect, HighlightRange>>()
+
+    for (range in ranges) {
+        when {
+            range.nodeIndices != null -> {
+                val startIdx = range.nodeIndices.first.coerceIn(0, children.size - 1)
+                val endIdx = range.nodeIndices.last.coerceIn(0, children.size - 1)
+                val x = xOffsets[startIdx]
+                var endX = xOffsets[endIdx] + childLayouts[endIdx].width
+                val rect = HighlightRect(
+                    x = x,
+                    y = 0f,
+                    width = endX - x,
+                    height = groupLayout.height
+                )
+                result.add(rect to range)
+            }
+            range.pattern != null -> {
+                // 查找包含匹配文本的子节点
+                for (i in children.indices) {
+                    if (nodeContainsText(children[i], range.pattern)) {
+                        val rect = HighlightRect(
+                            x = xOffsets[i],
+                            y = maxAscent - childLayouts[i].baseline,
+                            width = childLayouts[i].width,
+                            height = childLayouts[i].height
+                        )
+                        result.add(rect to range)
+                    }
+                }
+            }
+        }
+    }
+
+    return result
+}
+
+/**
+ * 检查 AST 节点是否包含指定文本
+ */
+private fun nodeContainsText(node: LatexNode, pattern: String): Boolean {
+    return when (node) {
+        is LatexNode.Text -> node.content.contains(pattern)
+        is LatexNode.Group -> node.children.any { nodeContainsText(it, pattern) }
+        is LatexNode.Symbol -> node.symbol.contains(pattern) || node.unicode.contains(pattern)
+        is LatexNode.Operator -> node.op.contains(pattern)
+        is LatexNode.TextMode -> node.text.contains(pattern)
+        is LatexNode.Superscript -> nodeContainsText(node.base, pattern) || nodeContainsText(node.exponent, pattern)
+        is LatexNode.Subscript -> nodeContainsText(node.base, pattern) || nodeContainsText(node.index, pattern)
+        is LatexNode.Fraction -> nodeContainsText(node.numerator, pattern) || nodeContainsText(node.denominator, pattern)
+        is LatexNode.Style -> node.content.any { nodeContainsText(it, pattern) }
+        is LatexNode.Color -> node.content.any { nodeContainsText(it, pattern) }
+        else -> false
     }
 }

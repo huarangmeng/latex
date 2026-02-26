@@ -23,7 +23,26 @@
 
 package com.hrm.latex.preview
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.hrm.latex.renderer.AnimatedLatex
+import com.hrm.latex.renderer.Latex
+import com.hrm.latex.renderer.LatexAnimationConfig
+import com.hrm.latex.renderer.LatexTransition
+import com.hrm.latex.renderer.model.HighlightConfig
+import com.hrm.latex.renderer.model.HighlightRange
+import com.hrm.latex.renderer.model.LatexConfig
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -383,6 +402,69 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("84-28", "sideset 部分", "\\sideset{_1}{^n}{\\prod}"),
             PreviewItem("84-29", "tensor 基础", "\\tensor{T}{^a_b}"),
             PreviewItem("84-30", "tensor 多指标", "\\tensor{R}{^\\mu_{\\nu\\rho\\sigma}}"),
+            PreviewItem(
+                "84-31", "高亮子表达式(pattern)", "E = mc^2",
+                content = {
+                    Latex(
+                        latex = "E = mc^2",
+                        config = LatexConfig(
+                            highlight = HighlightConfig(
+                                ranges = listOf(
+                                    HighlightRange(
+                                        pattern = "mc",
+                                        color = Color(0x4400AAFF),
+                                        borderColor = Color(0xFF0088FF)
+                                    )
+                                )
+                            )
+                        ),
+                        isDarkTheme = false
+                    )
+                }
+            ),
+            PreviewItem(
+                "84-32", "高亮子表达式(indices)", "\\frac{a+b}{c} + x^2",
+                content = {
+                    Latex(
+                        latex = "\\frac{a+b}{c} + x^2",
+                        config = LatexConfig(
+                            highlight = HighlightConfig(
+                                ranges = listOf(
+                                    HighlightRange(
+                                        nodeIndices = 0..0,
+                                        color = Color(0x33FF6600),
+                                        borderColor = Color(0xFFFF6600)
+                                    )
+                                )
+                            )
+                        ),
+                        isDarkTheme = false
+                    )
+                }
+            ),
+            PreviewItem(
+                "84-33", "多区域高亮", "a + b + c + d",
+                content = {
+                    Latex(
+                        latex = "a + b + c + d",
+                        config = LatexConfig(
+                            highlight = HighlightConfig(
+                                ranges = listOf(
+                                    HighlightRange(
+                                        pattern = "a",
+                                        color = Color(0x44FF0000)
+                                    ),
+                                    HighlightRange(
+                                        pattern = "c",
+                                        color = Color(0x4400FF00)
+                                    )
+                                )
+                            )
+                        ),
+                        isDarkTheme = false
+                    )
+                }
+            ),
         )
     ),
     PreviewGroup(
@@ -450,6 +532,127 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("86", "cases 嵌套分数", "|x| = \\begin{cases} \\frac{x}{1} & x \\geq 0 \\\\ \\frac{-x}{1} & x < 0 \\end{cases}"),
             PreviewItem("87", "tabular 基础", "\\begin{tabular}{cc} a & b \\\\ c & d \\end{tabular}"),
             PreviewItem("88", "tabular 三列", "\\begin{tabular}{lcr} left & center & right \\\\ 1 & 2 & 3 \\end{tabular}"),
+        )
+    ),
+    PreviewGroup(
+        id = "animated",
+        title = "11. 动画过渡",
+        description = "AnimatedLatex 公式切换动画",
+        items = listOf(
+            PreviewItem(
+                "anim-01", "淡入淡出 (Crossfade)", "E = mc^2 ↔ a^2+b^2=c^2",
+                content = {
+                    val formulas = listOf("E = mc^2", "a^2 + b^2 = c^2", "\\frac{d}{dx}x^n = nx^{n-1}")
+                    var index by remember { mutableStateOf(0) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(2000)
+                            index = (index + 1) % formulas.size
+                        }
+                    }
+                    AnimatedLatex(
+                        latex = formulas[index],
+                        animationConfig = LatexAnimationConfig(
+                            transition = LatexTransition.CROSSFADE,
+                            durationMillis = 500
+                        ),
+                        isDarkTheme = false
+                    )
+                }
+            ),
+            PreviewItem(
+                "anim-02", "上滑切换 (Slide Up)", "\\sum ↔ \\int",
+                content = {
+                    val formulas = listOf("\\sum_{i=1}^{n} i^2", "\\int_0^1 x^2 dx", "\\prod_{k=1}^{n} k")
+                    var index by remember { mutableStateOf(0) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(2000)
+                            index = (index + 1) % formulas.size
+                        }
+                    }
+                    AnimatedLatex(
+                        latex = formulas[index],
+                        animationConfig = LatexAnimationConfig(
+                            transition = LatexTransition.SLIDE_UP,
+                            durationMillis = 400
+                        ),
+                        isDarkTheme = false
+                    )
+                }
+            ),
+            PreviewItem(
+                "anim-03", "下滑切换 (Slide Down)", "\\frac{a}{b} ↔ \\sqrt{x}",
+                content = {
+                    val formulas = listOf("\\frac{a+b}{c+d}", "\\sqrt{x^2 + y^2}", "x^{n+1}")
+                    var index by remember { mutableStateOf(0) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(2000)
+                            index = (index + 1) % formulas.size
+                        }
+                    }
+                    AnimatedLatex(
+                        latex = formulas[index],
+                        animationConfig = LatexAnimationConfig(
+                            transition = LatexTransition.SLIDE_DOWN,
+                            durationMillis = 400
+                        ),
+                        isDarkTheme = false
+                    )
+                }
+            ),
+            PreviewItem(
+                "anim-04", "淡入+滑动 (Fade Slide)", "多公式循环",
+                content = {
+                    val formulas = listOf(
+                        "e^{i\\pi} + 1 = 0",
+                        "\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1",
+                        "\\zeta(s) = \\sum_{n=1}^{\\infty} \\frac{1}{n^s}"
+                    )
+                    var index by remember { mutableStateOf(0) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(2500)
+                            index = (index + 1) % formulas.size
+                        }
+                    }
+                    AnimatedLatex(
+                        latex = formulas[index],
+                        animationConfig = LatexAnimationConfig(
+                            transition = LatexTransition.FADE_SLIDE,
+                            durationMillis = 600
+                        ),
+                        isDarkTheme = false
+                    )
+                }
+            ),
+            PreviewItem(
+                "anim-05", "四种动画对比", "同时展示所有过渡类型",
+                content = {
+                    val formulas = listOf("x^2", "\\frac{a}{b}", "\\sqrt{c}")
+                    var index by remember { mutableStateOf(0) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(2000)
+                            index = (index + 1) % formulas.size
+                        }
+                    }
+                    Column {
+                        LatexTransition.entries.forEach { transition ->
+                            AnimatedLatex(
+                                latex = formulas[index],
+                                animationConfig = LatexAnimationConfig(
+                                    transition = transition,
+                                    durationMillis = 400
+                                ),
+                                isDarkTheme = false
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                }
+            ),
         )
     ),
 )

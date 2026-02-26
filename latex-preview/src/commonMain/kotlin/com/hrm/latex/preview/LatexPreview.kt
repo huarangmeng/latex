@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.renderer.Latex
+import com.hrm.latex.renderer.model.LatexConfig
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -70,7 +71,13 @@ data class PreviewItem(
     val id: String,
     val title: String,
     val latex: String,
-    val content: @Composable () -> Unit = { Latex(latex = latex, isDarkTheme = false) }
+    val content: @Composable () -> Unit = {
+        Latex(
+            latex = latex,
+            isDarkTheme = false,
+            config = LatexConfig(accessibilityEnabled = true)
+        )
+    }
 )
 
 data class PreviewCategory(

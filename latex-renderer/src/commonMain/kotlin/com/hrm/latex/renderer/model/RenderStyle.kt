@@ -36,6 +36,35 @@ import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.parseColor
 
 /**
+ * 子表达式高亮配置
+ *
+ * 支持按 LaTeX 子串模式或 AST 节点位置索引 来指定高亮区域。
+ * 高亮在 Draw 阶段以半透明背景矩形叠加渲染。
+ *
+ * @param ranges 高亮范围列表
+ */
+data class HighlightConfig(
+    val ranges: List<HighlightRange> = emptyList()
+)
+
+/**
+ * 单个高亮范围
+ *
+ * @param pattern LaTeX 子串模式（精确匹配渲染时的文本内容）。
+ *        为 null 时通过 [nodeIndices] 指定。
+ * @param nodeIndices 文档根节点 children 的索引范围（从 0 开始，含首尾）。
+ *        为 null 时通过 [pattern] 指定。
+ * @param color 高亮背景色
+ * @param borderColor 高亮边框色（null 则不绘制边框）
+ */
+data class HighlightRange(
+    val pattern: String? = null,
+    val nodeIndices: IntRange? = null,
+    val color: Color = Color(0x3300AAFF),
+    val borderColor: Color? = null
+)
+
+/**
  * LaTeX 渲染配置（用户外部设置）
  */
 data class LatexConfig(
@@ -46,7 +75,9 @@ data class LatexConfig(
     val darkBackgroundColor: Color = Color.Transparent,
     val baseFontFamily: FontFamily? = null,
     val fontFamilies: LatexFontFamilies? = null,
-    val lineBreaking: LineBreakingConfig = LineBreakingConfig()
+    val lineBreaking: LineBreakingConfig = LineBreakingConfig(),
+    val highlight: HighlightConfig = HighlightConfig(),
+    val accessibilityEnabled: Boolean = false
 )
 
 /**
@@ -132,7 +163,8 @@ internal data class RenderContext(
     val bigOpHeightHint: Float? = null,
     val maxLineWidth: Float? = null,
     val lineBreakingEnabled: Boolean = false,
-    val fontBytesCache: FontBytesCache? = null
+    val fontBytesCache: FontBytesCache? = null,
+    val highlightRanges: List<HighlightRange> = emptyList()
 )
 
 /**
@@ -158,7 +190,8 @@ internal fun LatexConfig.toContext(
         fontFamilies = fontFamilies,
         isVariantFontFamily = false,
         maxLineWidth = if (lineBreaking.enabled) lineBreaking.maxWidth else null,
-        lineBreakingEnabled = lineBreaking.enabled
+        lineBreakingEnabled = lineBreaking.enabled,
+        highlightRanges = highlight.ranges
     )
 }
 

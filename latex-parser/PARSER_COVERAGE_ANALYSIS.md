@@ -484,9 +484,9 @@ x \in \R
 
 | 状态 | 功能 | 命令 | 说明 |
 |------|------|------|------|
-| ⬜ | 可访问性 | contentDescription | 为渲染结果添加屏幕阅读器描述 |
-| ⬜ | 公式高亮 | highlight API | 支持子表达式视觉高亮 |
+| ✅ | 可访问性 | contentDescription | AccessibilityVisitor：MathSpeak 风格的屏幕阅读器描述 |
+| ✅ | 公式高亮 | highlight API | HighlightConfig + HighlightRange 支持子表达式视觉高亮 |
 | ⬜ | 导出图片 | export PNG/SVG | 渲染结果导出为图片格式 |
-| ⬜ | LaTeX → MathML | conversion API | 提升 Web 可访问性 |
+| ✅ | LaTeX → MathML | conversion API | MathMLVisitor：Presentation MathML 输出 |
 | ⬜ | 编辑器集成 | cursor/input API | 所见即所得编辑器支持 |
-| ⬜ | 动画支持 | animation API | 公式变化的过渡动画 |
+| ✅ | 动画支持 | animation API | AnimatedLatex 组件：crossfade / slide / fade+slide 过渡 |
