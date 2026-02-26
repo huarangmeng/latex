@@ -362,6 +362,18 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\tensor{T}{^a_b^c}` 张量指标排列
 - ✅ `\indices{^a_b}` 独立指标（无基础符号）
 
+#### 可访问性
+- ✅ `contentDescription` AccessibilityVisitor：MathSpeak 风格的屏幕阅读器描述
+
+#### 公式高亮
+- ✅ `highlight API` HighlightConfig + HighlightRange 支持子表达式视觉高亮
+
+#### LaTeX → MathML
+- ✅ `conversion API` MathMLVisitor：Presentation MathML 输出
+
+#### 动画支持
+- ✅ `animation API` AnimatedLatex 组件：crossfade / slide / fade+slide 过渡
+
 ### ❌ 缺失
 - 无
 
@@ -399,7 +411,7 @@ x \in \R
 - `\renewcommand` 语法与 `\newcommand` 相同，覆盖已有定义
 - `\def` 支持 TeX 原始语法 `\def\name#1#2{body}`
 
-**覆盖率**: 46/46 (100%) ✅
+**覆盖率**: 50/50 (100%) ✅
 
 ---
 
@@ -418,8 +430,8 @@ x \in \R
 | 数学模式切换 | 4/4 | 0 | 100% |
 | 空格 | 8/8 | 0 | 100% |
 | 环境 | 10/10 | 0 | 100% |
-| 高级功能 | 46/46 | 0 | 100% |
-| **总体** | **263+/263+** | **0** | **100%** |
+| 高级功能 | 50/50 | 0 | 100% |
+| **总体** | **267+/267+** | **0** | **100%** |
 
 ---
 
@@ -430,24 +442,28 @@ x \in \R
 - ✅ 所有常见数学符号（100+），已对齐 LaTeX 标准（epsilon/phi 等变体映射修正）
 - ✅ 完整的数学公式结构（分数、根号、二项式、上下标）
 - ✅ 完整的大型运算符（求和、积分、极限、最值、`\substack` 多行下标条件）
-- ✅ **智能大型运算符布局**（displaystyle 上下方，textstyle/scriptstyle 右侧）
+- ✅ 智能大型运算符布局（displaystyle 上下方，textstyle/scriptstyle 右侧）
 - ✅ 完整的字体样式（粗体、斜体、符号粗体、文本模式）
-- ✅ **完整的数学模式切换**（displaystyle、textstyle、scriptstyle、scriptscriptstyle）
+- ✅ 完整的数学模式切换（displaystyle、textstyle、scriptstyle、scriptscriptstyle）
 - ✅ 完整的矩阵系统（6种矩阵类型 + 小矩阵 + 数组）
 - ✅ 完整的装饰符号（帽子、波浪线、箭头、括号、取消线变体、花括号标注等25种）
 - ✅ 完整的括号系统（自动伸缩、手动大小、不对称分隔符、`\lvert`/`\rvert`/`\lVert`/`\rVert`）
 - ✅ 可扩展箭头（`\xrightarrow`、`\xleftarrow`、`\xhookrightarrow`、`\xhookleftarrow`，支持上下文字）
-- ✅ **颜色支持**（`\color`、`\textcolor`，支持16+种颜色和十六进制）
-- ✅ **完整环境支持**（equation、align、gather、cases、split、multline、eqnarray、subequations、tabular）
-- ✅ **化学公式支持**（`\ce{...}` 命令，支持分子、离子、化学反应）
-- ✅ **特殊效果**（`\boxed`、`\phantom`、`\smash`、`\vphantom`、`\hphantom`）
-- ✅ **公式标签**（`\tag{1}`、`\tag*{A}`）
-- ✅ **否定修饰**（`\not=`、`\not\in`、`\not\subset`）
-- ✅ **宏定义**（`\newcommand`、`\renewcommand`、`\def`）
-- ✅ **标签引用**（`\label`、`\ref`、`\eqref`）
-- ✅ **四角标注**（`\sideset{_a^b}{_c^d}{\sum}`）
-- ✅ **张量指标**（`\tensor`、`\indices`）
-- ✅ **Unicode 数学字体命令**（`\symbf`、`\symit`、`\symsf`、`\symrm`）
+- ✅ 颜色支持（`\color`、`\textcolor`，支持16+种颜色和十六进制）
+- ✅ 完整环境支持（equation、align、gather、cases、split、multline、eqnarray、subequations、tabular）
+- ✅ 化学公式支持（`\ce{...}` 命令，支持分子、离子、化学反应）
+- ✅ 特殊效果（`\boxed`、`\phantom`、`\smash`、`\vphantom`、`\hphantom`）
+- ✅ 公式标签（`\tag{1}`、`\tag*{A}`）
+- ✅ 否定修饰（`\not=`、`\not\in`、`\not\subset`）
+- ✅ 宏定义（`\newcommand`、`\renewcommand`、`\def`）
+- ✅ 标签引用（`\label`、`\ref`、`\eqref`）
+- ✅ 四角标注（`\sideset{_a^b}{_c^d}{\sum}`）
+- ✅ 张量指标（`\tensor`、`\indices`）
+- ✅ Unicode 数学字体命令（`\symbf`、`\symit`、`\symsf`、`\symrm`）
+- ✅ 可访问性（AccessibilityVisitor：MathSpeak 风格屏幕阅读器描述）
+- ✅ 公式高亮（HighlightConfig + HighlightRange 子表达式视觉高亮）
+- ✅ LaTeX → MathML 转换（MathMLVisitor：Presentation MathML 输出）
+- ✅ 动画过渡（AnimatedLatex：crossfade / slide / fade+slide）
 
 ### 适用场景
 对于**数学论文、教科书和化学文档的常见场景**，当前解析器已经完全覆盖所有核心功能！
@@ -457,14 +473,15 @@ x \in \R
 - ✅ 学术论文公式
 - ✅ 物理公式表达
 - ✅ 数学笔记和作业
-- ✅ **化学反应方程式**
-- ✅ **化学分子式和离子**
-- ✅ **带颜色强调的公式**
-- ✅ **多行方程式和方程组**
-- ✅ **需要精细控制数学模式的复杂公式**
-- ✅ **需要方框突出显示或幻影对齐的场景**
-- ✅ **间距微调和精细排版控制**
-- ✅ **自定义宏定义和命令复用**
+- ✅ 化学反应方程式
+- ✅ 化学分子式和离子
+- ✅ 带颜色强调的公式
+- ✅ 多行方程式和方程组
+- ✅ 需要精细控制数学模式的复杂公式
+- ✅ 需要方框突出显示或幻影对齐的场景
+- ✅ 自定义宏定义和命令复用
+- ✅ 无障碍屏幕阅读器支持
+- ✅ 公式子表达式高亮标注
 
 ---
 
@@ -472,21 +489,7 @@ x \in \R
 
 以下为待实现的功能，按优先级排列。每项完成后应将状态标记为 ✅ 并移至对应章节。
 
-### 🔴 高优先级（常用数学功能）
-
-全部已实现，已移至对应章节。
-
-### 🟡 中优先级（学术文档常用）
-
-全部已实现，已移至对应章节。
-
-### 🟢 低优先级（扩展功能）
-
 | 状态 | 功能 | 命令 | 说明 |
 |------|------|------|------|
-| ✅ | 可访问性 | contentDescription | AccessibilityVisitor：MathSpeak 风格的屏幕阅读器描述 |
-| ✅ | 公式高亮 | highlight API | HighlightConfig + HighlightRange 支持子表达式视觉高亮 |
 | ⬜ | 导出图片 | export PNG/SVG | 渲染结果导出为图片格式 |
-| ✅ | LaTeX → MathML | conversion API | MathMLVisitor：Presentation MathML 输出 |
 | ⬜ | 编辑器集成 | cursor/input API | 所见即所得编辑器支持 |
-| ✅ | 动画支持 | animation API | AnimatedLatex 组件：crossfade / slide / fade+slide 过渡 |
