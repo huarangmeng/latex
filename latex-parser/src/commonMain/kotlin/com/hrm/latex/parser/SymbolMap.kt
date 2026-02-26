@@ -33,7 +33,7 @@ object SymbolMap {
         "beta" to "β",
         "gamma" to "γ",
         "delta" to "δ",
-        "epsilon" to "ε",
+        "epsilon" to "ϵ",
         "varepsilon" to "ε",
         "zeta" to "ζ",
         "eta" to "η",
@@ -53,8 +53,8 @@ object SymbolMap {
         "varsigma" to "ς",
         "tau" to "τ",
         "upsilon" to "υ",
-        "phi" to "φ",
-        "varphi" to "ϕ",
+        "phi" to "ϕ",
+        "varphi" to "φ",
         "chi" to "χ",
         "psi" to "ψ",
         "omega" to "ω",
@@ -255,7 +255,21 @@ object SymbolMap {
         "bigodot" to "⨀",
         "biguplus" to "⨄",
         "triangleright" to "▷",
-        "triangleleft" to "◁"
+        "triangleleft" to "◁",
+        
+        // 钩箭头
+        "hookrightarrow" to "↪",
+        "hookleftarrow" to "↩",
+        
+        // 半箭头（鱼叉箭头）
+        "leftharpoonup" to "↼",
+        "leftharpoondown" to "↽",
+        "rightharpoonup" to "⇀",
+        "rightharpoondown" to "⇁",
+        
+        // 缺失的关系符号
+        "mid" to "∣",
+        "owns" to "∋"
     )
     
     fun getSymbol(name: String): String? = symbols[name]

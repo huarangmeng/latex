@@ -345,7 +345,7 @@ val basicLatexPreviewGroups = listOf(
     PreviewGroup(
         id = "special_effects",
         title = "8.6 特殊效果",
-        description = "方框（boxed）、幻影（phantom）",
+        description = "方框（boxed）、幻影（phantom）、取消线变体、否定修饰",
         items = listOf(
             PreviewItem("84-1", "简单方框", "\\boxed{E = mc^2}"),
             PreviewItem("84-2", "方框中的分数", "\\boxed{\\frac{a + b}{c}}"),
@@ -357,6 +357,20 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("84-8", "幻影占位", "a + \\phantom{bbb} = c"),
             PreviewItem("84-9", "复杂幻影", "\\frac{a}{\\phantom{a}b\\phantom{a}}"),
             PreviewItem("84-10", "方框+幻影组合", "\\boxed{x} + \\phantom{+ y} = z"),
+            PreviewItem("84-11", "反向取消线", "\\bcancel{x+y}"),
+            PreviewItem("84-12", "交叉取消线", "\\xcancel{abc}"),
+            PreviewItem("84-13", "取消线对比", "\\cancel{a} + \\bcancel{b} + \\xcancel{c}"),
+            PreviewItem("84-14", "否定等于", "a \\not= b"),
+            PreviewItem("84-15", "否定属于", "x \\not\\in S"),
+            PreviewItem("84-16", "否定子集", "A \\not\\subset B"),
+            PreviewItem("84-17", "smash 消除高度", "x + \\smash{\\frac{a}{b}} + y"),
+            PreviewItem("84-18", "vphantom 垂直占位", "\\left(\\vphantom{\\frac{a}{b}} x\\right)"),
+            PreviewItem("84-19", "hphantom 水平占位", "a + \\hphantom{bbb} + c"),
+            PreviewItem("84-20", "substack 多行条件", "\\sum_{\\substack{i<n \\\\ j<m}} x_{ij}"),
+            PreviewItem("84-21", "公式编号 tag", "E = mc^2 \\tag{1}"),
+            PreviewItem("84-22", "公式编号 tag*", "F = ma \\tag*{Newton}"),
+            PreviewItem("84-23", "underbrace 标注", "\\underbrace{x+y+z}_{n}"),
+            PreviewItem("84-24", "overbrace 标注", "\\overbrace{a+b+c}^{3\\text{ terms}}"),
         )
     ),
     PreviewGroup(

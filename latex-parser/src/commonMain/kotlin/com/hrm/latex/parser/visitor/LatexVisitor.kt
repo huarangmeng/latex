@@ -63,6 +63,12 @@ interface LatexVisitor<T> {
     fun visitSubequations(node: LatexNode.Subequations): T
     fun visitBinomial(node: LatexNode.Binomial): T
     fun visitTextMode(node: LatexNode.TextMode): T
+    fun visitNegation(node: LatexNode.Negation): T
+    fun visitTag(node: LatexNode.Tag): T
+    fun visitSubstack(node: LatexNode.Substack): T
+    fun visitSmash(node: LatexNode.Smash): T
+    fun visitVPhantom(node: LatexNode.VPhantom): T
+    fun visitHPhantom(node: LatexNode.HPhantom): T
 }
 
 /**
@@ -234,6 +240,38 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
     }
     
     override fun visitTextMode(node: LatexNode.TextMode): T = defaultVisit(node)
+
+    override fun visitNegation(node: LatexNode.Negation): T {
+        visit(node.content)
+        return defaultVisit(node)
+    }
+
+    override fun visitTag(node: LatexNode.Tag): T {
+        visit(node.label)
+        return defaultVisit(node)
+    }
+
+    override fun visitSubstack(node: LatexNode.Substack): T {
+        node.rows.forEach { row ->
+            row.forEach { cell -> visit(cell) }
+        }
+        return defaultVisit(node)
+    }
+
+    override fun visitSmash(node: LatexNode.Smash): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
+    override fun visitVPhantom(node: LatexNode.VPhantom): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
+    override fun visitHPhantom(node: LatexNode.HPhantom): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
     
     open fun visitBoxed(node: LatexNode.Boxed): T {
         node.content.forEach { visit(it) }
@@ -291,5 +329,11 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         is LatexNode.Boxed -> visitBoxed(node)
         is LatexNode.Phantom -> visitPhantom(node)
         is LatexNode.NewCommand -> visitNewCommand(node)
+        is LatexNode.Negation -> visitNegation(node)
+        is LatexNode.Tag -> visitTag(node)
+        is LatexNode.Substack -> visitSubstack(node)
+        is LatexNode.Smash -> visitSmash(node)
+        is LatexNode.VPhantom -> visitVPhantom(node)
+        is LatexNode.HPhantom -> visitHPhantom(node)
     }
 }

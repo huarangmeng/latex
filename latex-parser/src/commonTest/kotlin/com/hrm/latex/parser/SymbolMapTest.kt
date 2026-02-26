@@ -39,7 +39,7 @@ class SymbolMapTest {
         assertEquals("β", SymbolMap.getSymbol("beta"))
         assertEquals("γ", SymbolMap.getSymbol("gamma"))
         assertEquals("δ", SymbolMap.getSymbol("delta"))
-        assertEquals("ε", SymbolMap.getSymbol("epsilon"))
+        assertEquals("ϵ", SymbolMap.getSymbol("epsilon"))
         assertEquals("ζ", SymbolMap.getSymbol("zeta"))
         assertEquals("η", SymbolMap.getSymbol("eta"))
         assertEquals("θ", SymbolMap.getSymbol("theta"))
@@ -54,7 +54,7 @@ class SymbolMapTest {
         assertEquals("σ", SymbolMap.getSymbol("sigma"))
         assertEquals("τ", SymbolMap.getSymbol("tau"))
         assertEquals("υ", SymbolMap.getSymbol("upsilon"))
-        assertEquals("φ", SymbolMap.getSymbol("phi"))
+        assertEquals("ϕ", SymbolMap.getSymbol("phi"))
         assertEquals("χ", SymbolMap.getSymbol("chi"))
         assertEquals("ψ", SymbolMap.getSymbol("psi"))
         assertEquals("ω", SymbolMap.getSymbol("omega"))
@@ -82,7 +82,7 @@ class SymbolMapTest {
         assertEquals("ϖ", SymbolMap.getSymbol("varpi"))
         assertEquals("ϱ", SymbolMap.getSymbol("varrho"))
         assertEquals("ς", SymbolMap.getSymbol("varsigma"))
-        assertEquals("ϕ", SymbolMap.getSymbol("varphi"))
+        assertEquals("φ", SymbolMap.getSymbol("varphi"))
     }
 
     // ========== 运算符测试 ==========
@@ -178,6 +178,16 @@ class SymbolMapTest {
         assertEquals("⟶", SymbolMap.getSymbol("longrightarrow"))
         assertEquals("⟵", SymbolMap.getSymbol("longleftarrow"))
         assertEquals("⟷", SymbolMap.getSymbol("longleftrightarrow"))
+    }
+
+    @Test
+    fun testHookAndHarpoonArrows() {
+        assertEquals("↪", SymbolMap.getSymbol("hookrightarrow"))
+        assertEquals("↩", SymbolMap.getSymbol("hookleftarrow"))
+        assertEquals("↼", SymbolMap.getSymbol("leftharpoonup"))
+        assertEquals("↽", SymbolMap.getSymbol("leftharpoondown"))
+        assertEquals("⇀", SymbolMap.getSymbol("rightharpoonup"))
+        assertEquals("⇁", SymbolMap.getSymbol("rightharpoondown"))
     }
 
     // ========== 集合符号测试 ==========

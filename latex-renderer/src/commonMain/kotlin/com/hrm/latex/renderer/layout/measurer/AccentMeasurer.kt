@@ -63,7 +63,8 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
         val isWideAccent = when (node.accentType) {
             AccentType.WIDEHAT, AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW,
             AccentType.OVERLINE, AccentType.UNDERLINE,
-            AccentType.OVERBRACE, AccentType.UNDERBRACE, AccentType.CANCEL -> true
+            AccentType.OVERBRACE, AccentType.UNDERBRACE,
+            AccentType.CANCEL, AccentType.BCANCEL, AccentType.XCANCEL -> true
             else -> false
         }
 
@@ -164,7 +165,7 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
             AccentType.WIDEHAT -> with(density) { 1.5f.dp.toPx() }
             AccentType.OVERLINE, AccentType.UNDERLINE,
             AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW -> with(density) { 1.5f.dp.toPx() }
-            AccentType.CANCEL -> with(density) { 1.5f.dp.toPx() }
+            AccentType.CANCEL, AccentType.BCANCEL, AccentType.XCANCEL -> with(density) { 1.5f.dp.toPx() }
             else -> with(density) { 1.5f.dp.toPx() }
         }
         val strokeHalf = strokeWidth / 2f
@@ -319,6 +320,32 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
                         color = context.color,
                         start = Offset(x, contentY + contentLayout.height),
                         end = Offset(x + width, contentY),
+                        strokeWidth = strokeWidth
+                    )
+                }
+
+                AccentType.BCANCEL -> {
+                    // 反向取消线：从左上到右下
+                    drawLine(
+                        color = context.color,
+                        start = Offset(x, contentY),
+                        end = Offset(x + width, contentY + contentLayout.height),
+                        strokeWidth = strokeWidth
+                    )
+                }
+
+                AccentType.XCANCEL -> {
+                    // 交叉取消线：两条对角线
+                    drawLine(
+                        color = context.color,
+                        start = Offset(x, contentY + contentLayout.height),
+                        end = Offset(x + width, contentY),
+                        strokeWidth = strokeWidth
+                    )
+                    drawLine(
+                        color = context.color,
+                        start = Offset(x, contentY),
+                        end = Offset(x + width, contentY + contentLayout.height),
                         strokeWidth = strokeWidth
                     )
                 }

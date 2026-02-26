@@ -192,7 +192,7 @@ sealed class LatexNode {
     ) : LatexNode() {
         enum class AccentType {
             HAT, TILDE, BAR, DOT, DDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE,
-            WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW, CANCEL
+            WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW, CANCEL, BCANCEL, XCANCEL
         }
     }
     
@@ -364,4 +364,46 @@ sealed class LatexNode {
         val numArgs: Int,
         val definition: List<LatexNode>
     ) : LatexNode()
+
+    /**
+     * 否定修饰节点（\not）
+     * 在关系符号上叠加斜线表示否定
+     * 例如：\not= → ≠, \not\in → ∉
+     */
+    data class Negation(val content: LatexNode) : LatexNode()
+
+    /**
+     * 公式编号标签节点（\tag, \tag*）
+     * @param label 标签内容
+     * @param starred true = \tag*（不加括号），false = \tag（加括号）
+     */
+    data class Tag(
+        val label: LatexNode,
+        val starred: Boolean = false
+    ) : LatexNode()
+
+    /**
+     * 多行下标条件节点（\substack）
+     * 用于大型运算符上下限排列多行条件
+     * @param rows 每行是一个节点列表
+     */
+    data class Substack(val rows: List<List<LatexNode>>) : LatexNode()
+
+    /**
+     * Smash 节点（\smash）
+     * 将内容的高度或深度视为零，用于间距微调
+     */
+    data class Smash(val content: List<LatexNode>) : LatexNode()
+
+    /**
+     * 垂直幻影节点（\vphantom）
+     * 只保留高度/基线，宽度为零
+     */
+    data class VPhantom(val content: List<LatexNode>) : LatexNode()
+
+    /**
+     * 水平幻影节点（\hphantom）
+     * 只保留宽度，高度/基线使用最小值
+     */
+    data class HPhantom(val content: List<LatexNode>) : LatexNode()
 }

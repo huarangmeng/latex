@@ -112,6 +112,8 @@ class CommandParser(
             "overrightarrow" -> parseAccent(LatexNode.Accent.AccentType.OVERRIGHTARROW)
             "overleftarrow" -> parseAccent(LatexNode.Accent.AccentType.OVERLEFTARROW)
             "cancel" -> parseAccent(LatexNode.Accent.AccentType.CANCEL)
+            "bcancel" -> parseAccent(LatexNode.Accent.AccentType.BCANCEL)
+            "xcancel" -> parseAccent(LatexNode.Accent.AccentType.XCANCEL)
 
             // 可扩展箭头
             "xrightarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.RIGHT)
@@ -142,6 +144,31 @@ class CommandParser(
             // 特殊效果
             "boxed" -> parseBoxed()
             "phantom" -> parsePhantom()
+            "smash" -> parseSmash()
+            "vphantom" -> parseVPhantom()
+            "hphantom" -> parseHPhantom()
+
+            // 否定修饰
+            "not" -> parseNegation()
+
+            // 公式编号标签
+            "tag" -> {
+                // 检查 \tag 后面是否跟着 *（即 \tag*{...}）
+                val starred = tokenStream.peek()?.let { it is LatexToken.Text && it.content.startsWith("*") } == true
+                if (starred) {
+                    val textToken = tokenStream.peek() as LatexToken.Text
+                    tokenStream.advance()
+                    // 如果 * 后面还有其他字符（如 "*abc"），把剩余部分放回
+                    val remaining = textToken.content.removePrefix("*")
+                    if (remaining.isNotEmpty()) {
+                        // 不太可能出现，但安全起见处理
+                    }
+                }
+                parseTag(starred)
+            }
+
+            // 多行下标条件
+            "substack" -> parseSubstack()
 
             // 数学算子 (正体渲染)
             "sin", "cos", "tan", "cot", "sec", "csc",
@@ -151,6 +178,8 @@ class CommandParser(
 
             // 自定义命令
             "newcommand" -> parseNewCommand()
+            "renewcommand" -> parseNewCommand()  // 与 \newcommand 语法相同，覆盖已有定义
+            "def" -> parseDef()
 
             // 特殊符号
             else -> parseSymbolOrGenericCommand(cmdName)
@@ -486,6 +515,140 @@ class CommandParser(
         return LatexNode.Phantom(content)
     }
 
+    private fun parseSmash(): LatexNode.Smash {
+        val arg = context.parseArgument() ?: LatexNode.Text("")
+        val content = when (arg) {
+            is LatexNode.Group -> arg.children
+            else -> listOf(arg)
+        }
+        return LatexNode.Smash(content)
+    }
+
+    private fun parseVPhantom(): LatexNode.VPhantom {
+        val arg = context.parseArgument() ?: LatexNode.Text("")
+        val content = when (arg) {
+            is LatexNode.Group -> arg.children
+            else -> listOf(arg)
+        }
+        return LatexNode.VPhantom(content)
+    }
+
+    private fun parseHPhantom(): LatexNode.HPhantom {
+        val arg = context.parseArgument() ?: LatexNode.Text("")
+        val content = when (arg) {
+            is LatexNode.Group -> arg.children
+            else -> listOf(arg)
+        }
+        return LatexNode.HPhantom(content)
+    }
+
+    /**
+     * 解析 \not 否定修饰
+     * 
+     * 语法: \not= 或 \not\in 或 \not\subset
+     * 在下一个关系符号上叠加斜线表示否定
+     */
+    private fun parseNegation(): LatexNode {
+        val next = if (!tokenStream.isEOF()) {
+            context.parseFactor() ?: LatexNode.Text("")
+        } else {
+            LatexNode.Text("")
+        }
+        return LatexNode.Negation(next)
+    }
+
+    /**
+     * 解析 \tag{label} 或 \tag*{label}
+     */
+    private fun parseTag(starred: Boolean): LatexNode {
+        val arg = context.parseArgument() ?: LatexNode.Text("")
+        return LatexNode.Tag(arg, starred)
+    }
+
+    /**
+     * 解析 \substack{line1 \\\\ line2 \\\\ ...}
+     * 
+     * 内容用 \\\\ 分隔的多行，用于大型运算符上下限
+     */
+    private fun parseSubstack(): LatexNode {
+        // 解析 {} 参数
+        if (tokenStream.peek() !is LatexToken.LeftBrace) {
+            return LatexNode.Text("\\substack")
+        }
+        tokenStream.advance() // 消费 {
+        
+        val rows = mutableListOf<List<LatexNode>>()
+        var currentRow = mutableListOf<LatexNode>()
+        
+        while (!tokenStream.isEOF()) {
+            val token = tokenStream.peek()
+            when {
+                token is LatexToken.RightBrace -> {
+                    tokenStream.advance()
+                    break
+                }
+                token is LatexToken.NewLine -> {
+                    tokenStream.advance()
+                    rows.add(currentRow.toList())
+                    currentRow = mutableListOf()
+                }
+                else -> {
+                    val node = context.parseExpression()
+                    if (node != null) currentRow.add(node)
+                }
+            }
+        }
+        
+        if (currentRow.isNotEmpty()) {
+            rows.add(currentRow)
+        }
+        
+        return LatexNode.Substack(rows)
+    }
+
+    /**
+     * 解析 \def\cmdname{definition}
+     * 
+     * TeX 原始宏定义语法（简化版，不支持参数模式匹配）
+     * 支持: \def\name{body} 和 \def\name#1#2{body}
+     */
+    private fun parseDef(): LatexNode {
+        // 解析命令名（\后面的控制序列）
+        val nameToken = if (!tokenStream.isEOF()) tokenStream.advance() else null
+        val commandName = when (nameToken) {
+            is LatexToken.Command -> nameToken.name
+            is LatexToken.Text -> nameToken.content.removePrefix("\\")
+            else -> return LatexNode.Text("\\def")
+        }
+        
+        // 计算参数个数：读取 #1 #2 ... 形式的参数声明
+        var numArgs = 0
+        while (!tokenStream.isEOF()) {
+            val token = tokenStream.peek()
+            if (token is LatexToken.Text && token.content.startsWith("#")) {
+                tokenStream.advance()
+                val argNum = token.content.removePrefix("#").toIntOrNull()
+                if (argNum != null && argNum > numArgs) numArgs = argNum
+            } else {
+                break
+            }
+        }
+        
+        // 解析定义 {body}
+        val defArg = context.parseArgument() ?: return LatexNode.Text("\\def")
+        val definition = when (defArg) {
+            is LatexNode.Group -> defArg.children
+            else -> listOf(defArg)
+        }
+        
+        // 注册自定义命令到上下文
+        context.customCommands[commandName] = CustomCommand(commandName, numArgs, definition)
+        
+        HLog.d(TAG, "注册自定义命令 (def): \\$commandName[$numArgs]")
+        
+        return LatexNode.NewCommand(commandName, numArgs, definition)
+    }
+
     /**
      * 解析 \newcommand{\cmdname}[numArgs]{definition}
      * 支持的格式:
@@ -703,6 +866,25 @@ class CommandParser(
                     replaceParametersInNode(node.top, args),
                     replaceParametersInNode(node.bottom, args),
                     node.style
+                ))
+                is LatexNode.Negation -> listOf(LatexNode.Negation(
+                    replaceParametersInNode(node.content, args)
+                ))
+                is LatexNode.Tag -> listOf(LatexNode.Tag(
+                    replaceParametersInNode(node.label, args),
+                    node.starred
+                ))
+                is LatexNode.Substack -> listOf(LatexNode.Substack(
+                    node.rows.map { replaceParameters(it, args) }
+                ))
+                is LatexNode.Smash -> listOf(LatexNode.Smash(
+                    replaceParameters(node.content, args)
+                ))
+                is LatexNode.VPhantom -> listOf(LatexNode.VPhantom(
+                    replaceParameters(node.content, args)
+                ))
+                is LatexNode.HPhantom -> listOf(LatexNode.HPhantom(
+                    replaceParameters(node.content, args)
                 ))
                 else -> listOf(node)
             }

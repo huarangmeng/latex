@@ -116,7 +116,17 @@ internal fun measureNode(
         is LatexNode.Stack ->
             MeasurerRegistry.stack.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
 
-        is LatexNode.Boxed, is LatexNode.Phantom ->
+        is LatexNode.Boxed, is LatexNode.Phantom, is LatexNode.Smash,
+        is LatexNode.VPhantom, is LatexNode.HPhantom ->
+            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.Negation ->
+            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.Tag ->
+            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.Substack ->
             MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
 
         is LatexNode.NewCommand -> NodeLayout(

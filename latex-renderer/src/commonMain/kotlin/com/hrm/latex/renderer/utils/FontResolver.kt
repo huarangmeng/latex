@@ -301,6 +301,20 @@ internal object FontResolver {
         put("imath", math("ı"))
         put("jmath", math("ȷ"))
 
+        // === 省略号 → KaTeX_Main ===
+        put("ldots", main("…"))
+        put("cdots", main("⋯"))
+        put("vdots", main("⋮"))
+        put("ddots", main("⋱"))
+
+        // === 其他缺失符号 → KaTeX_Main ===
+        put("therefore", main("∴"))
+        put("because", main("∵"))
+        put("angle", main("∠"))
+        put("degree", main("°"))
+        put("triangleright", main("▷"))
+        put("triangleleft", main("◁"))
+
         // === 定界符 → KaTeX_Main ===
         put("lbrace", main("{"))
         put("lacc", main("{"))
@@ -466,6 +480,18 @@ internal object FontResolver {
             "sqcup" to "⊔", "sqcap" to "⊓",
             "uplus" to "⊎",
             "triangle" to "△",
+            // 省略号
+            "ldots" to "…", "cdots" to "⋯", "vdots" to "⋮", "ddots" to "⋱",
+            // 钩箭头
+            "hookrightarrow" to "↪", "hookleftarrow" to "↩",
+            // 半箭头（鱼叉箭头）
+            "leftharpoonup" to "↼", "leftharpoondown" to "↽",
+            "rightharpoonup" to "⇀", "rightharpoondown" to "⇁",
+            // 其他缺失符号
+            "therefore" to "∴", "because" to "∵",
+            "angle" to "∠", "degree" to "°",
+            "triangleright" to "▷", "triangleleft" to "◁",
+            "mid" to "∣", "owns" to "∋",
         )
 
         buildMap {

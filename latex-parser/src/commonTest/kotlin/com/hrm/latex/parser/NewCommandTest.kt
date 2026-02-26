@@ -331,4 +331,22 @@ class NewCommandTest {
 
         assertTrue(result.children.isNotEmpty())
     }
+
+    // ===================== \renewcommand =====================
+
+    @Test
+    fun should_parse_renewcommand() {
+        val parser = LatexParser()
+        val result = parser.parse("\\renewcommand{\\R}{\\mathbb{R}} x \\in \\R")
+        assertTrue(result.children.size >= 2, "Should have newcommand + expanded usage")
+    }
+
+    // ===================== \def =====================
+
+    @Test
+    fun should_parse_def_without_args() {
+        val parser = LatexParser()
+        val result = parser.parse("\\def\\myvar{\\alpha} \\myvar")
+        assertTrue(result.children.isNotEmpty())
+    }
 }

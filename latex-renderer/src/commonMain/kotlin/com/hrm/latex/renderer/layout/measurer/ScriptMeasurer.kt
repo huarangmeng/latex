@@ -59,6 +59,15 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         val baseNode = if (isSuper) (node as LatexNode.Superscript).base else (node as LatexNode.Subscript).base
         val scriptNode = if (isSuper) node.exponent else (node as LatexNode.Subscript).index
 
+        // 特殊处理: \underbrace{...}_{text} 和 \overbrace{...}^{text}
+        // 文本标注应放在花括号的下方/上方，居中对齐
+        val braceAnnotation = detectBraceAnnotation(isSuper, baseNode)
+        if (braceAnnotation != null) {
+            return measureBraceAnnotation(
+                braceAnnotation, scriptNode, context, density, measureGlobal, measureGroup
+            )
+        }
+
         val hasBothScripts = when {
             isSuper && baseNode is LatexNode.Subscript -> true
             !isSuper && baseNode is LatexNode.Superscript -> true
@@ -69,6 +78,70 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
             measureBothScripts(isSuper, baseNode, scriptNode, context, measurer, density, measureGlobal)
         } else {
             measureSingleScript(isSuper, baseNode, scriptNode, context, measurer, density, measureGlobal)
+        }
+    }
+
+    /**
+     * 检测是否为花括号标注场景
+     * - \underbrace{...}_{text} → Subscript(base=Accent(UNDERBRACE, ...), index=text)
+     * - \overbrace{...}^{text} → Superscript(base=Accent(OVERBRACE, ...), exponent=text)
+     */
+    private fun detectBraceAnnotation(isSuper: Boolean, baseNode: LatexNode): LatexNode.Accent? {
+        if (baseNode !is LatexNode.Accent) return null
+        return when {
+            !isSuper && baseNode.accentType == LatexNode.Accent.AccentType.UNDERBRACE -> baseNode
+            isSuper && baseNode.accentType == LatexNode.Accent.AccentType.OVERBRACE -> baseNode
+            else -> null
+        }
+    }
+
+    /**
+     * 花括号标注布局：文本放在花括号下方/上方，居中对齐
+     */
+    private fun measureBraceAnnotation(
+        accentNode: LatexNode.Accent,
+        annotationNode: LatexNode,
+        context: RenderContext,
+        density: Density,
+        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
+    ): NodeLayout {
+        val isUnder = accentNode.accentType == LatexNode.Accent.AccentType.UNDERBRACE
+        
+        // 测量花括号+内容（作为整体）
+        val braceLayout = measureGlobal(accentNode, context)
+        
+        // 标注文本使用较小字号
+        val scriptStyle = context.toScriptStyle()
+        val annotationLayout = measureGlobal(annotationNode, scriptStyle)
+        
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val gap = fontSizePx * 0.08f
+        
+        val totalWidth = max(braceLayout.width, annotationLayout.width)
+        
+        if (isUnder) {
+            // \underbrace{...}_{text}: 花括号在上，标注在下
+            val totalHeight = braceLayout.height + gap + annotationLayout.height
+            val baseline = braceLayout.baseline
+            
+            return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
+                val braceX = x + (totalWidth - braceLayout.width) / 2f
+                braceLayout.draw(this, braceX, y)
+                val annX = x + (totalWidth - annotationLayout.width) / 2f
+                annotationLayout.draw(this, annX, y + braceLayout.height + gap)
+            }
+        } else {
+            // \overbrace{...}^{text}: 标注在上，花括号在下
+            val totalHeight = annotationLayout.height + gap + braceLayout.height
+            val baseline = annotationLayout.height + gap + braceLayout.baseline
+            
+            return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
+                val annX = x + (totalWidth - annotationLayout.width) / 2f
+                annotationLayout.draw(this, annX, y)
+                val braceX = x + (totalWidth - braceLayout.width) / 2f
+                braceLayout.draw(this, braceX, y + annotationLayout.height + gap)
+            }
         }
     }
 
