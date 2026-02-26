@@ -95,7 +95,7 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer<LatexNode.ExtensibleArrow>
         val color = context.color
 
         // 预构建箭头头部 Path (以 (0,0) 为原点)
-        val arrowPaths = buildArrowPaths(node.direction, arrowStartRelX, arrowEndRelX, arrowCenterRelY, arrowHeadSize)
+        val arrowResult = buildArrowPaths(node.direction, arrowStartRelX, arrowEndRelX, arrowCenterRelY, arrowHeadSize)
 
         return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
             // 绘制上方文字
@@ -110,10 +110,13 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer<LatexNode.ExtensibleArrow>
             )
 
             // 绘制预构建的箭头头部 Path
-            if (arrowPaths.isNotEmpty()) {
+            if (arrowResult.filledPaths.isNotEmpty() || arrowResult.strokePaths.isNotEmpty()) {
                 withTransform({ translate(left = x, top = y) }) {
-                    arrowPaths.forEach { path ->
+                    arrowResult.filledPaths.forEach { path ->
                         drawPath(path = path, color = color)
+                    }
+                    arrowResult.strokePaths.forEach { path ->
+                        drawPath(path = path, color = color, style = Stroke(width = strokeWidth))
                     }
                 }
             }
@@ -126,6 +129,14 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer<LatexNode.ExtensibleArrow>
     }
 
     /**
+     * 箭头路径构建结果
+     */
+    private data class ArrowPaths(
+        val filledPaths: List<Path>,  // 实心三角箭头
+        val strokePaths: List<Path>   // 描边路径（钩子）
+    )
+
+    /**
      * 在 Measure 阶段预构建箭头头部 Path (以 (0,0) 为原点)
      */
     private fun buildArrowPaths(
@@ -134,29 +145,77 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer<LatexNode.ExtensibleArrow>
         endX: Float,
         centerY: Float,
         headSize: Float
-    ): List<Path> {
-        val paths = mutableListOf<Path>()
+    ): ArrowPaths {
+        val filledPaths = mutableListOf<Path>()
+        val strokePaths = mutableListOf<Path>()
 
-        if (direction == LatexNode.ExtensibleArrow.Direction.RIGHT ||
-            direction == LatexNode.ExtensibleArrow.Direction.BOTH) {
-            paths.add(Path().apply {
-                moveTo(endX, centerY)
-                lineTo(endX - headSize, centerY - headSize / 2)
-                lineTo(endX - headSize, centerY + headSize / 2)
-                close()
-            })
+        when (direction) {
+            LatexNode.ExtensibleArrow.Direction.RIGHT -> {
+                filledPaths.add(Path().apply {
+                    moveTo(endX, centerY)
+                    lineTo(endX - headSize, centerY - headSize / 2)
+                    lineTo(endX - headSize, centerY + headSize / 2)
+                    close()
+                })
+            }
+            LatexNode.ExtensibleArrow.Direction.LEFT -> {
+                filledPaths.add(Path().apply {
+                    moveTo(startX, centerY)
+                    lineTo(startX + headSize, centerY - headSize / 2)
+                    lineTo(startX + headSize, centerY + headSize / 2)
+                    close()
+                })
+            }
+            LatexNode.ExtensibleArrow.Direction.BOTH -> {
+                filledPaths.add(Path().apply {
+                    moveTo(endX, centerY)
+                    lineTo(endX - headSize, centerY - headSize / 2)
+                    lineTo(endX - headSize, centerY + headSize / 2)
+                    close()
+                })
+                filledPaths.add(Path().apply {
+                    moveTo(startX, centerY)
+                    lineTo(startX + headSize, centerY - headSize / 2)
+                    lineTo(startX + headSize, centerY + headSize / 2)
+                    close()
+                })
+            }
+            LatexNode.ExtensibleArrow.Direction.HOOK_RIGHT -> {
+                filledPaths.add(Path().apply {
+                    moveTo(endX, centerY)
+                    lineTo(endX - headSize, centerY - headSize / 2)
+                    lineTo(endX - headSize, centerY + headSize / 2)
+                    close()
+                })
+                val hookRadius = headSize * 0.6f
+                strokePaths.add(Path().apply {
+                    moveTo(startX, centerY)
+                    cubicTo(
+                        startX, centerY + hookRadius,
+                        startX + hookRadius * 0.5f, centerY + hookRadius,
+                        startX + hookRadius, centerY
+                    )
+                })
+            }
+            LatexNode.ExtensibleArrow.Direction.HOOK_LEFT -> {
+                filledPaths.add(Path().apply {
+                    moveTo(startX, centerY)
+                    lineTo(startX + headSize, centerY - headSize / 2)
+                    lineTo(startX + headSize, centerY + headSize / 2)
+                    close()
+                })
+                val hookRadius = headSize * 0.6f
+                strokePaths.add(Path().apply {
+                    moveTo(endX, centerY)
+                    cubicTo(
+                        endX, centerY + hookRadius,
+                        endX - hookRadius * 0.5f, centerY + hookRadius,
+                        endX - hookRadius, centerY
+                    )
+                })
+            }
         }
 
-        if (direction == LatexNode.ExtensibleArrow.Direction.LEFT ||
-            direction == LatexNode.ExtensibleArrow.Direction.BOTH) {
-            paths.add(Path().apply {
-                moveTo(startX, centerY)
-                lineTo(startX + headSize, centerY - headSize / 2)
-                lineTo(startX + headSize, centerY + headSize / 2)
-                close()
-            })
-        }
-
-        return paths
+        return ArrowPaths(filledPaths, strokePaths)
     }
 }

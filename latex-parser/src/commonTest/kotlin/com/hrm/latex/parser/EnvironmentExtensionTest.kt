@@ -328,4 +328,36 @@ class EnvironmentExtensionTest {
         )
         assertTrue(doc.children[0] is LatexNode.Subequations)
     }
+
+    // ========== tabular 环境 ==========
+
+    @Test
+    fun testTabularBasic() {
+        val doc = parser.parse("\\begin{tabular}{cc} a & b \\\\ c & d \\end{tabular}")
+        assertEquals(1, doc.children.size)
+        val tabular = doc.children[0] as LatexNode.Tabular
+        assertEquals("cc", tabular.alignment)
+        assertEquals(2, tabular.rows.size)
+        assertEquals(2, tabular.rows[0].size, "First row should have 2 cells")
+        assertEquals(2, tabular.rows[1].size, "Second row should have 2 cells")
+    }
+
+    @Test
+    fun testTabularThreeColumns() {
+        val doc = parser.parse("\\begin{tabular}{lcr} left & center & right \\end{tabular}")
+        assertEquals(1, doc.children.size)
+        val tabular = doc.children[0] as LatexNode.Tabular
+        assertEquals("lcr", tabular.alignment)
+        assertEquals(1, tabular.rows.size)
+        assertEquals(3, tabular.rows[0].size)
+    }
+
+    @Test
+    fun testTabularSingleCell() {
+        val doc = parser.parse("\\begin{tabular}{c} hello \\end{tabular}")
+        assertEquals(1, doc.children.size)
+        val tabular = doc.children[0] as LatexNode.Tabular
+        assertEquals("c", tabular.alignment)
+        assertEquals(1, tabular.rows.size)
+    }
 }

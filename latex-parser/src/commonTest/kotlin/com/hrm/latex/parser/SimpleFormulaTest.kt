@@ -427,4 +427,32 @@ class SimpleFormulaTest {
         val innerStack = (base as LatexNode.Group).children.firstOrNull { it is LatexNode.Stack }
         assertNotNull(innerStack, "Should contain a nested Stack node")
     }
+
+    // ========== 可扩展钩箭头 ==========
+
+    @Test
+    fun testXhookrightarrow() {
+        val doc = parser.parse("\\xhookrightarrow{f}")
+        assertEquals(1, doc.children.size)
+        val arrow = doc.children[0] as LatexNode.ExtensibleArrow
+        assertEquals(LatexNode.ExtensibleArrow.Direction.HOOK_RIGHT, arrow.direction)
+        assertNull(arrow.below)
+    }
+
+    @Test
+    fun testXhookleftarrow() {
+        val doc = parser.parse("\\xhookleftarrow{g}")
+        assertEquals(1, doc.children.size)
+        val arrow = doc.children[0] as LatexNode.ExtensibleArrow
+        assertEquals(LatexNode.ExtensibleArrow.Direction.HOOK_LEFT, arrow.direction)
+    }
+
+    @Test
+    fun testXhookrightarrowWithBelow() {
+        val doc = parser.parse("\\xhookrightarrow[below]{above}")
+        assertEquals(1, doc.children.size)
+        val arrow = doc.children[0] as LatexNode.ExtensibleArrow
+        assertEquals(LatexNode.ExtensibleArrow.Direction.HOOK_RIGHT, arrow.direction)
+        assertNotNull(arrow.below, "Below text should be present")
+    }
 }

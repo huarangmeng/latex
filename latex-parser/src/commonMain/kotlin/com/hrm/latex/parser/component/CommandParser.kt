@@ -91,6 +91,11 @@ class CommandParser(
             "mathfrak" -> parseStyle(LatexNode.Style.StyleType.FRAKTUR)
             "mathscr" -> parseStyle(LatexNode.Style.StyleType.SCRIPT)
             "mathcal" -> parseStyle(LatexNode.Style.StyleType.CALLIGRAPHIC)
+            // unicode-math 字体命令
+            "symbf" -> parseStyle(LatexNode.Style.StyleType.BOLD_SYMBOL)
+            "symit" -> parseStyle(LatexNode.Style.StyleType.ITALIC)
+            "symsf" -> parseStyle(LatexNode.Style.StyleType.SANS_SERIF)
+            "symrm" -> parseStyle(LatexNode.Style.StyleType.ROMAN)
 
             // 数学模式切换
             "displaystyle" -> parseMathStyle(LatexNode.MathStyle.MathStyleType.DISPLAY)
@@ -119,6 +124,8 @@ class CommandParser(
             "xrightarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.RIGHT)
             "xleftarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.LEFT)
             "xleftrightarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.BOTH)
+            "xhookrightarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.HOOK_RIGHT)
+            "xhookleftarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.HOOK_LEFT)
 
             // 堆叠
             "overset" -> parseStack(hasAbove = true, hasBelow = false)
@@ -169,6 +176,18 @@ class CommandParser(
 
             // 多行下标条件
             "substack" -> parseSubstack()
+
+            // 标签与引用
+            "label" -> parseLabel()
+            "ref" -> parseRef()
+            "eqref" -> parseEqRef()
+
+            // 四角标注
+            "sideset" -> parseSideSet()
+
+            // 张量/指标
+            "tensor" -> parseTensor()
+            "indices" -> parseIndices()
 
             // 数学算子 (正体渲染)
             "sin", "cos", "tan", "cot", "sec", "csc",
@@ -298,6 +317,8 @@ class CommandParser(
                 "langle" -> "⟨"
                 "lfloor" -> "⌊"
                 "lceil" -> "⌈"
+                "lvert" -> "|"
+                "lVert" -> "‖"
                 "{" -> "{"
                 "." -> ""
                 else -> leftToken.name
@@ -330,6 +351,8 @@ class CommandParser(
                 "rangle" -> "⟩"
                 "rfloor" -> "⌋"
                 "rceil" -> "⌉"
+                "rvert" -> "|"
+                "rVert" -> "‖"
                 "}" -> "}"
                 "." -> ""
                 else -> rightToken.name
@@ -361,6 +384,8 @@ class CommandParser(
                 "rfloor" -> "⌋"
                 "lceil" -> "⌈"
                 "rceil" -> "⌉"
+                "lvert", "rvert" -> "|"
+                "lVert", "rVert" -> "‖"
                 "|" -> "|"
                 "\\" -> "\\"
                 "{" -> "{"
@@ -604,6 +629,166 @@ class CommandParser(
         }
         
         return LatexNode.Substack(rows)
+    }
+
+    /**
+     * 解析 \label{key}
+     */
+    private fun parseLabel(): LatexNode {
+        val arg = context.parseArgument() ?: return LatexNode.Text("\\label")
+        val key = when (arg) {
+            is LatexNode.Text -> arg.content
+            is LatexNode.Group -> extractText(arg.children)
+            else -> ""
+        }
+        return LatexNode.Label(key)
+    }
+
+    /**
+     * 解析 \ref{key}
+     */
+    private fun parseRef(): LatexNode {
+        val arg = context.parseArgument() ?: return LatexNode.Text("\\ref")
+        val key = when (arg) {
+            is LatexNode.Text -> arg.content
+            is LatexNode.Group -> extractText(arg.children)
+            else -> ""
+        }
+        return LatexNode.Ref(key)
+    }
+
+    /**
+     * 解析 \eqref{key}
+     */
+    private fun parseEqRef(): LatexNode {
+        val arg = context.parseArgument() ?: return LatexNode.Text("\\eqref")
+        val key = when (arg) {
+            is LatexNode.Text -> arg.content
+            is LatexNode.Group -> extractText(arg.children)
+            else -> ""
+        }
+        return LatexNode.EqRef(key)
+    }
+
+    /**
+     * 解析 \sideset{_a^b}{_c^d}{\sum}
+     * 
+     * 三个必选参数：左侧脚本、右侧脚本、基础运算符
+     * 脚本参数中用 _ 和 ^ 指定上下标
+     */
+    private fun parseSideSet(): LatexNode {
+        // 解析三个花括号组参数 {_a^b} {_c^d} {\sum}
+        val (leftSub, leftSup) = parseScriptGroup()
+        val (rightSub, rightSup) = parseScriptGroup()
+        val baseArg = context.parseArgument() ?: return LatexNode.Text("\\sideset")
+
+        return LatexNode.SideSet(leftSub, leftSup, rightSub, rightSup, baseArg)
+    }
+
+    /**
+     * 解析脚本组 {_a^b} 直接从 token 流中读取上下标
+     * 返回 (sub, sup)
+     */
+    private fun parseScriptGroup(): Pair<LatexNode?, LatexNode?> {
+        if (tokenStream.peek() !is LatexToken.LeftBrace) {
+            return Pair(null, null)
+        }
+        tokenStream.advance() // consume '{'
+        
+        var sub: LatexNode? = null
+        var sup: LatexNode? = null
+        
+        while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBrace) {
+            when (tokenStream.peek()) {
+                is LatexToken.Subscript -> {
+                    tokenStream.advance() // consume '_'
+                    sub = context.parseFactor()
+                }
+                is LatexToken.Superscript -> {
+                    tokenStream.advance() // consume '^'
+                    sup = context.parseFactor()
+                }
+                is LatexToken.Whitespace -> {
+                    tokenStream.advance() // skip whitespace
+                }
+                else -> {
+                    // 跳过其他未预期的 token
+                    tokenStream.advance()
+                }
+            }
+        }
+        
+        if (!tokenStream.isEOF()) {
+            tokenStream.advance() // consume '}'
+        }
+        
+        return Pair(sub, sup)
+    }
+
+    /**
+     * 解析 \tensor{T}{^a_b^c_d}
+     * 
+     * 第一个参数是基础符号，第二个参数是指标列表
+     */
+    private fun parseTensor(): LatexNode {
+        val baseArg = context.parseArgument() ?: return LatexNode.Text("\\tensor")
+        val indices = parseTensorIndicesGroup()
+        return LatexNode.Tensor(baseArg, indices)
+    }
+
+    /**
+     * 解析 \indices{^a_b^c_d}
+     * 
+     * 类似 \tensor 但没有基础符号（或用空文本作为基础）
+     */
+    private fun parseIndices(): LatexNode {
+        val indices = parseTensorIndicesGroup()
+        return LatexNode.Tensor(LatexNode.Text(""), indices)
+    }
+
+    /**
+     * 从花括号 token 流中直接解析张量指标列表
+     * {^a_b^c_d} → [(true, a), (false, b), (true, c), (false, d)]
+     */
+    private fun parseTensorIndicesGroup(): List<Pair<Boolean, LatexNode>> {
+        if (tokenStream.peek() !is LatexToken.LeftBrace) {
+            return emptyList()
+        }
+        tokenStream.advance() // consume '{'
+        
+        val indices = mutableListOf<Pair<Boolean, LatexNode>>()
+        
+        while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBrace) {
+            when (tokenStream.peek()) {
+                is LatexToken.Superscript -> {
+                    tokenStream.advance() // consume '^'
+                    val content = context.parseFactor()
+                    if (content != null) {
+                        indices.add(Pair(true, content))
+                    }
+                }
+                is LatexToken.Subscript -> {
+                    tokenStream.advance() // consume '_'
+                    val content = context.parseFactor()
+                    if (content != null) {
+                        indices.add(Pair(false, content))
+                    }
+                }
+                is LatexToken.Whitespace -> {
+                    tokenStream.advance() // skip whitespace
+                }
+                else -> {
+                    // 跳过其他未预期的 token
+                    tokenStream.advance()
+                }
+            }
+        }
+        
+        if (!tokenStream.isEOF()) {
+            tokenStream.advance() // consume '}'
+        }
+        
+        return indices
     }
 
     /**

@@ -280,6 +280,9 @@ val basicLatexPreviewGroups = listOf(
                 "量子态（狄拉克符号）",
                 "\\big\\langle \\psi \\big| \\hat{H} \\big| \\phi \\big\\rangle = E"
             ),
+            PreviewItem("55-1", "lvert/rvert 定界符", "\\left\\lvert x \\right\\rvert"),
+            PreviewItem("55-2", "lVert/rVert 定界符", "\\left\\lVert v \\right\\rVert"),
+            PreviewItem("55-3", "Big lvert", "\\Big\\lvert x \\Big\\rvert"),
         )
     ),
     PreviewGroup(
@@ -326,6 +329,9 @@ val basicLatexPreviewGroups = listOf(
                 "物理学中的应用",
                 "\\vec{F} = m\\vec{a} \\quad \\cancel{E_1} + E_2"
             ),
+            PreviewItem("77-1", "钩右箭头", "\\xhookrightarrow{f}"),
+            PreviewItem("77-2", "钩左箭头", "\\xhookleftarrow{g}"),
+            PreviewItem("77-3", "钩箭头带下标", "\\xhookrightarrow[n\\to\\infty]{\\text{inclusion}}"),
         )
     ),
     PreviewGroup(
@@ -371,6 +377,12 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("84-22", "公式编号 tag*", "F = ma \\tag*{Newton}"),
             PreviewItem("84-23", "underbrace 标注", "\\underbrace{x+y+z}_{n}"),
             PreviewItem("84-24", "overbrace 标注", "\\overbrace{a+b+c}^{3\\text{ terms}}"),
+            PreviewItem("84-25", "label+eqref", "\\label{eq:1} E = mc^2 \\eqref{eq:1}"),
+            PreviewItem("84-26", "ref 引用", "See \\ref{eq:1}"),
+            PreviewItem("84-27", "sideset 四角", "\\sideset{_a^b}{_c^d}{\\sum}"),
+            PreviewItem("84-28", "sideset 部分", "\\sideset{_1}{^n}{\\prod}"),
+            PreviewItem("84-29", "tensor 基础", "\\tensor{T}{^a_b}"),
+            PreviewItem("84-30", "tensor 多指标", "\\tensor{R}{^\\mu_{\\nu\\rho\\sigma}}"),
         )
     ),
     PreviewGroup(
@@ -415,6 +427,9 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("89", "scriptscriptstyle", "\\scriptscriptstyle{x + y + z}"),
             PreviewItem("90", "分数中的模式", "\\frac{\\displaystyle{\\sum_{i=1}^{n}}}{\\textstyle{n}}"),
             PreviewItem("91", "嵌套模式", "\\displaystyle{\\frac{\\sum}{n}}"),
+            PreviewItem("91-1", "symbf 粗体", "\\symbf{x} + \\symbf{\\alpha}"),
+            PreviewItem("91-2", "symsf 无衬线", "\\symsf{ABC}"),
+            PreviewItem("91-3", "symrm 罗马体", "\\symrm{dx}"),
         )
     ),
     PreviewGroup(
@@ -433,6 +448,8 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("84", "cases 基础", "f(x) = \\begin{cases} x^2 & \\text{if } x > 0 \\\\ 0 & \\text{if } x = 0 \\\\ -x^2 & \\text{if } x < 0 \\end{cases}"),
             PreviewItem("85", "cases 简单", "y = \\begin{cases} 1 & x > 0 \\\\ 0 & x = 0 \\\\ -1 & x < 0 \\end{cases}"),
             PreviewItem("86", "cases 嵌套分数", "|x| = \\begin{cases} \\frac{x}{1} & x \\geq 0 \\\\ \\frac{-x}{1} & x < 0 \\end{cases}"),
+            PreviewItem("87", "tabular 基础", "\\begin{tabular}{cc} a & b \\\\ c & d \\end{tabular}"),
+            PreviewItem("88", "tabular 三列", "\\begin{tabular}{lcr} left & center & right \\\\ 1 & 2 & 3 \\end{tabular}"),
         )
     ),
 )

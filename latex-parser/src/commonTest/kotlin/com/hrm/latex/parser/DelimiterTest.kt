@@ -375,4 +375,58 @@ class DelimiterTest {
         assertTrue(sizes.size >= 2, "应该有多个不同大小级别")
         assertTrue(1.2f in sizes || 1.8f in sizes || 2.4f in sizes)
     }
+
+    // ========== 定界符变体 lvert/rvert/lVert/rVert ==========
+
+    @Test
+    fun testLvertRvert() {
+        val doc = parser.parse("\\left\\lvert x \\right\\rvert")
+        assertEquals(1, doc.children.size)
+        val delimited = doc.children[0] as LatexNode.Delimited
+        assertEquals("|", delimited.left)
+        assertEquals("|", delimited.right)
+    }
+
+    @Test
+    fun testLVertRVert() {
+        val doc = parser.parse("\\left\\lVert v \\right\\rVert")
+        assertEquals(1, doc.children.size)
+        val delimited = doc.children[0] as LatexNode.Delimited
+        assertEquals("‖", delimited.left)
+        assertEquals("‖", delimited.right)
+    }
+
+    @Test
+    fun testLvertInBigDelimiter() {
+        val doc = parser.parse("\\big\\lvert x \\big\\rvert")
+        assertTrue(doc.children.isNotEmpty())
+        val first = doc.children[0] as LatexNode.ManualSizedDelimiter
+        assertEquals("|", first.delimiter)
+    }
+
+    @Test
+    fun testLVertInBigDelimiter() {
+        val doc = parser.parse("\\big\\lVert v \\big\\rVert")
+        assertTrue(doc.children.isNotEmpty())
+        val first = doc.children[0] as LatexNode.ManualSizedDelimiter
+        assertEquals("‖", first.delimiter)
+    }
+
+    @Test
+    fun testLvertAsSymbol() {
+        val doc = parser.parse("\\lvert")
+        assertTrue(doc.children.isNotEmpty())
+        val symbol = doc.children[0]
+        assertTrue(symbol is LatexNode.Symbol, "lvert should be parsed as Symbol, got: ${symbol::class.simpleName}")
+        assertEquals("|", (symbol as LatexNode.Symbol).unicode)
+    }
+
+    @Test
+    fun testMixedDelimiters() {
+        val doc = parser.parse("\\left\\lvert x \\right\\rvert + \\left\\lVert v \\right\\rVert")
+        val delimiteds = doc.children.filterIsInstance<LatexNode.Delimited>()
+        assertEquals(2, delimiteds.size, "Should have two delimited expressions")
+        assertEquals("|", delimiteds[0].left)
+        assertEquals("‖", delimiteds[1].left)
+    }
 }

@@ -69,6 +69,12 @@ interface LatexVisitor<T> {
     fun visitSmash(node: LatexNode.Smash): T
     fun visitVPhantom(node: LatexNode.VPhantom): T
     fun visitHPhantom(node: LatexNode.HPhantom): T
+    fun visitLabel(node: LatexNode.Label): T
+    fun visitRef(node: LatexNode.Ref): T
+    fun visitEqRef(node: LatexNode.EqRef): T
+    fun visitSideSet(node: LatexNode.SideSet): T
+    fun visitTensor(node: LatexNode.Tensor): T
+    fun visitTabular(node: LatexNode.Tabular): T
 }
 
 /**
@@ -272,6 +278,34 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         node.content.forEach { visit(it) }
         return defaultVisit(node)
     }
+
+    override fun visitLabel(node: LatexNode.Label): T = defaultVisit(node)
+
+    override fun visitRef(node: LatexNode.Ref): T = defaultVisit(node)
+
+    override fun visitEqRef(node: LatexNode.EqRef): T = defaultVisit(node)
+
+    override fun visitSideSet(node: LatexNode.SideSet): T {
+        node.leftSub?.let { visit(it) }
+        node.leftSup?.let { visit(it) }
+        node.rightSub?.let { visit(it) }
+        node.rightSup?.let { visit(it) }
+        visit(node.base)
+        return defaultVisit(node)
+    }
+
+    override fun visitTensor(node: LatexNode.Tensor): T {
+        visit(node.base)
+        node.indices.forEach { (_, indexNode) -> visit(indexNode) }
+        return defaultVisit(node)
+    }
+
+    override fun visitTabular(node: LatexNode.Tabular): T {
+        node.rows.forEach { row ->
+            row.forEach { cell -> visit(cell) }
+        }
+        return defaultVisit(node)
+    }
     
     open fun visitBoxed(node: LatexNode.Boxed): T {
         node.content.forEach { visit(it) }
@@ -335,5 +369,11 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         is LatexNode.Smash -> visitSmash(node)
         is LatexNode.VPhantom -> visitVPhantom(node)
         is LatexNode.HPhantom -> visitHPhantom(node)
+        is LatexNode.Label -> visitLabel(node)
+        is LatexNode.Ref -> visitRef(node)
+        is LatexNode.EqRef -> visitEqRef(node)
+        is LatexNode.SideSet -> visitSideSet(node)
+        is LatexNode.Tensor -> visitTensor(node)
+        is LatexNode.Tabular -> visitTabular(node)
     }
 }

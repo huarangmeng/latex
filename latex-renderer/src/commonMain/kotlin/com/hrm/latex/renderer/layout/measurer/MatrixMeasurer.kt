@@ -67,6 +67,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         return when (node) {
             is LatexNode.Matrix -> measureMatrix(node, context, measurer, density, measureGlobal)
             is LatexNode.Array -> measureMatrixLike(node.rows, context, measurer, density, measureGlobal)
+            is LatexNode.Tabular -> measureTabular(node, context, measurer, density, measureGlobal)
             is LatexNode.Cases -> measureCases(node, context, measurer, density, measureGlobal)
             is LatexNode.Aligned, is LatexNode.Split -> {
                 val rows = if (node is LatexNode.Aligned) node.rows else (node as LatexNode.Split).rows
@@ -245,6 +246,35 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
             // 绘制内容:垂直居中
             matrixLayout.draw(this, x + leftLayout.width, contentY)
         }
+    }
+
+    /**
+     * 解析 tabular 对齐字符串为 ColumnAlignment 列表
+     */
+    private fun parseAlignments(alignment: String): List<ColumnAlignment> {
+        return alignment.mapNotNull { ch ->
+            when (ch) {
+                'l' -> ColumnAlignment.LEFT
+                'c' -> ColumnAlignment.CENTER
+                'r' -> ColumnAlignment.RIGHT
+                else -> null
+            }
+        }
+    }
+
+    private fun measureTabular(
+        node: LatexNode.Tabular,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        density: Density,
+        measureGlobal: (LatexNode, RenderContext) -> NodeLayout
+    ): NodeLayout {
+        val alignments = parseAlignments(node.alignment)
+        return measureMatrixLike(
+            node.rows, context, measurer, density, measureGlobal,
+            alignments = alignments,
+            isBaselineFirstRow = true
+        )
     }
 
     private fun measureMultline(

@@ -51,6 +51,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
 
             "smallmatrix" -> parseMatrix("matrix", isSmall = true)
             "array" -> parseArray()
+            "tabular" -> parseTabular()
             "align", "aligned", "gather", "gathered" -> parseAligned(envName)
             "split" -> parseSplit()
             "multline" -> parseMultline()
@@ -162,6 +163,34 @@ class EnvironmentParser(private val context: LatexParserContext) {
 
         val rows = parseTableStructure("array")
         return LatexNode.Array(rows, alignment)
+    }
+
+    /**
+     * 解析 tabular 环境（文本模式表格）
+     * 语法: \begin{tabular}{ccc} ... \end{tabular}
+     */
+    private fun parseTabular(): LatexNode.Tabular {
+        // 与 array 相同，解析列对齐方式
+        val alignment = if (tokenStream.peek() is LatexToken.LeftBrace) {
+            tokenStream.advance() // consume {
+            val alignText = StringBuilder()
+            while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBrace) {
+                when (val token = tokenStream.peek()) {
+                    is LatexToken.Text -> alignText.append(token.content)
+                    else -> break
+                }
+                tokenStream.advance()
+            }
+            if (tokenStream.peek() is LatexToken.RightBrace) {
+                tokenStream.advance() // consume }
+            }
+            alignText.toString()
+        } else {
+            "c"
+        }
+
+        val rows = parseTableStructure("tabular")
+        return LatexNode.Tabular(rows, alignment)
     }
 
     /**

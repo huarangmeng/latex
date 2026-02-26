@@ -402,4 +402,38 @@ class ComplexStructureTest {
         assertEquals(LatexNode.Style.StyleType.BOLD_SYMBOL, style.styleType)
         assertTrue(style.content.isNotEmpty())
     }
+
+    // ========== unicode-math 字体命令 ==========
+
+    @Test
+    fun testSymbf() {
+        val doc = parser.parse("\\symbf{x}")
+        assertEquals(1, doc.children.size)
+        val style = doc.children[0] as LatexNode.Style
+        assertEquals(LatexNode.Style.StyleType.BOLD_SYMBOL, style.styleType)
+    }
+
+    @Test
+    fun testSymsf() {
+        val doc = parser.parse("\\symsf{x}")
+        assertEquals(1, doc.children.size)
+        val style = doc.children[0] as LatexNode.Style
+        assertEquals(LatexNode.Style.StyleType.SANS_SERIF, style.styleType)
+    }
+
+    @Test
+    fun testSymrm() {
+        val doc = parser.parse("\\symrm{x}")
+        assertEquals(1, doc.children.size)
+        val style = doc.children[0] as LatexNode.Style
+        assertEquals(LatexNode.Style.StyleType.ROMAN, style.styleType)
+    }
+
+    @Test
+    fun testSymit() {
+        val doc = parser.parse("\\symit{x}")
+        assertEquals(1, doc.children.size)
+        val style = doc.children[0] as LatexNode.Style
+        assertEquals(LatexNode.Style.StyleType.ITALIC, style.styleType)
+    }
 }

@@ -238,6 +238,10 @@ object SymbolMap {
         "rceil" to "⌉",
         "vert" to "|",
         "Vert" to "‖",
+        "lvert" to "|",
+        "rvert" to "|",
+        "lVert" to "‖",
+        "rVert" to "‖",
         "lbrace" to "{",
         "rbrace" to "}",
         

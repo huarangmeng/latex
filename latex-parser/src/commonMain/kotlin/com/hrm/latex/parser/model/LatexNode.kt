@@ -205,9 +205,11 @@ sealed class LatexNode {
         val direction: Direction
     ) : LatexNode() {
         enum class Direction {
-            RIGHT,   // \xrightarrow
-            LEFT,    // \xleftarrow
-            BOTH     // \xleftrightarrow
+            RIGHT,       // \xrightarrow
+            LEFT,        // \xleftarrow
+            BOTH,        // \xleftrightarrow
+            HOOK_RIGHT,  // \xhookrightarrow
+            HOOK_LEFT    // \xhookleftarrow
         }
     }
     
@@ -406,4 +408,64 @@ sealed class LatexNode {
      * 只保留宽度，高度/基线使用最小值
      */
     data class HPhantom(val content: List<LatexNode>) : LatexNode()
+
+    /**
+     * 标签定义节点（\label{key}）
+     * 该节点不参与渲染，仅记录标签定义
+     * @param key 标签键名
+     */
+    data class Label(val key: String) : LatexNode()
+
+    /**
+     * 引用节点（\ref{key}）
+     * 渲染时显示引用的标签编号
+     * @param key 引用的标签键名
+     */
+    data class Ref(val key: String) : LatexNode()
+
+    /**
+     * 公式引用节点（\eqref{key}）
+     * 渲染时显示带括号的引用标签编号
+     * @param key 引用的标签键名
+     */
+    data class EqRef(val key: String) : LatexNode()
+
+    /**
+     * 四角标注节点（\sideset{_a^b}{_c^d}{\sum}）
+     * 在大型运算符的四个角放置上下标
+     * @param leftSub 左下标
+     * @param leftSup 左上标
+     * @param rightSub 右下标
+     * @param rightSup 右上标
+     * @param base 基础运算符
+     */
+    data class SideSet(
+        val leftSub: LatexNode?,
+        val leftSup: LatexNode?,
+        val rightSub: LatexNode?,
+        val rightSup: LatexNode?,
+        val base: LatexNode
+    ) : LatexNode()
+
+    /**
+     * 张量/指标节点（\tensor{T}{^a_b^c}）
+     * 物理学中用于排列多个上下标指标
+     * @param base 基础符号
+     * @param indices 指标列表（每个是 Pair<Boolean, LatexNode>，Boolean=true 表示上标）
+     */
+    data class Tensor(
+        val base: LatexNode,
+        val indices: List<Pair<Boolean, LatexNode>>
+    ) : LatexNode()
+
+    /**
+     * 表格环境节点（\begin{tabular}{ccc}...）
+     * 文本模式下的表格
+     * @param rows 行列表，每行是单元格列表
+     * @param alignment 列对齐方式字符串（如 "ccc", "lcr"）
+     */
+    data class Tabular(
+        val rows: List<List<LatexNode>>,
+        val alignment: String
+    ) : LatexNode()
 }

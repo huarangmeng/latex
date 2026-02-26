@@ -101,7 +101,8 @@ internal fun measureNode(
             MeasurerRegistry.binomial.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
 
         is LatexNode.Matrix, is LatexNode.Array, is LatexNode.Cases, is LatexNode.Aligned,
-        is LatexNode.Split, is LatexNode.Multline, is LatexNode.Eqnarray, is LatexNode.Subequations ->
+        is LatexNode.Split, is LatexNode.Multline, is LatexNode.Eqnarray, is LatexNode.Subequations,
+        is LatexNode.Tabular ->
             MeasurerRegistry.matrix.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
 
         is LatexNode.Delimited, is LatexNode.ManualSizedDelimiter ->
@@ -127,6 +128,24 @@ internal fun measureNode(
             MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
 
         is LatexNode.Substack ->
+            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.Label -> NodeLayout(
+            width = 0f,
+            height = 0f,
+            baseline = 0f
+        ) { _, _ -> /* Label 不渲染 */ }
+
+        is LatexNode.Ref ->
+            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.EqRef ->
+            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.SideSet ->
+            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+
+        is LatexNode.Tensor ->
             MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
 
         is LatexNode.NewCommand -> NodeLayout(
