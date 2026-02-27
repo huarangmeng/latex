@@ -22,6 +22,7 @@
 
 package com.hrm.latex.parser.visitor
 
+import com.hrm.latex.parser.SymbolMap
 import com.hrm.latex.parser.model.LatexNode
 
 /**
@@ -51,57 +52,6 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         fun describe(document: LatexNode.Document): String {
             return AccessibilityVisitor().visitDocument(document).trim()
         }
-
-        private val SYMBOL_NAMES = mapOf(
-            "alpha" to "alpha", "beta" to "beta", "gamma" to "gamma",
-            "delta" to "delta", "epsilon" to "epsilon", "zeta" to "zeta",
-            "eta" to "eta", "theta" to "theta", "iota" to "iota",
-            "kappa" to "kappa", "lambda" to "lambda", "mu" to "mu",
-            "nu" to "nu", "xi" to "xi", "pi" to "pi",
-            "rho" to "rho", "sigma" to "sigma", "tau" to "tau",
-            "phi" to "phi", "chi" to "chi", "psi" to "psi", "omega" to "omega",
-            "infty" to "infinity", "partial" to "partial",
-            "nabla" to "nabla", "hbar" to "h bar",
-            "times" to "times", "div" to "divided by",
-            "pm" to "plus or minus", "mp" to "minus or plus",
-            "cdot" to "dot", "cdots" to "dots", "ldots" to "dots",
-            "leq" to "less than or equal to", "geq" to "greater than or equal to",
-            "neq" to "not equal to", "approx" to "approximately",
-            "equiv" to "equivalent to", "sim" to "similar to",
-            "rightarrow" to "right arrow", "leftarrow" to "left arrow",
-            "Rightarrow" to "implies", "Leftarrow" to "is implied by",
-            "leftrightarrow" to "if and only if",
-            "in" to "in", "notin" to "not in",
-            "subset" to "subset of", "supset" to "superset of",
-            "cup" to "union", "cap" to "intersection",
-            "forall" to "for all", "exists" to "there exists",
-            "to" to "to",
-        )
-
-        private val UNICODE_NAMES = mapOf(
-            "α" to "alpha", "β" to "beta", "γ" to "gamma",
-            "δ" to "delta", "ε" to "epsilon", "ζ" to "zeta",
-            "η" to "eta", "θ" to "theta", "ι" to "iota",
-            "κ" to "kappa", "λ" to "lambda", "μ" to "mu",
-            "ν" to "nu", "ξ" to "xi", "π" to "pi",
-            "ρ" to "rho", "σ" to "sigma", "τ" to "tau",
-            "φ" to "phi", "χ" to "chi", "ψ" to "psi", "ω" to "omega",
-            "∞" to "infinity", "∂" to "partial",
-            "∇" to "nabla", "ℏ" to "h bar",
-            "×" to "times", "÷" to "divided by",
-            "±" to "plus or minus", "∓" to "minus or plus",
-            "·" to "dot", "⋯" to "dots", "…" to "dots",
-            "≤" to "less than or equal to", "≥" to "greater than or equal to",
-            "≠" to "not equal to", "≈" to "approximately",
-            "≡" to "equivalent to", "∼" to "similar to",
-            "→" to "right arrow", "←" to "left arrow",
-            "⇒" to "implies", "⇐" to "is implied by",
-            "↔" to "if and only if",
-            "∈" to "in", "∉" to "not in",
-            "⊂" to "subset of", "⊃" to "superset of",
-            "∪" to "union", "∩" to "intersection",
-            "∀" to "for all", "∃" to "there exists",
-        )
     }
 
     override fun defaultVisit(node: LatexNode): String = ""
@@ -367,7 +317,9 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
     // ========== 辅助方法 ==========
 
     private fun symbolName(symbol: String, unicode: String): String {
-        return SYMBOL_NAMES[symbol] ?: UNICODE_NAMES[unicode] ?: unicode
+        return SymbolMap.getAccessibleName(symbol)
+            ?: SymbolMap.getAccessibleNameByUnicode(unicode)
+            ?: unicode
     }
 
     private fun bigOperatorName(operator: String): String {

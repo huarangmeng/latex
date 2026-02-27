@@ -113,13 +113,13 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
     private fun measureSymbol(
         node: LatexNode.Symbol, context: RenderContext, measurer: TextMeasurer, density: Density
     ): NodeLayout {
-        // 1. 尝试通过 FontResolver 获取 CM 字体映射
+        // 1. 通过 FontResolver 获取符号的字体路由信息
         //    优先用命令名查找，失败时用 unicode 字符反向查找
         val symbolInfo = FontResolver.resolveSymbol(node.symbol, context.fontFamilies)
             ?: FontResolver.resolveSymbol(node.unicode, context.fontFamilies)
 
         if (symbolInfo != null) {
-            // 使用 CM 字体 TTF char code 渲染
+            // 使用 KaTeX 字体渲染（标准 Unicode 编码）
             val fontFamily = FontResolver.getFontForSymbol(symbolInfo, context.fontFamilies)
             var resolvedStyle = context.copy(
                 fontStyle = symbolInfo.fontStyle,
@@ -138,7 +138,7 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
             return layout
         }
 
-        // 2. 回退：无 CM 字体映射时，使用 Unicode 字符渲染（原有逻辑）
+        // 2. 回退：FontResolver 未覆盖的符号，使用 Unicode 字符直接渲染
         val text = if (node.unicode.isEmpty()) node.symbol else node.unicode
 
         var resolvedStyle = if (context.fontStyle == null) {

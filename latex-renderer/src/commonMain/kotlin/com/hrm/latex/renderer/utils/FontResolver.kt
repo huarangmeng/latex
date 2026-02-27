@@ -408,102 +408,14 @@ internal object FontResolver {
      *
      * 当 LatexNode.Symbol 的 unicode 字段是 Unicode 字符时，
      * 通过此表路由到正确的字体。
+     *
+     * 由 symbolMap 自动生成，避免重复维护。
      */
     private val unicodeToSymbolMap: Map<String, SymbolRenderInfo> by lazy {
-        val cmdToUnicode = mapOf(
-            // 希腊字母（小写）
-            "alpha" to "α", "beta" to "β", "gamma" to "γ", "delta" to "δ",
-            "epsilon" to "ϵ", "varepsilon" to "ε", "zeta" to "ζ", "eta" to "η",
-            "theta" to "θ", "vartheta" to "ϑ", "iota" to "ι", "kappa" to "κ",
-            "lambda" to "λ", "mu" to "μ", "nu" to "ν", "xi" to "ξ",
-            "pi" to "π", "varpi" to "ϖ", "rho" to "ρ", "varrho" to "ϱ",
-            "sigma" to "σ", "varsigma" to "ς", "tau" to "τ", "upsilon" to "υ",
-            "phi" to "ϕ", "varphi" to "φ", "chi" to "χ", "psi" to "ψ", "omega" to "ω",
-            // 希腊字母（大写）
-            "Gamma" to "Γ", "Delta" to "Δ", "Theta" to "Θ", "Lambda" to "Λ",
-            "Xi" to "Ξ", "Pi" to "Π", "Sigma" to "Σ", "Upsilon" to "Υ",
-            "Phi" to "Φ", "Psi" to "Ψ", "Omega" to "Ω",
-            // 运算符
-            "times" to "×", "div" to "÷", "pm" to "±", "mp" to "∓",
-            "cdot" to "⋅", "ast" to "∗", "star" to "⋆", "circ" to "∘",
-            "bullet" to "•", "oplus" to "⊕", "ominus" to "⊖", "otimes" to "⊗",
-            "oslash" to "⊘", "odot" to "⊙", "diamond" to "◇", "bigcirc" to "○",
-            // 关系符号
-            "leq" to "≤", "le" to "≤", "geq" to "≥", "ge" to "≥",
-            "neq" to "≠", "ne" to "≠", "equiv" to "≡", "approx" to "≈",
-            "cong" to "≅", "sim" to "∼", "simeq" to "≃", "propto" to "∝",
-            "ll" to "≪", "gg" to "≫", "subset" to "⊂", "supset" to "⊃",
-            "subseteq" to "⊆", "supseteq" to "⊇", "in" to "∈", "notin" to "∉",
-            "ni" to "∋", "perp" to "⊥", "parallel" to "∥",
-            "prec" to "≺", "succ" to "≻", "preceq" to "≼", "succeq" to "≽",
-            "asymp" to "≍",
-            "sqsubseteq" to "⊑", "sqsupseteq" to "⊒",
-            // 箭头
-            "leftarrow" to "←", "rightarrow" to "→", "to" to "→",
-            "leftrightarrow" to "↔", "Leftarrow" to "⇐", "Rightarrow" to "⇒",
-            "Leftrightarrow" to "⇔", "uparrow" to "↑", "downarrow" to "↓",
-            "updownarrow" to "↕", "Uparrow" to "⇑", "Downarrow" to "⇓",
-            "Updownarrow" to "⇕", "mapsto" to "↦",
-            "longrightarrow" to "⟶", "longleftarrow" to "⟵",
-            "longleftrightarrow" to "⟷",
-            "Longleftarrow" to "⟸", "Longrightarrow" to "⟹",
-            "Longleftrightarrow" to "⟺", "longmapsto" to "⟼",
-            "nearrow" to "↗", "searrow" to "↘", "nwarrow" to "↖", "swarrow" to "↙",
-            "gets" to "←",
-            // 集合/逻辑符号
-            "emptyset" to "∅", "varnothing" to "∅",
-            "cap" to "∩", "cup" to "∪", "setminus" to "∖",
-            "forall" to "∀", "exists" to "∃", "nexists" to "∄",
-            "neg" to "¬", "lnot" to "¬",
-            "land" to "∧", "lor" to "∨", "wedge" to "∧", "vee" to "∨",
-            "implies" to "⟹", "iff" to "⟺",
-            // 微积分
-            "infty" to "∞", "partial" to "∂", "nabla" to "∇",
-            "int" to "∫", "iint" to "∬", "iiint" to "∭", "oint" to "∮",
-            // 特殊符号
-            "prime" to "′", "hbar" to "ℏ", "ell" to "ℓ", "wp" to "℘",
-            "Re" to "ℜ", "Im" to "ℑ", "aleph" to "ℵ",
-            "top" to "⊤", "bot" to "⊥",
-            "vdash" to "⊢", "dashv" to "⊣",
-            "dagger" to "†", "ddagger" to "‡",
-            "clubsuit" to "♣", "diamondsuit" to "♢", "heartsuit" to "♡", "spadesuit" to "♠",
-            // 定界符
-            "langle" to "⟨", "rangle" to "⟩",
-            "lfloor" to "⌊", "rfloor" to "⌋",
-            "lceil" to "⌈", "rceil" to "⌉",
-            "lbrace" to "{", "rbrace" to "}",
-            // 大型运算符
-            "sum" to "∑", "prod" to "∏", "coprod" to "∐",
-            "bigcup" to "⋃", "bigcap" to "⋂", "bigvee" to "⋁", "bigwedge" to "⋀",
-            "bigoplus" to "⨁", "bigotimes" to "⨂", "bigsqcup" to "⨆", "bigodot" to "⨀",
-            "biguplus" to "⨄",
-            // 其他杂项
-            "minus" to "−", "cdotp" to "⋅",
-            "backslash" to "∖",
-            "wr" to "≀", "amalg" to "∐",
-            "sqcup" to "⊔", "sqcap" to "⊓",
-            "uplus" to "⊎",
-            "triangle" to "△",
-            // 省略号
-            "ldots" to "…", "cdots" to "⋯", "vdots" to "⋮", "ddots" to "⋱",
-            // 钩箭头
-            "hookrightarrow" to "↪", "hookleftarrow" to "↩",
-            // 半箭头（鱼叉箭头）
-            "leftharpoonup" to "↼", "leftharpoondown" to "↽",
-            "rightharpoonup" to "⇀", "rightharpoondown" to "⇁",
-            // 其他缺失符号
-            "therefore" to "∴", "because" to "∵",
-            "angle" to "∠", "degree" to "°",
-            "triangleright" to "▷", "triangleleft" to "◁",
-            "mid" to "∣", "owns" to "∋",
-        )
-
         buildMap {
-            for ((cmdName, unicode) in cmdToUnicode) {
-                val info = symbolMap[cmdName]
-                if (info != null) {
-                    put(unicode, info)
-                }
+            for ((_, info) in symbolMap) {
+                // 仅保留首次出现的映射（避免别名覆盖）
+                putIfAbsent(info.texGlyph, info)
             }
         }
     }

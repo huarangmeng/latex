@@ -276,7 +276,109 @@ object SymbolMap {
         "owns" to "∋"
     )
     
+    /**
+     * 符号的英文可读名称映射（命令名 → 英文名）
+     * 用于无障碍文本生成（屏幕阅读器朗读）
+     */
+    private val accessibleNames = mapOf(
+        // 希腊字母
+        "alpha" to "alpha", "beta" to "beta", "gamma" to "gamma",
+        "delta" to "delta", "epsilon" to "epsilon", "varepsilon" to "epsilon",
+        "zeta" to "zeta", "eta" to "eta", "theta" to "theta", "vartheta" to "theta",
+        "iota" to "iota", "kappa" to "kappa", "lambda" to "lambda",
+        "mu" to "mu", "nu" to "nu", "xi" to "xi",
+        "pi" to "pi", "varpi" to "pi",
+        "rho" to "rho", "varrho" to "rho",
+        "sigma" to "sigma", "varsigma" to "sigma",
+        "tau" to "tau", "upsilon" to "upsilon",
+        "phi" to "phi", "varphi" to "phi",
+        "chi" to "chi", "psi" to "psi", "omega" to "omega",
+        // 大写希腊字母
+        "Gamma" to "Gamma", "Delta" to "Delta", "Theta" to "Theta",
+        "Lambda" to "Lambda", "Xi" to "Xi", "Pi" to "Pi",
+        "Sigma" to "Sigma", "Upsilon" to "Upsilon",
+        "Phi" to "Phi", "Psi" to "Psi", "Omega" to "Omega",
+        // 微积分 & 特殊符号
+        "infty" to "infinity", "partial" to "partial",
+        "nabla" to "nabla", "hbar" to "h bar",
+        "ell" to "ell", "wp" to "Weierstrass p",
+        "Re" to "real part", "Im" to "imaginary part",
+        "aleph" to "aleph",
+        // 运算符
+        "times" to "times", "div" to "divided by",
+        "pm" to "plus or minus", "mp" to "minus or plus",
+        "cdot" to "dot", "ast" to "asterisk", "star" to "star",
+        "circ" to "circle", "bullet" to "bullet",
+        "oplus" to "circled plus", "otimes" to "circled times",
+        "odot" to "circled dot", "minus" to "minus",
+        // 点号
+        "cdots" to "dots", "ldots" to "dots",
+        "vdots" to "vertical dots", "ddots" to "diagonal dots",
+        // 关系符号
+        "leq" to "less than or equal to", "le" to "less than or equal to",
+        "geq" to "greater than or equal to", "ge" to "greater than or equal to",
+        "neq" to "not equal to", "ne" to "not equal to",
+        "approx" to "approximately", "equiv" to "equivalent to",
+        "sim" to "similar to", "simeq" to "similar or equal to",
+        "cong" to "congruent to", "propto" to "proportional to",
+        "ll" to "much less than", "gg" to "much greater than",
+        "prec" to "precedes", "succ" to "succeeds",
+        "perp" to "perpendicular", "parallel" to "parallel to",
+        "mid" to "divides",
+        // 箭头
+        "rightarrow" to "right arrow", "leftarrow" to "left arrow",
+        "to" to "to", "gets" to "gets",
+        "leftrightarrow" to "if and only if",
+        "Rightarrow" to "implies", "Leftarrow" to "is implied by",
+        "Leftrightarrow" to "if and only if",
+        "uparrow" to "up arrow", "downarrow" to "down arrow",
+        "mapsto" to "maps to",
+        "longrightarrow" to "long right arrow", "longleftarrow" to "long left arrow",
+        "hookrightarrow" to "hook right arrow", "hookleftarrow" to "hook left arrow",
+        // 集合
+        "in" to "in", "notin" to "not in", "ni" to "contains",
+        "subset" to "subset of", "supset" to "superset of",
+        "subseteq" to "subset of or equal to", "supseteq" to "superset of or equal to",
+        "cup" to "union", "cap" to "intersection",
+        "setminus" to "set minus", "emptyset" to "empty set", "varnothing" to "empty set",
+        // 逻辑
+        "forall" to "for all", "exists" to "there exists", "nexists" to "there does not exist",
+        "neg" to "not", "lnot" to "not",
+        "land" to "and", "lor" to "or",
+        "wedge" to "and", "vee" to "or",
+        "implies" to "implies", "iff" to "if and only if",
+        // 其他
+        "therefore" to "therefore", "because" to "because",
+        "angle" to "angle", "degree" to "degree", "prime" to "prime",
+        "triangle" to "triangle",
+        "dagger" to "dagger", "ddagger" to "double dagger",
+        "vdash" to "proves", "dashv" to "is proved by",
+        "top" to "top", "bot" to "bottom",
+    )
+
+    /**
+     * Unicode 字符 → 英文可读名称 的反向映射（由 symbols + accessibleNames 自动生成）
+     */
+    private val unicodeAccessibleNames: Map<String, String> by lazy {
+        buildMap {
+            for ((cmd, name) in accessibleNames) {
+                val unicode = symbols[cmd] ?: continue
+                put(unicode, name)
+            }
+        }
+    }
+
     fun getSymbol(name: String): String? = symbols[name]
     
     fun getAllSymbols(): Map<String, String> = symbols
+
+    /**
+     * 根据 LaTeX 命令名获取英文可读名称（用于无障碍文本）
+     */
+    fun getAccessibleName(commandName: String): String? = accessibleNames[commandName]
+
+    /**
+     * 根据 Unicode 字符获取英文可读名称（用于无障碍文本）
+     */
+    fun getAccessibleNameByUnicode(unicode: String): String? = unicodeAccessibleNames[unicode]
 }
