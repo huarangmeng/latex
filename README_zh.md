@@ -19,6 +19,8 @@
 - **化学公式支持**：内置 `\ce{...}` 插件支持。
 - **样式定制**：支持颜色（`\color`）、方框（`\boxed`）和数学模式切换（`\displaystyle` 等）。
 - **自动换行**：长公式在逻辑断点（运算符、关系符）处智能换行。
+- **图片导出**：将渲染结果导出为 PNG/JPEG/WEBP 图片，支持分辨率缩放配置。
+- **无障碍支持**：内置屏幕阅读器支持，基于 MathSpeak 风格生成公式的自然语言描述。
 
 ## 📸 渲染预览
 
@@ -70,6 +72,72 @@ fun MyScreen() {
 ```
 
 换行发生在数学上有效的位置：关系运算符（`=`、`<`、`>`），然后是加法运算符（`+`、`-`），然后是乘法运算符（`×`、`÷`）。分数、根号、矩阵等原子结构不会被拆分。
+
+### 图片导出
+
+将渲染后的 LaTeX 公式导出为 PNG、JPEG 或 WEBP 图片。在 Composable 作用域中使用 `rememberLatexExporter()` 创建导出器，然后在后台线程中调用 `export()` 方法：
+
+```kotlin
+import com.hrm.latex.renderer.export.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+@Composable
+fun MyScreen() {
+    val exporter = rememberLatexExporter()
+    val scope = rememberCoroutineScope()
+
+    Button(onClick = {
+        scope.launch(Dispatchers.Default) {
+            // 导出为 PNG（默认，2 倍分辨率）
+            val result = exporter.export("E = mc^2")
+            val pngBytes = result?.bytes       // PNG 字节数组
+            val bitmap = result?.imageBitmap    // 可直接在 Compose 中展示
+
+            // 导出为 JPEG（3 倍分辨率，质量 85）
+            val jpegResult = exporter.export(
+                latex = "\\frac{a}{b}",
+                exportConfig = ExportConfig(
+                    scale = 3f,
+                    format = ImageFormat.JPEG,
+                    quality = 85
+                )
+            )
+
+            // 导出透明背景（仅 PNG 支持）
+            val transparentResult = exporter.export(
+                latex = "x^2 + y^2 = r^2",
+                exportConfig = ExportConfig(transparentBackground = true)
+            )
+        }
+    }) {
+        Text("导出")
+    }
+}
+```
+
+`ExportConfig` 参数说明：
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `scale` | `Float` | `2f` | 分辨率倍率（1x、2x、3x 等） |
+| `format` | `ImageFormat` | `PNG` | `ImageFormat.PNG`、`ImageFormat.JPEG` 或 `ImageFormat.WEBP` |
+| `transparentBackground` | `Boolean` | `false` | 是否使用透明背景（PNG 和 WEBP 支持；JPEG 始终使用不透明背景） |
+| `quality` | `Int` | `90` | JPEG 和 WEBP 的压缩质量（1–100，PNG 忽略此参数） |
+
+### 无障碍支持
+
+本库内置了屏幕阅读器无障碍支持。启用后，每个 `Latex` 组件会通过 Compose Semantics 暴露 MathSpeak 风格的自然语言描述，使数学公式能够被 TalkBack（Android）、VoiceOver（iOS）等辅助技术正确朗读。
+
+```kotlin
+Latex(
+    latex = "\\frac{1}{2}",
+    config = LatexConfig(accessibilityEnabled = true)
+)
+// 屏幕阅读器朗读: "fraction: 1 over 2"
+```
+
+`AccessibilityVisitor` 会将 LaTeX AST 转换为描述性文本，覆盖分数、根号、上下标、矩阵、希腊字母、运算符等结构。
 
 ## 📦 安装
 

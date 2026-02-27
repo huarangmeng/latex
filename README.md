@@ -19,6 +19,8 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Chemical Formula Support**: Built-in support for the `\ce{...}` plugin.
 - **Style Customization**: Supports colors (`\color`), boxes (`\boxed`), and math mode switching (`\displaystyle`, etc.).
 - **Automatic Line Breaking**: Smart line wrapping for long formulas at logical breakpoints (operators, relations).
+- **Image Export**: Export rendered formulas as PNG/JPEG/WEBP images with configurable resolution scaling.
+- **Accessibility**: Built-in screen reader support with MathSpeak-style formula descriptions.
 
 ## 📸 Rendering Preview
 
@@ -70,6 +72,72 @@ fun MyScreen() {
 ```
 
 Line breaks occur at mathematically valid points: relation operators (`=`, `<`, `>`), then additive operators (`+`, `-`), then multiplicative operators (`×`, `÷`). Atomic structures like fractions, roots, and matrices are never broken.
+
+### Image Export
+
+Export rendered LaTeX formulas as PNG, JPEG, or WEBP images. Use `rememberLatexExporter()` in a Composable scope, then call `export()` on a background thread:
+
+```kotlin
+import com.hrm.latex.renderer.export.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+@Composable
+fun MyScreen() {
+    val exporter = rememberLatexExporter()
+    val scope = rememberCoroutineScope()
+
+    Button(onClick = {
+        scope.launch(Dispatchers.Default) {
+            // Export as PNG (default, 2x resolution)
+            val result = exporter.export("E = mc^2")
+            val pngBytes = result?.bytes       // PNG byte array
+            val bitmap = result?.imageBitmap    // For in-app display
+
+            // Export as JPEG (3x resolution, quality 85)
+            val jpegResult = exporter.export(
+                latex = "\\frac{a}{b}",
+                exportConfig = ExportConfig(
+                    scale = 3f,
+                    format = ImageFormat.JPEG,
+                    quality = 85
+                )
+            )
+
+            // Export with transparent background (PNG only)
+            val transparentResult = exporter.export(
+                latex = "x^2 + y^2 = r^2",
+                exportConfig = ExportConfig(transparentBackground = true)
+            )
+        }
+    }) {
+        Text("Export")
+    }
+}
+```
+
+`ExportConfig` parameters:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `scale` | `Float` | `2f` | Resolution multiplier (1x, 2x, 3x, etc.) |
+| `format` | `ImageFormat` | `PNG` | `ImageFormat.PNG`, `ImageFormat.JPEG`, or `ImageFormat.WEBP` |
+| `transparentBackground` | `Boolean` | `false` | Use transparent background (PNG and WEBP only; JPEG always uses opaque background) |
+| `quality` | `Int` | `90` | Compression quality (1–100) for JPEG and WEBP; ignored for PNG |
+
+### Accessibility
+
+The library provides built-in accessibility support for screen readers. When enabled, each `Latex` component exposes a MathSpeak-style natural language description via Compose semantics, making math formulas readable by TalkBack (Android), VoiceOver (iOS), and other assistive technologies.
+
+```kotlin
+Latex(
+    latex = "\\frac{1}{2}",
+    config = LatexConfig(accessibilityEnabled = true)
+)
+// Screen reader reads: "fraction: 1 over 2"
+```
+
+The `AccessibilityVisitor` converts the LaTeX AST into descriptive text covering fractions, roots, superscripts/subscripts, matrices, Greek letters, operators, and more.
 
 ## 📦 Installation
 

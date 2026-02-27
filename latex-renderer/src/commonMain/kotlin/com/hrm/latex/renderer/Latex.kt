@@ -34,10 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -46,15 +43,13 @@ import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.visitor.AccessibilityVisitor
-import com.hrm.latex.renderer.layout.HighlightCalculator
-import com.hrm.latex.renderer.layout.measureGroup
+import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LineBreakingConfig
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.defaultLatexFontFamilies
 import com.hrm.latex.renderer.model.toContext
 import com.hrm.latex.renderer.utils.FontBytesCache
-import com.hrm.latex.renderer.utils.MathConstants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getFontResourceBytes
@@ -243,29 +238,13 @@ private fun LatexDocument(
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
-    val layout = remember(children, context, density) {
-        measureGroup(children, context, measurer, density)
+    // 使用 LatexRenderer 共享逻辑进行测量（与导出路径共用同一份代码）
+    val renderResult = remember(children, context, density) {
+        LatexRenderer.measure(children, context, measurer, density)
     }
 
-    // 外层内边距：内容区与 Canvas 边缘的间距
-    // 水平：补偿斜体字形残余溢出 + 视觉呼吸空间
-    // 垂直：补偿 descender 尾端、装饰符号顶部等溢出
-    val fontSizePx = with(density) { context.fontSize.toPx() }
-    val horizontalPadding = fontSizePx * MathConstants.CANVAS_HORIZONTAL_PADDING
-    val verticalPadding = fontSizePx * MathConstants.CANVAS_VERTICAL_PADDING
-
-    val widthDp = with(density) { (layout.width + horizontalPadding * 2).toDp() }
-    val heightDp = with(density) { (layout.height + verticalPadding * 2).toDp() }
-
-    // 计算高亮区域（仅在配置了 highlight 时计算）
-    val highlightRanges = context.highlightRanges
-    val highlightRects = remember(children, highlightRanges, context, density) {
-        if (highlightRanges.isEmpty()) {
-            emptyList()
-        } else {
-            HighlightCalculator.computeHighlightRects(children, highlightRanges, context, measurer, density, layout)
-        }
-    }
+    val widthDp = with(density) { renderResult.canvasWidth.toDp() }
+    val heightDp = with(density) { renderResult.canvasHeight.toDp() }
 
     val canvasModifier = if (contentDescription != null) {
         modifier
@@ -276,35 +255,9 @@ private fun LatexDocument(
     }
 
     Canvas(modifier = canvasModifier) {
-        // 绘制背景
-        if (backgroundColor != Color.Unspecified && backgroundColor != Color.Transparent) {
-            drawRect(color = backgroundColor)
+        // 使用 LatexRenderer 共享逻辑进行绘制（与导出路径共用同一份代码）
+        with(LatexRenderer) {
+            draw(renderResult, backgroundColor)
         }
-
-        // 绘制高亮背景（在内容之前绘制，作为底层）
-        for ((rect, range) in highlightRects) {
-            drawRect(
-                color = range.color,
-                topLeft = Offset(
-                    rect.x + horizontalPadding,
-                    rect.y + verticalPadding
-                ),
-                size = Size(rect.width, rect.height)
-            )
-            range.borderColor?.let { borderColor ->
-                drawRect(
-                    color = borderColor,
-                    topLeft = Offset(
-                        rect.x + horizontalPadding,
-                        rect.y + verticalPadding
-                    ),
-                    size = Size(rect.width, rect.height),
-                    style = Stroke(1f)
-                )
-            }
-        }
-
-        // 内容从 (horizontalPadding, verticalPadding) 开始绘制
-        layout.draw(this, horizontalPadding, verticalPadding)
     }
 }

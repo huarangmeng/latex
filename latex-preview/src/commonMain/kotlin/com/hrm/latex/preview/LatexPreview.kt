@@ -119,6 +119,13 @@ val previewCategories = listOf(
         icon = "↩️",
         groups = lineBreakingPreviewGroups
     ),
+    PreviewCategory(
+        id = "export",
+        title = "导出图片",
+        description = "将 LaTeX 公式导出为 PNG 图片",
+        icon = "📸",
+        groups = exportPreviewGroups
+    ),
 )
 
 // ========== 主界面 ==========
