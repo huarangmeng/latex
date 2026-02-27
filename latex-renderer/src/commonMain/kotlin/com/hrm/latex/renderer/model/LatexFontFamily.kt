@@ -77,7 +77,7 @@ data class LatexFontFamilies(
     /** KaTeX_Size1 字体资源 — 定界符精确测量所需 */
     val size1Resource: FontResource? = null,
 
-) {
+    ) {
     /** 根据字体类别获取对应的 FontFamily */
     fun getFont(category: String): FontFamily? = when (category) {
         "main" -> main
@@ -124,7 +124,11 @@ internal fun defaultLatexFontFamilies(): LatexFontFamilies {
 
     // === 无衬线字体 — KaTeX_SansSerif ===
     val sansSerif = FontFamily(
-        Font(Res.font.katex_sansserif_regular, weight = FontWeight.Normal, style = FontStyle.Normal),
+        Font(
+            Res.font.katex_sansserif_regular,
+            weight = FontWeight.Normal,
+            style = FontStyle.Normal
+        ),
         Font(Res.font.katex_sansserif_bold, weight = FontWeight.Bold, style = FontStyle.Normal),
         Font(Res.font.katex_sansserif_italic, weight = FontWeight.Normal, style = FontStyle.Italic),
     )
@@ -134,7 +138,11 @@ internal fun defaultLatexFontFamilies(): LatexFontFamilies {
 
     // === 装饰字体 ===
     val caligraphic = FontFamily(
-        Font(Res.font.katex_caligraphic_regular, weight = FontWeight.Normal, style = FontStyle.Normal),
+        Font(
+            Res.font.katex_caligraphic_regular,
+            weight = FontWeight.Normal,
+            style = FontStyle.Normal
+        ),
         Font(Res.font.katex_caligraphic_bold, weight = FontWeight.Bold, style = FontStyle.Normal),
     )
     val fraktur = FontFamily(

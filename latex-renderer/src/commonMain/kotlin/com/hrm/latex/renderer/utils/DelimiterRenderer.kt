@@ -35,7 +35,7 @@ import com.hrm.latex.renderer.model.textStyle
  * 定界符渲染共享基础设施
  *
  * 所有需要渲染定界符（括号、竖线等）的 Measurer 统一调用此对象，
- * 消除 MathMeasurer / DelimiterMeasurer / MatrixMeasurer 三处重复的
+ * 消除 DelimiterMeasurer / MatrixMeasurer 等多处重复的
  * `measureDelimiterScaled()` 实现。
  *
  * 设计理由（KaTeX 字体方案）：

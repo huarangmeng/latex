@@ -23,9 +23,7 @@
 
 package com.hrm.latex.renderer.layout.measurer
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
@@ -66,18 +64,44 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
     ): NodeLayout {
         return when (node) {
             is LatexNode.Matrix -> measureMatrix(node, context, measurer, density, measureGlobal)
-            is LatexNode.Array -> measureMatrixLike(node.rows, context, measurer, density, measureGlobal)
+            is LatexNode.Array -> measureMatrixLike(
+                node.rows,
+                context,
+                measurer,
+                density,
+                measureGlobal
+            )
+
             is LatexNode.Tabular -> measureTabular(node, context, measurer, density, measureGlobal)
             is LatexNode.Cases -> measureCases(node, context, measurer, density, measureGlobal)
             is LatexNode.Aligned, is LatexNode.Split -> {
-                val rows = if (node is LatexNode.Aligned) node.rows else (node as LatexNode.Split).rows
-                val alignments = List(10) { if (it % 2 == 0) ColumnAlignment.RIGHT else ColumnAlignment.LEFT }
-                measureMatrixLike(rows, context, measurer, density, measureGlobal, alignments = alignments)
+                val rows =
+                    if (node is LatexNode.Aligned) node.rows else (node as LatexNode.Split).rows
+                val alignments =
+                    List(10) { if (it % 2 == 0) ColumnAlignment.RIGHT else ColumnAlignment.LEFT }
+                measureMatrixLike(
+                    rows,
+                    context,
+                    measurer,
+                    density,
+                    measureGlobal,
+                    alignments = alignments
+                )
             }
+
             is LatexNode.Eqnarray -> {
-                val alignments = listOf(ColumnAlignment.RIGHT, ColumnAlignment.CENTER, ColumnAlignment.LEFT)
-                measureMatrixLike(node.rows, context, measurer, density, measureGlobal, alignments = alignments)
+                val alignments =
+                    listOf(ColumnAlignment.RIGHT, ColumnAlignment.CENTER, ColumnAlignment.LEFT)
+                measureMatrixLike(
+                    node.rows,
+                    context,
+                    measurer,
+                    density,
+                    measureGlobal,
+                    alignments = alignments
+                )
             }
+
             is LatexNode.Multline -> measureMultline(node, context, density, measureGlobal)
             is LatexNode.Subequations -> measureGroup(node.content, context)
             else -> throw IllegalArgumentException("Unsupported node type: ${node::class.simpleName}")
@@ -96,7 +120,8 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         if (bracketType == LatexNode.Matrix.MatrixType.PLAIN) return contentLayout
 
         // 括号高度应该略高于内容,形成包裹感
-        val delimiterPadding = with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
+        val delimiterPadding =
+            with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
         val delimiterHeight = contentLayout.height + delimiterPadding * 2
 
         // 使用字体渲染括号（而不是 Path）
@@ -221,16 +246,20 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         val rows = node.cases.map { listOf(it.second, LatexNode.Text(" if "), it.first) }
-        val matrixLayout = measureMatrixLike(rows, context, measurer, density, measureGlobal, 
-            alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.CENTER, ColumnAlignment.LEFT))
-        
+        val matrixLayout = measureMatrixLike(
+            rows, context, measurer, density, measureGlobal,
+            alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.CENTER, ColumnAlignment.LEFT)
+        )
+
         // 括号高度应该略高于内容,形成包裹感
-        val delimiterPadding = with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
+        val delimiterPadding =
+            with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
         val delimiterHeight = matrixLayout.height + delimiterPadding * 2
-        
+
         // 使用字体渲染大括号（而不是 Path）
         val leftChar = getDelimiterChar(LatexNode.Matrix.MatrixType.BRACE, isLeft = true)
-        val leftLayout = DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight)
+        val leftLayout =
+            DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight)
 
         val width = leftLayout.width + matrixLayout.width
         val height = delimiterHeight
@@ -242,7 +271,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
 
             // 绘制左侧大括号
             leftLayout.draw(this, x, y)
-            
+
             // 绘制内容:垂直居中
             matrixLayout.draw(this, x + leftLayout.width, contentY)
         }
@@ -287,8 +316,10 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         if (lineLayouts.isEmpty()) return NodeLayout(0f, 0f, 0f) { _, _ -> }
 
         val maxWidth = lineLayouts.maxOf { it.width }
-        val rowSpacing = with(density) { (context.fontSize * MathConstants.MULTLINE_ROW_SPACING).toPx() }
-        val totalHeight = lineLayouts.sumOf { it.height.toDouble() }.toFloat() + rowSpacing * (lineLayouts.size - 1)
+        val rowSpacing =
+            with(density) { (context.fontSize * MathConstants.MULTLINE_ROW_SPACING).toPx() }
+        val totalHeight = lineLayouts.sumOf { it.height.toDouble() }
+            .toFloat() + rowSpacing * (lineLayouts.size - 1)
         val baseline = lineLayouts.first().baseline
 
         return NodeLayout(maxWidth, totalHeight, baseline) { x, y ->

@@ -87,7 +87,7 @@ internal fun parseDimension(dimension: String, context: RenderContext, density: 
         numEnd++
     }
 
-    val value = dim.substring(0, numEnd).toFloatOrNull() ?: 0f
+    val value = dim.take(numEnd).toFloatOrNull() ?: 0f
     val unit = dim.substring(numEnd).trim().lowercase()
 
     return with(density) {
@@ -108,8 +108,7 @@ internal fun parseDimension(dimension: String, context: RenderContext, density: 
  * 大型运算符符号映射
  */
 fun mapBigOp(op: String): String {
-    val name = op.trim()
-    return when (name) {
+    return when (val name = op.trim()) {
         "sum" -> "∑"
         "prod" -> "∏"
         "coprod" -> "∐"

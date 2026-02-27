@@ -95,7 +95,8 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         val rightStr = node.right
 
         // 括号高度应该略高于内容,形成包裹感
-        val delimiterPadding = with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
+        val delimiterPadding =
+            with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
         val delimiterHeight = contentLayout.height + delimiterPadding * 2
 
         val leftLayout = if (leftStr != ".") {
@@ -110,10 +111,9 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         val rightW = rightLayout?.width ?: 0f
 
         val width = leftW + contentLayout.width + rightW
-        val height = delimiterHeight
         val baseline = contentLayout.baseline + delimiterPadding
 
-        return NodeLayout(width, height, baseline) { x, y ->
+        return NodeLayout(width, delimiterHeight, baseline) { x, y ->
             var curX = x
 
             // 括号与内容都从 y 开始绘制

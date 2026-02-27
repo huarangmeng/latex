@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
-import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.model.toFractionChildStyle
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants

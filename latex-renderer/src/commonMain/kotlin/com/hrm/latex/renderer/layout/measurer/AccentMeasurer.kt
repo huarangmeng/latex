@@ -26,12 +26,12 @@ package com.hrm.latex.renderer.layout.measurer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.drawscope.withTransform
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.LatexNode.Accent.AccentType
 import com.hrm.latex.renderer.layout.NodeLayout
@@ -65,6 +65,7 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
             AccentType.OVERLINE, AccentType.UNDERLINE,
             AccentType.OVERBRACE, AccentType.UNDERBRACE,
             AccentType.CANCEL, AccentType.BCANCEL, AccentType.XCANCEL -> true
+
             else -> false
         }
 
@@ -83,11 +84,12 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
             else -> ""
         }
 
-        val isUnder = node.accentType == AccentType.UNDERLINE || node.accentType == AccentType.UNDERBRACE
+        val isUnder =
+            node.accentType == AccentType.UNDERLINE || node.accentType == AccentType.UNDERBRACE
         val accentContext = context.shrink(MathConstants.ACCENT_SCALE)
         val textStyle = accentContext.textStyle()
         val result = measurer.measure(AnnotatedString(accentChar), textStyle)
-        
+
         val (accentHeightScale, accentOffsetScale) = when (node.accentType) {
             AccentType.HAT -> MathConstants.ACCENT_HAT_HEIGHT to MathConstants.ACCENT_HAT_OFFSET
             AccentType.TILDE -> MathConstants.ACCENT_TILDE_HEIGHT to MathConstants.ACCENT_TILDE_OFFSET
@@ -124,7 +126,7 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
         ) { x, y ->
             val centerX = x + width / 2
             val contentX = centerX - contentLayout.width / 2
-            
+
             // 上方装饰符号向右偏移以补偿斜体效果
             val italicCorrection = if (!isUnder) {
                 with(density) { (context.fontSize * MathConstants.ACCENT_ITALIC_CORRECTION).toPx() }
@@ -165,6 +167,7 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
             AccentType.WIDEHAT -> with(density) { 1.5f.dp.toPx() }
             AccentType.OVERLINE, AccentType.UNDERLINE,
             AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW -> with(density) { 1.5f.dp.toPx() }
+
             AccentType.CANCEL, AccentType.BCANCEL, AccentType.XCANCEL -> with(density) { 1.5f.dp.toPx() }
             else -> with(density) { 1.5f.dp.toPx() }
         }
@@ -174,6 +177,7 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
             AccentType.OVERLINE, AccentType.UNDERLINE -> with(density) { 2f.dp.toPx() }
             AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW ->
                 with(density) { (context.fontSize * MathConstants.WIDE_ACCENT_ARROW_HEIGHT).toPx() }
+
             else -> with(density) { (context.fontSize * MathConstants.WIDE_ACCENT_DEFAULT_HEIGHT).toPx() }
         }
         val gap = when {
@@ -199,12 +203,40 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
 
                 Path().apply {
                     moveTo(leftX, bottomY)
-                    cubicTo(leftX, bottomY - (bottomY - shoulderY) * 0.6f, leftX + curveWidth * 0.4f, shoulderY, leftX + curveWidth, shoulderY)
+                    cubicTo(
+                        leftX,
+                        bottomY - (bottomY - shoulderY) * 0.6f,
+                        leftX + curveWidth * 0.4f,
+                        shoulderY,
+                        leftX + curveWidth,
+                        shoulderY
+                    )
                     lineTo(centerX - curveWidth, shoulderY)
-                    cubicTo(centerX - curveWidth * 0.4f, shoulderY, centerX, shoulderY - tipHeight * 0.6f, centerX, topY)
-                    cubicTo(centerX, shoulderY - tipHeight * 0.6f, centerX + curveWidth * 0.4f, shoulderY, centerX + curveWidth, shoulderY)
+                    cubicTo(
+                        centerX - curveWidth * 0.4f,
+                        shoulderY,
+                        centerX,
+                        shoulderY - tipHeight * 0.6f,
+                        centerX,
+                        topY
+                    )
+                    cubicTo(
+                        centerX,
+                        shoulderY - tipHeight * 0.6f,
+                        centerX + curveWidth * 0.4f,
+                        shoulderY,
+                        centerX + curveWidth,
+                        shoulderY
+                    )
                     lineTo(rightX - curveWidth, shoulderY)
-                    cubicTo(rightX - curveWidth * 0.4f, shoulderY, rightX, bottomY - (bottomY - shoulderY) * 0.6f, rightX, bottomY)
+                    cubicTo(
+                        rightX - curveWidth * 0.4f,
+                        shoulderY,
+                        rightX,
+                        bottomY - (bottomY - shoulderY) * 0.6f,
+                        rightX,
+                        bottomY
+                    )
                 }
             }
 
@@ -220,12 +252,40 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
 
                 Path().apply {
                     moveTo(leftX, topY)
-                    cubicTo(leftX, topY + (shoulderY - topY) * 0.6f, leftX + curveWidth * 0.4f, shoulderY, leftX + curveWidth, shoulderY)
+                    cubicTo(
+                        leftX,
+                        topY + (shoulderY - topY) * 0.6f,
+                        leftX + curveWidth * 0.4f,
+                        shoulderY,
+                        leftX + curveWidth,
+                        shoulderY
+                    )
                     lineTo(centerX - curveWidth, shoulderY)
-                    cubicTo(centerX - curveWidth * 0.4f, shoulderY, centerX, shoulderY + tipHeight * 0.6f, centerX, bottomY)
-                    cubicTo(centerX, shoulderY + tipHeight * 0.6f, centerX + curveWidth * 0.4f, shoulderY, centerX + curveWidth, shoulderY)
+                    cubicTo(
+                        centerX - curveWidth * 0.4f,
+                        shoulderY,
+                        centerX,
+                        shoulderY + tipHeight * 0.6f,
+                        centerX,
+                        bottomY
+                    )
+                    cubicTo(
+                        centerX,
+                        shoulderY + tipHeight * 0.6f,
+                        centerX + curveWidth * 0.4f,
+                        shoulderY,
+                        centerX + curveWidth,
+                        shoulderY
+                    )
                     lineTo(rightX - curveWidth, shoulderY)
-                    cubicTo(rightX - curveWidth * 0.4f, shoulderY, rightX, topY + (shoulderY - topY) * 0.6f, rightX, topY)
+                    cubicTo(
+                        rightX - curveWidth * 0.4f,
+                        shoulderY,
+                        rightX,
+                        topY + (shoulderY - topY) * 0.6f,
+                        rightX,
+                        topY
+                    )
                 }
             }
 
@@ -282,7 +342,11 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
                 AccentType.OVERBRACE, AccentType.UNDERBRACE, AccentType.WIDEHAT -> {
                     accentPath?.let { path ->
                         withTransform({ translate(left = x, top = accentY) }) {
-                            drawPath(path = path, color = context.color, style = Stroke(width = strokeWidth))
+                            drawPath(
+                                path = path,
+                                color = context.color,
+                                style = Stroke(width = strokeWidth)
+                            )
                         }
                     }
                 }

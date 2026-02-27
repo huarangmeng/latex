@@ -195,36 +195,43 @@ internal object MathConstants {
 
     /** hat 装饰高度 / fontSize */
     const val ACCENT_HAT_HEIGHT = 0.52f
+
     /** hat 装饰下沉偏移 / fontSize */
     const val ACCENT_HAT_OFFSET = 0.10f
 
     /** tilde 装饰高度 / fontSize */
     const val ACCENT_TILDE_HEIGHT = 0.48f
+
     /** tilde 装饰下沉偏移 / fontSize */
     const val ACCENT_TILDE_OFFSET = 0.13f
 
     /** bar 装饰高度 / fontSize */
     const val ACCENT_BAR_HEIGHT = 0.22f
+
     /** bar 装饰下沉偏移 / fontSize */
     const val ACCENT_BAR_OFFSET = 0.12f
 
     /** vec 装饰高度 / fontSize */
     const val ACCENT_VEC_HEIGHT = 0.46f
+
     /** vec 装饰下沉偏移 / fontSize */
     const val ACCENT_VEC_OFFSET = 0.0f
 
     /** dot 装饰高度 / fontSize */
     const val ACCENT_DOT_HEIGHT = 0.26f
+
     /** dot 装饰下沉偏移 / fontSize */
     const val ACCENT_DOT_OFFSET = 0.15f
 
     /** ddot 装饰高度 / fontSize */
     const val ACCENT_DDOT_HEIGHT = 0.30f
+
     /** ddot 装饰下沉偏移 / fontSize */
     const val ACCENT_DDOT_OFFSET = 0.15f
 
     /** 默认装饰高度 / fontSize */
     const val ACCENT_DEFAULT_HEIGHT = 0.45f
+
     /** 默认装饰下沉偏移 / fontSize */
     const val ACCENT_DEFAULT_OFFSET = 0.24f
 

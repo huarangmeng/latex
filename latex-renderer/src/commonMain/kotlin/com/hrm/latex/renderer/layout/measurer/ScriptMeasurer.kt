@@ -56,7 +56,8 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         val isSuper = node is LatexNode.Superscript
-        val baseNode = if (isSuper) (node as LatexNode.Superscript).base else (node as LatexNode.Subscript).base
+        val baseNode =
+            if (isSuper) node.base else (node as LatexNode.Subscript).base
         val scriptNode = if (isSuper) node.exponent else (node as LatexNode.Subscript).index
 
         // 特殊处理: \underbrace{...}_{text} 和 \overbrace{...}^{text}
@@ -64,7 +65,7 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         val braceAnnotation = detectBraceAnnotation(isSuper, baseNode)
         if (braceAnnotation != null) {
             return measureBraceAnnotation(
-                braceAnnotation, scriptNode, context, density, measureGlobal, measureGroup
+                braceAnnotation, scriptNode, context, density, measureGlobal
             )
         }
 
@@ -75,9 +76,23 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         }
 
         return if (hasBothScripts) {
-            measureBothScripts(isSuper, baseNode, scriptNode, context, measurer, density, measureGlobal)
+            measureBothScripts(
+                isSuper,
+                baseNode,
+                scriptNode,
+                context,
+                density,
+                measureGlobal
+            )
         } else {
-            measureSingleScript(isSuper, baseNode, scriptNode, context, measurer, density, measureGlobal)
+            measureSingleScript(
+                isSuper,
+                baseNode,
+                scriptNode,
+                context,
+                density,
+                measureGlobal
+            )
         }
     }
 
@@ -104,27 +119,26 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         context: RenderContext,
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
-        measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         val isUnder = accentNode.accentType == LatexNode.Accent.AccentType.UNDERBRACE
-        
+
         // 测量花括号+内容（作为整体）
         val braceLayout = measureGlobal(accentNode, context)
-        
+
         // 标注文本使用较小字号
         val scriptStyle = context.toScriptStyle()
         val annotationLayout = measureGlobal(annotationNode, scriptStyle)
-        
+
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val gap = fontSizePx * 0.08f
-        
+
         val totalWidth = max(braceLayout.width, annotationLayout.width)
-        
+
         if (isUnder) {
             // \underbrace{...}_{text}: 花括号在上，标注在下
             val totalHeight = braceLayout.height + gap + annotationLayout.height
             val baseline = braceLayout.baseline
-            
+
             return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
                 val braceX = x + (totalWidth - braceLayout.width) / 2f
                 braceLayout.draw(this, braceX, y)
@@ -135,7 +149,7 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
             // \overbrace{...}^{text}: 标注在上，花括号在下
             val totalHeight = annotationLayout.height + gap + braceLayout.height
             val baseline = annotationLayout.height + gap + braceLayout.baseline
-            
+
             return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
                 val annX = x + (totalWidth - annotationLayout.width) / 2f
                 annotationLayout.draw(this, annX, y)
@@ -150,7 +164,6 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         baseNode: LatexNode,
         scriptNode: LatexNode,
         context: RenderContext,
-        measurer: TextMeasurer,
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
@@ -170,7 +183,8 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val superscriptShift = fontSizePx * MathConstants.SUPERSCRIPT_SHIFT
         val subscriptShift = fontSizePx * MathConstants.SUBSCRIPT_SHIFT
-        val scriptX = realBaseLayout.width + with(density) { MathConstants.SCRIPT_KERN_DP.dp.toPx() }
+        val scriptX =
+            realBaseLayout.width + with(density) { MathConstants.SCRIPT_KERN_DP.dp.toPx() }
 
         val superLayout = if (isSuper) currentScriptLayout else otherScriptLayout
         val subLayout = if (isSuper) otherScriptLayout else currentScriptLayout
@@ -203,7 +217,6 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         baseNode: LatexNode,
         scriptNode: LatexNode,
         context: RenderContext,
-        measurer: TextMeasurer,
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {

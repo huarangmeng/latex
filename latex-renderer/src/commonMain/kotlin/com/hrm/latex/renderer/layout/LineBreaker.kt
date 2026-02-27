@@ -160,6 +160,7 @@ internal class LineBreaker(private val maxWidth: Float) {
             is LatexNode.Style,
             is LatexNode.Color,
             is LatexNode.MathStyle -> 1
+
             else -> 0
         }
         return if (entering) delta else -delta

@@ -83,52 +83,157 @@ internal fun measureNode(
         is LatexNode.Text, is LatexNode.TextMode, is LatexNode.Symbol,
         is LatexNode.Operator, is LatexNode.Command, is LatexNode.Space,
         is LatexNode.HSpace ->
-            MeasurerRegistry.text.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.text.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Fraction ->
-            MeasurerRegistry.fraction.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.fraction.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Root ->
-            MeasurerRegistry.root.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.root.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Superscript, is LatexNode.Subscript ->
-            MeasurerRegistry.script.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.script.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.BigOperator ->
-            MeasurerRegistry.bigOperator.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.bigOperator.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Binomial ->
-            MeasurerRegistry.binomial.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.binomial.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Matrix, is LatexNode.Array, is LatexNode.Cases, is LatexNode.Aligned,
         is LatexNode.Split, is LatexNode.Multline, is LatexNode.Eqnarray, is LatexNode.Subequations,
         is LatexNode.Tabular ->
-            MeasurerRegistry.matrix.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.matrix.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Delimited, is LatexNode.ManualSizedDelimiter ->
-            MeasurerRegistry.delimiter.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.delimiter.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Accent ->
-            MeasurerRegistry.accent.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.accent.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.ExtensibleArrow ->
-            MeasurerRegistry.extensibleArrow.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.extensibleArrow.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Stack ->
-            MeasurerRegistry.stack.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.stack.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Boxed, is LatexNode.Phantom, is LatexNode.Smash,
         is LatexNode.VPhantom, is LatexNode.HPhantom ->
-            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.specialEffect.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Negation ->
-            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.specialEffect.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Tag ->
-            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.specialEffect.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Substack ->
-            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.specialEffect.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Label -> NodeLayout(
             width = 0f,
@@ -137,16 +242,44 @@ internal fun measureNode(
         ) { _, _ -> /* Label 不渲染 */ }
 
         is LatexNode.Ref ->
-            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.specialEffect.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.EqRef ->
-            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.specialEffect.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.SideSet ->
-            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.specialEffect.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.Tensor ->
-            MeasurerRegistry.specialEffect.measure(node, context, measurer, density, measureGlobal, measureGroupRef)
+            MeasurerRegistry.specialEffect.measure(
+                node,
+                context,
+                measurer,
+                density,
+                measureGlobal,
+                measureGroupRef
+            )
 
         is LatexNode.NewCommand -> NodeLayout(
             width = 0f,
@@ -208,7 +341,12 @@ internal fun measureGroup(
                 val lineNodeLists = brokenLines.map { indices ->
                     indices.map { nodes[it] }
                 }
-                return measureVerticalLines(lineNodeLists, context.copy(lineBreakingEnabled = false), measurer, density)
+                return measureVerticalLines(
+                    lineNodeLists,
+                    context.copy(lineBreakingEnabled = false),
+                    measurer,
+                    density
+                )
             }
         }
 
@@ -218,11 +356,12 @@ internal fun measureGroup(
 
     // 单行 (InlineRow)
     // 第一遍测量：获取所有节点的初步尺寸
-    val initialLayouts = precomputedLayouts ?: nodes.map { measureNode(it, context, measurer, density) }
+    val initialLayouts =
+        precomputedLayouts ?: nodes.map { measureNode(it, context, measurer, density) }
 
     // 检查是否存在需要根据内容调整高度的大型运算符（如积分）
     val hasIntegrals = nodes.any { it is LatexNode.BigOperator && it.operator.contains("int") }
-    
+
     val finalMeasuredNodes = if (hasIntegrals && context.mathStyle == MathStyle.DISPLAY) {
         // 为每个积分计算其右侧相邻内容的高度（而非整行最大高度）
         // 避免积分被拉伸到与同行其他大型结构（如求和+分数）一样高
@@ -240,11 +379,17 @@ internal fun measureGroup(
                     if (rightNode is LatexNode.Space || rightNode is LatexNode.HSpace) continue
                     val layout = initialLayouts[j]
                     if (layout.baseline > rightContentAscent) rightContentAscent = layout.baseline
-                    if (layout.height - layout.baseline > rightContentDescent) rightContentDescent = layout.height - layout.baseline
+                    if (layout.height - layout.baseline > rightContentDescent) rightContentDescent =
+                        layout.height - layout.baseline
                 }
                 val rightContentHeight = rightContentAscent + rightContentDescent
                 if (rightContentHeight > 0) {
-                    measureNode(node, context.copy(bigOpHeightHint = rightContentHeight), measurer, density)
+                    measureNode(
+                        node,
+                        context.copy(bigOpHeightHint = rightContentHeight),
+                        measurer,
+                        density
+                    )
                 } else {
                     initialLayouts[index]
                 }
@@ -268,7 +413,8 @@ internal fun measureGroup(
         val rightNode = nodes[i + 1]
         // Space/HSpace 节点自带间距，不额外添加
         if (leftNode is LatexNode.Space || leftNode is LatexNode.HSpace ||
-            rightNode is LatexNode.Space || rightNode is LatexNode.HSpace) {
+            rightNode is LatexNode.Space || rightNode is LatexNode.HSpace
+        ) {
             continue
         }
         val leftType = MathSpacing.classifyNode(leftNode)

@@ -33,7 +33,7 @@ import com.hrm.latex.renderer.model.RenderContext
  * 节点测量器接口
  *
  * 定义了测量特定类型 LaTeX 节点的通用契约。
- * 所有的具体测量器（如 [TextContentMeasurer], [MathMeasurer] 等）都实现此接口。
+ * 所有的具体测量器（如 [TextContentMeasurer], [FractionMeasurer], [ScriptMeasurer] 等）都实现此接口。
  *
  * @param T 此测量器可以处理的节点类型
  */

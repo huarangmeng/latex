@@ -27,7 +27,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
@@ -61,7 +60,8 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
             is LatexNode.TextMode -> measureTextMode(node.text, context, measurer)
             is LatexNode.Symbol -> measureSymbol(node, context, measurer, density)
             is LatexNode.Operator -> {
-                val operatorGap = with(density) { (context.fontSize * MathConstants.OPERATOR_RIGHT_GAP).toPx() }
+                val operatorGap =
+                    with(density) { (context.fontSize * MathConstants.OPERATOR_RIGHT_GAP).toPx() }
                 val layout = measureText(
                     node.op,
                     context.copy(
@@ -133,13 +133,18 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
             val layout = measureAnnotatedText(symbolInfo.texGlyph, resolvedStyle, measurer, density)
 
             if (isCenteredSymbol(node.symbol) || isCenteredSymbol(node.unicode)) {
-                return NodeLayout(layout.width, layout.height, layout.height * MathConstants.CENTERED_SYMBOL_BASELINE, layout.draw)
+                return NodeLayout(
+                    layout.width,
+                    layout.height,
+                    layout.height * MathConstants.CENTERED_SYMBOL_BASELINE,
+                    layout.draw
+                )
             }
             return layout
         }
 
         // 2. 回退：FontResolver 未覆盖的符号，使用 Unicode 字符直接渲染
-        val text = if (node.unicode.isEmpty()) node.symbol else node.unicode
+        val text = node.unicode.ifEmpty { node.symbol }
 
         var resolvedStyle = if (context.fontStyle == null) {
             when {
@@ -158,7 +163,12 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         val layout = measureAnnotatedText(text, resolvedStyle, measurer, density)
 
         if (isCenteredSymbol(node.symbol) || isCenteredSymbol(node.unicode)) {
-            return NodeLayout(layout.width, layout.height, layout.height * MathConstants.CENTERED_SYMBOL_BASELINE, layout.draw)
+            return NodeLayout(
+                layout.width,
+                layout.height,
+                layout.height * MathConstants.CENTERED_SYMBOL_BASELINE,
+                layout.draw
+            )
         }
 
         return layout

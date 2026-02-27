@@ -36,7 +36,7 @@ import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
 
 /**
- * 根号测量器 — 处理 \sqrt[index]{content}
+ * 根号测量器 — 处理 \sqrt[#index]{content}
  *
  * 布局模型：
  * ```
@@ -90,7 +90,8 @@ internal class RootMeasurer : NodeMeasurer<LatexNode.Root> {
 
         return NodeLayout(width, totalHeight, baseline) { x, y ->
             if (indexLayout != null) {
-                val indexY = y + totalHeight * MathConstants.RADICAL_INDEX_OFFSET - indexLayout.height
+                val indexY =
+                    y + totalHeight * MathConstants.RADICAL_INDEX_OFFSET - indexLayout.height
                 indexLayout.draw(this, x, indexY)
             }
 

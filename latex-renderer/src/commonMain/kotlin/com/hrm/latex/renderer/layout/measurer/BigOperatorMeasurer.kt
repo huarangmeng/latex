@@ -46,7 +46,6 @@ import com.hrm.latex.renderer.utils.mapBigOp
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
-import kotlin.math.sqrt
 
 /**
  * 大型运算符测量器 — 处理 \sum, \int, \prod 等
@@ -78,7 +77,7 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val useSideMode = resolveLimitsMode(node, isIntegral, isNamedOperator, context)
         val scaleFactor = resolveScaleFactor(context, useSideMode, isIntegral)
 
-        val opStyle = buildOperatorStyle(context, isNamedOperator, isIntegral, scaleFactor)
+        val opStyle = buildOperatorStyle(context, isNamedOperator, scaleFactor)
         val limitStyle = context.toLimitStyle()
 
         // ── 积分混合拉伸策略 ──
@@ -122,7 +121,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
                     totalVerticalScale = targetHeight / currentInkHeight
                 }
             }
-            totalVerticalScale = totalVerticalScale.coerceAtLeast(MathConstants.INTEGRAL_MIN_VERTICAL_SCALE)
+            totalVerticalScale =
+                totalVerticalScale.coerceAtLeast(MathConstants.INTEGRAL_MIN_VERTICAL_SCALE)
         }
 
         // 3. 混合分解：fontSize 均匀放大 + 剩余垂直 scale
@@ -210,7 +210,7 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         } else {
             layoutDisplayMode(
                 context, density, measurer, opLayout, superLayout, subLayout,
-                isNamedOperator, opVisualHeight
+                isNamedOperator
             )
         }
     }
@@ -230,7 +230,11 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         }
     }
 
-    private fun resolveScaleFactor(context: RenderContext, useSideMode: Boolean, isIntegral: Boolean): Float = when {
+    private fun resolveScaleFactor(
+        context: RenderContext,
+        useSideMode: Boolean,
+        isIntegral: Boolean
+    ): Float = when {
         // 积分号使用较小的基础字号，高度通过 verticalScale 纯垂直拉伸实现
         // 这样水平方向笔画保持纤细，不会因字号放大而变粗
         isIntegral && context.mathStyle == MathStyle.DISPLAY -> MathConstants.BIG_OP_INTEGRAL_DISPLAY_SCALE
@@ -242,7 +246,6 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
     private fun buildOperatorStyle(
         context: RenderContext,
         isNamedOperator: Boolean,
-        isIntegral: Boolean,
         scaleFactor: Float
     ): RenderContext {
         return if (!isNamedOperator) {
@@ -303,7 +306,6 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         // opTop/opBottom 用于非积分运算符和边界计算
         val opTop = opCenter - opVisualHeight / 2f
         val opBottom = opCenter + opVisualHeight / 2f
-        val opVisualRight = opActualLeft
 
         // 拉伸后的 glyph 绘制位置：以数学轴为中心上下扩展
         val opGlyphDrawY = opCenter - glyphVisualPart / 2f
@@ -316,10 +318,10 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
 
         // 积分上标需要额外右移，避免与积分号顶部弯钩重叠
         val integralSuperKern = if (isIntegral) fontSizePx * 0.15f else 0f
-        val superX = opVisualRight + limitSpacing + integralSuperKern
+        val superX = opActualLeft + limitSpacing + integralSuperKern
         val subX = if (isIntegral) {
-            opVisualRight + limitSpacing - fontSizePx * MathConstants.INTEGRAL_SUBSCRIPT_INSET
-        } else opVisualRight + limitSpacing
+            opActualLeft + limitSpacing - fontSizePx * MathConstants.INTEGRAL_SUBSCRIPT_INSET
+        } else opActualLeft + limitSpacing
 
         val limitGap = when {
             isIntegral -> 0f
@@ -378,7 +380,7 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
     private fun layoutDisplayMode(
         context: RenderContext, density: Density, measurer: TextMeasurer,
         opLayout: NodeLayout, superLayout: NodeLayout?, subLayout: NodeLayout?,
-        isNamedOperator: Boolean, opVisualHeight: Float
+        isNamedOperator: Boolean
     ): NodeLayout {
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
         val fontSizePx = with(density) { context.fontSize.toPx() }

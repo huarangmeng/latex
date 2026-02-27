@@ -157,9 +157,21 @@ internal object HighlightCalculator {
             is LatexNode.Symbol -> node.symbol.contains(pattern) || node.unicode.contains(pattern)
             is LatexNode.Operator -> node.op.contains(pattern)
             is LatexNode.TextMode -> node.text.contains(pattern)
-            is LatexNode.Superscript -> nodeContainsText(node.base, pattern) || nodeContainsText(node.exponent, pattern)
-            is LatexNode.Subscript -> nodeContainsText(node.base, pattern) || nodeContainsText(node.index, pattern)
-            is LatexNode.Fraction -> nodeContainsText(node.numerator, pattern) || nodeContainsText(node.denominator, pattern)
+            is LatexNode.Superscript -> nodeContainsText(node.base, pattern) || nodeContainsText(
+                node.exponent,
+                pattern
+            )
+
+            is LatexNode.Subscript -> nodeContainsText(
+                node.base,
+                pattern
+            ) || nodeContainsText(node.index, pattern)
+
+            is LatexNode.Fraction -> nodeContainsText(node.numerator, pattern) || nodeContainsText(
+                node.denominator,
+                pattern
+            )
+
             is LatexNode.Style -> node.content.any { nodeContainsText(it, pattern) }
             is LatexNode.Color -> node.content.any { nodeContainsText(it, pattern) }
             else -> false

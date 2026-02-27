@@ -70,14 +70,93 @@ object MathSpacing {
      */
     private val SPACING_TABLE: Array<Array<SpaceRule?>> = arrayOf(
         //              ORD        OP         BIN        REL        OPEN       CLOSE      PUNCT      INNER
-        /* ORD   */ arrayOf(SpaceRule.NONE, SpaceRule.THIN, SpaceRule.MEDIUM, SpaceRule.THICK, SpaceRule.NONE, SpaceRule.NONE, SpaceRule.NONE, SpaceRule.THIN),
-        /* OP    */ arrayOf(SpaceRule.THIN, SpaceRule.THIN, null,            SpaceRule.THICK, SpaceRule.NONE, SpaceRule.NONE, SpaceRule.NONE, SpaceRule.THIN),
-        /* BIN   */ arrayOf(SpaceRule.MEDIUM, SpaceRule.MEDIUM, null,        null,            SpaceRule.MEDIUM, null,         null,           SpaceRule.MEDIUM),
-        /* REL   */ arrayOf(SpaceRule.THICK, SpaceRule.THICK, null,          SpaceRule.NONE,  SpaceRule.THICK, SpaceRule.NONE, SpaceRule.NONE, SpaceRule.THICK),
-        /* OPEN  */ arrayOf(SpaceRule.NONE, SpaceRule.NONE, null,            SpaceRule.NONE,  SpaceRule.NONE, SpaceRule.NONE, SpaceRule.NONE, SpaceRule.NONE),
-        /* CLOSE */ arrayOf(SpaceRule.NONE, SpaceRule.THIN, SpaceRule.MEDIUM, SpaceRule.THICK, SpaceRule.NONE, SpaceRule.NONE, SpaceRule.NONE, SpaceRule.THIN),
-        /* PUNCT */ arrayOf(SpaceRule.THIN, SpaceRule.THIN, null,            SpaceRule.THIN,  SpaceRule.THIN, SpaceRule.THIN, SpaceRule.THIN, SpaceRule.THIN),
-        /* INNER */ arrayOf(SpaceRule.THIN, SpaceRule.THIN, SpaceRule.MEDIUM, SpaceRule.THICK, SpaceRule.THIN, SpaceRule.NONE, SpaceRule.THIN, SpaceRule.THIN)
+        /* ORD   */ arrayOf(
+            SpaceRule.NONE,
+            SpaceRule.THIN,
+            SpaceRule.MEDIUM,
+            SpaceRule.THICK,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.THIN
+        ),
+        /* OP    */
+        arrayOf(
+            SpaceRule.THIN,
+            SpaceRule.THIN,
+            null,
+            SpaceRule.THICK,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.THIN
+        ),
+        /* BIN   */
+        arrayOf(
+            SpaceRule.MEDIUM,
+            SpaceRule.MEDIUM,
+            null,
+            null,
+            SpaceRule.MEDIUM,
+            null,
+            null,
+            SpaceRule.MEDIUM
+        ),
+        /* REL   */
+        arrayOf(
+            SpaceRule.THICK,
+            SpaceRule.THICK,
+            null,
+            SpaceRule.NONE,
+            SpaceRule.THICK,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.THICK
+        ),
+        /* OPEN  */
+        arrayOf(
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            null,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.NONE
+        ),
+        /* CLOSE */
+        arrayOf(
+            SpaceRule.NONE,
+            SpaceRule.THIN,
+            SpaceRule.MEDIUM,
+            SpaceRule.THICK,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.NONE,
+            SpaceRule.THIN
+        ),
+        /* PUNCT */
+        arrayOf(
+            SpaceRule.THIN,
+            SpaceRule.THIN,
+            null,
+            SpaceRule.THIN,
+            SpaceRule.THIN,
+            SpaceRule.THIN,
+            SpaceRule.THIN,
+            SpaceRule.THIN
+        ),
+        /* INNER */
+        arrayOf(
+            SpaceRule.THIN,
+            SpaceRule.THIN,
+            SpaceRule.MEDIUM,
+            SpaceRule.THICK,
+            SpaceRule.THIN,
+            SpaceRule.NONE,
+            SpaceRule.THIN,
+            SpaceRule.THIN
+        )
     )
 
     /**
@@ -146,7 +225,7 @@ object MathSpacing {
         return when (node) {
             is LatexNode.Text -> classifyText(node.content)
             is LatexNode.Symbol -> classifySymbol(node.symbol, node.unicode)
-            is LatexNode.Operator -> classifyOperatorText(node.op)
+            is LatexNode.Operator -> classifyOperatorText()
             is LatexNode.BigOperator -> AtomType.OP
             is LatexNode.Fraction, is LatexNode.Binomial -> AtomType.INNER
             is LatexNode.Root -> AtomType.ORD
@@ -189,7 +268,7 @@ object MathSpacing {
         return AtomType.ORD
     }
 
-    private fun classifyOperatorText(op: String): AtomType {
+    private fun classifyOperatorText(): AtomType {
         // Operator node 通常是命名运算符如 sin, cos, lim 等
         return AtomType.OP
     }

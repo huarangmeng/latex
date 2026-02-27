@@ -43,22 +43,3 @@ class NodeLayout(
     val baseline: Float,
     val draw: DrawScope.(x: Float, y: Float) -> Unit
 )
-
-/**
- * 空布局，用于异常输入的安全回退
- */
-val EMPTY_LAYOUT = NodeLayout(
-    width = 0f,
-    height = 0f,
-    baseline = 0f,
-    draw = { _, _ -> }
-)
-
-/**
- * 浮点数安全检查，防止 NaN/Infinity/负值参与布局计算
- */
-fun Float.sanitized(fallback: Float = 0f): Float = when {
-    isNaN() || isInfinite() -> fallback
-    this < 0f -> 0f
-    else -> this
-}

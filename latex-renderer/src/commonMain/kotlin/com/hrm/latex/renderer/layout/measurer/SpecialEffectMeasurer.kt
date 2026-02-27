@@ -54,17 +54,29 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
     ): NodeLayout {
         return when (node) {
             is LatexNode.Boxed -> measureBoxed(node, context, density, measureGroup)
-            is LatexNode.Phantom -> measurePhantom(node, context, density, measureGroup)
+            is LatexNode.Phantom -> measurePhantom(node, context, measureGroup)
             is LatexNode.Smash -> measureSmash(node, context, density, measureGroup)
-            is LatexNode.VPhantom -> measureVPhantom(node, context, density, measureGroup)
+            is LatexNode.VPhantom -> measureVPhantom(node, context, measureGroup)
             is LatexNode.HPhantom -> measureHPhantom(node, context, density, measureGroup)
-            is LatexNode.Negation -> measureNegation(node, context, measurer, density, measureGlobal)
+            is LatexNode.Negation -> measureNegation(node, context, density, measureGlobal)
             is LatexNode.Tag -> measureTag(node, context, measurer, density, measureGlobal)
             is LatexNode.Substack -> measureSubstack(node, context, density, measureGroup)
-            is LatexNode.Ref -> measureRef(node, context, measurer, density)
-            is LatexNode.EqRef -> measureEqRef(node, context, measurer, density)
-            is LatexNode.SideSet -> measureSideSet(node, context, density, measureGlobal, measureGroup)
-            is LatexNode.Tensor -> measureTensor(node, context, density, measureGlobal, measureGroup)
+            is LatexNode.Ref -> measureRef(node, context, measurer)
+            is LatexNode.EqRef -> measureEqRef(node, context, measurer)
+            is LatexNode.SideSet -> measureSideSet(
+                node,
+                context,
+                density,
+                measureGlobal
+            )
+
+            is LatexNode.Tensor -> measureTensor(
+                node,
+                context,
+                density,
+                measureGlobal
+            )
+
             else -> throw IllegalArgumentException("Unsupported node type: ${node::class.simpleName}")
         }
     }
@@ -79,14 +91,14 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         val contentLayout = measureGroup(node.content, context)
-        
+
         val padding = with(density) { (context.fontSize * MathConstants.BOXED_PADDING).toPx() }
         val borderWidth = with(density) { MathConstants.BOXED_BORDER_WIDTH_DP.dp.toPx() }
-        
+
         val totalWidth = contentLayout.width + 2 * padding
         val totalHeight = contentLayout.height + 2 * padding
         val baseline = contentLayout.baseline + padding
-        
+
         return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
             contentLayout.draw(this, x + padding, y + padding)
             drawRect(
@@ -105,7 +117,6 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
     private fun measurePhantom(
         node: LatexNode.Phantom,
         context: RenderContext,
-        density: Density,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         val contentLayout = measureGroup(node.content, context)
@@ -149,7 +160,6 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
     private fun measureVPhantom(
         node: LatexNode.VPhantom,
         context: RenderContext,
-        density: Density,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         val contentLayout = measureGroup(node.content, context)
@@ -187,16 +197,15 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
     private fun measureNegation(
         node: LatexNode.Negation,
         context: RenderContext,
-        measurer: TextMeasurer,
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         val contentLayout = measureGlobal(node.content, context)
         val strokeWidth = with(density) { 1.5f.dp.toPx() }
-        
+
         // 斜线从左下方到右上方，覆盖内容
         val slashPadding = contentLayout.width * 0.1f
-        
+
         return NodeLayout(
             contentLayout.width,
             contentLayout.height,
@@ -207,7 +216,10 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
             drawLine(
                 color = context.color,
                 start = Offset(x + slashPadding, y + contentLayout.height * 0.85f),
-                end = Offset(x + contentLayout.width - slashPadding, y + contentLayout.height * 0.15f),
+                end = Offset(
+                    x + contentLayout.width - slashPadding,
+                    y + contentLayout.height * 0.15f
+                ),
                 strokeWidth = strokeWidth
             )
         }
@@ -227,7 +239,7 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
         val labelLayout = measureGlobal(node.label, context)
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val gap = fontSizePx * 1.5f  // 标签与公式之间的间距
-        
+
         if (node.starred) {
             // \tag* 不加括号
             val totalWidth = gap + labelLayout.width
@@ -239,13 +251,13 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
             val parenStyle = context.textStyle()
             val leftParen = measurer.measure(AnnotatedString("("), parenStyle)
             val rightParen = measurer.measure(AnnotatedString(")"), parenStyle)
-            
+
             val leftW = leftParen.size.width.toFloat()
             val rightW = rightParen.size.width.toFloat()
             val totalWidth = gap + leftW + labelLayout.width + rightW
             val height = labelLayout.height
             val baseline = labelLayout.baseline
-            
+
             return NodeLayout(totalWidth, height, baseline) { x, y ->
                 drawText(leftParen, topLeft = Offset(x + gap, y))
                 labelLayout.draw(this, x + gap + leftW, y)
@@ -267,15 +279,15 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
         if (node.rows.isEmpty()) {
             return NodeLayout(0f, 0f, 0f) { _, _ -> }
         }
-        
+
         // substack 内容使用较小字号
         val substackContext = context.shrink(MathConstants.SCRIPT_SCALE)
         val fontSizePx = with(density) { substackContext.fontSize.toPx() }
         val rowSpacing = fontSizePx * 0.15f
-        
+
         val rowLayouts = node.rows.map { measureGroup(it, substackContext) }
         val maxWidth = rowLayouts.maxOf { it.width }
-        
+
         var totalHeight = 0f
         val positions = rowLayouts.map { layout ->
             val y = totalHeight
@@ -283,9 +295,9 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
             y
         }
         if (positions.isNotEmpty()) totalHeight -= rowSpacing
-        
+
         val baseline = totalHeight / 2f
-        
+
         return NodeLayout(maxWidth, totalHeight, baseline) { x, y ->
             rowLayouts.forEachIndexed { i, layout ->
                 val rowX = x + (maxWidth - layout.width) / 2f
@@ -301,8 +313,7 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
     private fun measureRef(
         node: LatexNode.Ref,
         context: RenderContext,
-        measurer: TextMeasurer,
-        density: Density
+        measurer: TextMeasurer
     ): NodeLayout {
         val style = context.textStyle()
         val result = measurer.measure(AnnotatedString(node.key), style)
@@ -322,8 +333,7 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
     private fun measureEqRef(
         node: LatexNode.EqRef,
         context: RenderContext,
-        measurer: TextMeasurer,
-        density: Density
+        measurer: TextMeasurer
     ): NodeLayout {
         val style = context.textStyle()
         val displayText = "(${node.key})"
@@ -345,35 +355,34 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
         node: LatexNode.SideSet,
         context: RenderContext,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
-        measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
+        measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         val baseLayout = measureGlobal(node.base, context)
         val scriptContext = context.shrink(MathConstants.SCRIPT_SCALE)
-        
+
         val leftSubLayout = node.leftSub?.let { measureGlobal(it, scriptContext) }
         val leftSupLayout = node.leftSup?.let { measureGlobal(it, scriptContext) }
         val rightSubLayout = node.rightSub?.let { measureGlobal(it, scriptContext) }
         val rightSupLayout = node.rightSup?.let { measureGlobal(it, scriptContext) }
-        
+
         val leftWidth = max(leftSubLayout?.width ?: 0f, leftSupLayout?.width ?: 0f)
         val rightWidth = max(rightSubLayout?.width ?: 0f, rightSupLayout?.width ?: 0f)
-        
+
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val scriptGap = fontSizePx * 0.05f
-        
+
         val totalWidth = leftWidth + scriptGap + baseLayout.width + scriptGap + rightWidth
-        
+
         // 垂直布局：与 ScriptMeasurer 一致，用 fontSizePx 计算偏移
         val supShift = fontSizePx * MathConstants.SUPERSCRIPT_SHIFT
         val subShift = fontSizePx * MathConstants.SUBSCRIPT_SHIFT
-        
+
         val topExtent = max(
             leftSupLayout?.let { supShift + it.height } ?: 0f,
             rightSupLayout?.let { supShift + it.height } ?: 0f
         )
         val aboveBase = max(baseLayout.baseline, topExtent)
-        
+
         val belowBase = max(
             baseLayout.height - baseLayout.baseline,
             max(
@@ -381,17 +390,17 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
                 rightSubLayout?.let { subShift + it.height } ?: 0f
             )
         )
-        
+
         val totalHeight = aboveBase + belowBase
         val baseline = aboveBase
-        
+
         val baseRelX = leftWidth + scriptGap
         val baseRelY = aboveBase - baseLayout.baseline
-        
+
         return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
             // 绘制基础运算符
             baseLayout.draw(this, x + baseRelX, y + baseRelY)
-            
+
             // 左上标
             leftSupLayout?.let {
                 val lsX = x + leftWidth - it.width
@@ -428,8 +437,7 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
         node: LatexNode.Tensor,
         context: RenderContext,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
-        measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
+        measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         val baseLayout = measureGlobal(node.base, context)
         val scriptStyle = context.shrink(MathConstants.SCRIPT_SCALE)
