@@ -415,7 +415,7 @@ internal object FontResolver {
         buildMap {
             for ((_, info) in symbolMap) {
                 // 仅保留首次出现的映射（避免别名覆盖）
-                putIfAbsent(info.texGlyph, info)
+                put(info.texGlyph, info)
             }
         }
     }
