@@ -377,6 +377,9 @@ x^{\sum_{i=1}^{n}}
 #### 图片导出
 - ✅ `export API` rememberLatexExporter()：渲染结果导出为 PNG/JPEG/WEBP 图片格式
 
+#### 编辑器集成
+- ✅ `cursor/input API` 所见即所得编辑器支持（位于 `latex-renderer/editor/` 子包）
+
 ### ❌ 缺失
 - 无
 
@@ -414,7 +417,7 @@ x \in \R
 - `\renewcommand` 语法与 `\newcommand` 相同，覆盖已有定义
 - `\def` 支持 TeX 原始语法 `\def\name#1#2{body}`
 
-**覆盖率**: 51/51 (100%) ✅
+**覆盖率**: 52/52 (100%) ✅
 
 ---
 
@@ -433,8 +436,8 @@ x \in \R
 | 数学模式切换 | 4/4 | 0 | 100% |
 | 空格 | 8/8 | 0 | 100% |
 | 环境 | 10/10 | 0 | 100% |
-| 高级功能 | 51/51 | 0 | 100% |
-| **总体** | **268+/268+** | **0** | **100%** |
+| 高级功能 | 52/52 | 0 | 100% |
+| **总体** | **269+/269+** | **0** | **100%** |
 
 ---
 
@@ -468,6 +471,7 @@ x \in \R
 - ✅ LaTeX → MathML 转换（MathMLVisitor：Presentation MathML 输出）
 - ✅ 动画过渡（AnimatedLatex：crossfade / slide / fade+slide）
 - ✅ 图片导出（rememberLatexExporter()：PNG/JPEG/WEBP）
+- ✅ 所见即所得编辑器集成（cursor/input API，位于 `latex-renderer/editor/`）
 
 ### 适用场景
 对于**数学论文、教科书和化学文档的常见场景**，当前解析器已经完全覆盖所有核心功能！
@@ -495,4 +499,4 @@ x \in \R
 
 | 状态 | 功能 | 命令 | 说明 |
 |------|------|------|------|
-| ⬜ | 编辑器集成 | cursor/input API | 所见即所得编辑器支持 |
+| （暂无待实现项） | | | |

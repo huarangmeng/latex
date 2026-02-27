@@ -69,14 +69,18 @@ internal object LatexRenderer {
      * 测量 LaTeX 节点列表，生成 [LatexRenderResult]。
      *
      * 包含：measureGroup → padding 计算 → 高亮区域计算。
+     *
+     * @param layoutMap 可选的布局映射表，用于编辑器集成。传入非 null 值时，
+     *   测量过程中会将每个子节点的相对位置记录到其中。
      */
     fun measure(
         children: List<LatexNode>,
         context: RenderContext,
         textMeasurer: TextMeasurer,
-        density: Density
+        density: Density,
+        layoutMap: LayoutMap? = null
     ): LatexRenderResult {
-        val layout = measureGroup(children, context, textMeasurer, density)
+        val layout = measureGroup(children, context, textMeasurer, density, layoutMap)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val horizontalPadding = fontSizePx * MathConstants.CANVAS_HORIZONTAL_PADDING

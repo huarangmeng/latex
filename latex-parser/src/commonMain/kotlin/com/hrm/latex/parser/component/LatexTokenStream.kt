@@ -23,6 +23,7 @@
 
 package com.hrm.latex.parser.component
 
+import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
 
 /**
@@ -54,6 +55,31 @@ class LatexTokenStream(private val tokens: List<LatexToken>) {
         }
         advance()
         return token
+    }
+
+    /**
+     * 获取当前 token 的源码位置起始偏移
+     * 用于 Parser 记录节点的 sourceRange.start
+     */
+    fun currentSourceOffset(): Int {
+        return peek()?.range?.start ?: (peek(-1)?.range?.end ?: 0)
+    }
+
+    /**
+     * 获取上一个已消费 token 的结束偏移
+     * 用于 Parser 记录节点的 sourceRange.end
+     */
+    fun previousEndOffset(): Int {
+        if (position <= 0) return 0
+        val prevPos = position - 1
+        return if (prevPos < tokens.size) tokens[prevPos].range.end else 0
+    }
+
+    /**
+     * 构建从 start 到当前已消费位置的 SourceRange
+     */
+    fun rangeFrom(startOffset: Int): SourceRange {
+        return SourceRange(startOffset, previousEndOffset())
     }
     
     fun reset() {

@@ -126,6 +126,13 @@ val previewCategories = listOf(
         icon = "📸",
         groups = exportPreviewGroups
     ),
+    PreviewCategory(
+        id = "editor",
+        title = "LaTeX 编辑器",
+        description = "实时编辑和渲染 LaTeX 公式",
+        icon = "✏️",
+        groups = editorPreviewGroups
+    ),
 )
 
 // ========== 主界面 ==========

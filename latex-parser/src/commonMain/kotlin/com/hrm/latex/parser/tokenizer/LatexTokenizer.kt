@@ -24,6 +24,7 @@
 package com.hrm.latex.parser.tokenizer
 
 import com.hrm.latex.base.log.HLog
+import com.hrm.latex.parser.model.SourceRange
 
 /**
  * LaTeX 词法分析器
@@ -46,43 +47,50 @@ class LatexTokenizer(private val input: String) {
             when (val char = peek()) {
                 '\\' -> handleBackslash()
                 '{' -> {
-                    tokens.add(LatexToken.LeftBrace)
+                    val start = position
                     advance()
+                    tokens.add(LatexToken.LeftBrace(SourceRange(start, position)))
                 }
 
                 '}' -> {
-                    tokens.add(LatexToken.RightBrace)
+                    val start = position
                     advance()
+                    tokens.add(LatexToken.RightBrace(SourceRange(start, position)))
                 }
 
                 '[' -> {
-                    tokens.add(LatexToken.LeftBracket)
+                    val start = position
                     advance()
+                    tokens.add(LatexToken.LeftBracket(SourceRange(start, position)))
                 }
 
                 ']' -> {
-                    tokens.add(LatexToken.RightBracket)
+                    val start = position
                     advance()
+                    tokens.add(LatexToken.RightBracket(SourceRange(start, position)))
                 }
 
                 '^' -> {
-                    tokens.add(LatexToken.Superscript)
+                    val start = position
                     advance()
+                    tokens.add(LatexToken.Superscript(SourceRange(start, position)))
                 }
 
                 '_' -> {
-                    tokens.add(LatexToken.Subscript)
+                    val start = position
                     advance()
+                    tokens.add(LatexToken.Subscript(SourceRange(start, position)))
                 }
 
                 '&' -> {
-                    tokens.add(LatexToken.Ampersand)
+                    val start = position
                     advance()
+                    tokens.add(LatexToken.Ampersand(SourceRange(start, position)))
                 }
                 
                 '(', ')', '|' -> {
-                    // 将括号和竖线作为单独的文本token
-                    tokens.add(LatexToken.Text(char.toString()))
+                    val start = position
+                    tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
                     advance()
                 }
 
@@ -92,7 +100,7 @@ class LatexTokenizer(private val input: String) {
             }
         }
 
-        tokens.add(LatexToken.EOF)
+        tokens.add(LatexToken.EOF(SourceRange(position, position)))
         HLog.d(TAG, "词法分析完成，生成 ${tokens.size} 个 token")
         return tokens
     }
@@ -109,12 +117,13 @@ class LatexTokenizer(private val input: String) {
     }
 
     private fun handleBackslash() {
+        val start = position
         advance() // 跳过 \
 
         if (peek() == '\\') {
             // \\ 表示换行
-            tokens.add(LatexToken.NewLine)
             advance()
+            tokens.add(LatexToken.NewLine(SourceRange(start, position)))
             return
         }
 
@@ -135,8 +144,8 @@ class LatexTokenizer(private val input: String) {
             // 处理特殊符号，如 \{, \}, \$, \% 等
             val char = peek()
             if (char != null && !char.isWhitespace()) {
-                tokens.add(LatexToken.Command(char.toString()))
                 advance()
+                tokens.add(LatexToken.Command(char.toString(), SourceRange(start, position)))
             }
             return
         }
@@ -146,23 +155,23 @@ class LatexTokenizer(private val input: String) {
             "begin" -> {
                 val envName = readEnvironmentName()
                 if (envName != null) {
-                    tokens.add(LatexToken.BeginEnvironment(envName))
+                    tokens.add(LatexToken.BeginEnvironment(envName, SourceRange(start, position)))
                 } else {
-                    tokens.add(LatexToken.Command(commandName))
+                    tokens.add(LatexToken.Command(commandName, SourceRange(start, position)))
                 }
             }
 
             "end" -> {
                 val envName = readEnvironmentName()
                 if (envName != null) {
-                    tokens.add(LatexToken.EndEnvironment(envName))
+                    tokens.add(LatexToken.EndEnvironment(envName, SourceRange(start, position)))
                 } else {
-                    tokens.add(LatexToken.Command(commandName))
+                    tokens.add(LatexToken.Command(commandName, SourceRange(start, position)))
                 }
             }
 
             else -> {
-                tokens.add(LatexToken.Command(commandName))
+                tokens.add(LatexToken.Command(commandName, SourceRange(start, position)))
             }
         }
     }
@@ -189,6 +198,7 @@ class LatexTokenizer(private val input: String) {
     }
 
     private fun handleText() {
+        val start = position
         val text = buildString {
             while (position < input.length) {
                 val char = peek() ?: break
@@ -205,11 +215,12 @@ class LatexTokenizer(private val input: String) {
         }
 
         if (text.isNotEmpty()) {
-            tokens.add(LatexToken.Text(text))
+            tokens.add(LatexToken.Text(text, SourceRange(start, position)))
         }
     }
 
     private fun handleWhitespace() {
+        val start = position
         // 跳过所有连续的空格和制表符
         while (position < input.length) {
             val char = peek() ?: break
@@ -218,7 +229,7 @@ class LatexTokenizer(private val input: String) {
         }
         
         // 将所有连续空白符合并为单个空格
-        tokens.add(LatexToken.Whitespace(" "))
+        tokens.add(LatexToken.Whitespace(" ", SourceRange(start, position)))
     }
 
     /**
@@ -248,6 +259,7 @@ class LatexTokenizer(private val input: String) {
      * - 简化逻辑，由解析器统一处理空格
      */
     private fun handleNewLine() {
+        val start = position
         // 跳过所有连续的换行符
         while (position < input.length) {
             val char = peek() ?: break
@@ -257,7 +269,7 @@ class LatexTokenizer(private val input: String) {
         
         // 将换行符转换为单个空格 token
         // 这样 "x\ny" 会正确解析为 "x y" 而不是 "xy"
-        tokens.add(LatexToken.Whitespace(" "))
+        tokens.add(LatexToken.Whitespace(" ", SourceRange(start, position)))
     }
 
     private fun skipWhitespace() {

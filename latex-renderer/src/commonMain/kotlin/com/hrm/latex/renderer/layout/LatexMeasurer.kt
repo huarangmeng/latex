@@ -312,9 +312,14 @@ internal fun measureNode(
 
 /**
  * 测量节点组（处理行内排列和多行）
+ *
+ * @param layoutMap 可选的布局映射表。当非 null 时，测量过程中会将每个子节点的
+ *   相对位置记录到 layoutMap 中，为编辑器 hit-testing 和光标定位提供数据。
+ *   当为 null 时（默认），无额外开销。
  */
 internal fun measureGroup(
-    nodes: List<LatexNode>, context: RenderContext, measurer: TextMeasurer, density: Density
+    nodes: List<LatexNode>, context: RenderContext, measurer: TextMeasurer, density: Density,
+    layoutMap: LayoutMap? = null
 ): NodeLayout {
     // 简单处理多行逻辑：按 NewLine 分割，测量各行，垂直堆叠
     val lines = splitLines(nodes)
@@ -438,6 +443,17 @@ internal fun measureGroup(
 
     val height = maxAscent + maxDescent
     val baseline = maxAscent
+
+    // 采集子节点布局信息到 LayoutMap（仅当 layoutMap 非 null 时）
+    if (layoutMap != null) {
+        var relX = 0f
+        finalMeasuredNodes.forEachIndexed { index, child ->
+            val relY = baseline - child.baseline
+            layoutMap.add(nodes[index], relX, relY, child.width, child.height, child.baseline)
+            relX += child.width
+            if (index < spacings.size) relX += spacings[index]
+        }
+    }
 
     return NodeLayout(totalWidth, height, baseline) { x, y ->
         var currentX = x

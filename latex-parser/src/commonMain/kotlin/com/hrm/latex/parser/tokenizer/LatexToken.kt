@@ -23,22 +23,28 @@
 
 package com.hrm.latex.parser.tokenizer
 
+import com.hrm.latex.parser.model.SourceRange
+
 /**
  * LaTeX 词法单元
+ *
+ * 每个 token 携带 [range] 记录其在原始输入字符串中的位置
  */
 sealed class LatexToken {
-    data class Text(val content: String) : LatexToken()
-    data class Command(val name: String) : LatexToken()
-    data class BeginEnvironment(val name: String) : LatexToken()
-    data class EndEnvironment(val name: String) : LatexToken()
-    data object LeftBrace : LatexToken()
-    data object RightBrace : LatexToken()
-    data object LeftBracket : LatexToken()
-    data object RightBracket : LatexToken()
-    data object Superscript : LatexToken()
-    data object Subscript : LatexToken()
-    data object Ampersand : LatexToken()
-    data object NewLine : LatexToken()
-    data class Whitespace(val content: String) : LatexToken()
-    data object EOF : LatexToken()
+    abstract val range: SourceRange
+
+    data class Text(val content: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class Command(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class BeginEnvironment(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class EndEnvironment(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class LeftBrace(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class RightBrace(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class LeftBracket(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class RightBracket(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class Superscript(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class Subscript(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class Ampersand(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class NewLine(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class Whitespace(val content: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class EOF(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
 }

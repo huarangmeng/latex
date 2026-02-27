@@ -40,10 +40,11 @@ class EnvironmentParser(private val context: LatexParserContext) {
     fun parseEnvironment(): LatexNode? {
         val beginToken = tokenStream.advance() as? LatexToken.BeginEnvironment ?: return null
         val envName = beginToken.name
+        val startOffset = beginToken.range.start
 
         HLog.d(TAG, "解析环境: $envName")
 
-        return when (envName) {
+        val result = when (envName) {
             "matrix", "pmatrix", "bmatrix", "Bmatrix", "vmatrix", "Vmatrix" -> parseMatrix(
                 envName,
                 isSmall = false
@@ -68,6 +69,25 @@ class EnvironmentParser(private val context: LatexParserContext) {
                 LatexNode.Environment(envName, content)
             }
         }
+
+        // 为没有 sourceRange 的环境节点补充范围
+        if (result != null && result.sourceRange == null) {
+            val range = tokenStream.rangeFrom(startOffset)
+            return when (result) {
+                is LatexNode.Matrix -> result.copy(sourceRange = range)
+                is LatexNode.Array -> result.copy(sourceRange = range)
+                is LatexNode.Tabular -> result.copy(sourceRange = range)
+                is LatexNode.Aligned -> result.copy(sourceRange = range)
+                is LatexNode.Split -> result.copy(sourceRange = range)
+                is LatexNode.Multline -> result.copy(sourceRange = range)
+                is LatexNode.Eqnarray -> result.copy(sourceRange = range)
+                is LatexNode.Subequations -> result.copy(sourceRange = range)
+                is LatexNode.Cases -> result.copy(sourceRange = range)
+                is LatexNode.Environment -> result.copy(sourceRange = range)
+                else -> result
+            }
+        }
+        return result
     }
 
     /**

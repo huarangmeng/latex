@@ -25,17 +25,28 @@ package com.hrm.latex.parser.model
 
 /**
  * LaTeX 抽象语法树节点
+ *
+ * 每个节点可选地携带 [sourceRange]，表示该节点在原始 LaTeX 输入字符串中的位置范围。
+ * 默认为 null，表示位置未知（例如宏展开生成的节点）。
  */
 sealed class LatexNode {
+    open val sourceRange: SourceRange? get() = null
+
     /**
      * 文档根节点
      */
-    data class Document(val children: List<LatexNode>) : LatexNode()
+    data class Document(
+        val children: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 文本节点
      */
-    data class Text(val content: String) : LatexNode()
+    data class Text(
+        val content: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 命令节点（如 \frac, \sqrt 等）
@@ -43,7 +54,8 @@ sealed class LatexNode {
     data class Command(
         val name: String,
         val arguments: List<LatexNode> = emptyList(),
-        val options: List<String> = emptyList()
+        val options: List<String> = emptyList(),
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
     
     /**
@@ -52,33 +64,53 @@ sealed class LatexNode {
     data class Environment(
         val name: String,
         val content: List<LatexNode>,
-        val options: List<String> = emptyList()
+        val options: List<String> = emptyList(),
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
     
     /**
      * 分组节点（花括号包围的内容）
      */
-    data class Group(val children: List<LatexNode>) : LatexNode()
+    data class Group(
+        val children: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 上标节点（^）
      */
-    data class Superscript(val base: LatexNode, val exponent: LatexNode) : LatexNode()
+    data class Superscript(
+        val base: LatexNode,
+        val exponent: LatexNode,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 下标节点（_）
      */
-    data class Subscript(val base: LatexNode, val index: LatexNode) : LatexNode()
+    data class Subscript(
+        val base: LatexNode,
+        val index: LatexNode,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 分数节点
      */
-    data class Fraction(val numerator: LatexNode, val denominator: LatexNode) : LatexNode()
+    data class Fraction(
+        val numerator: LatexNode,
+        val denominator: LatexNode,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 根号节点
      */
-    data class Root(val content: LatexNode, val index: LatexNode? = null) : LatexNode()
+    data class Root(
+        val content: LatexNode,
+        val index: LatexNode? = null,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 矩阵节点
@@ -86,7 +118,8 @@ sealed class LatexNode {
     data class Matrix(
         val rows: List<List<LatexNode>>,
         val type: MatrixType = MatrixType.PLAIN,
-        val isSmall: Boolean = false  // smallmatrix 标记
+        val isSmall: Boolean = false,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class MatrixType {
             PLAIN,      // matrix
@@ -103,13 +136,17 @@ sealed class LatexNode {
      */
     data class Array(
         val rows: List<List<LatexNode>>,
-        val alignment: String  // 列对齐方式，如 "ccc", "rcl" 等
+        val alignment: String,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
     
     /**
      * 空格节点
      */
-    data class Space(val type: SpaceType) : LatexNode() {
+    data class Space(
+        val type: SpaceType,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
         enum class SpaceType {
             THIN,       // \,
             MEDIUM,     // \:
@@ -124,25 +161,37 @@ sealed class LatexNode {
     /**
      * 自定义水平空格节点 (\hspace)
      */
-    data class HSpace(val dimension: String) : LatexNode()
+    data class HSpace(
+        val dimension: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 换行节点
      */
-    data object NewLine : LatexNode()
+    data class NewLine(
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 特殊符号节点（包括希腊字母、运算符符号、数学符号等）
      * 例如：α, β, ×, ÷, ≤, →
      */
-    data class Symbol(val symbol: String, val unicode: String) : LatexNode()
+    data class Symbol(
+        val symbol: String,
+        val unicode: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 数学运算符节点
      * 注意：当前解析器将运算符符号（如 \times, \div）解析为 Symbol
      * 此类型保留用于未来可能的语义区分需求
      */
-    data class Operator(val op: String) : LatexNode()
+    data class Operator(
+        val op: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 括号节点（自动伸缩）
@@ -162,7 +211,8 @@ sealed class LatexNode {
         val right: String,
         val content: List<LatexNode>,
         val scalable: Boolean = true,
-        val manualSize: Float? = null
+        val manualSize: Float? = null,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
     
     /**
@@ -180,7 +230,8 @@ sealed class LatexNode {
      */
     data class ManualSizedDelimiter(
         val delimiter: String,
-        val size: Float
+        val size: Float,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
     
     /**
@@ -188,7 +239,8 @@ sealed class LatexNode {
      */
     data class Accent(
         val content: LatexNode,
-        val accentType: AccentType
+        val accentType: AccentType,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class AccentType {
             HAT, TILDE, BAR, DOT, DDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE,
@@ -200,9 +252,10 @@ sealed class LatexNode {
      * 可扩展箭头节点（箭头上方或下方可显示文字）
      */
     data class ExtensibleArrow(
-        val content: LatexNode,  // 箭头上方的文字
-        val below: LatexNode?,   // 箭头下方的文字（可选）
-        val direction: Direction
+        val content: LatexNode,
+        val below: LatexNode?,
+        val direction: Direction,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class Direction {
             RIGHT,       // \xrightarrow
@@ -217,9 +270,10 @@ sealed class LatexNode {
      * 堆叠节点（在基础内容上方或下方添加内容）
      */
     data class Stack(
-        val base: LatexNode,     // 基础内容（必选）
-        val above: LatexNode?,   // 上方内容（可选）
-        val below: LatexNode?    // 下方内容（可选）
+        val base: LatexNode,
+        val above: LatexNode?,
+        val below: LatexNode?,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
     
     /**
@@ -227,7 +281,8 @@ sealed class LatexNode {
      */
     data class Style(
         val content: List<LatexNode>,
-        val styleType: StyleType
+        val styleType: StyleType,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class StyleType {
             BOLD,              // \mathbf - 文本粗体
@@ -248,7 +303,8 @@ sealed class LatexNode {
      */
     data class Color(
         val content: List<LatexNode>,
-        val color: String
+        val color: String,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
     
     /**
@@ -259,7 +315,8 @@ sealed class LatexNode {
      */
     data class MathStyle(
         val content: List<LatexNode>,
-        val mathStyleType: MathStyleType
+        val mathStyleType: MathStyleType,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class MathStyleType {
             DISPLAY,         // \displaystyle - 显示模式（最大）
@@ -276,7 +333,8 @@ sealed class LatexNode {
         val operator: String,
         val subscript: LatexNode? = null,
         val superscript: LatexNode? = null,
-        val limitsMode: LimitsMode = LimitsMode.AUTO
+        val limitsMode: LimitsMode = LimitsMode.AUTO,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class LimitsMode {
             AUTO,       // 默认（根据 MathStyle 和运算符类型决定）
@@ -290,7 +348,8 @@ sealed class LatexNode {
      */
     data class Aligned(
         val rows: List<List<LatexNode>>,
-        val alignType: AlignType = AlignType.CENTER
+        val alignType: AlignType = AlignType.CENTER,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class AlignType {
             LEFT, CENTER, RIGHT
@@ -300,27 +359,42 @@ sealed class LatexNode {
     /**
      * 案例环境（cases）
      */
-    data class Cases(val cases: List<Pair<LatexNode, LatexNode>>) : LatexNode()
+    data class Cases(
+        val cases: List<Pair<LatexNode, LatexNode>>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * Split 环境（用于单个方程内的多行分割）
      */
-    data class Split(val rows: List<List<LatexNode>>) : LatexNode()
+    data class Split(
+        val rows: List<List<LatexNode>>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * Multline 环境（多行单个方程）
      */
-    data class Multline(val lines: List<LatexNode>) : LatexNode()
+    data class Multline(
+        val lines: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * Eqnarray 环境（旧式方程数组）
      */
-    data class Eqnarray(val rows: List<List<LatexNode>>) : LatexNode()
+    data class Eqnarray(
+        val rows: List<List<LatexNode>>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * Subequations 环境（子方程编号）
      */
-    data class Subequations(val content: List<LatexNode>) : LatexNode()
+    data class Subequations(
+        val content: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 二项式系数 \binom{n}{k}
@@ -328,7 +402,8 @@ sealed class LatexNode {
     data class Binomial(
         val top: LatexNode,
         val bottom: LatexNode,
-        val style: BinomialStyle = BinomialStyle.NORMAL
+        val style: BinomialStyle = BinomialStyle.NORMAL,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class BinomialStyle {
             NORMAL,   // \binom
@@ -340,19 +415,28 @@ sealed class LatexNode {
     /**
      * 文本模式（在数学公式中插入普通文本）
      */
-    data class TextMode(val text: String) : LatexNode()
+    data class TextMode(
+        val text: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 方框节点（\boxed）
      * 在内容周围绘制边框
      */
-    data class Boxed(val content: List<LatexNode>) : LatexNode()
+    data class Boxed(
+        val content: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 幻影节点（\phantom）
      * 占据空间但不显示内容，用于对齐
      */
-    data class Phantom(val content: List<LatexNode>) : LatexNode()
+    data class Phantom(
+        val content: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
     
     /**
      * 自定义命令定义节点（\newcommand）
@@ -364,7 +448,8 @@ sealed class LatexNode {
     data class NewCommand(
         val commandName: String,
         val numArgs: Int,
-        val definition: List<LatexNode>
+        val definition: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
 
     /**
@@ -372,7 +457,10 @@ sealed class LatexNode {
      * 在关系符号上叠加斜线表示否定
      * 例如：\not= → ≠, \not\in → ∉
      */
-    data class Negation(val content: LatexNode) : LatexNode()
+    data class Negation(
+        val content: LatexNode,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
 
     /**
      * 公式编号标签节点（\tag, \tag*）
@@ -381,7 +469,8 @@ sealed class LatexNode {
      */
     data class Tag(
         val label: LatexNode,
-        val starred: Boolean = false
+        val starred: Boolean = false,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
 
     /**
@@ -389,46 +478,67 @@ sealed class LatexNode {
      * 用于大型运算符上下限排列多行条件
      * @param rows 每行是一个节点列表
      */
-    data class Substack(val rows: List<List<LatexNode>>) : LatexNode()
+    data class Substack(
+        val rows: List<List<LatexNode>>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
 
     /**
      * Smash 节点（\smash）
      * 将内容的高度或深度视为零，用于间距微调
      */
-    data class Smash(val content: List<LatexNode>) : LatexNode()
+    data class Smash(
+        val content: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
 
     /**
      * 垂直幻影节点（\vphantom）
      * 只保留高度/基线，宽度为零
      */
-    data class VPhantom(val content: List<LatexNode>) : LatexNode()
+    data class VPhantom(
+        val content: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
 
     /**
      * 水平幻影节点（\hphantom）
      * 只保留宽度，高度/基线使用最小值
      */
-    data class HPhantom(val content: List<LatexNode>) : LatexNode()
+    data class HPhantom(
+        val content: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
 
     /**
      * 标签定义节点（\label{key}）
      * 该节点不参与渲染，仅记录标签定义
      * @param key 标签键名
      */
-    data class Label(val key: String) : LatexNode()
+    data class Label(
+        val key: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
 
     /**
      * 引用节点（\ref{key}）
      * 渲染时显示引用的标签编号
      * @param key 引用的标签键名
      */
-    data class Ref(val key: String) : LatexNode()
+    data class Ref(
+        val key: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
 
     /**
      * 公式引用节点（\eqref{key}）
      * 渲染时显示带括号的引用标签编号
      * @param key 引用的标签键名
      */
-    data class EqRef(val key: String) : LatexNode()
+    data class EqRef(
+        val key: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
 
     /**
      * 四角标注节点（\sideset{_a^b}{_c^d}{\sum}）
@@ -444,7 +554,8 @@ sealed class LatexNode {
         val leftSup: LatexNode?,
         val rightSub: LatexNode?,
         val rightSup: LatexNode?,
-        val base: LatexNode
+        val base: LatexNode,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
 
     /**
@@ -455,7 +566,8 @@ sealed class LatexNode {
      */
     data class Tensor(
         val base: LatexNode,
-        val indices: List<Pair<Boolean, LatexNode>>
+        val indices: List<Pair<Boolean, LatexNode>>,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
 
     /**
@@ -466,6 +578,7 @@ sealed class LatexNode {
      */
     data class Tabular(
         val rows: List<List<LatexNode>>,
-        val alignment: String
+        val alignment: String,
+        override val sourceRange: SourceRange? = null
     ) : LatexNode()
 }

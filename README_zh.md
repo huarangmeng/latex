@@ -13,7 +13,7 @@
 ## 🌟 核心特性
 
 - **完整语法支持**：涵盖 100+ 希腊字母、基础算术、矩阵、环境（align, cases, array 等）。
-- **自定义命令 (New!)**：支持 `\newcommand` 宏定义，包括参数替换（#1-#9）、嵌套定义和命令覆盖。
+- **自定义命令**：支持 `\newcommand` 宏定义，包括参数替换（#1-#9）、嵌套定义和命令覆盖。
 - **高性能解析**：基于 AST 的递归下降解析器，支持增量更新。
 - **多平台一致性**：使用 Compose Multiplatform 实现跨平台 UI 渲染。
 - **化学公式支持**：内置 `\ce{...}` 插件支持。
@@ -21,6 +21,7 @@
 - **自动换行**：长公式在逻辑断点（运算符、关系符）处智能换行。
 - **图片导出**：将渲染结果导出为 PNG/JPEG/WEBP 图片，支持分辨率缩放配置。
 - **无障碍支持**：内置屏幕阅读器支持，基于 MathSpeak 风格生成公式的自然语言描述。
+- **所见即所得编辑器** *（实验性）*：内置 LaTeX 编辑器，支持光标定位、点击定位和实时渲染预览。
 
 ## 📸 渲染预览
 
@@ -138,6 +139,26 @@ Latex(
 ```
 
 `AccessibilityVisitor` 会将 LaTeX AST 转换为描述性文本，覆盖分数、根号、上下标、矩阵、希腊字母、运算符等结构。
+
+### 所见即所得编辑器（实验性）
+
+> **注意**：编辑器 API 目前处于实验阶段，后续版本中可能会发生变更。所有编辑器 API 需要添加 `@ExperimentalComposeUiApi` 注解。
+
+本库内置了所见即所得（WYSIWYG）LaTeX 编辑器组件。用户可以编辑 LaTeX 源文本并实时查看渲染结果，光标位置在源文本和渲染输出之间保持同步。
+
+```kotlin
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun MyEditor() {
+    val editorState = rememberEditorState(initialText = "x^{2} + y^{2} = r^{2}")
+
+    LatexEditor(
+        editorState = editorState,
+        config = LatexConfig(fontSize = 20.sp),
+        showSourceText = true // 显示源文本输入框
+    )
+}
+```
 
 ## 📦 安装
 

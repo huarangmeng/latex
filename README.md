@@ -13,7 +13,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 ## 🌟 Key Features
 
 - **Full Syntax Support**: Covers 100+ Greek letters, basic arithmetic, matrices, and environments (align, cases, array, etc.).
-- **Custom Commands (New!)**: Supports `\newcommand` macro definitions, including parameter replacement (#1-#9), nested definitions, and command overriding.
+- **Custom Commands**: Supports `\newcommand` macro definitions, including parameter replacement (#1-#9), nested definitions, and command overriding.
 - **High-Performance Parsing**: AST-based recursive descent parser with support for incremental updates.
 - **Multi-platform Consistency**: Uses Compose Multiplatform for cross-platform UI rendering.
 - **Chemical Formula Support**: Built-in support for the `\ce{...}` plugin.
@@ -21,6 +21,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Automatic Line Breaking**: Smart line wrapping for long formulas at logical breakpoints (operators, relations).
 - **Image Export**: Export rendered formulas as PNG/JPEG/WEBP images with configurable resolution scaling.
 - **Accessibility**: Built-in screen reader support with MathSpeak-style formula descriptions.
+- **WYSIWYG Editor** *(Experimental)*: Built-in LaTeX editor with cursor positioning, tap-to-place, and real-time rendered preview.
 
 ## 📸 Rendering Preview
 
@@ -138,6 +139,26 @@ Latex(
 ```
 
 The `AccessibilityVisitor` converts the LaTeX AST into descriptive text covering fractions, roots, superscripts/subscripts, matrices, Greek letters, operators, and more.
+
+### WYSIWYG Editor (Experimental)
+
+> **Note**: The editor API is experimental and may change in future versions. All editor APIs require the `@ExperimentalComposeUiApi` annotation.
+
+The library includes a built-in WYSIWYG (What You See Is What You Get) LaTeX editor component. Users can edit LaTeX source text and see the rendered formula in real-time, with cursor position synchronized between the source and the rendered output.
+
+```kotlin
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun MyEditor() {
+    val editorState = rememberEditorState(initialText = "x^{2} + y^{2} = r^{2}")
+
+    LatexEditor(
+        editorState = editorState,
+        config = LatexConfig(fontSize = 20.sp),
+        showSourceText = true // Show source text input field
+    )
+}
+```
 
 ## 📦 Installation
 
