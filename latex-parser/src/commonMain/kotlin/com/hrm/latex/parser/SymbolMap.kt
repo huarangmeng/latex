@@ -58,7 +58,7 @@ object SymbolMap {
         "chi" to "χ",
         "psi" to "ψ",
         "omega" to "ω",
-        
+
         // 希腊字母（大写）
         "Gamma" to "Γ",
         "Delta" to "Δ",
@@ -71,7 +71,7 @@ object SymbolMap {
         "Phi" to "Φ",
         "Psi" to "Ψ",
         "Omega" to "Ω",
-        
+
         // 运算符
         "times" to "×",
         "div" to "÷",
@@ -96,7 +96,7 @@ object SymbolMap {
         "sqcap" to "⊓",
         "wr" to "≀",
         "amalg" to "∐",
-        
+
         // 关系符号
         "leq" to "≤",
         "le" to "≤",
@@ -133,7 +133,7 @@ object SymbolMap {
         "dashv" to "⊣",
         "top" to "⊤",
         "bot" to "⊥",
-        
+
         // 箭头
         "leftarrow" to "←",
         "rightarrow" to "→",
@@ -165,7 +165,7 @@ object SymbolMap {
         "leftharpoondown" to "↽",
         "rightharpoonup" to "⇀",
         "rightharpoondown" to "⇁",
-        
+
         // 集合符号
         "emptyset" to "∅",
         "varnothing" to "∅",
@@ -176,7 +176,7 @@ object SymbolMap {
         "forall" to "∀",
         "exists" to "∃",
         "nexists" to "∄",
-        
+
         // 逻辑符号
         "neg" to "¬",
         "lnot" to "¬",
@@ -186,7 +186,7 @@ object SymbolMap {
         "vee" to "∨",
         "implies" to "⟹",
         "iff" to "⟺",
-        
+
         // 微积分符号
         "infty" to "∞",
         "partial" to "∂",
@@ -195,7 +195,7 @@ object SymbolMap {
         "iint" to "∬",
         "iiint" to "∭",
         "oint" to "∮",
-        
+
         // 特殊符号
         "ldots" to "…",
         "cdots" to "⋯",
@@ -228,7 +228,7 @@ object SymbolMap {
         "diamondsuit" to "♢",
         "heartsuit" to "♡",
         "spadesuit" to "♠",
-        
+
         // 括号和分隔符
         "langle" to "⟨",
         "rangle" to "⟩",
@@ -244,7 +244,7 @@ object SymbolMap {
         "rVert" to "‖",
         "lbrace" to "{",
         "rbrace" to "}",
-        
+
         // 其他
         "sum" to "∑",
         "prod" to "∏",
@@ -260,22 +260,22 @@ object SymbolMap {
         "biguplus" to "⨄",
         "triangleright" to "▷",
         "triangleleft" to "◁",
-        
+
         // 钩箭头
         "hookrightarrow" to "↪",
         "hookleftarrow" to "↩",
-        
+
         // 半箭头（鱼叉箭头）
         "leftharpoonup" to "↼",
         "leftharpoondown" to "↽",
         "rightharpoonup" to "⇀",
         "rightharpoondown" to "⇁",
-        
+
         // 缺失的关系符号
         "mid" to "∣",
         "owns" to "∋"
     )
-    
+
     /**
      * 符号的英文可读名称映射（命令名 → 英文名）
      * 用于无障碍文本生成（屏幕阅读器朗读）
@@ -363,13 +363,15 @@ object SymbolMap {
         buildMap {
             for ((cmd, name) in accessibleNames) {
                 val unicode = symbols[cmd] ?: continue
-                put(unicode, name)
+                if (!containsKey(unicode)) {
+                    put(unicode, name)
+                }
             }
         }
     }
 
     fun getSymbol(name: String): String? = symbols[name]
-    
+
     fun getAllSymbols(): Map<String, String> = symbols
 
     /**
