@@ -66,7 +66,7 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
                     node.op,
                     context.copy(
                         fontStyle = FontStyle.Normal,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Serif
+                        fontFamily = context.fontFamilies?.main ?: context.fontFamily
                     ),
                     measurer,
                     density
@@ -255,7 +255,8 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         text: String, context: RenderContext, measurer: TextMeasurer
     ): NodeLayout {
         val textStyle = context.copy(
-            fontStyle = FontStyle.Normal, fontFamily = FontFamily.Serif,
+            fontStyle = FontStyle.Normal,
+            fontFamily = context.fontFamilies?.main ?: context.fontFamily,
             fontWeight = context.fontWeight ?: FontWeight.Normal
         ).textStyle()
         val result = measurer.measure(AnnotatedString(text), textStyle)

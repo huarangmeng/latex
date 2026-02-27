@@ -186,7 +186,7 @@ internal fun LatexConfig.toContext(
         fontSize = fontSize,
         color = resolvedColor,
         errorColor = resolvedErrorColor,
-        fontFamily = baseFontFamily,
+        fontFamily = baseFontFamily ?: fontFamilies.main,
         fontFamilies = fontFamilies,
         isVariantFontFamily = false,
         maxLineWidth = if (lineBreaking.enabled) lineBreaking.maxWidth else null,

@@ -84,8 +84,8 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
         }
 
         val isUnder = node.accentType == AccentType.UNDERLINE || node.accentType == AccentType.UNDERBRACE
-        val accentStyle = context.shrink(MathConstants.ACCENT_SCALE)
-        val textStyle = accentStyle.textStyle()
+        val accentContext = context.shrink(MathConstants.ACCENT_SCALE)
+        val textStyle = accentContext.textStyle()
         val result = measurer.measure(AnnotatedString(accentChar), textStyle)
         
         val (accentHeightScale, accentOffsetScale) = when (node.accentType) {

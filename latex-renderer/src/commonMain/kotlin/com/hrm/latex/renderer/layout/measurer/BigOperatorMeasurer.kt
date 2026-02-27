@@ -262,7 +262,11 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
                 MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT,
                 scaleFactor
             )
+            // 命名运算符 (\lim, \sin 等) 使用 main 字体正体渲染
+            // context.fontFamily 默认已是 fontFamilies.main（在 toContext() 中设置）
+            val fontFamily = context.fontFamilies?.main ?: context.fontFamily
             context.grow(scaleFactor).copy(
+                fontFamily = fontFamily,
                 fontStyle = FontStyle.Normal,
                 fontWeight = weight
             )

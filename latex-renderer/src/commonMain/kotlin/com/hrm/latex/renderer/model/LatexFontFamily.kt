@@ -105,7 +105,7 @@ data class LatexFontFamilies(
  */
 @Composable
 internal fun defaultLatexFontFamilies(): LatexFontFamilies {
-    // === 主字体 Main Font — 包含 4 种字重/样式 ===
+    // === 主字体 Main Font — KaTeX_Main 4 种字重/样式 ===
     val main = FontFamily(
         Font(Res.font.katex_main_regular, weight = FontWeight.Normal, style = FontStyle.Normal),
         Font(Res.font.katex_main_bold, weight = FontWeight.Bold, style = FontStyle.Normal),
@@ -113,23 +113,23 @@ internal fun defaultLatexFontFamilies(): LatexFontFamilies {
         Font(Res.font.katex_main_bolditalic, weight = FontWeight.Bold, style = FontStyle.Italic),
     )
 
-    // === 数学字体 Math Font — 斜体变量 ===
+    // === 数学字体 Math Font — KaTeX_Math 斜体变量 ===
     val math = FontFamily(
         Font(Res.font.katex_math_italic, weight = FontWeight.Normal, style = FontStyle.Italic),
         Font(Res.font.katex_math_bolditalic, weight = FontWeight.Bold, style = FontStyle.Italic),
     )
 
-    // === AMS 符号字体 ===
+    // === AMS 符号字体 — KaTeX_AMS ===
     val ams = FontFamily(Font(Res.font.katex_ams_regular))
 
-    // === 无衬线字体 ===
+    // === 无衬线字体 — KaTeX_SansSerif ===
     val sansSerif = FontFamily(
         Font(Res.font.katex_sansserif_regular, weight = FontWeight.Normal, style = FontStyle.Normal),
         Font(Res.font.katex_sansserif_bold, weight = FontWeight.Bold, style = FontStyle.Normal),
         Font(Res.font.katex_sansserif_italic, weight = FontWeight.Normal, style = FontStyle.Italic),
     )
 
-    // === 等宽字体 ===
+    // === 等宽字体 — KaTeX_Typewriter ===
     val monospace = FontFamily(Font(Res.font.katex_typewriter_regular))
 
     // === 装饰字体 ===
@@ -143,7 +143,7 @@ internal fun defaultLatexFontFamilies(): LatexFontFamilies {
     )
     val script = FontFamily(Font(Res.font.katex_script_regular))
 
-    // === 定界符尺寸字体 ===
+    // === 定界符尺寸字体 — KaTeX_Size1~4 ===
     val size1 = FontFamily(Font(Res.font.katex_size1_regular))
     val size2 = FontFamily(Font(Res.font.katex_size2_regular))
     val size3 = FontFamily(Font(Res.font.katex_size3_regular))
