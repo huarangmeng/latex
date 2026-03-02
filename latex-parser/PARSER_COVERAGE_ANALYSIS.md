@@ -497,6 +497,46 @@ x \in \R
 
 以下为待实现的功能，按优先级排列。每项完成后应将状态标记为 ✅ 并移至对应章节。
 
+### 🔴 高优先级（日常公式高频使用）
+
 | 状态 | 功能 | 命令 | 说明 |
 |------|------|------|------|
-| （暂无待实现项） | | | |
+| ⬜ | 星号环境变体 | `align*`, `equation*`, `gather*`, `multline*`, `eqnarray*` | 无编号公式最常用写法，当前 EnvironmentParser 精确匹配环境名，`*` 变体走入通用 fallback |
+| ⬜ | 自定义运算符 | `\operatorname{Tr}` | 线性代数、概率论高频使用，当前降级为显示 "operatorname" 文字 |
+| ⬜ | BigOperator 列表补全 | `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus` | SymbolMap 已有 Unicode 映射，但 CommandParser 未列入大型运算符分支，无法带上下限标注 |
+| ⬜ | 自适应省略号 | `\dots` | 最常用省略号命令，根据上下文自动选择 `\ldots` 或 `\cdots`，SymbolMap 缺少映射 |
+| ⬜ | 缺失重音命令 | `\grave`, `\acute`, `\check`, `\breve`, `\ring`, `\dddot` | FontResolver 已有部分字形定义，CommandParser accent 分支缺少映射 |
+| ⬜ | 取模运算符 | `\bmod`, `\pmod{n}`, `\mod` | 数论、密码学公式高频使用，如 `a \equiv b \pmod{n}` |
+
+### 🟡 中优先级（改善表格与特殊场景）
+
+| 状态 | 功能 | 命令 | 说明 |
+|------|------|------|------|
+| ⬜ | 表格竖线渲染 | `{|c|c|c|}` | array/tabular 对齐参数中的 `\|` 已解析为字符串但渲染时不绘制竖线 |
+| ⬜ | 表格水平线 | `\hline`, `\cline{1-2}` | 表格最常用分隔线命令，搭配竖线可实现完整表格样式 |
+| ⬜ | 不断开空格 | `~` | 等价于不可断行空格，人名/引用常见（如 `Fig.~1`），Tokenizer 当前视为普通文本 |
+| ⬜ | 注释处理 | `%` | `%` 后到行末内容应被忽略，粘贴带注释的 LaTeX 源码时会出问题 |
+| ⬜ | smash 可选参数 | `\smash[t]{x}`, `\smash[b]{x}` | 只压顶部/底部，精细排版场景使用 |
+| ⬜ | 合并单元格 | `\multicolumn{2}{c}{text}` | 表格常见需求，配合 hline 和竖线实现较完整表格渲染 |
+
+### 🟢 低优先级（锦上添花）
+
+| 状态 | 功能 | 命令 | 说明 |
+|------|------|------|------|
+| ⬜ | cases 变体环境 | `dcases`, `rcases` | mathtools 包提供，`dcases` 使用 displaystyle，`rcases` 右侧花括号 |
+| ⬜ | AMS 否定关系符号 | `\nleq`, `\ngeq`, `\nsubseteq`, `\nprec`, `\nsucc` 等 | amsmath 否定符号系列，学术论文偶尔使用 |
+| ⬜ | 额外常用符号 | `\checkmark`, `\complement`, `\eth`, `\mho`, `\twoheadrightarrow` 等 | 补全 AMS 符号表 |
+| ⬜ | 声明式运算符定义 | `\DeclareMathOperator{\Tr}{Tr}` | 允许用户在前言中定义自定义运算符，类似 `\newcommand` 但产出运算符 |
+| ⬜ | 运算符标记 | `\mathop{}` | 将任意内容标记为大型运算符（可带上下限），高级排版场景 |
+| ⬜ | 错误指示渲染 | — | 用 `errorColor` 标记无法识别的命令，而非静默降级为命令名文字 |
+| ⬜ | 其他对齐环境 | `flalign`, `alignat` | AMS 对齐环境变体，使用频率较低 |
+| ⬜ | 数学模式切换 | `$...$`, `$$...$$` | 支持混合文本+数学的完整 LaTeX 文档，会大幅增加复杂度 |
+
+### 📋 建议实施路线
+
+| 阶段 | 内容 | 预估工作量 |
+|------|------|-----------|
+| **第一批** | 星号环境 + BigOperator 补全 + `\dots` + 重音补全 | 小（主要是添加字符串映射） |
+| **第二批** | `\operatorname` + `\bmod`/`\pmod` + `~` + `%` | 中（需新增解析+渲染逻辑） |
+| **第三批** | 表格竖线 + `\hline` + `\multicolumn` | 中大（表格渲染改动较多） |
+| **第四批** | 低优先级功能按需选取 | 按需 |
