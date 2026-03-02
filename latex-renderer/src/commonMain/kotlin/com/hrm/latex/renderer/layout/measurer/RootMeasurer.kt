@@ -65,9 +65,12 @@ internal class RootMeasurer : NodeMeasurer<LatexNode.Root> {
         val indexLayout = node.index?.let { measureGroup(listOf(it), indexStyle) }
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
-        val ruleThickness = fontSizePx * MathConstants.FRACTION_RULE_THICKNESS
+        val provider = context.mathFontProvider
+        val ruleThickness = provider?.radicalRuleThickness(fontSizePx)
+            ?: (fontSizePx * MathConstants.FRACTION_RULE_THICKNESS)
         val strokeHalf = ruleThickness / 2f
-        val gap = ruleThickness * MathConstants.RADICAL_TOP_GAP_MULTIPLIER
+        val gap = provider?.radicalVerticalGap(fontSizePx)
+            ?: (ruleThickness * MathConstants.RADICAL_TOP_GAP_MULTIPLIER)
         val extraTop = gap + ruleThickness
 
         val hookWidth = fontSizePx * MathConstants.RADICAL_HOOK_WIDTH

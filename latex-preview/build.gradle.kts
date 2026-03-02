@@ -13,6 +13,7 @@ kotlin {
     androidLibrary {
         namespace = "com.hrm.latex.preview"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
+        androidResources.enable = true
 
         withJava()
         withHostTestBuilder {}.configure {}

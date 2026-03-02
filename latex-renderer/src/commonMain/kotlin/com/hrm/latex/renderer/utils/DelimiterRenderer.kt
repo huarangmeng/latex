@@ -27,6 +27,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
+import com.hrm.latex.renderer.font.MathFontProvider
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
@@ -38,16 +39,16 @@ import com.hrm.latex.renderer.model.textStyle
  * 消除 DelimiterMeasurer / MatrixMeasurer 等多处重复的
  * `measureDelimiterScaled()` 实现。
  *
- * 设计理由（KaTeX 字体方案）：
- * - KaTeX 提供 Size1~4 四套独立设计的定界符字体，每套字形大小不同但笔画粗细一致。
- * - 自动伸缩策略：Main → Size1 → Size2 → Size3 → Size4 逐级尝试，选能包含内容的最小字形。
- * - 若 Size4 仍不够高，则对 Size4 字形进行 fontSize 微调缩放。
- * - 此处不做 Path 手绘，所有定界符均使用字体字形渲染。
+ * 支持两种渲染路径：
+ * 1. OTF 路径：通过 MathFontProvider.verticalVariants() 获取 MATH 表中的字形变体，
+ *    选择高度足够的最小变体；所有变体都不够时，对最大变体做 fontSize 缩放兜底。
+ * 2. TTF 路径（KaTeX 字体方案）：Main → Size1 → Size2 → Size3 → Size4 逐级尝试。
+ *    此处不做 Path 手绘，所有定界符均使用字体字形渲染。
  */
 internal object DelimiterRenderer {
 
     /**
-     * 逐级尝试的字体级别列表
+     * 逐级尝试的字体级别列表（TTF 路径）
      *
      * 按 KaTeX 规范：Main → Size1 → Size2 → Size3 → Size4
      */
@@ -67,10 +68,8 @@ internal object DelimiterRenderer {
     /**
      * 测量并缩放定界符至目标高度
      *
-     * KaTeX 策略：
-     * 1. 从 Main → Size1 → Size2 → Size3 → Size4 逐级测量
-     * 2. 选择高度 >= targetHeight 的最小尺寸字形
-     * 3. 如果 Size4 仍不够高，对 Size4 做 fontSize 等比缩放
+     * 优先使用 OTF 路径（MathFontProvider.verticalVariants()），
+     * 无 MathFontProvider 或无变体时回退到 TTF 路径（KaTeX Size1~4）。
      *
      * @param delimiter 定界符字符串 (如 "(", "[", "{", "|", "‖")
      * @param context 当前渲染上下文
@@ -85,10 +84,81 @@ internal object DelimiterRenderer {
         targetHeight: Float
     ): NodeLayout {
         val glyph = FontResolver.resolveDelimiterGlyph(delimiter, context.fontFamilies)
+
+        if (targetHeight <= 0f) {
+            return measureText(glyph, FontResolver.delimiterContext(context, delimiter), measurer)
+        }
+
+        // 优先尝试 OTF 路径：通过 MATH 表的 verticalVariants 选择最佳字形
+        val provider = context.mathFontProvider
+        if (provider != null) {
+            val result = measureScaledWithProvider(glyph, context, measurer, targetHeight, provider)
+            if (result != null) return result
+        }
+
+        // 回退到 TTF 路径：KaTeX Size1~4 逐级尝试
+        return measureScaledWithSizeLevels(glyph, context, measurer, targetHeight)
+    }
+
+    /**
+     * OTF 路径：通过 MathFontProvider.verticalVariants() 选择字形变体
+     *
+     * @return 成功时返回 NodeLayout；无变体数据时返回 null（由调用方回退到 TTF 路径）
+     */
+    private fun measureScaledWithProvider(
+        glyph: String,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        targetHeight: Float,
+        provider: MathFontProvider
+    ): NodeLayout? {
+        val fontSizePx = context.fontSize.value  // sp value, 近似为 px
+        val variants = provider.verticalVariants(glyph, fontSizePx)
+        if (variants.isEmpty()) return null
+
+        // 逐级尝试从小到大的变体，选择高度 >= targetHeight 的最小变体
+        for (variant in variants) {
+            val variantContext = context.copy(
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Normal,
+                fontFamily = variant.fontFamily,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+            )
+            val layout = measureText(variant.glyphChar, variantContext, measurer)
+            if (layout.height >= targetHeight) {
+                return layout
+            }
+        }
+
+        // 所有预设变体都不够高 → 对最大变体做 fontSize 缩放兜底
+        val largest = variants.last()
+        val largestContext = context.copy(
+            fontStyle = androidx.compose.ui.text.font.FontStyle.Normal,
+            fontFamily = largest.fontFamily,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+        )
+        val largestLayout = measureText(largest.glyphChar, largestContext, measurer)
+        if (largestLayout.height <= 0f) return largestLayout
+
+        val scale = targetHeight / largestLayout.height
+        val scaledContext = largestContext.copy(
+            fontSize = context.fontSize * scale
+        )
+        return measureText(largest.glyphChar, scaledContext, measurer)
+    }
+
+    /**
+     * TTF 路径：KaTeX Size1~4 逐级尝试
+     */
+    private fun measureScaledWithSizeLevels(
+        glyph: String,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        targetHeight: Float
+    ): NodeLayout {
         val fontFamilies = context.fontFamilies
 
-        if (fontFamilies == null || targetHeight <= 0f) {
-            return measureText(glyph, FontResolver.delimiterContext(context, delimiter), measurer)
+        if (fontFamilies == null) {
+            return measureText(glyph, FontResolver.delimiterContext(context, glyph), measurer)
         }
 
         // 逐级尝试 Main → Size1 → Size2 → Size3 → Size4
@@ -104,11 +174,9 @@ internal object DelimiterRenderer {
             )
             val layout = measureText(glyph, levelContext, measurer)
 
-            // 记录每一级的结果，最后选择合适的
             bestLayout = layout
             bestContext = levelContext
 
-            // 如果该级字形已经足够高，直接使用
             if (layout.height >= targetHeight) {
                 return layout
             }

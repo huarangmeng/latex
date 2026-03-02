@@ -23,11 +23,7 @@
 package com.hrm.latex.renderer.export
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -45,9 +41,6 @@ import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LatexFontFamilies
 import com.hrm.latex.renderer.model.defaultLatexFontFamilies
 import com.hrm.latex.renderer.model.toContext
-import com.hrm.latex.renderer.utils.FontBytesCache
-import org.jetbrains.compose.resources.getFontResourceBytes
-import org.jetbrains.compose.resources.getSystemResourceEnvironment
 import kotlin.math.ceil
 
 private const val TAG = "LatexExporter"
@@ -94,8 +87,7 @@ private const val TAG = "LatexExporter"
 class LatexExporterState internal constructor(
     private val density: Density,
     private val textMeasurer: androidx.compose.ui.text.TextMeasurer,
-    private val fontFamilies: LatexFontFamilies,
-    internal var fontBytesCache: FontBytesCache?
+    private val fontFamilies: LatexFontFamilies
 ) {
     private val parser = IncrementalLatexParser()
 
@@ -132,14 +124,12 @@ class LatexExporterState internal constructor(
             val scale = exportConfig.scale.coerceIn(0.5f, 8f)
             val format = exportConfig.format
             val quality = exportConfig.quality.coerceIn(1, 100)
-            val resolvedFontFamilies = config.fontFamilies ?: fontFamilies
+            val resolvedFontFamilies = config.mathFont.fontFamiliesOrNull() ?: fontFamilies
 
             // 核心：用放大后的 fontSize 创建渲染上下文，而非用 Canvas scale
             // 这样 TextMeasurer 会以目标字号测量文本，字体引擎以正确字号光栅化
             val scaledConfig = config.copy(fontSize = config.fontSize * scale)
-            val context = scaledConfig.toContext(isDarkTheme, resolvedFontFamilies).let {
-                if (fontBytesCache != null) it.copy(fontBytesCache = fontBytesCache) else it
-            }
+            val context = scaledConfig.toContext(isDarkTheme, resolvedFontFamilies)
 
             // 使用 LatexRenderer 共享逻辑进行测量（与 LatexDocument 同一份代码）
             val renderResult = LatexRenderer.measure(
@@ -221,37 +211,14 @@ fun rememberLatexExporter(
 ): LatexExporterState {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val fontFamilies = config.fontFamilies ?: defaultLatexFontFamilies()
+    val fontFamilies = config.mathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
 
     val exporter = remember(density, textMeasurer, fontFamilies) {
         LatexExporterState(
             density = density,
             textMeasurer = textMeasurer,
-            fontFamilies = fontFamilies,
-            fontBytesCache = null
+            fontFamilies = fontFamilies
         )
-    }
-
-    // 异步加载字体字节数据
-    LaunchedEffect(fontFamilies) {
-        if (exporter.fontBytesCache == null) {
-            exporter.fontBytesCache = try {
-                val environment = getSystemResourceEnvironment()
-                val mainBytes = fontFamilies.mainResource?.let {
-                    getFontResourceBytes(environment, it)
-                }
-                val mathBytes = fontFamilies.mathResource?.let {
-                    getFontResourceBytes(environment, it)
-                }
-                val size1Bytes = fontFamilies.size1Resource?.let {
-                    getFontResourceBytes(environment, it)
-                }
-                FontBytesCache(mainBytes, mathBytes, size1Bytes)
-            } catch (e: Exception) {
-                HLog.e(TAG, "字体字节加载失败", e)
-                null
-            }
-        }
     }
 
     return exporter

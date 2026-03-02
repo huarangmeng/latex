@@ -37,6 +37,10 @@ import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.grow
 import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.model.toLimitStyle
+import com.hrm.latex.base.log.HLog
+import com.hrm.latex.renderer.font.GlyphVariant
+import com.hrm.latex.renderer.font.MathFontProvider
+import com.hrm.latex.renderer.font.MathFontRole
 import com.hrm.latex.renderer.utils.FontResolver
 import com.hrm.latex.renderer.utils.InkBoundsEstimator
 import com.hrm.latex.renderer.utils.InkFontCategory
@@ -59,6 +63,10 @@ import kotlin.math.pow
  */
 internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
 
+    private companion object {
+        const val TAG = "BigOperatorMeasurer"
+    }
+
     override fun measure(
         node: LatexNode.BigOperator,
         context: RenderContext,
@@ -71,14 +79,48 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val isIntegral = node.operator.contains("int")
         val isNamedOperator = symbol == node.operator && symbol.all { it.isLetter() }
 
-        // KaTeX 字体使用标准 Unicode 编码，直接使用 Unicode 字符渲染
         val renderSymbol = symbol
 
         val useSideMode = resolveLimitsMode(node, isIntegral, isNamedOperator, context)
-        val scaleFactor = resolveScaleFactor(context, useSideMode, isIntegral)
-
-        val opStyle = buildOperatorStyle(context, isNamedOperator, scaleFactor)
         val limitStyle = context.toLimitStyle()
+
+        // ── OTF 路径：通过 MATH 表 verticalVariants 选择预设字形变体 ──
+        // 仅在 provider 具备真实字形变体数据（OTF MATH 表）时使用，
+        // TTF 模式的估算变体不适用于大型运算符，走原有 fontSize 缩放策略
+        val provider = context.mathFontProvider
+        HLog.d(TAG, "measure: symbol=$renderSymbol, isIntegral=$isIntegral, " +
+                "provider=${provider?.let { it::class.simpleName }}, " +
+                "hasGlyphVariants=${provider?.hasGlyphVariants}")
+        if (!isNamedOperator && provider != null && provider.hasGlyphVariants) {
+            val opLayout = measureWithVariants(
+                renderSymbol, context, measurer, density, provider, isIntegral
+            )
+            HLog.d(TAG, "OTF path: opLayout=${opLayout != null}, " +
+                    "size=${opLayout?.let { "${it.width}x${it.height}" }}")
+            if (opLayout != null) {
+                val superLayout = node.superscript?.let { measureGroup(listOf(it), limitStyle) }
+                val subLayout = node.subscript?.let { measureGroup(listOf(it), limitStyle) }
+                val fontSizePx = with(density) { context.fontSize.toPx() }
+                val opVisualHeight = opLayout.height
+
+                return if (useSideMode) {
+                    layoutSideMode(
+                        context, density, measurer, opLayout, superLayout, subLayout,
+                        isIntegral, isNamedOperator, opVisualHeight, symbol
+                    )
+                } else {
+                    layoutDisplayMode(
+                        context, density, measurer, opLayout, superLayout, subLayout,
+                        isNamedOperator
+                    )
+                }
+            }
+        }
+
+        // ── TTF 回退路径：fontSize 缩放 + Canvas scale（保持原有逻辑） ──
+        HLog.d(TAG, "TTF fallback path: symbol=$renderSymbol")
+        val scaleFactor = resolveScaleFactor(context, useSideMode, isIntegral)
+        val opStyle = buildOperatorStyle(context, isNamedOperator, scaleFactor)
 
         // ── 积分混合拉伸策略 ──
         // 目标：将总高度拉伸分解为 fontSize 均匀放大 + 剩余垂直 Canvas scale
@@ -93,7 +135,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         }
         val baseFontBytes = when {
             isNamedOperator -> null
-            else -> context.fontBytesCache?.mainBytes  // KaTeX_Main 包含大型运算符
+            else -> provider?.fontBytes(MathFontRole.LARGE_OPERATOR)
+                ?: context.fontFamilies?.mainBytes
         }
         val baseFontSizePx = with(density) { opStyle.fontSize.toPx() }
         val baseFontWeightVal = opStyle.fontWeight?.weight ?: 400
@@ -215,6 +258,114 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         }
     }
 
+    /**
+     * OTF 路径：通过 MATH 表 verticalVariants 选择大型运算符的预设字形变体。
+     *
+     * OTF MATH 表通常为大型运算符提供 2 个变体：
+     * - 变体 0 (text-size): TEXT/SCRIPT 模式使用
+     * - 变体 1 (display-size): DISPLAY 模式使用
+     *
+     * 对于积分符号，如果有 bigOpHeightHint，选择高度 >= targetHeight 的最小变体；
+     * 若所有变体都不够高，对最大变体做 fontSize 缩放兜底。
+     *
+     * @return 成功时返回 NodeLayout；无变体数据时返回 null（调用方回退到 TTF 路径）
+     */
+    private fun measureWithVariants(
+        renderSymbol: String,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        density: Density,
+        provider: MathFontProvider,
+        isIntegral: Boolean
+    ): NodeLayout? {
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val variants = provider.verticalVariants(renderSymbol, fontSizePx)
+        HLog.d(TAG, "measureWithVariants: symbol=$renderSymbol, fontSizePx=$fontSizePx, " +
+                "variantsCount=${variants.size}, " +
+                "variants=${variants.map { "'${it.glyphChar}'(h=${it.advanceMeasurement})" }}")
+        if (variants.isEmpty()) return null
+
+        // 构建基础测量样式（OTF 模式下不需要 FontWeight 补偿和 fontSize 缩放）
+        val baseVariantContext = context.copy(
+            fontStyle = FontStyle.Normal,
+            fontWeight = null
+        )
+
+        if (isIntegral && context.mathStyle == MathStyle.DISPLAY) {
+            // 积分符号：根据高度暗示选择最佳变体
+            return measureIntegralWithVariants(
+                variants, baseVariantContext, measurer, density, context
+            )
+        }
+
+        // 非积分运算符（∑∏⋂⋃ 等）：DISPLAY 模式选 display-size，其他选 text-size
+        val variantIndex = if (context.mathStyle == MathStyle.DISPLAY && variants.size > 1) 1 else 0
+        val variant = variants[variantIndex.coerceAtMost(variants.lastIndex)]
+
+        val variantContext = baseVariantContext.copy(fontFamily = variant.fontFamily)
+        val result = measurer.measure(AnnotatedString(variant.glyphChar), variantContext.textStyle())
+        val width = result.size.width.toFloat()
+        val height = result.size.height.toFloat()
+        val baseline = result.firstBaseline
+
+        return NodeLayout(width, height, baseline) { x, y ->
+            drawText(result, topLeft = Offset(x, y))
+        }
+    }
+
+    /**
+     * 积分符号的 OTF 变体选择：综合考虑 display-size 变体和 bigOpHeightHint。
+     *
+     * 策略：
+     * 1. DISPLAY 模式优先选择 display-size 变体（通常是变体列表中的最后一个）
+     * 2. 如果有 bigOpHeightHint 且某个中间变体已满足高度要求，选该中间变体
+     * 3. OTF 字体的预设变体由字体设计师精心调校，不做 fontSize 缩放兜底。
+     *    如果最大预设变体仍不够高，直接使用该变体——这是字体设计师认为的最佳尺寸。
+     *    过度缩放会导致积分符号与周围文字不协调（笔画变粗、比例失调）。
+     */
+    private fun measureIntegralWithVariants(
+        variants: List<GlyphVariant>,
+        baseContext: RenderContext,
+        measurer: TextMeasurer,
+        density: Density,
+        originalContext: RenderContext
+    ): NodeLayout? {
+        val fontSizePx = with(density) { originalContext.fontSize.toPx() }
+
+        // 计算目标高度（仅用于在多个变体间选择，不用于 fontSize 缩放）
+        val targetHeight = if (originalContext.bigOpHeightHint != null) {
+            originalContext.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
+        } else {
+            // 无高度暗示时，使用 display-size 变体的自然高度
+            fontSizePx * MathConstants.INTEGRAL_MIN_VERTICAL_SCALE
+        }
+
+        // 逐级尝试从小到大的变体，选择满足 targetHeight 的最小变体
+        var bestResult: Pair<NodeLayout, GlyphVariant>? = null
+        for (variant in variants) {
+            val variantContext = baseContext.copy(fontFamily = variant.fontFamily)
+            val result = measurer.measure(
+                AnnotatedString(variant.glyphChar), variantContext.textStyle()
+            )
+            val height = result.size.height.toFloat()
+            val layout = NodeLayout(
+                result.size.width.toFloat(), height, result.firstBaseline
+            ) { x, y ->
+                drawText(result, topLeft = Offset(x, y))
+            }
+            bestResult = layout to variant
+            if (height >= targetHeight) {
+                return layout
+            }
+        }
+
+        // 所有预设变体都不够高 → 直接使用最大变体（不做 fontSize 缩放）
+        // OTF 字体的 display-size 变体已经是字体设计师认为的最佳大小，
+        // 强制缩放会导致笔画变粗、与周围文字不协调
+        val (largestLayout, _) = bestResult ?: return null
+        return largestLayout
+    }
+
     private fun resolveLimitsMode(
         node: LatexNode.BigOperator,
         isIntegral: Boolean,
@@ -248,32 +399,21 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         isNamedOperator: Boolean,
         scaleFactor: Float
     ): RenderContext {
-        return if (!isNamedOperator) {
-            val weight = FontResolver.compensatedFontWeight(
-                MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT,
-                scaleFactor
-            )
-            // KaTeX 字体：大型运算符 (∑, ∫ 等) 均在 KaTeX_Main 中，使用标准 Unicode
-            val fontFamily = context.fontFamilies?.main ?: context.fontFamily
-            context.grow(scaleFactor).copy(
-                fontFamily = fontFamily,
-                fontStyle = FontStyle.Normal,
-                fontWeight = weight
-            )
-        } else {
-            val weight = FontResolver.compensatedFontWeight(
-                MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT,
-                scaleFactor
-            )
-            // 命名运算符 (\lim, \sin 等) 使用 main 字体正体渲染
-            // context.fontFamily 默认已是 fontFamilies.main（在 toContext() 中设置）
-            val fontFamily = context.fontFamilies?.main ?: context.fontFamily
-            context.grow(scaleFactor).copy(
-                fontFamily = fontFamily,
-                fontStyle = FontStyle.Normal,
-                fontWeight = weight
-            )
-        }
+        val weight = FontResolver.compensatedFontWeight(
+            MathConstants.BIG_OP_SYMBOL_BASE_WEIGHT,
+            scaleFactor
+        )
+        // 优先通过 MathFontProvider 获取字体（OTF 模式下返回 OTF FontFamily）
+        // 命名运算符使用 ROMAN 角色，符号运算符使用 LARGE_OPERATOR 角色
+        val role = if (isNamedOperator) MathFontRole.ROMAN else MathFontRole.LARGE_OPERATOR
+        val fontFamily = context.mathFontProvider?.fontFamilyFor(role)
+            ?: context.fontFamilies?.main
+            ?: context.fontFamily
+        return context.grow(scaleFactor).copy(
+            fontFamily = fontFamily,
+            fontStyle = FontStyle.Normal,
+            fontWeight = weight
+        )
     }
 
     private fun layoutSideMode(
@@ -326,7 +466,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val limitGap = when {
             isIntegral -> 0f
             isNamedOperator -> fontSizePx * MathConstants.NAMED_OP_LIMIT_GAP * 2.5f
-            else -> fontSizePx * MathConstants.SYMBOL_OP_LIMIT_GAP
+            else -> context.mathFontProvider?.upperLimitGapMin(fontSizePx)
+                ?: (fontSizePx * MathConstants.SYMBOL_OP_LIMIT_GAP)
         }
 
         // 积分上下标定位：基于拉伸后的 glyph 墨水区域
@@ -388,7 +529,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val spacing = if (isNamedOperator) {
             fontSizePx * MathConstants.NAMED_OP_LIMIT_GAP
         } else {
-            fontSizePx * MathConstants.SYMBOL_OP_LIMIT_GAP
+            context.mathFontProvider?.upperLimitGapMin(fontSizePx)
+                ?: (fontSizePx * MathConstants.SYMBOL_OP_LIMIT_GAP)
         }
 
         val maxWidth = max(opLayout.width, max(superLayout?.width ?: 0f, subLayout?.width ?: 0f))

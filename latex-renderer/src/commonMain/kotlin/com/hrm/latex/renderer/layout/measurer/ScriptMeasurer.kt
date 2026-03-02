@@ -181,8 +181,11 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         val otherScriptLayout = measureGlobal(otherScriptNode, scriptStyle)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
-        val superscriptShift = fontSizePx * MathConstants.SUPERSCRIPT_SHIFT
-        val subscriptShift = fontSizePx * MathConstants.SUBSCRIPT_SHIFT
+        val provider = context.mathFontProvider
+        val superscriptShift = provider?.superscriptShiftUp(fontSizePx)
+            ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+        val subscriptShift = provider?.subscriptShiftDown(fontSizePx)
+            ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
         val scriptX =
             realBaseLayout.width + with(density) { MathConstants.SCRIPT_KERN_DP.dp.toPx() }
 
@@ -225,8 +228,11 @@ internal class ScriptMeasurer : NodeMeasurer<LatexNode> {
         val scriptLayout = measureGlobal(scriptNode, scriptStyle)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
-        val superscriptShift = fontSizePx * MathConstants.SUPERSCRIPT_SHIFT
-        val subscriptShift = fontSizePx * MathConstants.SUBSCRIPT_SHIFT
+        val provider = context.mathFontProvider
+        val superscriptShift = provider?.superscriptShiftUp(fontSizePx)
+            ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+        val subscriptShift = provider?.subscriptShiftDown(fontSizePx)
+            ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
         val scriptX = baseLayout.width + with(density) { MathConstants.SCRIPT_KERN_DP.dp.toPx() }
         val scriptRelY = if (isSuper) -superscriptShift else subscriptShift
 

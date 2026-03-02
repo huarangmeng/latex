@@ -31,7 +31,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.hrm.latex.parser.model.LatexNode
-import com.hrm.latex.renderer.utils.FontBytesCache
+import com.hrm.latex.renderer.font.MathFont
+import com.hrm.latex.renderer.font.MathFontProvider
+import com.hrm.latex.renderer.font.MathFontProviderFactory
 import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.parseColor
 
@@ -73,11 +75,30 @@ data class LatexConfig(
     val darkColor: Color = Color.White,
     val backgroundColor: Color = Color.Transparent,
     val darkBackgroundColor: Color = Color.Transparent,
-    val baseFontFamily: FontFamily? = null,
-    val fontFamilies: LatexFontFamilies? = null,
     val lineBreaking: LineBreakingConfig = LineBreakingConfig(),
     val highlight: HighlightConfig = HighlightConfig(),
-    val accessibilityEnabled: Boolean = false
+    val accessibilityEnabled: Boolean = false,
+    /**
+     * 数学字体配置（唯一的字体入口）。决定排版参数和字体的来源。
+     *
+     * - [MathFont.Default]：使用内置的 KaTeX TTF 字体集（默认，不改变现有行为）
+     * - [MathFont.OTF]：使用带 MATH 表的 OTF 字体（更高精度排版）
+     * - [MathFont.TTF]：使用自定义的 TTF 字体集
+     *
+     * 使用示例：
+     * ```kotlin
+     * // 默认（KaTeX 内置字体）
+     * LatexConfig()
+     *
+     * // 使用带 MATH 表的 OTF 字体
+     * val stixBytes = context.assets.open("STIXTwoMath.otf").readBytes()
+     * val stixFamily = FontFamily(Font(stixBytes))
+     * LatexConfig(mathFont = MathFont.OTF(stixBytes, stixFamily))     *
+     * // 使用自定义 TTF 字体集
+     * LatexConfig(mathFont = MathFont.TTF(customFontFamilies))
+     * ```
+     */
+    val mathFont: MathFont = MathFont.Default,
 )
 
 /**
@@ -163,12 +184,16 @@ internal data class RenderContext(
     val bigOpHeightHint: Float? = null,
     val maxLineWidth: Float? = null,
     val lineBreakingEnabled: Boolean = false,
-    val fontBytesCache: FontBytesCache? = null,
-    val highlightRanges: List<HighlightRange> = emptyList()
+    val highlightRanges: List<HighlightRange> = emptyList(),
+    /** 数学字体排版参数提供者 */
+    val mathFontProvider: MathFontProvider? = null,
 )
 
 /**
  * 从外部配置创建初始上下文
+ *
+ * @param isDark 是否深色模式
+ * @param fontFamilies 已解析的字体家族（由调用方通过 mathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies() 提供）
  */
 internal fun LatexConfig.toContext(
     isDark: Boolean,
@@ -182,16 +207,23 @@ internal fun LatexConfig.toContext(
 
     val resolvedErrorColor = if (isDark) Color(0xFFFF6666) else Color(0xFFCC0000)
 
+    // 从 mathFont 配置创建 MathFontProvider
+    val provider = MathFontProviderFactory.create(
+        mathFont = mathFont,
+        defaultFontFamilies = fontFamilies
+    )
+
     return RenderContext(
         fontSize = fontSize,
         color = resolvedColor,
         errorColor = resolvedErrorColor,
-        fontFamily = baseFontFamily ?: fontFamilies.main,
+        fontFamily = fontFamilies.main,
         fontFamilies = fontFamilies,
         isVariantFontFamily = false,
         maxLineWidth = if (lineBreaking.enabled) lineBreaking.maxWidth else null,
         lineBreakingEnabled = lineBreaking.enabled,
-        highlightRanges = highlight.ranges
+        highlightRanges = highlight.ranges,
+        mathFontProvider = provider
     )
 }
 

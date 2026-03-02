@@ -27,28 +27,19 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
-import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.LayoutMap
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.defaultLatexFontFamilies
 import com.hrm.latex.renderer.model.toContext
-import com.hrm.latex.renderer.utils.FontBytesCache
-import org.jetbrains.compose.resources.getFontResourceBytes
-import org.jetbrains.compose.resources.getSystemResourceEnvironment
-
-private const val TAG = "LatexEditorCanvas"
 
 /**
  * 编辑器渲染结果信息
@@ -99,34 +90,11 @@ fun LatexEditorCanvas(
     } else {
         config.backgroundColor
     }
-    val fontFamilies = config.fontFamilies ?: defaultLatexFontFamilies()
+    val fontFamilies = config.mathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
 
-    // 异步加载字体字节数据
-    var fontBytesCache by remember { mutableStateOf<FontBytesCache?>(null) }
-    LaunchedEffect(fontFamilies) {
-        if (fontBytesCache == null) {
-            fontBytesCache = try {
-                val environment = getSystemResourceEnvironment()
-                val mainBytes = fontFamilies.mainResource?.let {
-                    getFontResourceBytes(environment, it)
-                }
-                val mathBytes = fontFamilies.mathResource?.let {
-                    getFontResourceBytes(environment, it)
-                }
-                val size1Bytes = fontFamilies.size1Resource?.let {
-                    getFontResourceBytes(environment, it)
-                }
-                FontBytesCache(mainBytes, mathBytes, size1Bytes)
-            } catch (e: Exception) {
-                HLog.e(TAG, "字体字节加载失败", e)
-                null
-            }
-        }
-    }
-
-    val context = config.toContext(isDarkTheme, fontFamilies).let {
-        if (fontBytesCache != null) it.copy(fontBytesCache = fontBytesCache) else it
-    }
+    // fontFamilies 中的 bytes 字段已由 MathFont.OTF 构造时同步注入，
+    // 或由 MathFont.Default/TTF 的调用方在外部设置。无需二次异步加载。
+    val context = config.toContext(isDarkTheme, fontFamilies)
 
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current

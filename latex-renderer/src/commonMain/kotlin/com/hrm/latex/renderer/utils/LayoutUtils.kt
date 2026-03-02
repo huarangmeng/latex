@@ -41,22 +41,25 @@ internal object LayoutUtils {
      * @return 数学轴相对于基线的偏移量（向上为正）
      */
     fun getAxisHeight(density: Density, context: RenderContext, measurer: TextMeasurer): Float {
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+
+        // 优先使用 MathFontProvider（OTF MATH 表提供精确值）
+        context.mathFontProvider?.let { provider ->
+            val axisFromFont = provider.axisHeight(fontSizePx)
+            if (axisFromFont > 0f) return axisFromFont
+        }
+
+        // Fallback: 测量减号的垂直中心
         val style = context.textStyle()
         val minusResult = measurer.measure("-", style)
-        
-        // 数学轴是减号的垂直中心
-        // axisHeight = baseline - (height / 2)
         val axisHeight = minusResult.firstBaseline - (minusResult.size.height / 2f)
 
-        // 合理性检查：防止字体度量异常
-        val fontSizePx = with(density) { context.fontSize.toPx() }
         val minReasonable = fontSizePx * 0.1f
         val maxReasonable = fontSizePx * 0.5f
 
         return if (axisHeight in minReasonable..maxReasonable) {
             axisHeight
         } else {
-            // 回退到默认比例
             fontSizePx * MathConstants.MATH_AXIS_HEIGHT_RATIO
         }
     }

@@ -65,8 +65,11 @@ internal class FractionMeasurer : NodeMeasurer<LatexNode.Fraction> {
         val denominatorLayout = measureGroup(listOf(node.denominator), childStyle)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
-        val ruleThickness = fontSizePx * MathConstants.FRACTION_RULE_THICKNESS
-        val gap = fontSizePx * MathConstants.FRACTION_GAP
+        val provider = context.mathFontProvider
+        val ruleThickness = provider?.fractionRuleThickness(fontSizePx)
+            ?: (fontSizePx * MathConstants.FRACTION_RULE_THICKNESS)
+        val gap = provider?.fractionNumeratorGap(fontSizePx)
+            ?: (fontSizePx * MathConstants.FRACTION_GAP)
         val inset = fontSizePx * MathConstants.FRACTION_RULE_INSET
 
         val width = max(numeratorLayout.width, denominatorLayout.width) + gap
