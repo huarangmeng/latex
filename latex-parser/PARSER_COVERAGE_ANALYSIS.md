@@ -74,10 +74,32 @@
 - ✅ 无穷: ∞
 - ✅ 其他: ∂, ∇, ℓ, ℏ, ℜ, ℑ, ∠, ∟, ⊥, ∥, △
 
+#### AMS 否定关系符号
+- ✅ `\nleq`, `\ngeq` 否定不等式
+- ✅ `\nsubseteq`, `\nsupseteq` 否定集合关系
+- ✅ `\nprec`, `\nsucc` 否定序关系
+- ✅ `\ncong`, `\nsim` 否定相似/全等
+- ✅ `\nmid`, `\nparallel` 否定整除/平行
+- ✅ `\nvdash`, `\nvDash`, `\nVdash`, `\nVDash` 否定推导
+- ✅ `\ntriangleleft`, `\ntriangleright`, `\ntrianglelefteq`, `\ntrianglerighteq` 否定三角关系
+- ✅ `\nless`, `\ngtr` 否定比较
+- ✅ `\leqslant`, `\geqslant` 等 AMS 额外关系符号
+- ✅ `\vDash`, `\Vdash`, `\Vvdash`, `\models` 逻辑推导
+
+#### AMS 额外常用符号
+- ✅ `\checkmark` ✓, `\complement` ∁, `\eth` ð, `\mho` ℧
+- ✅ `\twoheadrightarrow` ↠, `\twoheadleftarrow` ↞ 双头箭头
+- ✅ `\leftleftarrows`, `\rightrightarrows`, `\leftrightarrows`, `\rightleftarrows` 双线箭头
+- ✅ `\curvearrowright`, `\curvearrowleft`, `\circlearrowright`, `\circlearrowleft` 弯曲箭头
+- ✅ `\lessdot`, `\gtrdot`, `\lll`, `\ggg` 特殊关系
+- ✅ `\blacksquare`, `\square`, `\lozenge`, `\blacktriangle`, `\blacktriangledown` 几何符号
+- ✅ `\aleph`, `\beth`, `\gimel`, `\daleth` 希伯来字母
+- ✅ `\angle`, `\measuredangle`, `\sphericalangle` 角度符号
+
 ### ❌ 缺失
 - 无
 
-**覆盖率**: 100+/100+ (100%)
+**覆盖率**: 130+/130+ (100%)
 
 ---
 
@@ -249,6 +271,8 @@
 - ✅ `\textstyle` 文本模式（正常大小）
 - ✅ `\scriptstyle` 脚本模式（上下标大小）
 - ✅ `\scriptscriptstyle` 小脚本模式（二级上下标大小）
+- ✅ `$...$` 行内数学模式（嵌入文本中的公式，使用 textstyle）
+- ✅ `$$...$$` 展示数学模式（独立行公式，使用 displaystyle）
 
 **特性说明：**
 - 支持字体大小切换：displaystyle (1.0x) → textstyle (1.0x) → scriptstyle (0.7x) → scriptscriptstyle (0.5x)
@@ -272,7 +296,7 @@
 x^{\sum_{i=1}^{n}}
 ```
 
-**覆盖率**: 4/4 (100%) ✅
+**覆盖率**: 6/6 (100%) ✅
 
 ---
 
@@ -316,10 +340,18 @@ x^{\sum_{i=1}^{n}}
 - ✅ `multline*` 无编号多行环境
 - ✅ `eqnarray*` 无编号方程数组
 
+#### cases 变体环境
+- ✅ `dcases` displaystyle cases（mathtools 包）
+- ✅ `rcases` 右花括号 cases（mathtools 包）
+
+#### 其他对齐环境
+- ✅ `flalign`, `flalign*` 全宽对齐环境
+- ✅ `alignat`, `alignat*` 指定列数对齐环境
+
 ### ❌ 缺失
 - 无
 
-**覆盖率**: 15/15 (100%)
+**覆盖率**: 21/21 (100%)
 
 ---
 
@@ -411,6 +443,13 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\pmod{n}` 括号取模（如 `a \equiv b \pmod{n}`，渲染为 "(mod n)"）
 - ✅ `\mod` 取模运算符（如 `a \mod b`，渲染为 "mod b"，间距更宽）
 
+#### 声明式运算符 & 运算符标记
+- ✅ `\DeclareMathOperator{\Tr}{Tr}` 声明式运算符定义（前言中定义自定义运算符）
+- ✅ `\mathop{内容}` 将任意内容标记为大型运算符（可带上下限）
+
+#### 错误处理
+- ✅ 错误指示渲染：用 `errorColor` 标记无法识别的命令，而非静默降级
+
 ### ❌ 缺失
 - 无
 
@@ -448,7 +487,7 @@ x \in \R
 - `\renewcommand` 语法与 `\newcommand` 相同，覆盖已有定义
 - `\def` 支持 TeX 原始语法 `\def\name#1#2{body}`
 
-**覆盖率**: 55/55 (100%) ✅
+**覆盖率**: 59/59 (100%) ✅
 
 ---
 
@@ -458,17 +497,17 @@ x \in \R
 |-----|--------|------|--------|
 | 基础结构 | 6/6 | 0 | 100% |
 | 数学公式 | 7/7 | 0 | 100% |
-| 符号系统 | 100+/100+ | 0 | 100% |
+| 符号系统 | 130+/130+ | 0 | 100% |
 | 大型运算符 | 28/28 | 0 | 100% |
 | 矩阵 | 8/8 | 0 | 100% |
 | 括号分隔符 | 11/11 | 0 | 100% |
 | 装饰 | 31/31 | 0 | 100% |
 | 字体样式 | 17/17 | 0 | 100% |
-| 数学模式切换 | 4/4 | 0 | 100% |
+| 数学模式切换 | 6/6 | 0 | 100% |
 | 空格 | 8/8 | 0 | 100% |
-| 环境 | 15/15 | 0 | 100% |
-| 高级功能 | 55/55 | 0 | 100% |
-| **总体** | **290+/290+** | **0** | **100%** |
+| 环境 | 21/21 | 0 | 100% |
+| 高级功能 | 59/59 | 0 | 100% |
+| **总体** | **332+/332+** | **0** | **100%** |
 
 ---
 
@@ -481,13 +520,13 @@ x \in \R
 - ✅ 完整的大型运算符（求和、积分、极限、最值、余积、大直和/张量积/方并/圆点积/多重并、`\operatorname` 自定义运算符、`\substack` 多行下标条件）
 - ✅ 智能大型运算符布局（displaystyle 上下方，textstyle/scriptstyle 右侧）
 - ✅ 完整的字体样式（粗体、斜体、符号粗体、文本模式）
-- ✅ 完整的数学模式切换（displaystyle、textstyle、scriptstyle、scriptscriptstyle）
+- ✅ 完整的数学模式切换（displaystyle、textstyle、scriptstyle、scriptscriptstyle、`$...$`、`$$...$$`）
 - ✅ 完整的矩阵系统（6种矩阵类型 + 小矩阵 + 数组）
 - ✅ 完整的装饰符号（帽子、波浪线、箭头、括号、取消线变体、花括号标注、重音符/锐音符/抑扬符/短音符/圆圈/三点等31种）
 - ✅ 完整的括号系统（自动伸缩、手动大小、不对称分隔符、`\lvert`/`\rvert`/`\lVert`/`\rVert`）
 - ✅ 可扩展箭头（`\xrightarrow`、`\xleftarrow`、`\xhookrightarrow`、`\xhookleftarrow`，支持上下文字）
 - ✅ 颜色支持（`\color`、`\textcolor`，支持16+种颜色和十六进制）
-- ✅ 完整环境支持（equation、align、gather、cases、split、multline、eqnarray、subequations、tabular，含 `*` 无编号变体）
+- ✅ 完整环境支持（equation、align、gather、cases、dcases、rcases、split、multline、eqnarray、subequations、tabular、flalign、alignat，含 `*` 无编号变体）
 - ✅ 化学公式支持（`\ce{...}` 命令，支持分子、离子、化学反应）
 - ✅ 特殊效果（`\boxed`、`\phantom`、`\smash`、`\vphantom`、`\hphantom`）
 - ✅ 公式标签（`\tag{1}`、`\tag*{A}`）
@@ -498,6 +537,11 @@ x \in \R
 - ✅ 标签引用（`\label`、`\ref`、`\eqref`）
 - ✅ 四角标注（`\sideset{_a^b}{_c^d}{\sum}`）
 - ✅ 张量指标（`\tensor`、`\indices`）
+- ✅ AMS 否定关系符号（`\nleq`、`\ngeq`、`\nsubseteq`、`\nprec` 等 30+）
+- ✅ AMS 额外常用符号（`\checkmark`、`\complement`、`\eth`、`\mho`、双头箭头、几何符号等 80+）
+- ✅ 声明式运算符定义（`\DeclareMathOperator`）
+- ✅ 运算符标记（`\mathop{}`）
+- ✅ 错误指示渲染（`errorColor` 标记无法识别的命令）
 - ✅ Unicode 数学字体命令（`\symbf`、`\symit`、`\symsf`、`\symrm`）
 - ✅ 可访问性（AccessibilityVisitor：MathSpeak 风格屏幕阅读器描述）
 - ✅ 公式高亮（HighlightConfig + HighlightRange 子表达式视觉高亮）
@@ -523,53 +567,10 @@ x \in \R
 - ✅ 自定义宏定义和命令复用
 - ✅ 无障碍屏幕阅读器支持
 - ✅ 公式子表达式高亮标注
+- ✅ 混合文本+数学的完整 LaTeX 文档（`$...$`/`$$...$$` 模式切换）
 
 ---
 
 ## 13. 功能扩展规划（Roadmap）
 
 以下为待实现的功能，按优先级排列。每项完成后应将状态标记为 ✅ 并移至对应章节。
-
-### 🔴 高优先级（日常公式高频使用）
-
-| 状态 | 功能 | 命令 | 说明 |
-|------|------|------|------|
-| ✅ | 星号环境变体 | `align*`, `equation*`, `gather*`, `multline*`, `eqnarray*` | 无编号公式，EnvironmentParser 已支持 `*` 变体路由 |
-| ✅ | 自定义运算符 | `\operatorname{Tr}` | 正体渲染运算符名，支持 `\limits`/`\nolimits` 和上下标 |
-| ✅ | BigOperator 列表补全 | `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus` | 已加入 CommandParser 大型运算符分支，支持上下限标注 |
-| ✅ | 自适应省略号 | `\dots` | 根据上下文自动选择 `\ldots`（底部）或 `\cdots`（居中），已添加 SymbolMap 映射 |
-| ✅ | 缺失重音命令 | `\grave`, `\acute`, `\check`, `\breve`, `\ring`, `\dddot` | AccentType 枚举和渲染已完成 |
-| ✅ | 取模运算符 | `\bmod`, `\pmod{n}`, `\mod` | ModOperator 节点类型，支持三种取模风格渲染 |
-
-### 🟡 中优先级（改善表格与特殊场景）
-
-| 状态 | 功能 | 命令 | 说明 |
-|------|------|------|------|
-| ✅ | 表格竖线渲染 | `{|c|c|c|}` | array/tabular 对齐参数中的 `|` 解析并渲染为竖线 |
-| ✅ | 表格水平线 | `\hline`, `\cline{1-2}` | 表格最常用分隔线命令，搭配竖线可实现完整表格样式 |
-| ✅ | 不断开空格 | `~` | 等价于不可断行空格，人名/引用常见（如 `Fig.~1`），Tokenizer 解析为 `\u00A0` 空白 |
-| ✅ | 注释处理 | `%` | `%` 后到行末内容被忽略，支持粘贴带注释的 LaTeX 源码 |
-| ✅ | smash 可选参数 | `\smash[t]{x}`, `\smash[b]{x}` | 只压顶部/底部，精细排版场景使用 |
-| ✅ | 合并单元格 | `\multicolumn{2}{c}{text}` | 表格常见需求，配合 hline 和竖线实现完整表格渲染 |
-
-### 🟢 低优先级（锦上添花）
-
-| 状态 | 功能 | 命令 | 说明 |
-|------|------|------|------|
-| ⬜ | cases 变体环境 | `dcases`, `rcases` | mathtools 包提供，`dcases` 使用 displaystyle，`rcases` 右侧花括号 |
-| ⬜ | AMS 否定关系符号 | `\nleq`, `\ngeq`, `\nsubseteq`, `\nprec`, `\nsucc` 等 | amsmath 否定符号系列，学术论文偶尔使用 |
-| ⬜ | 额外常用符号 | `\checkmark`, `\complement`, `\eth`, `\mho`, `\twoheadrightarrow` 等 | 补全 AMS 符号表 |
-| ⬜ | 声明式运算符定义 | `\DeclareMathOperator{\Tr}{Tr}` | 允许用户在前言中定义自定义运算符，类似 `\newcommand` 但产出运算符 |
-| ⬜ | 运算符标记 | `\mathop{}` | 将任意内容标记为大型运算符（可带上下限），高级排版场景 |
-| ⬜ | 错误指示渲染 | — | 用 `errorColor` 标记无法识别的命令，而非静默降级为命令名文字 |
-| ⬜ | 其他对齐环境 | `flalign`, `alignat` | AMS 对齐环境变体，使用频率较低 |
-| ⬜ | 数学模式切换 | `$...$`, `$$...$$` | 支持混合文本+数学的完整 LaTeX 文档，会大幅增加复杂度 |
-
-### 📋 建议实施路线
-
-| 阶段 | 内容 | 预估工作量 | 状态 |
-|------|------|-----------|------|
-| **第一批** | 星号环境 + BigOperator 补全 + `\dots` + 重音补全 + `\operatorname` + `\bmod`/`\pmod`/`\mod` | 小~中 | ✅ 已完成 |
-| **第二批** | 表格竖线 + `\hline` + `~` + `%` + `\smash[t/b]` | 中（需新增解析+渲染逻辑） | ✅ 已完成 |
-| **第三批** | `\multicolumn` + cases 变体 + AMS 否定符号 | 中大（表格渲染改动较多） | ✅ `\multicolumn` 已完成 |
-| **第四批** | 低优先级功能按需选取 | 按需 | ⬜ |

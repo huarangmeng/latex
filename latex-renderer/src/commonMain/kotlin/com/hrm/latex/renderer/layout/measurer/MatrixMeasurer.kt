@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
+import com.hrm.latex.renderer.model.applyMathStyle
 import com.hrm.latex.renderer.utils.DelimiterRenderer
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
@@ -249,9 +250,16 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
+        // dcases 使用 displaystyle 测量内容
+        val contentContext = if (node.style == LatexNode.Cases.CasesStyle.DISPLAY) {
+            context.applyMathStyle(LatexNode.MathStyle.MathStyleType.DISPLAY)
+        } else {
+            context
+        }
+
         val rows = node.cases.map { listOf(it.second, LatexNode.Text(" if "), it.first) }
         val matrixLayout = measureMatrixLike(
-            rows, context, measurer, density, measureGlobal,
+            rows, contentContext, measurer, density, measureGlobal,
             alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.CENTER, ColumnAlignment.LEFT)
         )
 
@@ -260,12 +268,13 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
             with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
         val delimiterHeight = matrixLayout.height + delimiterPadding * 2
 
-        // 使用字体渲染大括号（而不是 Path）
-        val leftChar = getDelimiterChar(LatexNode.Matrix.MatrixType.BRACE, isLeft = true)
-        val leftLayout =
-            DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight, density)
+        // rcases 使用右花括号，其他使用左花括号
+        val isRight = node.style == LatexNode.Cases.CasesStyle.RIGHT
+        val braceChar = getDelimiterChar(LatexNode.Matrix.MatrixType.BRACE, isLeft = !isRight)
+        val braceLayout =
+            DelimiterRenderer.measureScaled(braceChar, context, measurer, delimiterHeight, density)
 
-        val width = leftLayout.width + matrixLayout.width
+        val width = braceLayout.width + matrixLayout.width
         val height = delimiterHeight
         val baseline = matrixLayout.baseline + delimiterPadding
 
@@ -273,11 +282,15 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
             // 内容在括号内垂直居中
             val contentY = y + (delimiterHeight - matrixLayout.height) / 2f
 
-            // 绘制左侧大括号
-            leftLayout.draw(this, x, y)
-
-            // 绘制内容:垂直居中
-            matrixLayout.draw(this, x + leftLayout.width, contentY)
+            if (isRight) {
+                // rcases: 内容在左，右花括号在右
+                matrixLayout.draw(this, x, contentY)
+                braceLayout.draw(this, x + matrixLayout.width, y)
+            } else {
+                // cases / dcases: 左花括号在左，内容在右
+                braceLayout.draw(this, x, y)
+                matrixLayout.draw(this, x + braceLayout.width, contentY)
+            }
         }
     }
 

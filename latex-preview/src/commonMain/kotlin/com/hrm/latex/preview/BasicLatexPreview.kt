@@ -501,6 +501,8 @@ val basicLatexPreviewGroups = listOf(
                     )
                 }
             ),
+            PreviewItem("38", "错误指示(未知命令)", "x + \\unknowncmd + y"),
+            PreviewItem("39", "错误指示(混合)", "\\frac{a}{b} + \\notacommand + \\sqrt{c}"),
         )
     ),
     PreviewGroup(
@@ -541,6 +543,26 @@ val basicLatexPreviewGroups = listOf(
                 "10",
                 "递归定义",
                 "\\newcommand{\\fact}[1]{#1!} \\fact{n} = \\frac{\\fact{2n}}{(2n)!!}"
+            ),
+            PreviewItem(
+                "11",
+                "DeclareMathOperator 基础",
+                "\\DeclareMathOperator{\\Tr}{Tr} \\Tr(A)"
+            ),
+            PreviewItem(
+                "12",
+                "DeclareMathOperator 多个",
+                "\\DeclareMathOperator{\\rank}{rank} \\DeclareMathOperator{\\sgn}{sgn} \\rank(A) + \\sgn(x)"
+            ),
+            PreviewItem(
+                "13",
+                "mathop 基础",
+                "\\mathop{Res}_{z=0} f(z)"
+            ),
+            PreviewItem(
+                "14",
+                "mathop + limits",
+                "\\mathop{op}\\limits_{i=0}^{n} x_i"
             ),
         )
     ),
@@ -643,6 +665,16 @@ val basicLatexPreviewGroups = listOf(
                 "|x| = \\begin{cases} \\frac{x}{1} & x \\geq 0 \\\\ \\frac{-x}{1} & x < 0 \\end{cases}"
             ),
             PreviewItem(
+                "11a",
+                "dcases (displaystyle)",
+                "f(x) = \\begin{dcases} \\frac{1}{2} & x > 0 \\\\ \\frac{-1}{2} & x < 0 \\end{dcases}"
+            ),
+            PreviewItem(
+                "11b",
+                "rcases (右花括号)",
+                "\\begin{rcases} x^2 & x > 0 \\\\ -x^2 & x < 0 \\end{rcases} = |x| \\cdot x"
+            ),
+            PreviewItem(
                 "12",
                 "tabular 基础",
                 "\\begin{tabular}{cc} a & b \\\\ c & d \\end{tabular}"
@@ -698,11 +730,59 @@ val basicLatexPreviewGroups = listOf(
                 "完整表格",
                 "\\begin{tabular}{|l|c|r|} \\hline \\multicolumn{3}{|c|}{Student Scores} \\\\ \\hline Name & Subject & Score \\\\ \\hline Alice & Math & 95 \\\\ Bob & English & 88 \\\\ \\hline \\end{tabular}"
             ),
+            PreviewItem(
+                "24",
+                "flalign 环境",
+                "\\begin{flalign*} a &= b + c \\\\ d &= e + f \\end{flalign*}"
+            ),
+            PreviewItem(
+                "25",
+                "alignat 环境",
+                "\\begin{alignat}{2} a &= b & \\quad c &= d \\\\ e &= f & \\quad g &= h \\end{alignat}"
+            ),
+        )
+    ),
+    PreviewGroup(
+        id = "ams_relations",
+        title = "15. AMS 符号",
+        description = "AMS 符号",
+        items = listOf(
+            PreviewItem("1", "否定不等式", "a \\nleq b \\quad c \\ngeq d"),
+            PreviewItem("2", "否定集合关系", "A \\nsubseteq B \\quad C \\nsupseteq D"),
+            PreviewItem("3", "否定序关系", "a \\nprec b \\quad c \\nsucc d"),
+            PreviewItem("4", "否定相似/全等", "a \\ncong b \\quad c \\nsim d"),
+            PreviewItem("5", "否定整除/平行", "a \\nmid b \\quad c \\nparallel d"),
+            PreviewItem("6", "否定推导", "\\nvdash \\quad \\nvDash \\quad \\nVdash \\quad \\nVDash"),
+            PreviewItem("7", "否定三角关系", "\\ntriangleleft \\quad \\ntriangleright \\quad \\ntrianglelefteq \\quad \\ntrianglerighteq"),
+            PreviewItem("8", "否定比较", "a \\nless b \\quad c \\ngtr d"),
+            PreviewItem("9", "AMS 额外关系", "a \\leqslant b \\quad c \\geqslant d"),
+            PreviewItem("10", "逻辑推导", "\\vDash \\quad \\Vdash \\quad \\Vvdash \\quad \\models"),
+            PreviewItem("11", "综合示例", "\\forall x \\in A, \\; x \\nleq 0 \\implies x \\nsubseteq B"),
+            PreviewItem("12", "杂项符号", "\\checkmark \\quad \\complement \\quad \\eth \\quad \\mho"),
+            PreviewItem("13", "双头箭头", "\\twoheadrightarrow \\quad \\twoheadleftarrow"),
+            PreviewItem("14", "双线箭头", "\\leftleftarrows \\quad \\rightrightarrows \\quad \\leftrightarrows \\quad \\rightleftarrows"),
+            PreviewItem("15", "弯曲箭头", "\\curvearrowright \\quad \\curvearrowleft \\quad \\circlearrowright \\quad \\circlearrowleft"),
+            PreviewItem("16", "特殊关系", "\\lessdot \\quad \\gtrdot \\quad \\lll \\quad \\ggg"),
+            PreviewItem("17", "几何符号", "\\blacksquare \\quad \\square \\quad \\lozenge \\quad \\blacktriangle \\quad \\blacktriangledown"),
+            PreviewItem("18", "希伯来字母", "\\aleph \\quad \\beth \\quad \\gimel \\quad \\daleth"),
+            PreviewItem("19", "角度符号", "\\angle \\quad \\measuredangle \\quad \\sphericalangle"),
+        )
+    ),
+    PreviewGroup(
+        id = "math_mode",
+        title = "16. 数学模式切换",
+        description = "\$...\$ 行内数学 和 \$\$...\$\$ 展示数学",
+        items = listOf(
+            PreviewItem("1", "行内数学", "The formula \$E=mc^2\$ is famous"),
+            PreviewItem("2", "展示数学", "\$\$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\$\$"),
+            PreviewItem("3", "混合文本+数学", "Given \$a > 0\$ and \$b > 0\$, we have \$\$a + b \\geq 2\\sqrt{ab}\$\$"),
+            PreviewItem("4", "多个行内公式", "Let \$x \\in \\mathbb{R}\$, then \$x^2 \\geq 0\$ for all \$x\$"),
+            PreviewItem("5", "转义美元符号", "Price is \\\$10 and \$x = 5\$"),
         )
     ),
     PreviewGroup(
         id = "animated",
-        title = "15. 动画过渡",
+        title = "17. 动画过渡",
         description = "AnimatedLatex 公式切换动画",
         items = listOf(
             PreviewItem(

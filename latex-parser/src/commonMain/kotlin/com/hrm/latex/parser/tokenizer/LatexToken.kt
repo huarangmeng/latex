@@ -46,5 +46,7 @@ sealed class LatexToken {
     data class Ampersand(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
     data class NewLine(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
     data class Whitespace(val content: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    /** `$` 数学模式切换符（单个 `$` 或 `$$`，由 count 区分） */
+    data class MathShift(val count: Int, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
     data class EOF(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
 }

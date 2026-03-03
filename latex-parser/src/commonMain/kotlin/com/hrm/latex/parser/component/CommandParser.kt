@@ -204,6 +204,7 @@ class CommandParser(
 
             // 自定义运算符名称
             "operatorname" -> parseOperatorName()
+            "mathop" -> parseMathOp()
 
             // 取模运算符
             "bmod" -> LatexNode.ModOperator(null, LatexNode.ModOperator.ModStyle.BMOD)
@@ -217,6 +218,7 @@ class CommandParser(
             "newcommand" -> parseNewCommand()
             "renewcommand" -> parseNewCommand()  // 与 \newcommand 语法相同，覆盖已有定义
             "def" -> parseDef()
+            "DeclareMathOperator" -> parseDeclareMathOperator()
 
             // 表格相关
             "hline" -> LatexNode.HLine()
@@ -918,6 +920,35 @@ class CommandParser(
         // 返回 NewCommand 节点（不参与渲染）
         return LatexNode.NewCommand(commandName, numArgs, definition)
     }
+
+    /**
+     * 解析 \DeclareMathOperator{\cmd}{operatorName}
+     *
+     * 将其注册为自定义命令，定义体为 OperatorName 节点。
+     * 语法: \DeclareMathOperator{\Tr}{Tr}
+     * 等效于: \newcommand{\Tr}{\operatorname{Tr}}
+     */
+    private fun parseDeclareMathOperator(): LatexNode {
+        // 解析命令名 {\commandName}
+        val nameArg = context.parseArgument() ?: return LatexNode.Text("")
+        val commandName = extractCommandName(nameArg)
+
+        // 解析运算符名 {operatorName}
+        val opArg = context.parseArgument() ?: return LatexNode.Text("")
+        val operatorName = when (opArg) {
+            is LatexNode.Text -> opArg.content
+            is LatexNode.Group -> extractText(opArg.children)
+            else -> ""
+        }
+
+        // 将定义注册为 OperatorName 节点
+        val definition = listOf(LatexNode.OperatorName(operatorName))
+        context.customCommands[commandName] = CustomCommand(commandName, 0, definition)
+
+        HLog.d(TAG, "注册运算符: \\$commandName → operatorname{$operatorName}")
+
+        return LatexNode.NewCommand(commandName, 0, definition)
+    }
     
     /**
      * 从节点中提取命令名（去除反斜杠）
@@ -985,6 +1016,51 @@ class CommandParser(
         } else {
             LatexNode.OperatorName(name)
         }
+    }
+
+    /**
+     * 解析 \mathop{content}
+     * 将内容标记为大型运算符，可以带上下限
+     * \mathop{custom}_0^1 → BigOperator with limits
+     */
+    private fun parseMathOp(): LatexNode {
+        val arg = context.parseArgument() ?: return LatexNode.Text("\\mathop")
+        val content = when (arg) {
+            is LatexNode.Text -> arg.content
+            is LatexNode.Group -> extractText(arg.children)
+            else -> ""
+        }
+        if (content.isEmpty()) return LatexNode.Text("\\mathop")
+
+        // 处理后续 \limits/\nolimits 和上下标
+        var subscript: LatexNode? = null
+        var superscript: LatexNode? = null
+        var limitsMode = LatexNode.BigOperator.LimitsMode.AUTO
+
+        while (!tokenStream.isEOF()) {
+            val token = tokenStream.peek()
+            when {
+                token is LatexToken.Command && token.name == "limits" -> {
+                    tokenStream.advance()
+                    limitsMode = LatexNode.BigOperator.LimitsMode.LIMITS
+                }
+                token is LatexToken.Command && token.name == "nolimits" -> {
+                    tokenStream.advance()
+                    limitsMode = LatexNode.BigOperator.LimitsMode.NOLIMITS
+                }
+                token is LatexToken.Subscript && subscript == null -> {
+                    tokenStream.advance()
+                    subscript = parseScriptContent()
+                }
+                token is LatexToken.Superscript && superscript == null -> {
+                    tokenStream.advance()
+                    superscript = parseScriptContent()
+                }
+                else -> break
+            }
+        }
+
+        return LatexNode.BigOperator(content, subscript, superscript, limitsMode)
     }
 
     /**

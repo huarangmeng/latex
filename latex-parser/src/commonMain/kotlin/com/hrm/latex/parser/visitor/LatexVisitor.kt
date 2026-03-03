@@ -80,6 +80,8 @@ interface LatexVisitor<T> {
     fun visitMulticolumn(node: LatexNode.Multicolumn): T
     fun visitOperatorName(node: LatexNode.OperatorName): T
     fun visitModOperator(node: LatexNode.ModOperator): T
+    fun visitInlineMath(node: LatexNode.InlineMath): T
+    fun visitDisplayMath(node: LatexNode.DisplayMath): T
 }
 
 /**
@@ -327,6 +329,16 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         node.content?.let { visit(it) }
         return defaultVisit(node)
     }
+
+    override fun visitInlineMath(node: LatexNode.InlineMath): T {
+        node.children.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
+    override fun visitDisplayMath(node: LatexNode.DisplayMath): T {
+        node.children.forEach { visit(it) }
+        return defaultVisit(node)
+    }
     
     open fun visitBoxed(node: LatexNode.Boxed): T {
         node.content.forEach { visit(it) }
@@ -401,5 +413,7 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         is LatexNode.Multicolumn -> visitMulticolumn(node)
         is LatexNode.OperatorName -> visitOperatorName(node)
         is LatexNode.ModOperator -> visitModOperator(node)
+        is LatexNode.InlineMath -> visitInlineMath(node)
+        is LatexNode.DisplayMath -> visitDisplayMath(node)
     }
 }

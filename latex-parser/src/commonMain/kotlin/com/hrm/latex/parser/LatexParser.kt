@@ -178,6 +178,10 @@ class LatexParser : LatexParserContext {
                 return LatexNode.Text("&", sourceRange = token.range)
             }
 
+            is LatexToken.MathShift -> {
+                return parseMathMode(token)
+            }
+
             is LatexToken.EOF -> return null
             else -> {
                 tokenStream.advance()
@@ -216,6 +220,38 @@ class LatexParser : LatexParserContext {
             else -> {
                 parseExpression()
             }
+        }
+    }
+
+    /**
+     * 解析数学模式 $...$ 或 $$...$$
+     * @param openToken 开始的 MathShift token
+     */
+    private fun parseMathMode(openToken: LatexToken.MathShift): LatexNode {
+        val startOffset = openToken.range.start
+        val count = openToken.count
+        tokenStream.advance() // 消费开始的 $ 或 $$
+
+        val children = mutableListOf<LatexNode>()
+        while (!tokenStream.isEOF()) {
+            val next = tokenStream.peek()
+            // 遇到匹配的结束 MathShift
+            if (next is LatexToken.MathShift && next.count == count) {
+                tokenStream.advance() // 消费结束的 $ 或 $$
+                break
+            }
+            // 对于 $$...$$，如果遇到单个 $ 也当作内容（不匹配）
+            val node = parseExpression()
+            if (node != null) {
+                children.add(node)
+            }
+        }
+
+        val range = tokenStream.rangeFrom(startOffset)
+        return if (count == 2) {
+            LatexNode.DisplayMath(children, sourceRange = range)
+        } else {
+            LatexNode.InlineMath(children, sourceRange = range)
         }
     }
 
@@ -288,6 +324,8 @@ class LatexParser : LatexParserContext {
             is LatexNode.NewLine -> node.copy(sourceRange = range)
             is LatexNode.OperatorName -> node.copy(sourceRange = range)
             is LatexNode.ModOperator -> node.copy(sourceRange = range)
+            is LatexNode.InlineMath -> node.copy(sourceRange = range)
+            is LatexNode.DisplayMath -> node.copy(sourceRange = range)
         }
     }
 

@@ -177,5 +177,7 @@ object SourceMapper {
         is LatexNode.EqRef -> emptyList()
         is LatexNode.OperatorName -> emptyList()
         is LatexNode.ModOperator -> listOfNotNull(node.content)
+        is LatexNode.InlineMath -> node.children
+        is LatexNode.DisplayMath -> node.children
     }
 }

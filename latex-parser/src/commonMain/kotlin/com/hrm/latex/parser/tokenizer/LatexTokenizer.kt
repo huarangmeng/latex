@@ -94,6 +94,7 @@ class LatexTokenizer(private val input: String) {
                     tokens.add(LatexToken.Ampersand(SourceRange(start, position)))
                 }
                 
+                '$' -> handleMathShift()
                 '(', ')', '|' -> {
                     val start = position
                     tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
@@ -209,7 +210,7 @@ class LatexTokenizer(private val input: String) {
             while (position < input.length) {
                 val char = peek() ?: break
                 // 停止字符：特殊符号、空白字符、括号等
-                if (char in setOf('\\', '{', '}', '[', ']', '^', '_', '&', '\n', '\r', '(', ')', '|', '~', '%')) {
+                if (char in setOf('\\', '{', '}', '[', ']', '^', '_', '&', '\n', '\r', '(', ')', '|', '~', '%', '$')) {
                     break
                 }
                 if (char == ' ' || char == '\t') {
@@ -222,6 +223,22 @@ class LatexTokenizer(private val input: String) {
 
         if (text.isNotEmpty()) {
             tokens.add(LatexToken.Text(text, SourceRange(start, position)))
+        }
+    }
+
+    /**
+     * 处理 $ 数学模式切换符
+     * $$ → count=2（display math）
+     * $  → count=1（inline math）
+     */
+    private fun handleMathShift() {
+        val start = position
+        advance() // 跳过第一个 $
+        if (peek() == '$') {
+            advance() // 跳过第二个 $
+            tokens.add(LatexToken.MathShift(2, SourceRange(start, position)))
+        } else {
+            tokens.add(LatexToken.MathShift(1, SourceRange(start, position)))
         }
     }
 

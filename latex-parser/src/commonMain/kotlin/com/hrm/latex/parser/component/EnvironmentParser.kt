@@ -53,12 +53,16 @@ class EnvironmentParser(private val context: LatexParserContext) {
             "smallmatrix" -> parseMatrix("matrix", isSmall = true)
             "array" -> parseArray()
             "tabular" -> parseTabular()
-            "align", "aligned", "align*", "gather", "gathered", "gather*" -> parseAligned(envName)
+            "align", "aligned", "align*", "gather", "gathered", "gather*",
+            "flalign", "flalign*" -> parseAligned(envName)
+            "alignat", "alignat*" -> parseAlignat(envName)
             "split" -> parseSplit()
             "multline", "multline*" -> parseMultline(envName)
             "eqnarray", "eqnarray*" -> parseEqnarray(envName)
             "subequations" -> parseSubequations()
-            "cases" -> parseCases()
+            "cases" -> parseCases(envName, LatexNode.Cases.CasesStyle.NORMAL)
+            "dcases" -> parseCases(envName, LatexNode.Cases.CasesStyle.DISPLAY)
+            "rcases" -> parseCases(envName, LatexNode.Cases.CasesStyle.RIGHT)
             "equation", "equation*", "displaymath" -> {
                 val content = parseEnvironmentContent(envName)
                 LatexNode.Environment(envName, content)
@@ -288,6 +292,19 @@ class EnvironmentParser(private val context: LatexParserContext) {
     }
 
     /**
+     * 解析 alignat / alignat* 环境
+     * alignat 需要一个必选参数 {n} 指定列对数，解析时跳过该参数
+     * 结构体与 aligned 相同
+     */
+    private fun parseAlignat(envName: String): LatexNode.Aligned {
+        // 跳过可选的 {n} 参数（列对数）
+        if (tokenStream.peek() is LatexToken.LeftBrace) {
+            context.parseArgument()
+        }
+        return parseAligned(envName)
+    }
+
+    /**
      * 解析 split 环境
      * split 用于在单个方程内分割多行,通常在 equation 内使用
      * 语法: x &= a + b \\
@@ -455,9 +472,9 @@ class EnvironmentParser(private val context: LatexParserContext) {
     }
 
     /**
-     * 解析 cases 环境
+     * 解析 cases / dcases / rcases 环境
      */
-    private fun parseCases(): LatexNode.Cases {
+    private fun parseCases(envName: String, style: LatexNode.Cases.CasesStyle): LatexNode.Cases {
         val cases = mutableListOf<Pair<LatexNode, LatexNode>>()
         var expression = mutableListOf<LatexNode>()
         var condition = mutableListOf<LatexNode>()
@@ -466,7 +483,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
         while (!tokenStream.isEOF()) {
             when (val token = tokenStream.peek()) {
                 is LatexToken.EndEnvironment -> {
-                    if (token.name == "cases") {
+                    if (token.name == envName) {
                         if (expression.isNotEmpty()) {
                             cases.add(
                                 LatexNode.Group(expression) to LatexNode.Group(condition)
@@ -509,7 +526,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
             }
         }
 
-        return LatexNode.Cases(cases)
+        return LatexNode.Cases(cases, style)
     }
 
     /**

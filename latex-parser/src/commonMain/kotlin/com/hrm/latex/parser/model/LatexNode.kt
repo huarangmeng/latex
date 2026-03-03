@@ -358,12 +358,21 @@ sealed class LatexNode {
     }
     
     /**
-     * 案例环境（cases）
+     * 案例环境（cases / dcases / rcases）
+     * @param cases 每个 case 是 (表达式, 条件) 对
+     * @param style 变体风格：NORMAL=cases, DISPLAY=dcases(displaystyle), RIGHT=rcases(右花括号)
      */
     data class Cases(
         val cases: List<Pair<LatexNode, LatexNode>>,
+        val style: CasesStyle = CasesStyle.NORMAL,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        enum class CasesStyle {
+            NORMAL,   // cases — 标准左花括号
+            DISPLAY,  // dcases — 使用 displaystyle 的左花括号
+            RIGHT     // rcases — 右花括号
+        }
+    }
     
     /**
      * Split 环境（用于单个方程内的多行分割）
@@ -651,4 +660,24 @@ sealed class LatexNode {
             MOD    // \mod — 间距更大的 "mod"
         }
     }
+
+    /**
+     * 行内数学模式节点（$...$）
+     * 用于在文本中嵌入行内数学公式
+     * @param children 数学内容
+     */
+    data class InlineMath(
+        val children: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
+
+    /**
+     * 展示数学模式节点（$$...$$）
+     * 用于独立行的数学公式
+     * @param children 数学内容
+     */
+    data class DisplayMath(
+        val children: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
 }

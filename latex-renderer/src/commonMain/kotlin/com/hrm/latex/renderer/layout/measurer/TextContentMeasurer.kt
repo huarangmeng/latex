@@ -74,7 +74,11 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
                 NodeLayout(layout.width + operatorGap, layout.height, layout.baseline, layout.draw)
             }
 
-            is LatexNode.Command -> measureText(node.name, context, measurer, density)
+            is LatexNode.Command -> {
+                // 用 errorColor 标记未识别的命令，展示为 \commandName
+                val errorContext = context.copy(color = context.errorColor)
+                measureText("\\${node.name}", errorContext, measurer, density)
+            }
             is LatexNode.OperatorName -> {
                 val operatorGap =
                     with(density) { (context.fontSize * MathConstants.OPERATOR_RIGHT_GAP).toPx() }

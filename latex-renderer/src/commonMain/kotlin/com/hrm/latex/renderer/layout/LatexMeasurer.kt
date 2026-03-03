@@ -316,6 +316,14 @@ internal fun measureNode(
         )
 
         is LatexNode.Environment -> measureGroup(node.content, context, measurer, density)
+
+        is LatexNode.InlineMath -> measureGroup(
+            node.children, context.copy(mathStyle = MathStyle.TEXT), measurer, density
+        )
+
+        is LatexNode.DisplayMath -> measureGroup(
+            node.children, context.copy(mathStyle = MathStyle.DISPLAY), measurer, density
+        )
     }
 }
 
