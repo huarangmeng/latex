@@ -312,6 +312,16 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return "$rows by $cols table: $body"
     }
 
+    override fun visitHLine(node: LatexNode.HLine): String = "horizontal line"
+
+    override fun visitCLine(node: LatexNode.CLine): String =
+        "horizontal line from column ${node.startCol} to ${node.endCol}"
+
+    override fun visitMulticolumn(node: LatexNode.Multicolumn): String {
+        val content = node.content.joinToString(" ") { visit(it) }.collapseSpaces()
+        return "multicolumn spanning ${node.columnCount}: $content"
+    }
+
     override fun visitOperatorName(node: LatexNode.OperatorName): String = node.name
 
     override fun visitModOperator(node: LatexNode.ModOperator): String {

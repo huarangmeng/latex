@@ -180,4 +180,59 @@ class TokenizerTest {
         assertTrue(tokens.any { it is LatexToken.Superscript })
         assertTrue(tokens.last() is LatexToken.EOF)
     }
+
+    // ========== 不断开空格 (~) ==========
+
+    @Test
+    fun testTildeAsNonBreakingSpace() {
+        val tokenizer = LatexTokenizer("a~b")
+        val tokens = tokenizer.tokenize()
+
+        assertEquals(4, tokens.size) // text + whitespace + text + EOF
+        assertTrue(tokens[0] is LatexToken.Text)
+        assertTrue(tokens[1] is LatexToken.Whitespace)
+        assertEquals("\u00A0", (tokens[1] as LatexToken.Whitespace).content)
+        assertTrue(tokens[2] is LatexToken.Text)
+    }
+
+    @Test
+    fun testMultipleTildes() {
+        val tokenizer = LatexTokenizer("a~~b")
+        val tokens = tokenizer.tokenize()
+
+        val wsTokens = tokens.filterIsInstance<LatexToken.Whitespace>()
+        assertEquals(2, wsTokens.size)
+    }
+
+    // ========== 注释处理 (%) ==========
+
+    @Test
+    fun testCommentIgnoresRestOfLine() {
+        val tokenizer = LatexTokenizer("a % comment\nb")
+        val tokens = tokenizer.tokenize()
+
+        val textTokens = tokens.filterIsInstance<LatexToken.Text>()
+        assertEquals(2, textTokens.size)
+        assertEquals("a", textTokens[0].content)
+        assertEquals("b", textTokens[1].content)
+    }
+
+    @Test
+    fun testCommentAtEndOfInput() {
+        val tokenizer = LatexTokenizer("hello % end comment")
+        val tokens = tokenizer.tokenize()
+
+        val textTokens = tokens.filterIsInstance<LatexToken.Text>()
+        assertEquals(1, textTokens.size)
+        assertEquals("hello", textTokens[0].content)
+    }
+
+    @Test
+    fun testLineWithOnlyComment() {
+        val tokenizer = LatexTokenizer("% only comment")
+        val tokens = tokenizer.tokenize()
+
+        val textTokens = tokens.filterIsInstance<LatexToken.Text>()
+        assertEquals(0, textTokens.size)
+    }
 }

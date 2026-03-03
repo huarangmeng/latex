@@ -129,7 +129,10 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
 
     /**
      * 测量 \smash{...}
-     * 绘制内容但高度视为零（基线保持在顶部）
+     * 绘制内容但根据 smashType 压缩高度：
+     * - BOTH: 高度和深度都设为 0
+     * - TOP: 只压缩基线以上部分（ascent），保留 descent
+     * - BOTTOM: 只压缩基线以下部分（descent），保留 ascent
      */
     private fun measureSmash(
         node: LatexNode.Smash,
@@ -138,18 +141,35 @@ internal class SpecialEffectMeasurer : NodeMeasurer<LatexNode> {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         val contentLayout = measureGroup(node.content, context)
-        // smash 将高度和深度都设为 0，但仍然绘制内容
-        // 使用一个极小的高度避免除零，baseline = 0
         val fontSizePx = with(density) { context.fontSize.toPx() }
-        val minHeight = fontSizePx * 0.01f
-        return NodeLayout(
-            contentLayout.width,
-            minHeight,
-            0f
-        ) { x, y ->
-            // 绘制内容在垂直居中位置（虽然 layout 高度为 0，内容仍可见）
-            val contentY = y - contentLayout.baseline
-            contentLayout.draw(this, x, contentY)
+        val minDim = fontSizePx * 0.01f
+
+        val ascent = contentLayout.baseline
+        val descent = contentLayout.height - contentLayout.baseline
+
+        return when (node.smashType) {
+            LatexNode.Smash.SmashType.BOTH -> {
+                NodeLayout(contentLayout.width, minDim, 0f) { x, y ->
+                    val contentY = y - contentLayout.baseline
+                    contentLayout.draw(this, x, contentY)
+                }
+            }
+            LatexNode.Smash.SmashType.TOP -> {
+                // 压缩顶部：ascent 归零，保留 descent
+                val height = descent.coerceAtLeast(minDim)
+                NodeLayout(contentLayout.width, height, 0f) { x, y ->
+                    // baseline 在 y=0 处，内容向上偏移 ascent
+                    val contentY = y - ascent
+                    contentLayout.draw(this, x, contentY)
+                }
+            }
+            LatexNode.Smash.SmashType.BOTTOM -> {
+                // 压缩底部：保留 ascent，descent 归零
+                val height = ascent.coerceAtLeast(minDim)
+                NodeLayout(contentLayout.width, height, ascent) { x, y ->
+                    contentLayout.draw(this, x, y)
+                }
+            }
         }
     }
 

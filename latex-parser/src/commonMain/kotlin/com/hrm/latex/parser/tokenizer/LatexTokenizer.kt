@@ -46,6 +46,12 @@ class LatexTokenizer(private val input: String) {
         while (position < input.length) {
             when (val char = peek()) {
                 '\\' -> handleBackslash()
+                '%' -> handleComment()
+                '~' -> {
+                    val start = position
+                    advance()
+                    tokens.add(LatexToken.Whitespace("\u00A0", SourceRange(start, position)))
+                }
                 '{' -> {
                     val start = position
                     advance()
@@ -203,7 +209,7 @@ class LatexTokenizer(private val input: String) {
             while (position < input.length) {
                 val char = peek() ?: break
                 // 停止字符：特殊符号、空白字符、括号等
-                if (char in setOf('\\', '{', '}', '[', ']', '^', '_', '&', '\n', '\r', '(', ')', '|')) {
+                if (char in setOf('\\', '{', '}', '[', ']', '^', '_', '&', '\n', '\r', '(', ')', '|', '~', '%')) {
                     break
                 }
                 if (char == ' ' || char == '\t') {
@@ -270,6 +276,27 @@ class LatexTokenizer(private val input: String) {
         // 将换行符转换为单个空格 token
         // 这样 "x\ny" 会正确解析为 "x y" 而不是 "xy"
         tokens.add(LatexToken.Whitespace(" ", SourceRange(start, position)))
+    }
+
+    /**
+     * 处理 % 注释
+     * % 后到行末的内容应被忽略
+     */
+    private fun handleComment() {
+        advance() // 跳过 %
+        while (position < input.length) {
+            val char = peek() ?: break
+            if (char == '\n' || char == '\r') {
+                // 跳过换行符本身
+                advance()
+                if (char == '\r' && peek() == '\n') {
+                    advance() // 跳过 \r\n 中的 \n
+                }
+                break
+            }
+            advance()
+        }
+        // 注释不生成任何 token
     }
 
     private fun skipWhitespace() {

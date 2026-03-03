@@ -75,6 +75,9 @@ interface LatexVisitor<T> {
     fun visitSideSet(node: LatexNode.SideSet): T
     fun visitTensor(node: LatexNode.Tensor): T
     fun visitTabular(node: LatexNode.Tabular): T
+    fun visitHLine(node: LatexNode.HLine): T
+    fun visitCLine(node: LatexNode.CLine): T
+    fun visitMulticolumn(node: LatexNode.Multicolumn): T
     fun visitOperatorName(node: LatexNode.OperatorName): T
     fun visitModOperator(node: LatexNode.ModOperator): T
 }
@@ -309,6 +312,15 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         return defaultVisit(node)
     }
 
+    override fun visitHLine(node: LatexNode.HLine): T = defaultVisit(node)
+
+    override fun visitCLine(node: LatexNode.CLine): T = defaultVisit(node)
+
+    override fun visitMulticolumn(node: LatexNode.Multicolumn): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
     override fun visitOperatorName(node: LatexNode.OperatorName): T = defaultVisit(node)
 
     override fun visitModOperator(node: LatexNode.ModOperator): T {
@@ -384,6 +396,9 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         is LatexNode.SideSet -> visitSideSet(node)
         is LatexNode.Tensor -> visitTensor(node)
         is LatexNode.Tabular -> visitTabular(node)
+        is LatexNode.HLine -> visitHLine(node)
+        is LatexNode.CLine -> visitCLine(node)
+        is LatexNode.Multicolumn -> visitMulticolumn(node)
         is LatexNode.OperatorName -> visitOperatorName(node)
         is LatexNode.ModOperator -> visitModOperator(node)
     }

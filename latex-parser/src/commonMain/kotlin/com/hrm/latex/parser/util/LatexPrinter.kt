@@ -151,6 +151,30 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         indent--
         return ""
     }
+
+    override fun visitHLine(node: LatexNode.HLine): String {
+        output.append("HLine")
+        return ""
+    }
+
+    override fun visitCLine(node: LatexNode.CLine): String {
+        output.append("CLine(${node.startCol}-${node.endCol})")
+        return ""
+    }
+
+    override fun visitMulticolumn(node: LatexNode.Multicolumn): String {
+        output.append("Multicolumn(${node.columnCount}, ${node.alignment})")
+        indent++
+        output.append("\n")
+        printIndent()
+        output.append("content: ")
+        node.content.forEachIndexed { i, child ->
+            if (i > 0) output.append(", ")
+            visit(child)
+        }
+        indent--
+        return ""
+    }
     
     override fun visitSpace(node: LatexNode.Space): String {
         output.append("Space(${node.type})")

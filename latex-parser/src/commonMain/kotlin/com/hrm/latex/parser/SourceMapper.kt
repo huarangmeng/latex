@@ -149,6 +149,9 @@ object SourceMapper {
         is LatexNode.Matrix -> node.rows.flatten()
         is LatexNode.Array -> node.rows.flatten()
         is LatexNode.Tabular -> node.rows.flatten()
+        is LatexNode.HLine -> emptyList()
+        is LatexNode.CLine -> emptyList()
+        is LatexNode.Multicolumn -> node.content
         is LatexNode.Aligned -> node.rows.flatten()
         is LatexNode.Cases -> node.cases.flatMap { listOf(it.first, it.second) }
         is LatexNode.Split -> node.rows.flatten()

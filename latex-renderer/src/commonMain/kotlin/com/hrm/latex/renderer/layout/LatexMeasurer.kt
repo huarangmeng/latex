@@ -282,6 +282,14 @@ internal fun measureNode(
                 measureGroupRef
             )
 
+        is LatexNode.HLine, is LatexNode.CLine -> NodeLayout(
+            width = 0f,
+            height = 0f,
+            baseline = 0f
+        ) { _, _ -> /* HLine/CLine 由 MatrixMeasurer 处理 */ }
+
+        is LatexNode.Multicolumn -> measureGroup(node.content, context, measurer, density)
+
         is LatexNode.NewCommand -> NodeLayout(
             width = 0f,
             height = 0f,

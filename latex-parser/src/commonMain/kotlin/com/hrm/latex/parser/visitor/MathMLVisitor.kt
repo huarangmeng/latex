@@ -412,6 +412,15 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         return buildTable(node.rows)
     }
 
+    override fun visitHLine(node: LatexNode.HLine): String = ""
+
+    override fun visitCLine(node: LatexNode.CLine): String = ""
+
+    override fun visitMulticolumn(node: LatexNode.Multicolumn): String {
+        val content = node.content.joinToString("") { visit(it) }
+        return "<mtd columnspan=\"${node.columnCount}\">$content</mtd>"
+    }
+
     override fun visitBoxed(node: LatexNode.Boxed): String {
         val content = node.content.joinToString("") { visit(it) }
         return "<menclose notation=\"box\">$content</menclose>"

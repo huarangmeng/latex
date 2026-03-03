@@ -164,4 +164,40 @@ class SpecialEffectTest {
         val hasBoxed = result.children.any { it is LatexNode.Boxed }
         assertTrue(hasBoxed, "Should contain boxed node in equation")
     }
+
+    // ========== smash 可选参数 ==========
+
+    @Test
+    fun should_parse_smash_default() {
+        val doc = parser.parse("\\smash{x}")
+        val smash = doc.children[0]
+        assertIs<LatexNode.Smash>(smash)
+        assertEquals(LatexNode.Smash.SmashType.BOTH, smash.smashType)
+        assertTrue(smash.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_smash_top() {
+        val doc = parser.parse("\\smash[t]{x}")
+        val smash = doc.children[0]
+        assertIs<LatexNode.Smash>(smash)
+        assertEquals(LatexNode.Smash.SmashType.TOP, smash.smashType)
+    }
+
+    @Test
+    fun should_parse_smash_bottom() {
+        val doc = parser.parse("\\smash[b]{x}")
+        val smash = doc.children[0]
+        assertIs<LatexNode.Smash>(smash)
+        assertEquals(LatexNode.Smash.SmashType.BOTTOM, smash.smashType)
+    }
+
+    @Test
+    fun should_parse_smash_with_complex_content() {
+        val doc = parser.parse("\\smash[t]{\\frac{a}{b}}")
+        val smash = doc.children[0]
+        assertIs<LatexNode.Smash>(smash)
+        assertEquals(LatexNode.Smash.SmashType.TOP, smash.smashType)
+        assertTrue(smash.content.isNotEmpty())
+    }
 }

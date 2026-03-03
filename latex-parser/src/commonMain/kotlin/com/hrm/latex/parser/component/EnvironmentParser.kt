@@ -537,6 +537,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
     
     /**
      * 通用表格结构解析器
+     * 支持 \hline 和 \cline 作为特殊行标记
      */
     private fun parseTableStructure(envName: String): List<List<LatexNode>> {
         val rows = mutableListOf<List<LatexNode>>()
@@ -587,7 +588,22 @@ class EnvironmentParser(private val context: LatexParserContext) {
                     // 解析单元格内容
                     val node = context.parseExpression()
                     if (node != null) {
-                        currentCell.add(node)
+                        // \hline 和 \cline 作为独立行（只包含该节点）
+                        if (node is LatexNode.HLine || node is LatexNode.CLine) {
+                            // 先保存当前累积的内容（如果有）
+                            if (currentCell.isNotEmpty()) {
+                                currentRow.add(LatexNode.Group(currentCell))
+                                currentCell = mutableListOf()
+                            }
+                            if (currentRow.isNotEmpty()) {
+                                rows.add(currentRow)
+                                currentRow = mutableListOf()
+                            }
+                            // hline/cline 作为单独的行标记
+                            rows.add(listOf(node))
+                        } else {
+                            currentCell.add(node)
+                        }
                     }
                 }
             }

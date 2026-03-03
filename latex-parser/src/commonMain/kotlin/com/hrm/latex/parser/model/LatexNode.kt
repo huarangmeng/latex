@@ -487,11 +487,20 @@ sealed class LatexNode {
     /**
      * Smash 节点（\smash）
      * 将内容的高度或深度视为零，用于间距微调
+     * @param content 内容
+     * @param smashType 压缩类型：BOTH=全部，TOP=只压顶部，BOTTOM=只压底部
      */
     data class Smash(
         val content: List<LatexNode>,
+        val smashType: SmashType = SmashType.BOTH,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        enum class SmashType {
+            BOTH,   // \smash{x} — 压缩高度和深度
+            TOP,    // \smash[t]{x} — 只压顶部（ascent）
+            BOTTOM  // \smash[b]{x} — 只压底部（descent）
+        }
+    }
 
     /**
      * 垂直幻影节点（\vphantom）
@@ -575,11 +584,44 @@ sealed class LatexNode {
      * 表格环境节点（\begin{tabular}{ccc}...）
      * 文本模式下的表格
      * @param rows 行列表，每行是单元格列表
-     * @param alignment 列对齐方式字符串（如 "ccc", "lcr"）
+     * @param alignment 列对齐方式字符串（如 "ccc", "lcr", "|c|c|c|"）
      */
     data class Tabular(
         val rows: List<List<LatexNode>>,
         val alignment: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
+
+    /**
+     * 水平线节点（\hline）
+     * 用于表格中绘制整行水平线
+     */
+    data class HLine(
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
+
+    /**
+     * 部分水平线节点（\cline{start-end}）
+     * 用于表格中绘制跨指定列的水平线
+     * @param startCol 起始列（从1开始）
+     * @param endCol 结束列（从1开始）
+     */
+    data class CLine(
+        val startCol: Int,
+        val endCol: Int,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
+
+    /**
+     * 合并单元格节点（\multicolumn{num}{align}{content}）
+     * @param columnCount 合并的列数
+     * @param alignment 对齐方式字符串（如 "c", "|c|"）
+     * @param content 单元格内容
+     */
+    data class Multicolumn(
+        val columnCount: Int,
+        val alignment: String,
+        val content: List<LatexNode>,
         override val sourceRange: SourceRange? = null
     ) : LatexNode()
 

@@ -218,6 +218,11 @@ class CommandParser(
             "renewcommand" -> parseNewCommand()  // 与 \newcommand 语法相同，覆盖已有定义
             "def" -> parseDef()
 
+            // 表格相关
+            "hline" -> LatexNode.HLine()
+            "cline" -> parseCLine()
+            "multicolumn" -> parseMulticolumn()
+
             // 特殊符号
             else -> parseSymbolOrGenericCommand(cmdName)
         }
@@ -559,12 +564,35 @@ class CommandParser(
     }
 
     private fun parseSmash(): LatexNode.Smash {
+        // 检查可选参数 [t] 或 [b]
+        val smashType = if (tokenStream.peek() is LatexToken.LeftBracket) {
+            tokenStream.advance() // consume [
+            val typeStr = StringBuilder()
+            while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
+                val t = tokenStream.peek()
+                if (t is LatexToken.Text) {
+                    typeStr.append(t.content)
+                }
+                tokenStream.advance()
+            }
+            if (tokenStream.peek() is LatexToken.RightBracket) {
+                tokenStream.advance() // consume ]
+            }
+            when (typeStr.toString().trim()) {
+                "t" -> LatexNode.Smash.SmashType.TOP
+                "b" -> LatexNode.Smash.SmashType.BOTTOM
+                else -> LatexNode.Smash.SmashType.BOTH
+            }
+        } else {
+            LatexNode.Smash.SmashType.BOTH
+        }
+
         val arg = context.parseArgument() ?: LatexNode.Text("")
         val content = when (arg) {
             is LatexNode.Group -> arg.children
             else -> listOf(arg)
         }
-        return LatexNode.Smash(content)
+        return LatexNode.Smash(content, smashType)
     }
 
     private fun parseVPhantom(): LatexNode.VPhantom {
@@ -994,6 +1022,55 @@ class CommandParser(
         return LatexNode.Symbol(cmdName, unicode)
     }
 
+    /**
+     * 解析 \cline{start-end}
+     * 绘制从 start 列到 end 列的水平线
+     */
+    private fun parseCLine(): LatexNode {
+        val arg = context.parseArgument() ?: return LatexNode.Text("\\cline")
+        val rangeStr = when (arg) {
+            is LatexNode.Text -> arg.content
+            is LatexNode.Group -> extractText(arg.children)
+            else -> ""
+        }
+        val parts = rangeStr.split("-")
+        val startCol = parts.getOrNull(0)?.trim()?.toIntOrNull() ?: 1
+        val endCol = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: startCol
+        return LatexNode.CLine(startCol, endCol)
+    }
+
+    /**
+     * 解析 \multicolumn{num}{alignment}{content}
+     * 合并多列单元格
+     */
+    private fun parseMulticolumn(): LatexNode {
+        // 第一个参数：列数
+        val numArg = context.parseArgument() ?: return LatexNode.Text("\\multicolumn")
+        val numStr = when (numArg) {
+            is LatexNode.Text -> numArg.content
+            is LatexNode.Group -> extractText(numArg.children)
+            else -> "1"
+        }
+        val columnCount = numStr.trim().toIntOrNull() ?: 1
+
+        // 第二个参数：对齐方式
+        val alignArg = context.parseArgument() ?: return LatexNode.Text("\\multicolumn")
+        val alignment = when (alignArg) {
+            is LatexNode.Text -> alignArg.content
+            is LatexNode.Group -> extractText(alignArg.children)
+            else -> "c"
+        }
+
+        // 第三个参数：内容
+        val contentArg = context.parseArgument() ?: return LatexNode.Text("\\multicolumn")
+        val content = when (contentArg) {
+            is LatexNode.Group -> contentArg.children
+            else -> listOf(contentArg)
+        }
+
+        return LatexNode.Multicolumn(columnCount, alignment, content)
+    }
+
     private fun parseSymbolOrGenericCommand(cmdName: String): LatexNode {
         val unicode = SymbolMap.getSymbol(cmdName)
         if (unicode != null) {
@@ -1165,7 +1242,8 @@ class CommandParser(
                     node.rows.map { replaceParameters(it, args) }
                 ))
                 is LatexNode.Smash -> listOf(LatexNode.Smash(
-                    replaceParameters(node.content, args)
+                    replaceParameters(node.content, args),
+                    node.smashType
                 ))
                 is LatexNode.VPhantom -> listOf(LatexNode.VPhantom(
                     replaceParameters(node.content, args)

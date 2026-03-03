@@ -26,6 +26,7 @@ package com.hrm.latex.parser
 import com.hrm.latex.parser.model.LatexNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
@@ -397,5 +398,153 @@ class EnvironmentExtensionTest {
         assertTrue(doc.children[0] is LatexNode.Eqnarray)
         val eqnarray = doc.children[0] as LatexNode.Eqnarray
         assertEquals(2, eqnarray.rows.size)
+    }
+
+    // ========== tabular 竖线 ==========
+
+    @Test
+    fun testTabularWithVerticalLines() {
+        val doc = parser.parse(
+            """
+            \begin{tabular}{|c|c|c|}
+            a & b & c
+            \end{tabular}
+        """.trimIndent()
+        )
+        val tabular = doc.children[0]
+        assertIs<LatexNode.Tabular>(tabular)
+        assertEquals("|c|c|c|", tabular.alignment)
+    }
+
+    @Test
+    fun testTabularWithMixedAlignmentAndLines() {
+        val doc = parser.parse(
+            """
+            \begin{tabular}{|l|c|r|}
+            left & center & right
+            \end{tabular}
+        """.trimIndent()
+        )
+        val tabular = doc.children[0]
+        assertIs<LatexNode.Tabular>(tabular)
+        assertEquals("|l|c|r|", tabular.alignment)
+    }
+
+    // ========== \hline ==========
+
+    @Test
+    fun testHlineInTabular() {
+        val doc = parser.parse(
+            """
+            \begin{tabular}{cc}
+            \hline
+            a & b \\
+            \hline
+            c & d \\
+            \hline
+            \end{tabular}
+        """.trimIndent()
+        )
+        val tabular = doc.children[0]
+        assertIs<LatexNode.Tabular>(tabular)
+        assertTrue(tabular.rows.size >= 5, "Should have data rows + hline rows, got ${tabular.rows.size}")
+    }
+
+    @Test
+    fun testStandaloneHline() {
+        val doc = parser.parse("\\hline")
+        assertIs<LatexNode.Document>(doc)
+        val hline = doc.children[0]
+        assertIs<LatexNode.HLine>(hline)
+    }
+
+    // ========== \cline ==========
+
+    @Test
+    fun testClineWithRange() {
+        val doc = parser.parse("\\cline{1-3}")
+        assertIs<LatexNode.Document>(doc)
+        val cline = doc.children[0]
+        assertIs<LatexNode.CLine>(cline)
+        assertEquals(1, cline.startCol)
+        assertEquals(3, cline.endCol)
+    }
+
+    @Test
+    fun testClineInTabular() {
+        val doc = parser.parse(
+            """
+            \begin{tabular}{ccc}
+            a & b & c \\
+            \cline{1-2}
+            d & e & f
+            \end{tabular}
+        """.trimIndent()
+        )
+        val tabular = doc.children[0]
+        assertIs<LatexNode.Tabular>(tabular)
+        assertTrue(tabular.rows.size >= 3, "Should have data rows + cline rows")
+    }
+
+    // ========== \multicolumn ==========
+
+    @Test
+    fun testMulticolumn() {
+        val doc = parser.parse("\\multicolumn{2}{c}{text}")
+        assertIs<LatexNode.Document>(doc)
+        val mc = doc.children[0]
+        assertIs<LatexNode.Multicolumn>(mc)
+        assertEquals(2, mc.columnCount)
+        assertEquals("c", mc.alignment)
+        assertTrue(mc.content.isNotEmpty())
+    }
+
+    @Test
+    fun testMulticolumnInTabular() {
+        val doc = parser.parse(
+            """
+            \begin{tabular}{|c|c|c|}
+            \hline
+            \multicolumn{2}{|c|}{merged} & c \\
+            \hline
+            a & b & c \\
+            \hline
+            \end{tabular}
+        """.trimIndent()
+        )
+        val tabular = doc.children[0]
+        assertIs<LatexNode.Tabular>(tabular)
+        assertTrue(tabular.rows.isNotEmpty())
+    }
+
+    @Test
+    fun testMulticolumnWithAlignmentLeft() {
+        val doc = parser.parse("\\multicolumn{3}{l}{left aligned}")
+        val mc = doc.children[0]
+        assertIs<LatexNode.Multicolumn>(mc)
+        assertEquals(3, mc.columnCount)
+        assertEquals("l", mc.alignment)
+    }
+
+    // ========== 综合表格测试 ==========
+
+    @Test
+    fun testCompleteTableWithAllFeatures() {
+        val doc = parser.parse(
+            """
+            \begin{tabular}{|c|c|c|}
+            \hline
+            \multicolumn{3}{|c|}{Title} \\
+            \hline
+            a & b & c \\
+            \cline{1-2}
+            d & e & f \\
+            \hline
+            \end{tabular}
+        """.trimIndent()
+        )
+        val tabular = doc.children[0]
+        assertIs<LatexNode.Tabular>(tabular)
+        assertTrue(tabular.rows.size >= 4, "Should have multiple rows including hlines and clines")
     }
 }

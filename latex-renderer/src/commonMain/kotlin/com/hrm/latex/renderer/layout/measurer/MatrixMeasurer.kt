@@ -23,8 +23,11 @@
 
 package com.hrm.latex.renderer.layout.measurer
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
@@ -32,6 +35,7 @@ import com.hrm.latex.renderer.utils.DelimiterRenderer
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * 矩阵与数组测量器
@@ -278,17 +282,21 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
     }
 
     /**
-     * 解析 tabular 对齐字符串为 ColumnAlignment 列表
+     * 解析 tabular/array 对齐字符串
+     * @return Pair: 列对齐列表 + 竖线位置集合（列索引，0=最左侧，colCount=最右侧）
      */
-    private fun parseAlignments(alignment: String): List<ColumnAlignment> {
-        return alignment.mapNotNull { ch ->
+    private fun parseAlignments(alignment: String): Pair<List<ColumnAlignment>, Set<Int>> {
+        val aligns = mutableListOf<ColumnAlignment>()
+        val vLines = mutableSetOf<Int>()
+        for (ch in alignment) {
             when (ch) {
-                'l' -> ColumnAlignment.LEFT
-                'c' -> ColumnAlignment.CENTER
-                'r' -> ColumnAlignment.RIGHT
-                else -> null
+                'l' -> aligns.add(ColumnAlignment.LEFT)
+                'c' -> aligns.add(ColumnAlignment.CENTER)
+                'r' -> aligns.add(ColumnAlignment.RIGHT)
+                '|' -> vLines.add(aligns.size)
             }
         }
+        return aligns to vLines
     }
 
     private fun measureTabular(
@@ -298,12 +306,293 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         density: Density,
         measureGlobal: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
-        val alignments = parseAlignments(node.alignment)
-        return measureMatrixLike(
-            node.rows, context, measurer, density, measureGlobal,
-            alignments = alignments,
-            isBaselineFirstRow = true
+        val (alignments, vLinePositions) = parseAlignments(node.alignment)
+
+        // 分离数据行和 hline/cline 标记
+        data class HLineInfo(val rowIndex: Int, val startCol: Int, val endCol: Int)
+
+        val dataRows = mutableListOf<List<LatexNode>>()
+        val hLines = mutableListOf<HLineInfo>()
+
+        for (row in node.rows) {
+            if (row.size == 1) {
+                val singleNode = row[0]
+                when (singleNode) {
+                    is LatexNode.HLine -> {
+                        hLines.add(HLineInfo(dataRows.size, 1, Int.MAX_VALUE))
+                        continue
+                    }
+                    is LatexNode.CLine -> {
+                        hLines.add(HLineInfo(dataRows.size, singleNode.startCol, singleNode.endCol))
+                        continue
+                    }
+                    else -> {}
+                }
+            }
+            dataRows.add(row)
+        }
+
+        if (dataRows.isEmpty()) return NodeLayout(0f, 0f, 0f) { _, _ -> }
+
+        val colSpacing = with(density) { (context.fontSize * MathConstants.MATRIX_COLUMN_SPACING).toPx() }
+        val rowSpacing = with(density) { (context.fontSize * MathConstants.MATRIX_ROW_SPACING).toPx() }
+        val lineStrokeWidth = with(density) { 1f.dp.toPx() }
+        val vLinePadding = with(density) { 2f.dp.toPx() }
+
+        // 处理 multicolumn：先测量所有单元格
+        // 每行可能有不同数量的逻辑单元格（因为 multicolumn 合并了多列）
+        data class CellInfo(
+            val layout: NodeLayout,
+            val colSpan: Int,
+            val alignment: ColumnAlignment,
+            val mcVLines: Set<Int> = emptySet(), // multicolumn 自身的竖线位置（parseAlignments 返回的索引）
+            val mcAlignCount: Int = 1 // multicolumn 对齐列数（用于判断右边界竖线）
         )
+
+        val measuredRows = dataRows.map { row ->
+            row.map { cell ->
+                if (cell is LatexNode.Multicolumn) {
+                    val contentLayout = measureGlobal(LatexNode.Group(cell.content), context)
+                    val (cellAligns, cellVLines) = parseAlignments(cell.alignment)
+                    val align = cellAligns.firstOrNull() ?: ColumnAlignment.CENTER
+                    CellInfo(contentLayout, cell.columnCount, align, cellVLines, cellAligns.size)
+                } else {
+                    CellInfo(measureGlobal(cell, context), 1, ColumnAlignment.CENTER)
+                }
+            }
+        }
+
+        // 为每行构建「该行有效的竖线位置集合」
+        // 对于普通行，使用全局 vLinePositions
+        // 对于含 multicolumn 的行，multicolumn 跨越的内部列边界竖线被抑制，
+        // 改用 multicolumn 自身 alignment 中声明的竖线
+        val rowVLines = measuredRows.map { row ->
+            val hasMulticolumn = row.any { it.colSpan > 1 }
+            if (!hasMulticolumn) {
+                vLinePositions
+            } else {
+                val effectiveVLines = mutableSetOf<Int>()
+                var colIdx = 0
+                for (cell in row) {
+                    if (cell.colSpan > 1) {
+                        // multicolumn: 左边界竖线
+                        if (cell.mcVLines.contains(0)) effectiveVLines.add(colIdx)
+                        // multicolumn: 右边界竖线
+                        if (cell.mcVLines.contains(cell.mcAlignCount)) {
+                            effectiveVLines.add(colIdx + cell.colSpan)
+                        }
+                    } else {
+                        // 普通单元格：保留该列两侧的全局竖线
+                        if (vLinePositions.contains(colIdx)) effectiveVLines.add(colIdx)
+                        if (vLinePositions.contains(colIdx + 1)) effectiveVLines.add(colIdx + 1)
+                    }
+                    colIdx += cell.colSpan
+                }
+                effectiveVLines
+            }
+        }
+
+        // 确定列数
+        val colCount = max(
+            alignments.size,
+            measuredRows.maxOfOrNull { row ->
+                row.sumOf { it.colSpan }
+            } ?: 0
+        )
+        val rowCount = measuredRows.size
+
+        // 计算列宽（仅基于 colSpan=1 的单元格）
+        val colWidths = FloatArray(colCount)
+        for (r in 0 until rowCount) {
+            var colIdx = 0
+            for (cell in measuredRows[r]) {
+                if (cell.colSpan == 1 && colIdx < colCount) {
+                    colWidths[colIdx] = max(colWidths[colIdx], cell.layout.width)
+                }
+                colIdx += cell.colSpan
+            }
+        }
+
+        // 检查 multicolumn 单元格是否需要扩展列宽
+        for (r in 0 until rowCount) {
+            var colIdx = 0
+            for (cell in measuredRows[r]) {
+                if (cell.colSpan > 1) {
+                    val endCol = min(colIdx + cell.colSpan, colCount)
+                    val spanWidth = (colIdx until endCol).sumOf { colWidths[it].toDouble() }.toFloat() +
+                        colSpacing * max(0, endCol - colIdx - 1)
+                    if (cell.layout.width > spanWidth) {
+                        val extra = cell.layout.width - spanWidth
+                        val perCol = extra / (endCol - colIdx)
+                        for (c in colIdx until endCol) {
+                            colWidths[c] += perCol
+                        }
+                    }
+                }
+                colIdx += cell.colSpan
+            }
+        }
+
+        // 计算行高和基线
+        val rowHeights = FloatArray(rowCount)
+        val rowBaselines = FloatArray(rowCount)
+        for (r in 0 until rowCount) {
+            var maxAscent = 0f
+            var maxDescent = 0f
+            measuredRows[r].forEach { cell ->
+                maxAscent = max(maxAscent, cell.layout.baseline)
+                maxDescent = max(maxDescent, cell.layout.height - cell.layout.baseline)
+            }
+            rowHeights[r] = maxAscent + maxDescent
+            rowBaselines[r] = maxAscent
+        }
+
+        // 计算列的 x 偏移量（考虑竖线占用的额外空间）
+        val colXOffsets = FloatArray(colCount)
+        var xAcc = if (vLinePositions.contains(0)) vLinePadding + lineStrokeWidth + vLinePadding else 0f
+        for (c in 0 until colCount) {
+            colXOffsets[c] = xAcc
+            xAcc += colWidths[c]
+            if (c < colCount - 1) {
+                xAcc += colSpacing
+                if (vLinePositions.contains(c + 1)) {
+                    xAcc += vLinePadding + lineStrokeWidth + vLinePadding
+                }
+            }
+        }
+        if (vLinePositions.contains(colCount)) {
+            xAcc += vLinePadding + lineStrokeWidth + vLinePadding
+        }
+        val totalWidth = xAcc
+
+        // 计算行的 y 偏移量（考虑 hline 间距）
+        val rowYOffsets = FloatArray(rowCount)
+        var yAcc = 0f
+        // hline before row 0
+        val hlinesAtRow0 = hLines.count { it.rowIndex == 0 }
+        if (hlinesAtRow0 > 0) {
+            yAcc += lineStrokeWidth + rowSpacing * 0.5f
+        }
+        for (r in 0 until rowCount) {
+            rowYOffsets[r] = yAcc
+            yAcc += rowHeights[r]
+            if (r < rowCount - 1) {
+                yAcc += rowSpacing
+                val hlinesAtNextRow = hLines.count { it.rowIndex == r + 1 }
+                if (hlinesAtNextRow > 0) {
+                    yAcc += lineStrokeWidth + rowSpacing * 0.5f
+                }
+            }
+        }
+        // hline after last row
+        val hlinesAtEnd = hLines.count { it.rowIndex == rowCount }
+        if (hlinesAtEnd > 0) {
+            yAcc += rowSpacing * 0.5f + lineStrokeWidth
+        }
+        val totalHeight = yAcc
+
+        val baseline = if (rowCount > 0) {
+            rowYOffsets[0] + rowBaselines[0]
+        } else 0f
+
+        return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
+            // 绘制单元格内容
+            for (r in 0 until rowCount) {
+                val rowBaseY = y + rowYOffsets[r] + rowBaselines[r]
+                var colIdx = 0
+                for (cell in measuredRows[r]) {
+                    if (colIdx >= colCount) break
+                    val endCol = min(colIdx + cell.colSpan, colCount)
+                    val cellLeft = colXOffsets[colIdx]
+                    val cellRight = colXOffsets[endCol - 1] + colWidths[endCol - 1]
+                    val cellWidth = cellRight - cellLeft
+                    val align = if (cell.colSpan > 1) cell.alignment
+                        else alignments.getOrNull(colIdx) ?: ColumnAlignment.CENTER
+                    val cellX = when (align) {
+                        ColumnAlignment.LEFT -> x + cellLeft
+                        ColumnAlignment.CENTER -> x + cellLeft + (cellWidth - cell.layout.width) / 2
+                        ColumnAlignment.RIGHT -> x + cellLeft + cellWidth - cell.layout.width
+                    }
+                    cell.layout.draw(this, cellX, rowBaseY - cell.layout.baseline)
+                    colIdx += cell.colSpan
+                }
+            }
+
+            // 辅助函数：根据竖线位置计算 x 坐标
+            fun vLineX(vPos: Int): Float {
+                return if (vPos == 0) {
+                    x + vLinePadding + lineStrokeWidth / 2f
+                } else if (vPos >= colCount) {
+                    x + totalWidth - vLinePadding - lineStrokeWidth / 2f
+                } else {
+                    val prevRight = colXOffsets[vPos - 1] + colWidths[vPos - 1]
+                    val nextLeft = colXOffsets[vPos]
+                    x + (prevRight + nextLeft) / 2f
+                }
+            }
+
+            // 逐行分段绘制竖线
+            for (r in 0 until rowCount) {
+                val segTop = y + rowYOffsets[r]
+                val segBottom = segTop + rowHeights[r]
+                // 向上延伸到与上方 hline 或表格顶部衔接
+                val extTop = if (r == 0) y else {
+                    val prevBottom = rowYOffsets[r - 1] + rowHeights[r - 1]
+                    y + (prevBottom + rowYOffsets[r]) / 2f
+                }
+                // 向下延伸到与下方 hline 或表格底部衔接
+                val extBottom = if (r == rowCount - 1) y + totalHeight else {
+                    val nextTop = rowYOffsets[r + 1]
+                    y + (rowYOffsets[r] + rowHeights[r] + nextTop) / 2f
+                }
+                for (vPos in rowVLines[r]) {
+                    val vx = vLineX(vPos)
+                    drawLine(
+                        color = context.color,
+                        start = Offset(vx, extTop),
+                        end = Offset(vx, extBottom),
+                        strokeWidth = lineStrokeWidth
+                    )
+                }
+            }
+
+            // 绘制水平线
+            for (hl in hLines) {
+                val hy = if (hl.rowIndex <= 0) {
+                    y + lineStrokeWidth / 2f
+                } else if (hl.rowIndex >= rowCount) {
+                    y + totalHeight - lineStrokeWidth / 2f
+                } else {
+                    val prevBottom = rowYOffsets[hl.rowIndex - 1] + rowHeights[hl.rowIndex - 1]
+                    val nextTop = rowYOffsets[hl.rowIndex]
+                    y + (prevBottom + nextTop) / 2f
+                }
+
+                val isFullWidth = hl.startCol == 1 && hl.endCol == Int.MAX_VALUE
+                if (isFullWidth) {
+                    // \hline: 覆盖完整表宽（包括竖线 padding 区域）
+                    drawLine(
+                        color = context.color,
+                        start = Offset(x, hy),
+                        end = Offset(x + totalWidth, hy),
+                        strokeWidth = lineStrokeWidth
+                    )
+                } else {
+                    // \cline: 仅覆盖指定列范围
+                    val startCol = max(hl.startCol - 1, 0)
+                    val endCol = min(hl.endCol, colCount) - 1
+                    if (startCol > endCol) continue
+                    val hStartX = x + colXOffsets[startCol]
+                    val hEndX = x + colXOffsets[endCol] + colWidths[endCol]
+                    drawLine(
+                        color = context.color,
+                        start = Offset(hStartX, hy),
+                        end = Offset(hEndX, hy),
+                        strokeWidth = lineStrokeWidth
+                    )
+                }
+            }
+        }
     }
 
     private fun measureMultline(

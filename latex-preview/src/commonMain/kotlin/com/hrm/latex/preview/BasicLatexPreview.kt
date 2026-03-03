@@ -421,21 +421,25 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("15", "否定属于", "x \\not\\in S"),
             PreviewItem("16", "否定子集", "A \\not\\subset B"),
             PreviewItem("17", "smash 消除高度", "x + \\smash{\\frac{a}{b}} + y"),
-            PreviewItem("18", "vphantom 垂直占位", "\\left(\\vphantom{\\frac{a}{b}} x\\right)"),
-            PreviewItem("19", "hphantom 水平占位", "a + \\hphantom{bbb} + c"),
-            PreviewItem("20", "substack 多行条件", "\\sum_{\\substack{i<n \\\\ j<m}} x_{ij}"),
-            PreviewItem("21", "公式编号 tag", "E = mc^2 \\tag{1}"),
-            PreviewItem("22", "公式编号 tag*", "F = ma \\tag*{Newton}"),
-            PreviewItem("23", "underbrace 标注", "\\underbrace{x+y+z}_{n}"),
-            PreviewItem("24", "overbrace 标注", "\\overbrace{a+b+c}^{3\\text{ terms}}"),
-            PreviewItem("25", "label+eqref", "\\label{eq:1} E = mc^2 \\eqref{eq:1}"),
-            PreviewItem("26", "ref 引用", "See \\ref{eq:1}"),
-            PreviewItem("27", "sideset 四角", "\\sideset{_a^b}{_c^d}{\\sum}"),
-            PreviewItem("28", "sideset 部分", "\\sideset{_1}{^n}{\\prod}"),
-            PreviewItem("29", "tensor 基础", "\\tensor{T}{^a_b}"),
-            PreviewItem("30", "tensor 多指标", "\\tensor{R}{^\\mu_{\\nu\\rho\\sigma}}"),
+            PreviewItem("18", "smash[t] 压顶部", "x + \\smash[t]{\\frac{a}{b}} + y"),
+            PreviewItem("19", "smash[b] 压底部", "x + \\smash[b]{\\frac{a}{b}} + y"),
+            PreviewItem("20", "vphantom 垂直占位", "\\left(\\vphantom{\\frac{a}{b}} x\\right)"),
+            PreviewItem("21", "hphantom 水平占位", "a + \\hphantom{bbb} + c"),
+            PreviewItem("22", "substack 多行条件", "\\sum_{\\substack{i<n \\\\ j<m}} x_{ij}"),
+            PreviewItem("23", "公式编号 tag", "E = mc^2 \\tag{1}"),
+            PreviewItem("24", "公式编号 tag*", "F = ma \\tag*{Newton}"),
+            PreviewItem("25", "underbrace 标注", "\\underbrace{x+y+z}_{n}"),
+            PreviewItem("26", "overbrace 标注", "\\overbrace{a+b+c}^{3\\text{ terms}}"),
+            PreviewItem("27", "label+eqref", "\\label{eq:1} E = mc^2 \\eqref{eq:1}"),
+            PreviewItem("28", "ref 引用", "See \\ref{eq:1}"),
+            PreviewItem("29", "sideset 四角", "\\sideset{_a^b}{_c^d}{\\sum}"),
+            PreviewItem("30", "sideset 部分", "\\sideset{_1}{^n}{\\prod}"),
+            PreviewItem("31", "tensor 基础", "\\tensor{T}{^a_b}"),
+            PreviewItem("32", "tensor 多指标", "\\tensor{R}{^\\mu_{\\nu\\rho\\sigma}}"),
+            PreviewItem("33", "不断开空格 (~)", "Fig.~1 Eq.~2"),
+            PreviewItem("34", "注释处理 (%)", "x^2 + y^2 % comment\n= z^2"),
             PreviewItem(
-                "31", "高亮子表达式(pattern)", "E = mc^2",
+                "35", "高亮子表达式(pattern)", "E = mc^2",
                 content = {
                     Latex(
                         latex = "E = mc^2",
@@ -455,7 +459,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "32", "高亮子表达式(indices)", "\\frac{a+b}{c} + x^2",
+                "36", "高亮子表达式(indices)", "\\frac{a+b}{c} + x^2",
                 content = {
                     Latex(
                         latex = "\\frac{a+b}{c} + x^2",
@@ -475,7 +479,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "33", "多区域高亮", "a + b + c + d",
+                "37", "多区域高亮", "a + b + c + d",
                 content = {
                     Latex(
                         latex = "a + b + c + d",
@@ -669,6 +673,31 @@ val basicLatexPreviewGroups = listOf(
                 "\\begin{eqnarray*} x &=& 1 \\\\ y &=& 2 \\end{eqnarray*}"
             ),
             PreviewItem("18", "equation* 环境", "\\begin{equation*} E = mc^2 \\end{equation*}"),
+            PreviewItem(
+                "19",
+                "tabular 竖线",
+                "\\begin{tabular}{|c|c|c|} a & b & c \\\\ d & e & f \\end{tabular}"
+            ),
+            PreviewItem(
+                "20",
+                "tabular hline",
+                "\\begin{tabular}{|c|c|c|} \\hline a & b & c \\\\ \\hline d & e & f \\\\ \\hline \\end{tabular}"
+            ),
+            PreviewItem(
+                "21",
+                "tabular cline",
+                "\\begin{tabular}{ccc} a & b & c \\\\ \\cline{1-2} d & e & f \\end{tabular}"
+            ),
+            PreviewItem(
+                "22",
+                "multicolumn",
+                "\\begin{tabular}{|c|c|c|} \\hline \\multicolumn{3}{|c|}{Title} \\\\ \\hline a & b & c \\\\ \\hline \\end{tabular}"
+            ),
+            PreviewItem(
+                "23",
+                "完整表格",
+                "\\begin{tabular}{|l|c|r|} \\hline \\multicolumn{3}{|c|}{Student Scores} \\\\ \\hline Name & Subject & Score \\\\ \\hline Alice & Math & 95 \\\\ Bob & English & 88 \\\\ \\hline \\end{tabular}"
+            ),
         )
     ),
     PreviewGroup(
