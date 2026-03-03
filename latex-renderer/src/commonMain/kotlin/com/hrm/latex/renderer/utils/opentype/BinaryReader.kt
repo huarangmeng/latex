@@ -70,14 +70,13 @@ internal class BinaryReader(private val data: ByteArray) {
 
     fun readTag(offset: Int): String {
         checkBounds(offset, 4)
-        return String(
-            charArrayOf(
-                data[offset].toInt().toChar(),
-                data[offset + 1].toInt().toChar(),
-                data[offset + 2].toInt().toChar(),
-                data[offset + 3].toInt().toChar()
-            )
+        return charArrayOf(
+            data[offset].toInt().toChar(),
+            data[offset + 1].toInt().toChar(),
+            data[offset + 2].toInt().toChar(),
+            data[offset + 3].toInt().toChar()
         )
+            .concatToString()
     }
 
     private fun checkBounds(offset: Int, length: Int) {

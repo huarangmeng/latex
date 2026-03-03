@@ -187,7 +187,7 @@ internal class CmapTable(
     /** Glyph ID → Unicode 字符串 */
     fun glyphIdToString(glyphId: Int): String {
         val codePoint = glyphToChar[glyphId] ?: return ""
-        return String(Character.toChars(codePoint))
+        return Character.toChars(codePoint).concatToString()
     }
 
     /** Glyph ID → Unicode 码位，无映射时返回 -1 */
