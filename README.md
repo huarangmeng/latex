@@ -12,16 +12,101 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 
 ## 🌟 Key Features
 
-- **Full Syntax Support**: Covers 100+ Greek letters, basic arithmetic, matrices, and environments (align, cases, array, etc.).
-- **Custom Commands**: Supports `\newcommand` macro definitions, including parameter replacement (#1-#9), nested definitions, and command overriding.
 - **High-Performance Parsing**: AST-based recursive descent parser with support for incremental updates.
-- **Multi-platform Consistency**: Uses Compose Multiplatform for cross-platform UI rendering.
-- **Chemical Formula Support**: Built-in support for the `\ce{...}` plugin.
-- **Style Customization**: Supports colors (`\color`), boxes (`\boxed`), and math mode switching (`\displaystyle`, etc.).
+- **Multi-platform Consistency**: Uses Compose Multiplatform for consistent rendering on Android, iOS, Desktop (JVM), and Web (Wasm/JS).
 - **Automatic Line Breaking**: Smart line wrapping for long formulas at logical breakpoints (operators, relations).
 - **Image Export**: Export rendered formulas as PNG/JPEG/WEBP images with configurable resolution scaling.
-- **Accessibility**: Built-in screen reader support with MathSpeak-style formula descriptions.
+- **Accessibility**: Built-in screen reader support with MathSpeak-style formula descriptions (MathSpeak).
+- **LaTeX → MathML**: Convert LaTeX AST to Presentation MathML output.
+- **Formula Highlight**: Highlight sub-expressions within formulas via `HighlightConfig`.
+- **Animation**: Animated formula transitions (crossfade / slide / fade+slide).
 - **WYSIWYG Editor** *(Experimental)*: Built-in LaTeX editor with cursor positioning, tap-to-place, and real-time rendered preview.
+
+## 📐 Supported LaTeX Features (332+)
+
+<details>
+<summary><b>Math Formulas</b> — fractions, roots, binomials</summary>
+
+`\frac`, `\dfrac`, `\tfrac`, `\cfrac`, `\binom`, `\tbinom`, `\dbinom`, `\sqrt`, `\sqrt[n]{x}`
+</details>
+
+<details>
+<summary><b>Symbols (130+)</b> — Greek letters, operators, arrows, AMS symbols</summary>
+
+- **Greek letters**: all lowercase (α–ω), uppercase (Γ–Ω), and variants (ε/ϵ, θ/ϑ, φ/ϕ, etc.)
+- **Operators**: `+`, `-`, `\times`, `\div`, `\pm`, `\mp`, `\cdot`, `\oplus`, `\otimes`, …
+- **Relations**: `=`, `\neq`, `<`, `>`, `\leq`, `\geq`, `\approx`, `\equiv`, `\sim`, `\ll`, `\gg`, …
+- **Set theory**: `\in`, `\notin`, `\subset`, `\cup`, `\cap`, `\emptyset`, `\mathbb{R}`, …
+- **Logic**: `\land`, `\lor`, `\neg`, `\Rightarrow`, `\Leftrightarrow`, `\forall`, `\exists`
+- **Arrows**: `\to`, `\rightarrow`, `\leftarrow`, `\leftrightarrow`, `\Rightarrow`, `\hookrightarrow`, harpoons, …
+- **Ellipsis**: `\ldots`, `\cdots`, `\vdots`, `\ddots`, `\dots` (auto-adaptive)
+- **Negation**: `\not=`, `\not\in`, `\nleq`, `\ngeq`, `\ncong`, `\nmid`, … (30+ AMS negated relations)
+- **AMS extras**: `\checkmark`, `\complement`, `\blacksquare`, `\aleph`, `\measuredangle`, geometric symbols, double-headed arrows, …
+</details>
+
+<details>
+<summary><b>Large Operators (28)</b> — sums, integrals, limits</summary>
+
+`\sum`, `\prod`, `\int`, `\oint`, `\iint`, `\iiint`, `\bigcup`, `\bigcap`, `\bigvee`, `\bigwedge`, `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus`, `\lim`, `\max`, `\min`, `\sup`, `\inf`, `\limsup`, `\liminf`, `\operatorname`, `\substack`, `\DeclareMathOperator`, `\mathop`
+</details>
+
+<details>
+<summary><b>Matrices (8)</b> — all standard matrix environments</summary>
+
+`matrix`, `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`, `smallmatrix`, `array`
+</details>
+
+<details>
+<summary><b>Delimiters</b> — auto-scaling & manual sizing</summary>
+
+- **Auto-scaling**: `\left( \right)`, `\left[ \right]`, `\left\{ \right\}`, `\left| \right|`, `\langle`, `\rangle`, `\lfloor`, `\rfloor`, `\lceil`, `\rceil`, `\lvert`, `\rvert`, `\lVert`, `\rVert`
+- **Asymmetric**: `\left. \right|` (evaluation bar), `\left\{ \right.` (piecewise)
+- **Manual sizing**: `\big`, `\Big`, `\bigg`, `\Bigg` with `\bigl`, `\bigr`, `\bigm` variants
+</details>
+
+<details>
+<summary><b>Accents & Decorations (31)</b></summary>
+
+`\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`, `\vec`, `\overbrace`, `\underbrace`, `\widehat`, `\overrightarrow`, `\overleftarrow`, `\cancel`, `\bcancel`, `\xcancel`, `\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xleftrightarrow`, `\overset`, `\underset`, `\stackrel`
+</details>
+
+<details>
+<summary><b>Font Styles (17)</b></summary>
+
+`\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\symbf`, `\symit`, `\symsf`, `\symrm`
+</details>
+
+<details>
+<summary><b>Math Mode Switching</b></summary>
+
+`\displaystyle`, `\textstyle`, `\scriptstyle`, `\scriptscriptstyle`, `$...$` (inline), `$$...$$` (display)
+</details>
+
+<details>
+<summary><b>Environments (21)</b></summary>
+
+`equation(*)`, `displaymath`, `align(*)`, `aligned`, `gather(*)`, `gathered`, `cases`, `dcases`, `rcases`, `split`, `multline(*)`, `eqnarray(*)`, `subequations`, `tabular`, `flalign(*)`, `alignat(*)`
+</details>
+
+<details>
+<summary><b>Spacing</b></summary>
+
+`\,`, `\:`, `\;`, `\quad`, `\qquad`, `\!`, `\hspace{...}`, normal spaces
+</details>
+
+<details>
+<summary><b>Advanced Features</b></summary>
+
+- **Colors**: `\color{red}{...}`, `\textcolor{#FF5733}{...}` (named + hex)
+- **Chemical formulas**: `\ce{H2O}`, `\ce{A + B -> C}`, `\ce{A <=> B}`, ions, coefficients
+- **Boxes & phantoms**: `\boxed`, `\phantom`, `\smash`, `\vphantom`, `\hphantom`
+- **Tags**: `\tag{1}`, `\tag*{A}`
+- **Custom commands**: `\newcommand`, `\renewcommand`, `\def` (0–9 parameters)
+- **Labels & refs**: `\label`, `\ref`, `\eqref`
+- **Tensor notation**: `\sideset`, `\tensor`, `\indices`
+- **Modular arithmetic**: `\bmod`, `\pmod`, `\mod`
+- **Error handling**: Unrecognized commands rendered in error color instead of silent failure
+</details>
 
 ## 📸 Rendering Preview
 
@@ -166,7 +251,7 @@ Add dependencies in `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-latex = "1.1.1"
+latex = "1.2.1"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }

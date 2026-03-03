@@ -12,16 +12,101 @@
 
 ## 🌟 核心特性
 
-- **完整语法支持**：涵盖 100+ 希腊字母、基础算术、矩阵、环境（align, cases, array 等）。
-- **自定义命令**：支持 `\newcommand` 宏定义，包括参数替换（#1-#9）、嵌套定义和命令覆盖。
 - **高性能解析**：基于 AST 的递归下降解析器，支持增量更新。
-- **多平台一致性**：使用 Compose Multiplatform 实现跨平台 UI 渲染。
-- **化学公式支持**：内置 `\ce{...}` 插件支持。
-- **样式定制**：支持颜色（`\color`）、方框（`\boxed`）和数学模式切换（`\displaystyle` 等）。
+- **多平台一致性**：使用 Compose Multiplatform 在 Android、iOS、Desktop (JVM) 和 Web (Wasm/JS) 平台上实现一致渲染。
 - **自动换行**：长公式在逻辑断点（运算符、关系符）处智能换行。
 - **图片导出**：将渲染结果导出为 PNG/JPEG/WEBP 图片，支持分辨率缩放配置。
-- **无障碍支持**：内置屏幕阅读器支持，基于 MathSpeak 风格生成公式的自然语言描述。
+- **无障碍支持**：内置屏幕阅读器支持，基于 MathSpeak 风格生成公式自然语言描述。
+- **LaTeX → MathML**：将 LaTeX AST 转换为 Presentation MathML 输出。
+- **公式高亮**：通过 `HighlightConfig` 高亮子表达式。
+- **动画过渡**：公式切换动画（crossfade / slide / fade+slide）。
 - **所见即所得编辑器** *（实验性）*：内置 LaTeX 编辑器，支持光标定位、点击定位和实时渲染预览。
+
+## 📐 已支持的 LaTeX 功能（332+）
+
+<details>
+<summary><b>数学公式</b> — 分数、根号、二项式</summary>
+
+`\frac`, `\dfrac`, `\tfrac`, `\cfrac`, `\binom`, `\tbinom`, `\dbinom`, `\sqrt`, `\sqrt[n]{x}`
+</details>
+
+<details>
+<summary><b>符号系统（130+）</b> — 希腊字母、运算符、箭头、AMS 符号</summary>
+
+- **希腊字母**：全部小写 (α–ω)、大写 (Γ–Ω) 及变体 (ε/ϵ, θ/ϑ, φ/ϕ 等)
+- **运算符**：`+`, `-`, `\times`, `\div`, `\pm`, `\mp`, `\cdot`, `\oplus`, `\otimes` 等
+- **关系符**：`=`, `\neq`, `<`, `>`, `\leq`, `\geq`, `\approx`, `\equiv`, `\sim`, `\ll`, `\gg` 等
+- **集合论**：`\in`, `\notin`, `\subset`, `\cup`, `\cap`, `\emptyset`, `\mathbb{R}` 等
+- **逻辑**：`\land`, `\lor`, `\neg`, `\Rightarrow`, `\Leftrightarrow`, `\forall`, `\exists`
+- **箭头**：`\to`, `\rightarrow`, `\leftarrow`, `\leftrightarrow`, `\Rightarrow`, `\hookrightarrow`, 鱼叉箭头等
+- **省略号**：`\ldots`, `\cdots`, `\vdots`, `\ddots`, `\dots`（自适应）
+- **否定修饰**：`\not=`, `\not\in`, `\nleq`, `\ngeq`, `\ncong`, `\nmid` 等（30+ AMS 否定关系符）
+- **AMS 额外符号**：`\checkmark`, `\complement`, `\blacksquare`, `\aleph`, `\measuredangle`, 几何符号, 双头箭头等
+</details>
+
+<details>
+<summary><b>大型运算符（28）</b> — 求和、积分、极限</summary>
+
+`\sum`, `\prod`, `\int`, `\oint`, `\iint`, `\iiint`, `\bigcup`, `\bigcap`, `\bigvee`, `\bigwedge`, `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus`, `\lim`, `\max`, `\min`, `\sup`, `\inf`, `\limsup`, `\liminf`, `\operatorname`, `\substack`, `\DeclareMathOperator`, `\mathop`
+</details>
+
+<details>
+<summary><b>矩阵（8）</b> — 所有标准矩阵环境</summary>
+
+`matrix`, `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`, `smallmatrix`, `array`
+</details>
+
+<details>
+<summary><b>括号与分隔符</b> — 自动伸缩与手动大小</summary>
+
+- **自动伸缩**：`\left( \right)`, `\left[ \right]`, `\left\{ \right\}`, `\left| \right|`, `\langle`, `\rangle`, `\lfloor`, `\rfloor`, `\lceil`, `\rceil`, `\lvert`, `\rvert`, `\lVert`, `\rVert`
+- **不对称分隔符**：`\left. \right|`（求值符号）、`\left\{ \right.`（分段函数）
+- **手动大小**：`\big`, `\Big`, `\bigg`, `\Bigg` 及 `\bigl`, `\bigr`, `\bigm` 变体
+</details>
+
+<details>
+<summary><b>装饰符号（31）</b></summary>
+
+`\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`, `\vec`, `\overbrace`, `\underbrace`, `\widehat`, `\overrightarrow`, `\overleftarrow`, `\cancel`, `\bcancel`, `\xcancel`, `\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xleftrightarrow`, `\overset`, `\underset`, `\stackrel`
+</details>
+
+<details>
+<summary><b>字体样式（17）</b></summary>
+
+`\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\symbf`, `\symit`, `\symsf`, `\symrm`
+</details>
+
+<details>
+<summary><b>数学模式切换</b></summary>
+
+`\displaystyle`, `\textstyle`, `\scriptstyle`, `\scriptscriptstyle`, `$...$`（行内）, `$$...$$`（展示）
+</details>
+
+<details>
+<summary><b>环境（21）</b></summary>
+
+`equation(*)`, `displaymath`, `align(*)`, `aligned`, `gather(*)`, `gathered`, `cases`, `dcases`, `rcases`, `split`, `multline(*)`, `eqnarray(*)`, `subequations`, `tabular`, `flalign(*)`, `alignat(*)`
+</details>
+
+<details>
+<summary><b>空格控制</b></summary>
+
+`\,`, `\:`, `\;`, `\quad`, `\qquad`, `\!`, `\hspace{...}`, 普通空格
+</details>
+
+<details>
+<summary><b>高级功能</b></summary>
+
+- **颜色**：`\color{red}{...}`, `\textcolor{#FF5733}{...}`（命名颜色 + 十六进制）
+- **化学公式**：`\ce{H2O}`, `\ce{A + B -> C}`, `\ce{A <=> B}`, 离子, 系数
+- **方框与幻影**：`\boxed`, `\phantom`, `\smash`, `\vphantom`, `\hphantom`
+- **标签**：`\tag{1}`, `\tag*{A}`
+- **自定义命令**：`\newcommand`, `\renewcommand`, `\def`（0–9 个参数）
+- **标签引用**：`\label`, `\ref`, `\eqref`
+- **张量标记**：`\sideset`, `\tensor`, `\indices`
+- **取模运算**：`\bmod`, `\pmod`, `\mod`
+- **错误处理**：无法识别的命令以错误颜色渲染，而非静默忽略
+</details>
 
 ## 📸 渲染预览
 
@@ -166,7 +251,7 @@ fun MyEditor() {
 
 ```toml
 [versions]
-latex = "1.1.1"
+latex = "1.2.1"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
