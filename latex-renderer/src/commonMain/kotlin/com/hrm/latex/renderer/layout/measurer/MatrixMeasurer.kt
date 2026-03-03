@@ -129,11 +129,11 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         val rightChar = getDelimiterChar(bracketType, isLeft = false)
 
         val leftLayout = if (leftChar.isNotEmpty()) {
-            DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight)
+            DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight, density)
         } else null
 
         val rightLayout = if (rightChar.isNotEmpty()) {
-            DelimiterRenderer.measureScaled(rightChar, context, measurer, delimiterHeight)
+            DelimiterRenderer.measureScaled(rightChar, context, measurer, delimiterHeight, density)
         } else null
 
         val leftW = leftLayout?.width ?: 0f
@@ -259,7 +259,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         // 使用字体渲染大括号（而不是 Path）
         val leftChar = getDelimiterChar(LatexNode.Matrix.MatrixType.BRACE, isLeft = true)
         val leftLayout =
-            DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight)
+            DelimiterRenderer.measureScaled(leftChar, context, measurer, delimiterHeight, density)
 
         val width = leftLayout.width + matrixLayout.width
         val height = delimiterHeight

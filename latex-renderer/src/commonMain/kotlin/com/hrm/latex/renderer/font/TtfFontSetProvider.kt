@@ -164,13 +164,14 @@ class TtfFontSetProvider(
 
     override fun verticalVariants(glyphChar: String, fontSizePx: Float): List<GlyphVariant> {
         // TTF 方案：返回 5 级字体的逻辑变体（Main + Size1~4）
+        // glyphId = 0 表示不支持 Path 渲染（TTF 无 CFF 表）
         // advanceMeasurement 设为递增的估算值，实际渲染时由 TextMeasurer 决定
         return listOf(
-            GlyphVariant(glyphChar, fontSizePx * 1.0f, fontFamilies.main),
-            GlyphVariant(glyphChar, fontSizePx * 1.2f, fontFamilies.size1),
-            GlyphVariant(glyphChar, fontSizePx * 1.8f, fontFamilies.size2),
-            GlyphVariant(glyphChar, fontSizePx * 2.4f, fontFamilies.size3),
-            GlyphVariant(glyphChar, fontSizePx * 3.0f, fontFamilies.size4),
+            GlyphVariant(0, glyphChar, fontSizePx * 1.0f, fontFamilies.main),
+            GlyphVariant(0, glyphChar, fontSizePx * 1.2f, fontFamilies.size1),
+            GlyphVariant(0, glyphChar, fontSizePx * 1.8f, fontFamilies.size2),
+            GlyphVariant(0, glyphChar, fontSizePx * 2.4f, fontFamilies.size3),
+            GlyphVariant(0, glyphChar, fontSizePx * 3.0f, fontFamilies.size4),
         )
     }
 

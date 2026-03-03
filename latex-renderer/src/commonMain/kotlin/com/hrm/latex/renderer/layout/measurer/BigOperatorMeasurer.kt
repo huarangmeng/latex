@@ -23,6 +23,8 @@
 package com.hrm.latex.renderer.layout.measurer
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
@@ -47,6 +49,7 @@ import com.hrm.latex.renderer.utils.InkFontCategory
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.mapBigOp
+import com.hrm.latex.renderer.utils.opentype.GlyphPathData
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -259,14 +262,11 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
     }
 
     /**
-     * OTF 路径：通过 MATH 表 verticalVariants 选择大型运算符的预设字形变体。
+     * OTF 路径：通过统一的 verticalVariants() 获取变体列表。
      *
-     * OTF MATH 表通常为大型运算符提供 2 个变体：
-     * - 变体 0 (text-size): TEXT/SCRIPT 模式使用
-     * - 变体 1 (display-size): DISPLAY 模式使用
-     *
-     * 对于积分符号，如果有 bigOpHeightHint，选择高度 >= targetHeight 的最小变体；
-     * 若所有变体都不够高，对最大变体做 fontSize 缩放兜底。
+     * 每个变体同时携带 glyphId（CFF Path 渲染）和 glyphChar（TextMeasurer 降级）。
+     * 优先用 glyphId + glyphPath() 渲染（绕过 Unicode 映射限制），
+     * 失败时降级到 glyphChar + TextMeasurer（对有 Unicode 映射的变体仍有效）。
      *
      * @return 成功时返回 NodeLayout；无变体数据时返回 null（调用方回退到 TTF 路径）
      */
@@ -279,26 +279,40 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         isIntegral: Boolean
     ): NodeLayout? {
         val fontSizePx = with(density) { context.fontSize.toPx() }
+
         val variants = provider.verticalVariants(renderSymbol, fontSizePx)
         HLog.d(TAG, "measureWithVariants: symbol=$renderSymbol, fontSizePx=$fontSizePx, " +
-                "variantsCount=${variants.size}, " +
-                "variants=${variants.map { "'${it.glyphChar}'(h=${it.advanceMeasurement})" }}")
+                "variants=${variants.size}, " +
+                "details=${variants.map { "(id=${it.glyphId}, char='${it.glyphChar}', h=${it.advanceMeasurement})" }}")
         if (variants.isEmpty()) return null
 
-        // 构建基础测量样式（OTF 模式下不需要 FontWeight 补偿和 fontSize 缩放）
+        val drawColor = context.color
+
+        // ── 优先尝试 Glyph ID + Path 渲染 ──
+        val hasGlyphIds = variants.any { it.glyphId != 0 }
+        if (hasGlyphIds) {
+            val pathResult = measureWithGlyphPaths(
+                variants, context, density, provider, isIntegral, fontSizePx, drawColor
+            )
+            if (pathResult != null) {
+                HLog.d(TAG, "Glyph Path rendering succeeded: ${pathResult.width}x${pathResult.height}")
+                return pathResult
+            }
+            HLog.d(TAG, "Glyph Path rendering failed, falling back to TextMeasurer variants")
+        }
+
+        // ── 降级：TextMeasurer 方案 ──
         val baseVariantContext = context.copy(
             fontStyle = FontStyle.Normal,
             fontWeight = null
         )
 
         if (isIntegral && context.mathStyle == MathStyle.DISPLAY) {
-            // 积分符号：根据高度暗示选择最佳变体
             return measureIntegralWithVariants(
                 variants, baseVariantContext, measurer, density, context
             )
         }
 
-        // 非积分运算符（∑∏⋂⋃ 等）：DISPLAY 模式选 display-size，其他选 text-size
         val variantIndex = if (context.mathStyle == MathStyle.DISPLAY && variants.size > 1) 1 else 0
         val variant = variants[variantIndex.coerceAtMost(variants.lastIndex)]
 
@@ -310,6 +324,125 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
 
         return NodeLayout(width, height, baseline) { x, y ->
             drawText(result, topLeft = Offset(x, y))
+        }
+    }
+
+    /**
+     * 通过 Glyph ID + CFF Path 渲染大型运算符变体。
+     *
+     * 直接从 CFF 表提取字形轮廓，转换为 Path，用 drawPath(Fill) 渲染。
+     * 这是解决 display-size 变体"高度不变"问题的核心方法。
+     *
+     * 对于积分符号：根据 bigOpHeightHint 选择最合适的变体。
+     * 对于其他运算符：DISPLAY 选 display-size 变体（最后一个），其他选 text-size（第一个）。
+     *
+     * 降级策略：如果目标变体的 CFF Path 提取失败，逐级回退到较小变体，
+     * 确保只要有任何一个变体的 Path 能成功提取，就能渲染。
+     */
+    private fun measureWithGlyphPaths(
+        variants: List<GlyphVariant>,
+        context: RenderContext,
+        density: Density,
+        provider: MathFontProvider,
+        isIntegral: Boolean,
+        fontSizePx: Float,
+        drawColor: Color
+    ): NodeLayout? {
+
+        if (isIntegral && context.mathStyle == MathStyle.DISPLAY) {
+            // 积分符号：选择满足高度要求的最佳变体
+            val targetHeight = if (context.bigOpHeightHint != null) {
+                context.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
+            } else {
+                fontSizePx * MathConstants.INTEGRAL_MIN_VERTICAL_SCALE
+            }
+
+            var bestPathData: GlyphPathData? = null
+            var bestGlyphId = -1
+            for (variant in variants) {
+                if (variant.glyphId == 0) continue
+                val pathData = provider.glyphPath(variant.glyphId, fontSizePx)
+                if (pathData == null) {
+                    HLog.d(TAG, "Integral variant glyph ${variant.glyphId}: CFF path extraction FAILED")
+                    continue
+                }
+                bestPathData = pathData
+                bestGlyphId = variant.glyphId
+                HLog.d(TAG, "Integral variant glyph ${variant.glyphId}: pathHeight=${pathData.height}, " +
+                        "advance=${variant.advanceMeasurement}, target=$targetHeight")
+                if (pathData.height >= targetHeight) {
+                    return createPathNodeLayout(pathData, drawColor)
+                }
+            }
+
+            // 所有变体都不够高 → 使用最大成功提取的变体
+            if (bestPathData != null) {
+                HLog.d(TAG, "Using largest available variant glyph $bestGlyphId " +
+                        "(height=${bestPathData.height}, target=$targetHeight)")
+                return createPathNodeLayout(bestPathData, drawColor)
+            }
+            HLog.d(TAG, "All integral variant CFF paths failed, " +
+                    "falling back to TextMeasurer/TTF path")
+            return null
+        }
+
+        // 非积分运算符：DISPLAY 选最后一个有 glyphId 的变体（display-size），其他选第一个
+        val variantsWithId = variants.filter { it.glyphId != 0 }
+        if (variantsWithId.isEmpty()) return null
+
+        val targetIdx = if (context.mathStyle == MathStyle.DISPLAY && variantsWithId.size > 1) {
+            variantsWithId.lastIndex
+        } else 0
+
+        // 优先尝试目标变体
+        val targetVariant = variantsWithId[targetIdx]
+        val targetPathData = provider.glyphPath(targetVariant.glyphId, fontSizePx)
+        if (targetPathData != null) {
+            return createPathNodeLayout(targetPathData, drawColor)
+        }
+        HLog.d(TAG, "Target variant glyph ${targetVariant.glyphId} CFF path failed, trying fallback variants")
+
+        // 目标失败 → 从最大到最小逐级尝试其他变体
+        for (i in variantsWithId.indices.reversed()) {
+            if (i == targetIdx) continue
+            val variant = variantsWithId[i]
+            val pathData = provider.glyphPath(variant.glyphId, fontSizePx)
+            if (pathData != null) {
+                HLog.d(TAG, "Fallback to variant glyph ${variant.glyphId} succeeded")
+                return createPathNodeLayout(pathData, drawColor)
+            }
+        }
+
+        HLog.d(TAG, "All non-integral variant CFF paths failed")
+        return null
+    }
+
+    /**
+     * 从 GlyphPathData 创建 NodeLayout。
+     *
+     * Path 以 (0,0) 为原点（墨水区域左上角），draw 时通过 translate 偏移到实际位置。
+     * 遵循项目规范：Path 预构建 + draw 时 translate。
+     */
+    private fun createPathNodeLayout(
+        pathData: GlyphPathData,
+        drawColor: Color
+    ): NodeLayout {
+        val path = pathData.path
+        val width = pathData.width.coerceAtLeast(1f)
+        val height = pathData.height.coerceAtLeast(1f)
+        val baseline = pathData.baselineY  // baseline 在 Path 坐标系中的 y 位置
+
+        // 如果 minX 不为 0，需要水平偏移以确保墨水从 x=0 开始
+        val xOffset = -pathData.minX.coerceAtMost(0f)
+
+        return NodeLayout(
+            width = width + xOffset,
+            height = height,
+            baseline = baseline
+        ) { x, y ->
+            withTransform({ translate(left = x + xOffset, top = y) }) {
+                drawPath(path, color = drawColor, style = Fill)
+            }
         }
     }
 

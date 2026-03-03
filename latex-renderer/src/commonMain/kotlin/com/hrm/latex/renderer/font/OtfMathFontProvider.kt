@@ -26,6 +26,8 @@ import androidx.compose.ui.text.font.FontFamily
 import com.hrm.latex.renderer.utils.opentype.BinaryReader
 import com.hrm.latex.renderer.utils.opentype.CmapParser
 import com.hrm.latex.renderer.utils.opentype.CmapTable
+import com.hrm.latex.renderer.utils.opentype.GlyphOutlineProvider
+import com.hrm.latex.renderer.utils.opentype.GlyphPathData
 import com.hrm.latex.renderer.utils.opentype.MathConstantsData
 import com.hrm.latex.renderer.utils.opentype.MathGlyphInfoData
 import com.hrm.latex.renderer.utils.opentype.MathKernTable
@@ -57,6 +59,11 @@ class OtfMathFontProvider(
     private val reader = BinaryReader(fontBytes)
     private val fontInfo = OpenTypeFontParser.parse(reader)
     private val unitsPerEm = fontInfo.unitsPerEm
+
+    /** Glyph Outline 提取器（懒加载，仅在首次需要 Path 渲染时初始化 CFF 解析） */
+    private val glyphOutlineProvider: GlyphOutlineProvider by lazy {
+        GlyphOutlineProvider(fontBytes)
+    }
 
     /** cmap 表解析结果（Unicode ↔ GlyphID 双向映射） */
     private val cmapTable: CmapTable = run {
@@ -274,6 +281,7 @@ class OtfMathFontProvider(
         return construction.variants.map { record ->
             val variantChar = cmapTable.glyphIdToString(record.variantGlyph)
             GlyphVariant(
+                glyphId = record.variantGlyph,
                 glyphChar = variantChar.ifEmpty { glyphChar },
                 advanceMeasurement = designToPx(record.advanceMeasurement, fontSizePx),
                 fontFamily = fontFamily
@@ -290,6 +298,7 @@ class OtfMathFontProvider(
         return construction.variants.map { record ->
             val variantChar = cmapTable.glyphIdToString(record.variantGlyph)
             GlyphVariant(
+                glyphId = record.variantGlyph,
                 glyphChar = variantChar.ifEmpty { glyphChar },
                 advanceMeasurement = designToPx(record.advanceMeasurement, fontSizePx),
                 fontFamily = fontFamily
@@ -308,6 +317,7 @@ class OtfMathFontProvider(
             parts = assembly.parts.map { part ->
                 val partChar = cmapTable.glyphIdToString(part.glyphId)
                 GlyphPart(
+                    glyphId = part.glyphId,
                     glyphChar = partChar,
                     startConnectorLength = designToPx(part.startConnectorLength, fontSizePx),
                     endConnectorLength = designToPx(part.endConnectorLength, fontSizePx),
@@ -316,7 +326,8 @@ class OtfMathFontProvider(
                     fontFamily = fontFamily
                 )
             },
-            minConnectorOverlap = designToPx(variantsData.minConnectorOverlap, fontSizePx)
+            minConnectorOverlap = designToPx(variantsData.minConnectorOverlap, fontSizePx),
+            italicsCorrection = designToPx(assembly.italicsCorrection, fontSizePx)
         )
     }
 
@@ -331,6 +342,7 @@ class OtfMathFontProvider(
             parts = assembly.parts.map { part ->
                 val partChar = cmapTable.glyphIdToString(part.glyphId)
                 GlyphPart(
+                    glyphId = part.glyphId,
                     glyphChar = partChar,
                     startConnectorLength = designToPx(part.startConnectorLength, fontSizePx),
                     endConnectorLength = designToPx(part.endConnectorLength, fontSizePx),
@@ -339,7 +351,8 @@ class OtfMathFontProvider(
                     fontFamily = fontFamily
                 )
             },
-            minConnectorOverlap = designToPx(variantsData.minConnectorOverlap, fontSizePx)
+            minConnectorOverlap = designToPx(variantsData.minConnectorOverlap, fontSizePx),
+            italicsCorrection = designToPx(assembly.italicsCorrection, fontSizePx)
         )
     }
 
@@ -357,6 +370,16 @@ class OtfMathFontProvider(
 
     override fun fontBytes(role: MathFontRole): ByteArray {
         return fontBytes
+    }
+
+    // ─── Glyph Outline 提取 ──────────────────────────────────────
+
+    override fun glyphPath(glyphId: Int, fontSizePx: Float): GlyphPathData? {
+        return glyphOutlineProvider.getPath(glyphId, fontSizePx)
+    }
+
+    override fun charToGlyphId(text: String): Int {
+        return cmapTable.stringToGlyphId(text)
     }
 
     // ─── 兜底常量 ────────────────────────────────────────────────

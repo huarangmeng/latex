@@ -23,6 +23,7 @@
 package com.hrm.latex.renderer.font
 
 import androidx.compose.ui.text.font.FontFamily
+import com.hrm.latex.renderer.utils.opentype.GlyphPathData
 
 /**
  * 数学字体排版参数的统一抽象。
@@ -156,8 +157,12 @@ interface MathFontProvider {
     /**
      * 获取指定字形的垂直尺寸变体列表。
      *
-     * 返回从小到大排列的预设变体，每个包含 glyphChar 和对应高度。
-     * 用于定界符（括号、花括号等）和大型运算符（积分、求和等）的伸缩。
+     * 返回从小到大排列的预设变体。每个变体同时携带：
+     * - `glyphId`: 字体内部 Glyph ID，配合 [glyphPath] 直接提取 Path 渲染（OTF 路径）
+     * - `glyphChar` + `fontFamily`: Unicode 字符 + 字体，配合 TextMeasurer 渲染（TTF 降级路径）
+     *
+     * 消费方优先使用 `glyphId` + [glyphPath]（精确，绕过 Unicode 映射限制），
+     * 失败时降级到 `glyphChar` + TextMeasurer。
      *
      * @param glyphChar 基础字形的 Unicode 字符（如 "("）
      * @param fontSizePx 字号（px）
@@ -169,6 +174,7 @@ interface MathFontProvider {
      * 获取指定字形的水平尺寸变体列表。
      *
      * 用于 \widehat、\widetilde、水平花括号等需要水平伸缩的装饰。
+     * 数据格式与 [verticalVariants] 相同。
      */
     fun horizontalVariants(glyphChar: String, fontSizePx: Float): List<GlyphVariant>
 
@@ -177,6 +183,8 @@ interface MathFontProvider {
      *
      * 当所有预设变体都不够大时，使用组装部件拼出任意高度的字形。
      * 组装由顶部件、底部件、中间件（可选）和扩展件（可重复）组成。
+     *
+     * 每个部件同时携带 `glyphId`（用于 Path 渲染）和 `glyphChar`（用于 TextMeasurer 降级）。
      *
      * @param glyphChar 基础字形
      * @param fontSizePx 字号（px）
@@ -211,16 +219,45 @@ interface MathFontProvider {
      * 获取字体字节数据（用于 GlyphBoundsProvider 精确测量）。
      */
     fun fontBytes(role: MathFontRole): ByteArray?
+
+    // ─── Glyph Outline（直接从字体提取 Path 数据） ───
+
+    /**
+     * 通过 Glyph ID 直接从字体文件提取字形轮廓 Path。
+     *
+     * 这是绕过 TextMeasurer 的核心能力，用于渲染 MATH 表中没有 Unicode 映射的
+     * 变体字形（如积分符号的 display-size 变体）。
+     *
+     * @param glyphId 字体内部的 Glyph ID（从 MATH 表的 MathVariants 获取）
+     * @param fontSizePx 目标字号（像素）
+     * @return 缩放到目标字号的 Path 和尺寸信息，不支持时返回 null
+     */
+    fun glyphPath(glyphId: Int, fontSizePx: Float): GlyphPathData? = null
+
+    /**
+     * 将 Unicode 字符映射到 Glyph ID。
+     *
+     * 用于将 Unicode 字符串转换为 Glyph ID，再通过 [glyphPath] 提取 Path。
+     *
+     * @param text Unicode 字符（取第一个字符的码位）
+     * @return Glyph ID，无映射时返回 0
+     */
+    fun charToGlyphId(text: String): Int = 0
 }
 
 /**
  * 字形尺寸变体。
  *
- * @property glyphChar 变体字形的 Unicode 字符
+ * 同时携带 Glyph ID（用于 Path 渲染）和 Unicode 字符（用于 TextMeasurer 降级），
+ * 统一支持 OTF 和 TTF 两种渲染路径。
+ *
+ * @property glyphId 字体内部 Glyph ID；OTF 字体提供精确值，TTF 字体为 0（不支持 Path 渲染）
+ * @property glyphChar 变体字形的 Unicode 字符（可能为空串，表示该变体无 Unicode 映射）
  * @property advanceMeasurement 该变体的高度/宽度（px，取决于方向）
  * @property fontFamily 渲染此变体所需的 FontFamily
  */
 data class GlyphVariant(
+    val glyphId: Int,
     val glyphChar: String,
     val advanceMeasurement: Float,
     val fontFamily: FontFamily
@@ -230,19 +267,25 @@ data class GlyphVariant(
  * 字形组装描述。
  *
  * 定义如何用多个部件拼装出任意大小的字形（如超高括号、超宽花括号）。
+ * 部件同时携带 Glyph ID 和 Unicode 字符，统一支持 Path 渲染和 TextMeasurer 降级。
  *
  * @property parts 组装部件列表（按从上到下或从左到右的顺序）
  * @property minConnectorOverlap 部件之间的最小连接器重叠量（px）
+ * @property italicsCorrection 组装整体的斜体修正值（px），默认 0
  */
 data class GlyphAssembly(
     val parts: List<GlyphPart>,
-    val minConnectorOverlap: Float
+    val minConnectorOverlap: Float,
+    val italicsCorrection: Float = 0f
 )
 
 /**
  * 字形组装的单个部件。
  *
- * @property glyphChar 部件字形
+ * 同时携带 Glyph ID（用于 Path 渲染）和 Unicode 字符（用于 TextMeasurer 降级）。
+ *
+ * @property glyphId 字体内部 Glyph ID；OTF 提供精确值，TTF 为 0
+ * @property glyphChar 部件字形的 Unicode 字符（可能为空串）
  * @property startConnectorLength 起始连接器长度（px）— 与前一个部件重叠的区域
  * @property endConnectorLength 结束连接器长度（px）— 与后一个部件重叠的区域
  * @property fullAdvance 部件的完整前进宽度/高度（px）
@@ -250,6 +293,7 @@ data class GlyphAssembly(
  * @property fontFamily 渲染此部件所需的 FontFamily
  */
 data class GlyphPart(
+    val glyphId: Int,
     val glyphChar: String,
     val startConnectorLength: Float,
     val endConnectorLength: Float,

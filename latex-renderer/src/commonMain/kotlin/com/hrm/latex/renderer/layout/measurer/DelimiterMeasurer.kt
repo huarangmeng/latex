@@ -100,11 +100,11 @@ internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
         val delimiterHeight = contentLayout.height + delimiterPadding * 2
 
         val leftLayout = if (leftStr != ".") {
-            DelimiterRenderer.measureScaled(leftStr, context, measurer, delimiterHeight)
+            DelimiterRenderer.measureScaled(leftStr, context, measurer, delimiterHeight, density)
         } else null
 
         val rightLayout = if (rightStr != ".") {
-            DelimiterRenderer.measureScaled(rightStr, context, measurer, delimiterHeight)
+            DelimiterRenderer.measureScaled(rightStr, context, measurer, delimiterHeight, density)
         } else null
 
         val leftW = leftLayout?.width ?: 0f

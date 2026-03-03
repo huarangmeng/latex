@@ -65,8 +65,8 @@ internal class BinomialMeasurer : NodeMeasurer<LatexNode.Binomial> {
         val center = numLayout.height + gap / 2f + delimiterPadding
         val baseline = center + axisHeight
 
-        val leftLayout = DelimiterRenderer.measureScaled("(", context, measurer, delimiterHeight)
-        val rightLayout = DelimiterRenderer.measureScaled(")", context, measurer, delimiterHeight)
+        val leftLayout = DelimiterRenderer.measureScaled("(", context, measurer, delimiterHeight, density)
+        val rightLayout = DelimiterRenderer.measureScaled(")", context, measurer, delimiterHeight, density)
 
         val width = leftLayout.width + contentWidth + rightLayout.width
 

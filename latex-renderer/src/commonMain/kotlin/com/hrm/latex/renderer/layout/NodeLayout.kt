@@ -42,4 +42,9 @@ class NodeLayout(
     val height: Float,
     val baseline: Float,
     val draw: DrawScope.(x: Float, y: Float) -> Unit
-)
+) {
+    companion object {
+        internal val EMPTY: NodeLayout
+            get() = NodeLayout(0f, 0f, 0f, { _, _ -> })
+    }
+}
