@@ -51,7 +51,6 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
-            implementation(compose.preview)
         }
         commonMain.dependencies {
             api(projects.latexParser)

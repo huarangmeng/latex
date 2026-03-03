@@ -42,9 +42,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.backhandler.BackHandler
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.renderer.Latex
@@ -134,12 +135,16 @@ val previewCategories = listOf(
 
 // ========== 主界面 ==========
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun LatexPreview() {
     var selectedCategory by remember { mutableStateOf<PreviewCategory?>(null) }
 
-    BackHandler(selectedCategory != null) { selectedCategory = null }
+    val state = rememberNavigationEventState(NavigationEventInfo.None)
+    NavigationBackHandler(
+        state = state,
+        isBackEnabled = selectedCategory != null,
+        onBackCompleted = { selectedCategory = null }
+    )
 
     if (selectedCategory == null) {
         CategoryListScreen(
@@ -210,7 +215,7 @@ fun CategoryListScreen(
 
 // ========== 分组预览页 ==========
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PreviewCategoryScreen(
     title: String,
@@ -219,7 +224,12 @@ fun PreviewCategoryScreen(
 ) {
     var selectedGroup by remember { mutableStateOf<PreviewGroup?>(null) }
 
-    BackHandler(selectedGroup != null) { selectedGroup = null }
+    val state = rememberNavigationEventState(NavigationEventInfo.None)
+    NavigationBackHandler(
+        state = state,
+        isBackEnabled = selectedGroup != null,
+        onBackCompleted = { selectedGroup = null }
+    )
 
     if (selectedGroup == null) {
         Scaffold(
