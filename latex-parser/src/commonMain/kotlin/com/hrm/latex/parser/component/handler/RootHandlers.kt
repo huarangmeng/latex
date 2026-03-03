@@ -28,7 +28,7 @@ import com.hrm.latex.parser.tokenizer.LatexToken
 /**
  * 根号命令：\sqrt
  */
-fun CommandRegistry.installRootHandlers() {
+internal fun CommandRegistry.installRootHandlers() {
     register("sqrt") { _, ctx, stream ->
         val index = if (stream.peek() is LatexToken.LeftBracket) {
             stream.advance() // [

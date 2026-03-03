@@ -32,7 +32,7 @@ private const val TAG = "MacroHandlers"
 /**
  * 宏定义命令：\newcommand, \renewcommand, \def, \DeclareMathOperator
  */
-fun CommandRegistry.installMacroHandlers() {
+internal fun CommandRegistry.installMacroHandlers() {
     // \newcommand, \renewcommand
     val newCommandHandler = CommandHandler { _, ctx, stream ->
         val nameArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")

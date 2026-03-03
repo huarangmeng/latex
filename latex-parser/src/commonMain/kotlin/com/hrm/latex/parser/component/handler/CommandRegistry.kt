@@ -26,7 +26,7 @@ import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
 
-fun interface CommandHandler {
+internal fun interface CommandHandler {
     /**
      * 命令处理器函数式接口
      *
@@ -55,7 +55,7 @@ fun interface CommandHandler {
  * registry.installModule { installFractionHandlers() }
  * ```
  */
-class CommandRegistry {
+internal class CommandRegistry {
     private val handlers = LinkedHashMap<String, CommandHandler>()
 
     /**

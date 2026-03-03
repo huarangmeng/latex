@@ -27,7 +27,7 @@ import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
-class EnvironmentParser(private val context: LatexParserContext) {
+internal class EnvironmentParser(private val context: LatexParserContext) {
     private val tokenStream get() = context.tokenStream
 
     companion object {

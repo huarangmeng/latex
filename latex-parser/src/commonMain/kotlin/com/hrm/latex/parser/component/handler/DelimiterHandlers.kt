@@ -28,7 +28,7 @@ import com.hrm.latex.parser.tokenizer.LatexToken
 /**
  * 定界符命令：\left...\right, \big, \Big, \bigg, \Bigg 等
  */
-fun CommandRegistry.installDelimiterHandlers() {
+internal fun CommandRegistry.installDelimiterHandlers() {
     // \left...\right 自动伸缩
     register("left") { _, ctx, stream ->
         val leftToken = stream.advance()

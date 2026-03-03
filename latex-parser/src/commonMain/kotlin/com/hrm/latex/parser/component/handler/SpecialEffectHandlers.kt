@@ -28,7 +28,7 @@ import com.hrm.latex.parser.tokenizer.LatexToken
 /**
  * 特殊效果命令：\boxed, \phantom, \smash, \vphantom, \hphantom, \not
  */
-fun CommandRegistry.installSpecialEffectHandlers() {
+internal fun CommandRegistry.installSpecialEffectHandlers() {
     register("boxed") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: LatexNode.Text("")
         val content = when (arg) {

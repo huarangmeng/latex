@@ -147,16 +147,16 @@ class IncrementalLatexParser {
 
     /**
      * 部分解析：处理不完整的 LaTeX 内容
-     * 
+     *
      * 策略：两阶段回退算法
      * 1. 精细回退阶段（最近 N 字符）：逐字符回退，适合处理末尾的增量输入错误
      * 2. 快速回退阶段（之前所有字符）：步进回退，牺牲精度换性能
-     * 
+     *
      * 时间复杂度：O(n) 最坏情况，O(1) 平均情况（增量输入通常错误在末尾）
-     * 
+     *
      * 注意：解析有效性不是单调的，不能使用二分查找
      * 示例：`\int_{` 解析失败，但 `\int` 解析成功
-     * 
+     *
      * @param input 待解析的不完整 LaTeX 字符串
      * @return 可解析部分的文档节点
      */
@@ -165,7 +165,7 @@ class IncrementalLatexParser {
 
         var length = input.length
         val firstStageLimit = maxOf(
-            1, 
+            1,
             input.length - LatexConstants.INCREMENTAL_PARSE_FINE_BACKTRACK_RANGE
         )
 

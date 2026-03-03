@@ -28,7 +28,7 @@ import com.hrm.latex.parser.tokenizer.LatexToken
 /**
  * 标签、引用与公式编号命令：\label, \ref, \eqref, \tag, \substack
  */
-fun CommandRegistry.installReferenceHandlers() {
+internal fun CommandRegistry.installReferenceHandlers() {
     register("label") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\label")
         val key = when (arg) {

@@ -28,7 +28,7 @@ import com.hrm.latex.parser.tokenizer.LatexToken
 /**
  * 数学算子 & 运算符名称命令：\sin, \cos, \operatorname, \mathop, \bmod, \pmod, \mod, \dots
  */
-fun CommandRegistry.installOperatorHandlers() {
+internal fun CommandRegistry.installOperatorHandlers() {
     // 标准数学算子（正体渲染）
     val standardOps = arrayOf(
         "sin", "cos", "tan", "cot", "sec", "csc",

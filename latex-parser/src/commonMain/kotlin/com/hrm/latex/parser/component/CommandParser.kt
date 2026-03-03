@@ -29,7 +29,7 @@ import com.hrm.latex.parser.component.handler.*
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
-class CommandParser(
+internal class CommandParser(
     private val context: LatexParserContext,
     private val chemicalParser: ChemicalParser
 ) {
@@ -37,28 +37,30 @@ class CommandParser(
 
     companion object {
         private const val TAG = "CommandParser"
-    }
 
-    /**
-     * 命令注册表：所有已知 LaTeX 命令的分发中心。
-     * 按领域模块化注册，每个 install*() 方法位于独立的 handler 文件中。
-     */
-    private val registry = CommandRegistry().apply {
-        installFractionHandlers()
-        installRootHandlers()
-        installBigOperatorHandlers()
-        installDelimiterHandlers()
-        installStyleHandlers()
-        installAccentHandlers()
-        installArrowAndStackHandlers()
-        installSpaceHandlers()
-        installColorHandlers()
-        installSpecialEffectHandlers()
-        installMacroHandlers()
-        installTableHandlers()
-        installReferenceHandlers()
-        installAdvancedHandlers()
-        installOperatorHandlers()
+        /**
+         * 命令注册表：所有已知 LaTeX 命令的分发中心。
+         * 
+         * 注册表是无状态的（只存储命令名→handler 的映射），
+         * 所有 CommandParser 实例共享同一份，避免重复构建。
+         */
+        private val registry = CommandRegistry().apply {
+            installFractionHandlers()
+            installRootHandlers()
+            installBigOperatorHandlers()
+            installDelimiterHandlers()
+            installStyleHandlers()
+            installAccentHandlers()
+            installArrowAndStackHandlers()
+            installSpaceHandlers()
+            installColorHandlers()
+            installSpecialEffectHandlers()
+            installMacroHandlers()
+            installTableHandlers()
+            installReferenceHandlers()
+            installAdvancedHandlers()
+            installOperatorHandlers()
+        }
     }
 
     /**

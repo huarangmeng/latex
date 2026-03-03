@@ -27,7 +27,7 @@ import com.hrm.latex.parser.model.LatexNode
 /**
  * 颜色命令：\color, \textcolor
  */
-fun CommandRegistry.installColorHandlers() {
+internal fun CommandRegistry.installColorHandlers() {
     val colorHandler = CommandHandler { _, ctx, _ ->
         val colorArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
         val colorName = ParseUtils.extractColorName(colorArg)

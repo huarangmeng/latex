@@ -27,7 +27,7 @@ import com.hrm.latex.parser.model.LatexNode
 /**
  * 表格相关命令：\hline, \cline, \multicolumn
  */
-fun CommandRegistry.installTableHandlers() {
+internal fun CommandRegistry.installTableHandlers() {
     register("hline") { _, _, _ -> LatexNode.HLine() }
 
     register("cline") { _, ctx, _ ->

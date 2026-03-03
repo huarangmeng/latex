@@ -27,7 +27,7 @@ import com.hrm.latex.parser.model.LatexNode
 /**
  * 字体样式 & 数学模式切换命令
  */
-fun CommandRegistry.installStyleHandlers() {
+internal fun CommandRegistry.installStyleHandlers() {
     // 字体样式
     val styleMapping = mapOf(
         "mathbf" to LatexNode.Style.StyleType.BOLD,

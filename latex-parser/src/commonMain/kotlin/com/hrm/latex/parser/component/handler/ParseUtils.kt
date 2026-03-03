@@ -32,7 +32,7 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  *
  * 从 CommandParser 中提取的通用辅助方法，避免每个 handler 文件重复实现。
  */
-object ParseUtils {
+internal object ParseUtils {
 
     /**
      * 从节点中提取纯文本

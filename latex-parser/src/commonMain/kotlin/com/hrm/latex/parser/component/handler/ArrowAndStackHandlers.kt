@@ -28,7 +28,7 @@ import com.hrm.latex.parser.tokenizer.LatexToken
 /**
  * 可扩展箭头 & 堆叠命令：\xrightarrow, \overset, \underset, \stackrel
  */
-fun CommandRegistry.installArrowAndStackHandlers() {
+internal fun CommandRegistry.installArrowAndStackHandlers() {
     // 可扩展箭头
     val arrowMapping = mapOf(
         "xrightarrow" to LatexNode.ExtensibleArrow.Direction.RIGHT,

@@ -27,7 +27,7 @@ import com.hrm.latex.parser.model.LatexNode
 /**
  * 高级数学命令：\sideset, \tensor, \indices
  */
-fun CommandRegistry.installAdvancedHandlers() {
+internal fun CommandRegistry.installAdvancedHandlers() {
     register("sideset") { _, ctx, stream ->
         val (leftSub, leftSup) = ParseUtils.parseScriptGroup(ctx, stream)
         val (rightSub, rightSup) = ParseUtils.parseScriptGroup(ctx, stream)

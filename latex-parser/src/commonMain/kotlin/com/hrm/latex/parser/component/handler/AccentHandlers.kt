@@ -27,7 +27,7 @@ import com.hrm.latex.parser.model.LatexNode
 /**
  * 装饰命令：\hat, \vec, \overline, \cancel, 等
  */
-fun CommandRegistry.installAccentHandlers() {
+internal fun CommandRegistry.installAccentHandlers() {
     val accentMapping = mapOf(
         "hat" to LatexNode.Accent.AccentType.HAT,
         "tilde" to LatexNode.Accent.AccentType.TILDE,

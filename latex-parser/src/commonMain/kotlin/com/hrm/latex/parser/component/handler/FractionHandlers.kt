@@ -27,7 +27,7 @@ import com.hrm.latex.parser.model.LatexNode
 /**
  * 分数与二项式相关命令：\frac, \dfrac, \tfrac, \cfrac, \binom, \tbinom, \dbinom
  */
-fun CommandRegistry.installFractionHandlers() {
+internal fun CommandRegistry.installFractionHandlers() {
     // 分数
     register("frac", "dfrac", "tfrac", "cfrac") { _, ctx, _ ->
         val numerator = ctx.parseArgument() ?: LatexNode.Text("")

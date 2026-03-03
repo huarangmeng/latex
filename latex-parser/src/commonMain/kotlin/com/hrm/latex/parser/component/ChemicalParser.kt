@@ -23,14 +23,13 @@
 
 package com.hrm.latex.parser.component
 
-import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
 /**
  * 解析 \ce{...} 化学公式
  */
-class ChemicalParser(private val context: LatexParserContext) {
+internal class ChemicalParser(private val context: LatexParserContext) {
     private val tokenStream get() = context.tokenStream
 
     companion object {
@@ -55,7 +54,10 @@ class ChemicalParser(private val context: LatexParserContext) {
         }
     }
 
-    private fun parseChemicalContent(stopAtRightBrace: Boolean, singleToken: Boolean = false): List<LatexNode> {
+    private fun parseChemicalContent(
+        stopAtRightBrace: Boolean,
+        singleToken: Boolean = false
+    ): List<LatexNode> {
         val nodes = mutableListOf<LatexNode>()
         // 跟踪上一个添加的节点，用于附着上下标
         // 注意：由于 nodes 列表可变，我们可以直接操作 nodes.last()
@@ -64,7 +66,7 @@ class ChemicalParser(private val context: LatexParserContext) {
 
         while (!tokenStream.isEOF()) {
             val token = tokenStream.peek()
-            
+
             if (stopAtRightBrace && token is LatexToken.RightBrace) {
                 break
             }
@@ -72,7 +74,7 @@ class ChemicalParser(private val context: LatexParserContext) {
             when (token) {
                 is LatexToken.Text -> {
                     tokenStream.advance()
-                    
+
                     // 特殊处理: 检查 "-" 后面是否跟着 ">"
                     if (token.content == "-" && !tokenStream.isEOF()) {
                         val nextToken = tokenStream.peek()
@@ -85,7 +87,7 @@ class ChemicalParser(private val context: LatexParserContext) {
                             continue
                         }
                     }
-                    
+
                     // 特殊处理: 检查 "<" 后面是否跟着 "->" 或 "=>"
                     if (token.content == "<" && !tokenStream.isEOF()) {
                         val nextToken = tokenStream.peek()
@@ -97,14 +99,20 @@ class ChemicalParser(private val context: LatexParserContext) {
                                 parseChemicalText(arrowText, nodes, expectCoefficient)
                                 expectCoefficient = false
                                 continue
-                            } else if (nextToken.content.startsWith("-") || nextToken.content.startsWith("=")) {
+                            } else if (nextToken.content.startsWith("-") || nextToken.content.startsWith(
+                                    "="
+                                )
+                            ) {
                                 // 处理 "<-" 或 "<=" 后面可能跟 ">" 的情况
                                 tokenStream.advance()
                                 var arrowText = "<" + nextToken.content
                                 // 继续检查下一个 token 是否为 ">"
                                 if (!tokenStream.isEOF()) {
                                     val thirdToken = tokenStream.peek()
-                                    if (thirdToken is LatexToken.Text && thirdToken.content.startsWith(">")) {
+                                    if (thirdToken is LatexToken.Text && thirdToken.content.startsWith(
+                                            ">"
+                                        )
+                                    ) {
                                         tokenStream.advance()
                                         arrowText += thirdToken.content
                                     }
@@ -115,17 +123,17 @@ class ChemicalParser(private val context: LatexParserContext) {
                             }
                         }
                     }
-                    
+
                     parseChemicalText(token.content, nodes, expectCoefficient)
                     expectCoefficient = false
                 }
-                
+
                 is LatexToken.Whitespace -> {
                     tokenStream.advance()
                     nodes.add(LatexNode.Space(LatexNode.Space.SpaceType.NORMAL))
                     expectCoefficient = true
                 }
-                
+
                 is LatexToken.Subscript -> {
                     // 显式下标 _
                     tokenStream.advance()
@@ -133,18 +141,19 @@ class ChemicalParser(private val context: LatexParserContext) {
                     attachSubscript(nodes, index)
                     expectCoefficient = false
                 }
-                
+
                 is LatexToken.Superscript -> {
                     // 显式上标 ^
                     tokenStream.advance()
-                    
+
                     // 特殊情况：单独的 ^ 表示气体逸出（向上箭头）
                     // 判断方法：后面是空格、右括号、或 EOF
                     val nextToken = tokenStream.peek()
-                    if (nextToken is LatexToken.Whitespace || 
-                        nextToken is LatexToken.RightBrace || 
-                        tokenStream.isEOF()) {
-                        
+                    if (nextToken is LatexToken.Whitespace ||
+                        nextToken is LatexToken.RightBrace ||
+                        tokenStream.isEOF()
+                    ) {
+
                         // 优化间距：如果前面有普通空格，减小它
                         shrinkLastNormalSpace(nodes)
                         nodes.add(LatexNode.Symbol("uparrow", "↑"))
@@ -156,7 +165,7 @@ class ChemicalParser(private val context: LatexParserContext) {
                         expectCoefficient = false
                     }
                 }
-                
+
                 is LatexToken.Command -> {
                     // 内部命令，如 \frac，转交给 context 处理
                     // 注意：不要在这里 advance，让 parseExpression 去消费
@@ -164,7 +173,7 @@ class ChemicalParser(private val context: LatexParserContext) {
                     if (node != null) nodes.add(node)
                     expectCoefficient = false
                 }
-                
+
                 else -> {
                     // 其他 token，如 Group ({), Bracket ([) 等
                     if (token is LatexToken.LeftBrace) {
@@ -173,28 +182,28 @@ class ChemicalParser(private val context: LatexParserContext) {
                         nodes.add(group)
                         expectCoefficient = false
                     } else if (token is LatexToken.LeftBracket || token is LatexToken.RightBracket) {
-                         val text = if(token is LatexToken.LeftBracket) "[" else "]"
-                         nodes.add(LatexNode.Text(text))
-                         tokenStream.advance()
-                         expectCoefficient = false
+                        val text = if (token is LatexToken.LeftBracket) "[" else "]"
+                        nodes.add(LatexNode.Text(text))
+                        tokenStream.advance()
+                        expectCoefficient = false
                     } else {
-                         // Fallback
-                         val node = context.parseExpression()
-                         if (node != null) nodes.add(node)
-                         expectCoefficient = false
+                        // Fallback
+                        val node = context.parseExpression()
+                        if (node != null) nodes.add(node)
+                        expectCoefficient = false
                     }
                 }
             }
-            
+
             if (singleToken) break
         }
         return nodes
     }
-    
+
     // 特殊处理 Command 的分支逻辑
     // 上面的 when 分支有点乱，特别是 Command 和 else。
     // 我们可以简化：优先处理 Text/Space/Sub/Super，其他交给 context.parseExpression
-    
+
     private fun parseChemicalScriptContent(): LatexNode {
         // 化学脚本内容也可能包含化学语法？mhchem 中 ^{2+} 是合法的。
         // 简单起见，使用普通解析
@@ -207,10 +216,10 @@ class ChemicalParser(private val context: LatexParserContext) {
     private fun parseChemicalText(text: String, nodes: MutableList<LatexNode>, isStart: Boolean) {
         var i = 0
         var expectCoef = isStart
-        
+
         while (i < text.length) {
             val char = text[i]
-            
+
             // 1. 检查箭头
             // 1.1 可逆箭头 <-> 或 <=>
             if (char == '<') {
@@ -237,23 +246,23 @@ class ChemicalParser(private val context: LatexParserContext) {
                 }
                 // 否则作为普通字符处理（不太常见）
             }
-            
+
             // 1.2 单向箭头 ->
-            if (char == '-' && i + 1 < text.length && text[i+1] == '>') {
+            if (char == '-' && i + 1 < text.length && text[i + 1] == '>') {
                 nodes.add(LatexNode.Symbol("rightarrow", "→"))
                 i += 2
                 expectCoef = true
                 continue
             }
-            
+
             // 1.3 双线箭头 =>
-            if (char == '=' && i + 1 < text.length && text[i+1] == '>') {
+            if (char == '=' && i + 1 < text.length && text[i + 1] == '>') {
                 nodes.add(LatexNode.Symbol("Rightarrow", "⇒"))
                 i += 2
                 expectCoef = true
                 continue
             }
-            
+
             // 1.4 结晶水连接符 * 或 .
             if (char == '*' || char == '.') {
                 nodes.add(LatexNode.Symbol("cdot", "·"))
@@ -261,7 +270,7 @@ class ChemicalParser(private val context: LatexParserContext) {
                 expectCoef = true
                 continue
             }
-            
+
             // 2. 数字处理
             if (char.isDigit()) {
                 // 提取连续数字
@@ -270,7 +279,7 @@ class ChemicalParser(private val context: LatexParserContext) {
                     i++
                 }
                 val numStr = text.substring(start, i)
-                
+
                 if (expectCoef) {
                     // 系数：作为普通文本添加
                     nodes.add(LatexNode.Text(numStr))
@@ -285,7 +294,7 @@ class ChemicalParser(private val context: LatexParserContext) {
                             isCharge = true
                         }
                     }
-                    
+
                     if (isCharge) {
                         // 将数字作为上标的一部分，留给 +/- 处理逻辑，或者预读？
                         // 简单起见，我们在这里吞掉后面的 +/-
@@ -302,7 +311,7 @@ class ChemicalParser(private val context: LatexParserContext) {
                 }
                 continue
             }
-            
+
             // 3. 电荷 +/- (孤立的，如 Na+)
             if (char == '+' || char == '-') {
                 // 如果前一个节点是元素，且不是系数位置？
@@ -312,7 +321,7 @@ class ChemicalParser(private val context: LatexParserContext) {
                 // 但如果是方程式 A + B -> C，+ 是运算符
                 // 判断上下文：如果在 Space 之后，或是 Start，则是运算符。
                 // 如果紧跟在元素/右括号/下标之后，则是电荷。
-                
+
                 if (expectCoef) {
                     // 运算符模式
                     if (char == '+') {
@@ -335,19 +344,20 @@ class ChemicalParser(private val context: LatexParserContext) {
                 i++
                 continue
             }
-            
+
             // 4. 字母 (元素)
             if (char.isLetter()) {
                 // 特殊情况：单独的 'v' 表示沉淀（向下箭头）
-                if (char == 'v' && 
-                    (i == text.length - 1 || text[i + 1] == ' ' || !text[i + 1].isLetter())) {
+                if (char == 'v' &&
+                    (i == text.length - 1 || text[i + 1] == ' ' || !text[i + 1].isLetter())
+                ) {
                     shrinkLastNormalSpace(nodes)
                     nodes.add(LatexNode.Symbol("downarrow", "↓"))
                     i++
                     expectCoef = true
                     continue
                 }
-                
+
                 // H2O 中: H 是元素, 2 是下标, O 是元素
                 // Fe3+ 中: F 是元素, e 也是元素（Fe是一个元素），3+ 是上标
                 // 但这里我们逐字符解析，所以 F 和 e 分别是独立的字母
@@ -365,7 +375,7 @@ class ChemicalParser(private val context: LatexParserContext) {
                 expectCoef = false
                 continue
             }
-            
+
             // 5. 其他字符 (如括号)
             nodes.add(LatexNode.Text(char.toString()))
             expectCoef = false // 括号后通常不是系数
@@ -380,7 +390,7 @@ class ChemicalParser(private val context: LatexParserContext) {
             // 如 SO_4^2-，先处理 _4 -> Subscript(O, 4)
             // 再处理 ^2- -> Superscript(Subscript(O, 4), 2-)
             // 这是合理的嵌套顺序。
-            
+
             // 这里的 Subscript 构造函数参数顺序：base, index
             nodes.add(LatexNode.Subscript(last, index))
         } else {
