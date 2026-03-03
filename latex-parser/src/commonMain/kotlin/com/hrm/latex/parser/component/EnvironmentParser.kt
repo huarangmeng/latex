@@ -82,150 +82,23 @@ class EnvironmentParser(private val context: LatexParserContext) {
         return result
     }
 
-    /**
-     * 解析矩阵
-     */
-    private fun parseMatrix(envName: String, isSmall: Boolean = false): LatexNode.Matrix {
-        val matrixType = when (envName) {
-            "pmatrix" -> LatexNode.Matrix.MatrixType.PAREN
-            "bmatrix" -> LatexNode.Matrix.MatrixType.BRACKET
-            "Bmatrix" -> LatexNode.Matrix.MatrixType.BRACE
-            "vmatrix" -> LatexNode.Matrix.MatrixType.VBAR
-            "Vmatrix" -> LatexNode.Matrix.MatrixType.DOUBLE_VBAR
-            else -> LatexNode.Matrix.MatrixType.PLAIN
-        }
-
-        val rows = mutableListOf<List<LatexNode>>()
-        var currentRow = mutableListOf<LatexNode>()
-        var currentCell = mutableListOf<LatexNode>()
-
-        while (!tokenStream.isEOF()) {
-            when (val token = tokenStream.peek()) {
-                is LatexToken.EndEnvironment -> {
-                    if (token.name == envName || (isSmall && token.name == "smallmatrix")) {
-                        // 添加最后一个单元格和行
-                        if (currentCell.isNotEmpty()) {
-                            currentRow.add(LatexNode.Group(currentCell))
-                        }
-                        if (currentRow.isNotEmpty()) {
-                            rows.add(currentRow)
-                        }
-                        tokenStream.advance()
-                        break
-                    } else {
-                        // Mismatched environment end, should ideally throw or handle error, but keeping original logic
-                         tokenStream.advance() 
-                    }
-                }
-
-                is LatexToken.Ampersand -> {
-                    // 列分隔符
-                    currentRow.add(LatexNode.Group(currentCell))
-                    currentCell = mutableListOf()
-                    tokenStream.advance()
-                }
-
-                is LatexToken.NewLine -> {
-                    // 行分隔符
-                    if (currentCell.isNotEmpty()) {
-                        currentRow.add(LatexNode.Group(currentCell))
-                    }
-                    if (currentRow.isNotEmpty()) {
-                        rows.add(currentRow)
-                    }
-                    currentRow = mutableListOf()
-                    currentCell = mutableListOf()
-                    tokenStream.advance()
-                }
-
-                else -> {
-                    val node = context.parseExpression()
-                    if (node != null) {
-                        currentCell.add(node)
-                    }
-                }
-            }
-        }
-
-        return LatexNode.Matrix(rows, matrixType, isSmall)
-    }
+    // ====================================================================
+    // 通用行列结构解析器
+    // ====================================================================
 
     /**
-     * 解析数组环境（array）
+     * 通用行列结构解析器。
+     *
+     * 统一处理 matrix、aligned、split、eqnarray 等环境中的
+     * EndEnvironment / Ampersand / NewLine token 分发逻辑。
+     *
+     * @param envName 环境名（用于匹配 EndEnvironment）
+     * @param handleSpecialNodes 是否将 HLine/CLine 作为独立行标记处理（仅 array/tabular 需要）
      */
-    private fun parseArray(): LatexNode.Array {
-        // array 环境需要指定列对齐方式，如 {ccc} 或 {rcl}
-        val alignment = if (tokenStream.peek() is LatexToken.LeftBrace) {
-            tokenStream.advance() // consume {
-            val alignText = StringBuilder()
-            while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBrace) {
-                when (val token = tokenStream.peek()) {
-                    is LatexToken.Text -> alignText.append(token.content)
-                    else -> break
-                }
-                tokenStream.advance()
-            }
-            if (tokenStream.peek() is LatexToken.RightBrace) {
-                tokenStream.advance() // consume }
-            }
-            alignText.toString()
-        } else {
-            "c" // 默认居中对齐
-        }
-
-        val rows = parseTableStructure("array")
-        return LatexNode.Array(rows, alignment)
-    }
-
-    /**
-     * 解析 tabular 环境（文本模式表格）
-     * 语法: \begin{tabular}{ccc} ... \end{tabular}
-     */
-    private fun parseTabular(): LatexNode.Tabular {
-        // 与 array 相同，解析列对齐方式
-        val alignment = if (tokenStream.peek() is LatexToken.LeftBrace) {
-            tokenStream.advance() // consume {
-            val alignText = StringBuilder()
-            while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBrace) {
-                when (val token = tokenStream.peek()) {
-                    is LatexToken.Text -> alignText.append(token.content)
-                    else -> break
-                }
-                tokenStream.advance()
-            }
-            if (tokenStream.peek() is LatexToken.RightBrace) {
-                tokenStream.advance() // consume }
-            }
-            alignText.toString()
-        } else {
-            "c"
-        }
-
-        val rows = parseTableStructure("tabular")
-        return LatexNode.Tabular(rows, alignment)
-    }
-
-    /**
-     * 解析对齐环境
-     */
-    private fun parseAligned(envName: String): LatexNode.Aligned {
-        // Aligned parsing is slightly different in original code because it didn't check for EndEnvironment name strictly in loop?
-        // Original code:
-        /*
-        while (!isEOF()) {
-            when (val token = peek()) {
-                is LatexToken.EndEnvironment -> {
-                    if (currentCell.isNotEmpty()) ...
-                    advance()
-                    break
-                }
-         */
-        // It breaks on ANY EndEnvironment. This seems risky if nested? But original code did this.
-        // Let's use parseTableStructure but we need to be careful about which Env it closes.
-        // Actually the original code for aligned was generic on EndEnvironment.
-        
-        // Let's replicate original logic carefully.
-        
+    private fun parseRowColumnStructure(
+        envName: String,
+        handleSpecialNodes: Boolean = false
+    ): List<List<LatexNode>> {
         val rows = mutableListOf<List<LatexNode>>()
         var currentRow = mutableListOf<LatexNode>()
         var currentCell = mutableListOf<LatexNode>()
@@ -243,7 +116,6 @@ class EnvironmentParser(private val context: LatexParserContext) {
                         tokenStream.advance()
                         break
                     } else {
-                        // mismatched end environment - advance to avoid infinite loop
                         HLog.w(TAG, "mismatched end environment: expected $envName, got ${token.name}")
                         tokenStream.advance()
                     }
@@ -270,19 +142,78 @@ class EnvironmentParser(private val context: LatexParserContext) {
                 else -> {
                     val node = context.parseExpression()
                     if (node != null) {
-                        currentCell.add(node)
+                        if (handleSpecialNodes && (node is LatexNode.HLine || node is LatexNode.CLine)) {
+                            // 先保存当前累积的内容
+                            if (currentCell.isNotEmpty()) {
+                                currentRow.add(LatexNode.Group(currentCell))
+                                currentCell = mutableListOf()
+                            }
+                            if (currentRow.isNotEmpty()) {
+                                rows.add(currentRow)
+                                currentRow = mutableListOf()
+                            }
+                            rows.add(listOf(node))
+                        } else {
+                            currentCell.add(node)
+                        }
                     }
                 }
             }
         }
 
+        return rows
+    }
+
+    // ====================================================================
+    // 各环境解析方法（委托 parseRowColumnStructure）
+    // ====================================================================
+
+    /**
+     * 解析矩阵
+     */
+    private fun parseMatrix(envName: String, isSmall: Boolean = false): LatexNode.Matrix {
+        val matrixType = when (envName) {
+            "pmatrix" -> LatexNode.Matrix.MatrixType.PAREN
+            "bmatrix" -> LatexNode.Matrix.MatrixType.BRACKET
+            "Bmatrix" -> LatexNode.Matrix.MatrixType.BRACE
+            "vmatrix" -> LatexNode.Matrix.MatrixType.VBAR
+            "Vmatrix" -> LatexNode.Matrix.MatrixType.DOUBLE_VBAR
+            else -> LatexNode.Matrix.MatrixType.PLAIN
+        }
+
+        val actualEnvName = if (isSmall) "smallmatrix" else envName
+        val rows = parseRowColumnStructure(actualEnvName)
+        return LatexNode.Matrix(rows, matrixType, isSmall)
+    }
+
+    /**
+     * 解析数组环境（array）
+     */
+    private fun parseArray(): LatexNode.Array {
+        val alignment = parseAlignmentSpec()
+        val rows = parseRowColumnStructure("array", handleSpecialNodes = true)
+        return LatexNode.Array(rows, alignment)
+    }
+
+    /**
+     * 解析 tabular 环境
+     */
+    private fun parseTabular(): LatexNode.Tabular {
+        val alignment = parseAlignmentSpec()
+        val rows = parseRowColumnStructure("tabular", handleSpecialNodes = true)
+        return LatexNode.Tabular(rows, alignment)
+    }
+
+    /**
+     * 解析对齐环境
+     */
+    private fun parseAligned(envName: String): LatexNode.Aligned {
+        val rows = parseRowColumnStructure(envName)
         return LatexNode.Aligned(rows)
     }
 
     /**
      * 解析 alignat / alignat* 环境
-     * alignat 需要一个必选参数 {n} 指定列对数，解析时跳过该参数
-     * 结构体与 aligned 相同
      */
     private fun parseAlignat(envName: String): LatexNode.Aligned {
         // 跳过可选的 {n} 参数（列对数）
@@ -294,67 +225,17 @@ class EnvironmentParser(private val context: LatexParserContext) {
 
     /**
      * 解析 split 环境
-     * split 用于在单个方程内分割多行,通常在 equation 内使用
-     * 语法: x &= a + b \\
-     *       &= c
      */
     private fun parseSplit(): LatexNode.Split {
-        val rows = mutableListOf<List<LatexNode>>()
-        var currentRow = mutableListOf<LatexNode>()
-        var currentCell = mutableListOf<LatexNode>()
-
-        while (!tokenStream.isEOF()) {
-            when (val token = tokenStream.peek()) {
-                is LatexToken.EndEnvironment -> {
-                    if (token.name == "split") {
-                        if (currentCell.isNotEmpty()) {
-                            currentRow.add(LatexNode.Group(currentCell))
-                        }
-                        if (currentRow.isNotEmpty()) {
-                            rows.add(currentRow)
-                        }
-                        tokenStream.advance()
-                        break
-                    } else {
-                        tokenStream.advance()
-                    }
-                }
-
-                is LatexToken.Ampersand -> {
-                    currentRow.add(LatexNode.Group(currentCell))
-                    currentCell = mutableListOf()
-                    tokenStream.advance()
-                }
-
-                is LatexToken.NewLine -> {
-                    if (currentCell.isNotEmpty()) {
-                        currentRow.add(LatexNode.Group(currentCell))
-                    }
-                    if (currentRow.isNotEmpty()) {
-                        rows.add(currentRow)
-                    }
-                    currentRow = mutableListOf()
-                    currentCell = mutableListOf()
-                    tokenStream.advance()
-                }
-
-                else -> {
-                    val node = context.parseExpression()
-                    if (node != null) {
-                        currentCell.add(node)
-                    }
-                }
-            }
-        }
-
+        val rows = parseRowColumnStructure("split")
         return LatexNode.Split(rows)
     }
 
     /**
      * 解析 multline 环境
-     * 用于需要多行显示的单个方程,第一行左对齐,最后一行右对齐,中间行居中
      */
     private fun parseMultline(envName: String): LatexNode.Multline {
+        // multline 没有列分隔符，只有行分隔
         val lines = mutableListOf<LatexNode>()
         var currentLine = mutableListOf<LatexNode>()
 
@@ -394,65 +275,14 @@ class EnvironmentParser(private val context: LatexParserContext) {
 
     /**
      * 解析 eqnarray 环境
-     * 用于对齐多个方程,类似 align 但是是旧式语法
-     * 通常有三列:左边、关系符、右边
      */
     private fun parseEqnarray(envName: String): LatexNode.Eqnarray {
-        val rows = mutableListOf<List<LatexNode>>()
-        var currentRow = mutableListOf<LatexNode>()
-        var currentCell = mutableListOf<LatexNode>()
-
-        while (!tokenStream.isEOF()) {
-            when (val token = tokenStream.peek()) {
-                is LatexToken.EndEnvironment -> {
-                    if (token.name == envName) {
-                        if (currentCell.isNotEmpty()) {
-                            currentRow.add(LatexNode.Group(currentCell))
-                        }
-                        if (currentRow.isNotEmpty()) {
-                            rows.add(currentRow)
-                        }
-                        tokenStream.advance()
-                        break
-                    } else {
-                        tokenStream.advance()
-                    }
-                }
-
-                is LatexToken.Ampersand -> {
-                    currentRow.add(LatexNode.Group(currentCell))
-                    currentCell = mutableListOf()
-                    tokenStream.advance()
-                }
-
-                is LatexToken.NewLine -> {
-                    if (currentCell.isNotEmpty()) {
-                        currentRow.add(LatexNode.Group(currentCell))
-                    }
-                    if (currentRow.isNotEmpty()) {
-                        rows.add(currentRow)
-                    }
-                    currentRow = mutableListOf()
-                    currentCell = mutableListOf()
-                    tokenStream.advance()
-                }
-
-                else -> {
-                    val node = context.parseExpression()
-                    if (node != null) {
-                        currentCell.add(node)
-                    }
-                }
-            }
-        }
-
+        val rows = parseRowColumnStructure(envName)
         return LatexNode.Eqnarray(rows)
     }
 
     /**
      * 解析 subequations 环境
-     * 用于对一组相关方程进行编号(如 1a, 1b, 1c)
-     * 包含其他环境
      */
     private fun parseSubequations(): LatexNode.Subequations {
         val content = parseEnvironmentContent("subequations")
@@ -517,6 +347,31 @@ class EnvironmentParser(private val context: LatexParserContext) {
         return LatexNode.Cases(cases, style)
     }
 
+    // ====================================================================
+    // 辅助方法
+    // ====================================================================
+
+    /**
+     * 解析列对齐规格（如 {ccc} 或 {rcl}）
+     */
+    private fun parseAlignmentSpec(): String {
+        if (tokenStream.peek() !is LatexToken.LeftBrace) return "c"
+
+        tokenStream.advance() // consume {
+        val alignText = StringBuilder()
+        while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBrace) {
+            when (val token = tokenStream.peek()) {
+                is LatexToken.Text -> alignText.append(token.content)
+                else -> break
+            }
+            tokenStream.advance()
+        }
+        if (tokenStream.peek() is LatexToken.RightBrace) {
+            tokenStream.advance() // consume }
+        }
+        return alignText.toString()
+    }
+
     /**
      * 解析环境内容
      */
@@ -538,82 +393,5 @@ class EnvironmentParser(private val context: LatexParserContext) {
         }
 
         return content
-    }
-    
-    /**
-     * 通用表格结构解析器
-     * 支持 \hline 和 \cline 作为特殊行标记
-     */
-    private fun parseTableStructure(envName: String): List<List<LatexNode>> {
-        val rows = mutableListOf<List<LatexNode>>()
-        var currentRow = mutableListOf<LatexNode>()
-        var currentCell = mutableListOf<LatexNode>()
-        
-        while (!tokenStream.isEOF()) {
-            when (val token = tokenStream.peek()) {
-                is LatexToken.EndEnvironment -> {
-                    if (token.name == envName) {
-                        // 保存最后一个单元格
-                        if (currentCell.isNotEmpty()) {
-                            currentRow.add(LatexNode.Group(currentCell))
-                        }
-                        // 保存最后一行
-                        if (currentRow.isNotEmpty()) {
-                            rows.add(currentRow)
-                        }
-                        tokenStream.advance() // 消费 \end{...}
-                        break
-                    } else {
-                        // 不匹配的环境结束标记，继续解析
-                        tokenStream.advance()
-                    }
-                }
-                
-                is LatexToken.Ampersand -> {
-                    // 列分隔符：保存当前单元格，开始新单元格
-                    currentRow.add(LatexNode.Group(currentCell))
-                    currentCell = mutableListOf()
-                    tokenStream.advance()
-                }
-                
-                is LatexToken.NewLine -> {
-                    // 行分隔符：保存当前单元格和行，开始新行
-                    if (currentCell.isNotEmpty()) {
-                        currentRow.add(LatexNode.Group(currentCell))
-                    }
-                    if (currentRow.isNotEmpty()) {
-                        rows.add(currentRow)
-                    }
-                    currentRow = mutableListOf()
-                    currentCell = mutableListOf()
-                    tokenStream.advance()
-                }
-                
-                else -> {
-                    // 解析单元格内容
-                    val node = context.parseExpression()
-                    if (node != null) {
-                        // \hline 和 \cline 作为独立行（只包含该节点）
-                        if (node is LatexNode.HLine || node is LatexNode.CLine) {
-                            // 先保存当前累积的内容（如果有）
-                            if (currentCell.isNotEmpty()) {
-                                currentRow.add(LatexNode.Group(currentCell))
-                                currentCell = mutableListOf()
-                            }
-                            if (currentRow.isNotEmpty()) {
-                                rows.add(currentRow)
-                                currentRow = mutableListOf()
-                            }
-                            // hline/cline 作为单独的行标记
-                            rows.add(listOf(node))
-                        } else {
-                            currentCell.add(node)
-                        }
-                    }
-                }
-            }
-        }
-        
-        return rows
     }
 }

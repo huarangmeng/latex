@@ -1,0 +1,106 @@
+/*
+ * Copyright (c) 2026 huarangmeng
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+package com.hrm.latex.parser.component.handler
+
+import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.tokenizer.LatexToken
+
+/**
+ * 数学算子 & 运算符名称命令：\sin, \cos, \operatorname, \mathop, \bmod, \pmod, \mod, \dots
+ */
+fun CommandRegistry.installOperatorHandlers() {
+    // 标准数学算子（正体渲染）
+    val standardOps = arrayOf(
+        "sin", "cos", "tan", "cot", "sec", "csc",
+        "arcsin", "arccos", "arctan",
+        "sinh", "cosh", "tanh", "coth",
+        "ln", "log", "exp", "lg", "sgn", "lcm"
+    )
+
+    register(*standardOps) { cmdName, _, _ ->
+        LatexNode.Operator(cmdName)
+    }
+
+    // \operatorname{Name}
+    register("operatorname") { _, ctx, stream ->
+        val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\operatorname")
+        val name = when (arg) {
+            is LatexNode.Text -> arg.content
+            is LatexNode.Group -> ParseUtils.extractText(arg.children)
+            else -> ""
+        }
+        if (name.isEmpty()) return@register LatexNode.Text("\\operatorname")
+
+        val (sub, sup, limitsMode) = ParseUtils.parseScriptsAndLimits(ctx, stream)
+
+        if (sub != null || sup != null) {
+            LatexNode.BigOperator(name, sub, sup, limitsMode)
+        } else {
+            LatexNode.OperatorName(name)
+        }
+    }
+
+    // \mathop{content}
+    register("mathop") { _, ctx, stream ->
+        val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\mathop")
+        val content = when (arg) {
+            is LatexNode.Text -> arg.content
+            is LatexNode.Group -> ParseUtils.extractText(arg.children)
+            else -> ""
+        }
+        if (content.isEmpty()) return@register LatexNode.Text("\\mathop")
+
+        val (sub, sup, limitsMode) = ParseUtils.parseScriptsAndLimits(ctx, stream)
+        LatexNode.BigOperator(content, sub, sup, limitsMode)
+    }
+
+    // 取模运算符
+    register("bmod") { _, _, _ ->
+        LatexNode.ModOperator(null, LatexNode.ModOperator.ModStyle.BMOD)
+    }
+    register("pmod") { _, ctx, _ ->
+        val arg = ctx.parseArgument()
+        LatexNode.ModOperator(arg, LatexNode.ModOperator.ModStyle.PMOD)
+    }
+    register("mod") { _, _, _ ->
+        LatexNode.ModOperator(null, LatexNode.ModOperator.ModStyle.MOD)
+    }
+
+    // 自适应省略号 \dots
+    register("dots") { _, _, stream ->
+        val next = stream.peekSkipping { it is LatexToken.Whitespace }
+        val useCdots = when {
+            next is LatexToken.Text && next.content.firstOrNull() in setOf('+', '-', '*', '=', '<', '>') -> true
+            next is LatexToken.Command && next.name in setOf(
+                "times", "cdot", "pm", "mp", "leq", "geq", "le", "ge",
+                "neq", "equiv", "approx", "sim", "rightarrow", "leftarrow",
+                "Rightarrow", "Leftarrow", "subset", "supset", "subseteq", "supseteq",
+                "in", "oplus", "otimes"
+            ) -> true
+            else -> false
+        }
+        val unicode = if (useCdots) "⋯" else "…"
+        val cmdName = if (useCdots) "cdots" else "ldots"
+        LatexNode.Symbol(cmdName, unicode)
+    }
+}

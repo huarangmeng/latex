@@ -24,9 +24,10 @@
 package com.hrm.latex.parser
 
 import com.hrm.latex.base.log.HLog
-import com.hrm.latex.parser.component.CommandParser
-import com.hrm.latex.parser.component.EnvironmentParser
 import com.hrm.latex.parser.component.ChemicalParser
+import com.hrm.latex.parser.component.CommandParser
+import com.hrm.latex.parser.component.CustomCommand
+import com.hrm.latex.parser.component.EnvironmentParser
 import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
@@ -45,7 +46,7 @@ import com.hrm.latex.parser.tokenizer.LatexTokenizer
 class LatexParser : LatexParserContext {
 
     override lateinit var tokenStream: LatexTokenStream
-    override val customCommands: MutableMap<String, com.hrm.latex.parser.component.CustomCommand> = mutableMapOf()
+    override val customCommands: MutableMap<String, CustomCommand> = mutableMapOf()
     private lateinit var environmentParser: EnvironmentParser
     private lateinit var commandParser: CommandParser
 
@@ -134,7 +135,7 @@ class LatexParser : LatexParserContext {
                 // CommandParser 内部已填充 sourceRange，但对于简单命令可能未填充
                 // 如果 result 没有 sourceRange，用命令开始到当前位置补充
                 return if (result?.sourceRange == null && result != null) {
-                    setSourceRange(result, tokenStream.rangeFrom(cmdStart))
+                    result.withSourceRange(tokenStream.rangeFrom(cmdStart))
                 } else {
                     result
                 }
@@ -263,14 +264,6 @@ class LatexParser : LatexParserContext {
             is LatexToken.LeftBrace -> parseGroup()
             else -> parseExpression() ?: LatexNode.Text("")
         }
-    }
-
-    /**
-     * 为没有 sourceRange 的节点设置 sourceRange
-     * 利用 LatexNode 的自描述方法 withSourceRange()
-     */
-    private fun setSourceRange(node: LatexNode, range: SourceRange): LatexNode {
-        return node.withSourceRange(range)
     }
 
     // Internal exception class mostly for backward compatibility or internal usage
