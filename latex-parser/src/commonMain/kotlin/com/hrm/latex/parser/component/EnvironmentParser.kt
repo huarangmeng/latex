@@ -77,19 +77,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
         // 为没有 sourceRange 的环境节点补充范围
         if (result.sourceRange == null) {
             val range = tokenStream.rangeFrom(startOffset)
-            return when (result) {
-                is LatexNode.Matrix -> result.copy(sourceRange = range)
-                is LatexNode.Array -> result.copy(sourceRange = range)
-                is LatexNode.Tabular -> result.copy(sourceRange = range)
-                is LatexNode.Aligned -> result.copy(sourceRange = range)
-                is LatexNode.Split -> result.copy(sourceRange = range)
-                is LatexNode.Multline -> result.copy(sourceRange = range)
-                is LatexNode.Eqnarray -> result.copy(sourceRange = range)
-                is LatexNode.Subequations -> result.copy(sourceRange = range)
-                is LatexNode.Cases -> result.copy(sourceRange = range)
-                is LatexNode.Environment -> result.copy(sourceRange = range)
-                else -> result
-            }
+            return result.withSourceRange(range)
         }
         return result
     }

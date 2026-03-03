@@ -1187,6 +1187,7 @@ class CommandParser(
     
     /**
      * 递归替换参数占位符 #1, #2, ...
+     * 利用 LatexNode 的自描述方法 children()/withChildren() 实现通用递归
      */
     private fun replaceParameters(nodes: List<LatexNode>, args: List<LatexNode>): List<LatexNode> {
         return nodes.flatMap { node ->
@@ -1223,116 +1224,27 @@ class CommandParser(
                         listOf(node)
                     }
                 }
-                is LatexNode.Group -> listOf(LatexNode.Group(replaceParameters(node.children, args)))
-                is LatexNode.Fraction -> listOf(LatexNode.Fraction(
-                    replaceParametersInNode(node.numerator, args),
-                    replaceParametersInNode(node.denominator, args)
-                ))
-                is LatexNode.Root -> listOf(LatexNode.Root(
-                    replaceParametersInNode(node.content, args),
-                    node.index?.let { replaceParametersInNode(it, args) }
-                ))
-                is LatexNode.Superscript -> listOf(LatexNode.Superscript(
-                    replaceParametersInNode(node.base, args),
-                    replaceParametersInNode(node.exponent, args)
-                ))
-                is LatexNode.Subscript -> listOf(LatexNode.Subscript(
-                    replaceParametersInNode(node.base, args),
-                    replaceParametersInNode(node.index, args)
-                ))
-                is LatexNode.Style -> listOf(LatexNode.Style(
-                    replaceParameters(node.content, args),
-                    node.styleType
-                ))
-                is LatexNode.Delimited -> listOf(LatexNode.Delimited(
-                    node.left,
-                    node.right,
-                    replaceParameters(node.content, args),
-                    node.scalable,
-                    node.manualSize
-                ))
                 is LatexNode.Command -> {
                     // 检查是否是另一个自定义命令需要展开
                     val nestedCmd = context.customCommands[node.name]
                     if (nestedCmd != null) {
-                        // 如果是嵌套的自定义命令，递归展开
-                        val nestedArgs = mutableListOf<LatexNode>()
-                        node.arguments.forEach { arg ->
-                            val expanded = replaceParametersInNode(arg, args)
-                            nestedArgs.add(expanded)
-                        }
+                        val nestedArgs = node.arguments.map { replaceParametersInNode(it, args) }
                         replaceParameters(nestedCmd.definition, nestedArgs)
                     } else {
-                        // 不是自定义命令，只处理参数中的文本
                         val expandedArgs = node.arguments.map { replaceParametersInNode(it, args) }
                         listOf(LatexNode.Command(node.name, expandedArgs))
                     }
                 }
-                is LatexNode.Color -> listOf(LatexNode.Color(
-                    replaceParameters(node.content, args),
-                    node.color
-                ))
-                is LatexNode.Accent -> listOf(LatexNode.Accent(
-                    replaceParametersInNode(node.content, args),
-                    node.accentType
-                ))
-                is LatexNode.BigOperator -> listOf(LatexNode.BigOperator(
-                    node.operator,
-                    node.subscript?.let { replaceParametersInNode(it, args) },
-                    node.superscript?.let { replaceParametersInNode(it, args) },
-                    node.limitsMode
-                ))
-                is LatexNode.MathStyle -> listOf(LatexNode.MathStyle(
-                    replaceParameters(node.content, args),
-                    node.mathStyleType
-                ))
-                is LatexNode.Boxed -> listOf(LatexNode.Boxed(
-                    replaceParameters(node.content, args)
-                ))
-                is LatexNode.Phantom -> listOf(LatexNode.Phantom(
-                    replaceParameters(node.content, args)
-                ))
-                is LatexNode.Stack -> listOf(LatexNode.Stack(
-                    replaceParametersInNode(node.base, args),
-                    node.above?.let { replaceParametersInNode(it, args) },
-                    node.below?.let { replaceParametersInNode(it, args) }
-                ))
-                is LatexNode.ExtensibleArrow -> listOf(LatexNode.ExtensibleArrow(
-                    replaceParametersInNode(node.content, args),
-                    node.below?.let { replaceParametersInNode(it, args) },
-                    node.direction
-                ))
-                is LatexNode.Binomial -> listOf(LatexNode.Binomial(
-                    replaceParametersInNode(node.top, args),
-                    replaceParametersInNode(node.bottom, args),
-                    node.style
-                ))
-                is LatexNode.Negation -> listOf(LatexNode.Negation(
-                    replaceParametersInNode(node.content, args)
-                ))
-                is LatexNode.Tag -> listOf(LatexNode.Tag(
-                    replaceParametersInNode(node.label, args),
-                    node.starred
-                ))
-                is LatexNode.Substack -> listOf(LatexNode.Substack(
-                    node.rows.map { replaceParameters(it, args) }
-                ))
-                is LatexNode.Smash -> listOf(LatexNode.Smash(
-                    replaceParameters(node.content, args),
-                    node.smashType
-                ))
-                is LatexNode.VPhantom -> listOf(LatexNode.VPhantom(
-                    replaceParameters(node.content, args)
-                ))
-                is LatexNode.HPhantom -> listOf(LatexNode.HPhantom(
-                    replaceParameters(node.content, args)
-                ))
-                is LatexNode.OperatorName -> listOf(node)
-                is LatexNode.ModOperator -> listOf(LatexNode.ModOperator(
-                    node.content?.let { replaceParametersInNode(it, args) },
-                    node.modStyle
-                ))
-                else -> listOf(node)
+                else -> {
+                    // 通用递归：利用节点自描述的 children()/withChildren()
+                    val children = node.children()
+                    if (children.isEmpty()) {
+                        listOf(node)
+                    } else {
+                        val newChildren = children.map { replaceParametersInNode(it, args) }
+                        listOf(node.withChildren(newChildren))
+                    }
+                }
             }
         }
     }

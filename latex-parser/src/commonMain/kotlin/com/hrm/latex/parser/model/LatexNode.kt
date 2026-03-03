@@ -28,9 +28,28 @@ package com.hrm.latex.parser.model
  *
  * 每个节点可选地携带 [sourceRange]，表示该节点在原始 LaTeX 输入字符串中的位置范围。
  * 默认为 null，表示位置未知（例如宏展开生成的节点）。
+ *
+ * ## 自描述协议
+ * 每个节点实现三个自描述方法，消除外部对节点结构的重复 when 表达式：
+ * - [children]：返回所有直接子节点（有序列表）
+ * - [withSourceRange]：创建带有新 sourceRange 的副本
+ * - [withChildren]：用新子节点列表重建自身（结构不变，子节点替换）
  */
 sealed class LatexNode {
-    open val sourceRange: SourceRange? get() = null
+    abstract val sourceRange: SourceRange?
+
+    /** 返回所有直接子节点（有序）。叶节点返回 emptyList()。 */
+    abstract fun children(): List<LatexNode>
+
+    /** 用新 sourceRange 创建副本 */
+    abstract fun withSourceRange(range: SourceRange): LatexNode
+
+    /**
+     * 用新子节点列表重建自身。
+     * 子节点的顺序和数量必须与 [children] 返回值一致。
+     * 叶节点返回自身。
+     */
+    abstract fun withChildren(newChildren: List<LatexNode>): LatexNode
 
     /**
      * 文档根节点
@@ -38,7 +57,11 @@ sealed class LatexNode {
     data class Document(
         val children: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = children
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(children = newChildren)
+    }
     
     /**
      * 文本节点
@@ -46,7 +69,11 @@ sealed class LatexNode {
     data class Text(
         val content: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
     
     /**
      * 命令节点（如 \frac, \sqrt 等）
@@ -56,7 +83,11 @@ sealed class LatexNode {
         val arguments: List<LatexNode> = emptyList(),
         val options: List<String> = emptyList(),
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = arguments
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(arguments = newChildren)
+    }
     
     /**
      * 环境节点（如 \begin{equation}...\end{equation}）
@@ -66,7 +97,11 @@ sealed class LatexNode {
         val content: List<LatexNode>,
         val options: List<String> = emptyList(),
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+    }
     
     /**
      * 分组节点（花括号包围的内容）
@@ -74,7 +109,11 @@ sealed class LatexNode {
     data class Group(
         val children: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = children
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(children = newChildren)
+    }
     
     /**
      * 上标节点（^）
@@ -83,7 +122,12 @@ sealed class LatexNode {
         val base: LatexNode,
         val exponent: LatexNode,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = listOf(base, exponent)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(base = newChildren[0], exponent = newChildren[1])
+    }
     
     /**
      * 下标节点（_）
@@ -92,7 +136,12 @@ sealed class LatexNode {
         val base: LatexNode,
         val index: LatexNode,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = listOf(base, index)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(base = newChildren[0], index = newChildren[1])
+    }
     
     /**
      * 分数节点
@@ -101,7 +150,12 @@ sealed class LatexNode {
         val numerator: LatexNode,
         val denominator: LatexNode,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = listOf(numerator, denominator)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(numerator = newChildren[0], denominator = newChildren[1])
+    }
     
     /**
      * 根号节点
@@ -110,7 +164,15 @@ sealed class LatexNode {
         val content: LatexNode,
         val index: LatexNode? = null,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = listOfNotNull(content, index)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newContent = newChildren[0]
+            val newIndex = if (index != null) newChildren.getOrNull(1) else null
+            return copy(content = newContent, index = newIndex)
+        }
+    }
     
     /**
      * 矩阵节点
@@ -129,6 +191,22 @@ sealed class LatexNode {
             VBAR,       // vmatrix ||
             DOUBLE_VBAR // Vmatrix ||||
         }
+
+        override fun children() = rows.flatten()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            // 按原始行结构重建 rows
+            val newRows = mutableListOf<List<LatexNode>>()
+            var idx = 0
+            for (row in rows) {
+                val newRow = mutableListOf<LatexNode>()
+                for (_cell in row) {
+                    newRow.add(newChildren[idx++])
+                }
+                newRows.add(newRow)
+            }
+            return copy(rows = newRows)
+        }
     }
     
     /**
@@ -138,7 +216,22 @@ sealed class LatexNode {
         val rows: List<List<LatexNode>>,
         val alignment: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = rows.flatten()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newRows = mutableListOf<List<LatexNode>>()
+            var idx = 0
+            for (row in rows) {
+                val newRow = mutableListOf<LatexNode>()
+                for (_cell in row) {
+                    newRow.add(newChildren[idx++])
+                }
+                newRows.add(newRow)
+            }
+            return copy(rows = newRows)
+        }
+    }
     
     /**
      * 空格节点
@@ -156,6 +249,10 @@ sealed class LatexNode {
             NORMAL,     // normal space
             NEGATIVE_THIN // \!
         }
+
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
     }
     
     /**
@@ -164,14 +261,22 @@ sealed class LatexNode {
     data class HSpace(
         val dimension: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
     
     /**
      * 换行节点
      */
     data class NewLine(
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
     
     /**
      * 特殊符号节点（包括希腊字母、运算符符号、数学符号等）
@@ -181,7 +286,11 @@ sealed class LatexNode {
         val symbol: String,
         val unicode: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
     
     /**
      * 数学运算符节点
@@ -191,7 +300,11 @@ sealed class LatexNode {
     data class Operator(
         val op: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
     
     /**
      * 括号节点（自动伸缩）
@@ -213,7 +326,11 @@ sealed class LatexNode {
         val scalable: Boolean = true,
         val manualSize: Float? = null,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+    }
     
     /**
      * 手动大小分隔符节点
@@ -232,7 +349,11 @@ sealed class LatexNode {
         val delimiter: String,
         val size: Float,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
     
     /**
      * 装饰节点（如上划线、下划线、箭头等）
@@ -247,6 +368,10 @@ sealed class LatexNode {
             WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW, CANCEL, BCANCEL, XCANCEL,
             GRAVE, ACUTE, CHECK, BREVE, RING
         }
+
+        override fun children() = listOf(content)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren[0])
     }
     
     /**
@@ -265,6 +390,14 @@ sealed class LatexNode {
             HOOK_RIGHT,  // \xhookrightarrow
             HOOK_LEFT    // \xhookleftarrow
         }
+
+        override fun children() = listOfNotNull(content, below)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newContent = newChildren[0]
+            val newBelow = if (below != null) newChildren.getOrNull(1) else null
+            return copy(content = newContent, below = newBelow)
+        }
     }
     
     /**
@@ -275,7 +408,17 @@ sealed class LatexNode {
         val above: LatexNode?,
         val below: LatexNode?,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = listOfNotNull(base, above, below)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            var idx = 0
+            val newBase = newChildren[idx++]
+            val newAbove = if (above != null) newChildren.getOrNull(idx++)  else null
+            val newBelow = if (below != null) newChildren.getOrNull(idx) else null
+            return copy(base = newBase, above = newAbove, below = newBelow)
+        }
+    }
     
     /**
      * 字体样式节点
@@ -297,6 +440,10 @@ sealed class LatexNode {
             SCRIPT,            // \mathscr
             CALLIGRAPHIC       // \mathcal
         }
+
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
     }
     
     /**
@@ -306,7 +453,11 @@ sealed class LatexNode {
         val content: List<LatexNode>,
         val color: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+    }
     
     /**
      * 数学模式节点（控制公式大小）
@@ -325,6 +476,10 @@ sealed class LatexNode {
             SCRIPT,          // \scriptstyle - 脚本模式（上下标大小）
             SCRIPT_SCRIPT    // \scriptscriptstyle - 小脚本模式（二级上下标大小）
         }
+
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
     }
     
     /**
@@ -342,6 +497,15 @@ sealed class LatexNode {
             LIMITS,     // 强制上下模式 (\limits)
             NOLIMITS    // 强制侧边模式 (\nolimits)
         }
+
+        override fun children() = listOfNotNull(subscript, superscript)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            var idx = 0
+            val newSub = if (subscript != null) newChildren.getOrNull(idx++) else null
+            val newSup = if (superscript != null) newChildren.getOrNull(idx) else null
+            return copy(subscript = newSub, superscript = newSup)
+        }
     }
     
     /**
@@ -354,6 +518,21 @@ sealed class LatexNode {
     ) : LatexNode() {
         enum class AlignType {
             LEFT, CENTER, RIGHT
+        }
+
+        override fun children() = rows.flatten()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newRows = mutableListOf<List<LatexNode>>()
+            var idx = 0
+            for (row in rows) {
+                val newRow = mutableListOf<LatexNode>()
+                for (_cell in row) {
+                    newRow.add(newChildren[idx++])
+                }
+                newRows.add(newRow)
+            }
+            return copy(rows = newRows)
         }
     }
     
@@ -372,6 +551,17 @@ sealed class LatexNode {
             DISPLAY,  // dcases — 使用 displaystyle 的左花括号
             RIGHT     // rcases — 右花括号
         }
+
+        override fun children() = cases.flatMap { listOf(it.first, it.second) }
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newCases = mutableListOf<Pair<LatexNode, LatexNode>>()
+            var idx = 0
+            for (_case in cases) {
+                newCases.add(newChildren[idx++] to newChildren[idx++])
+            }
+            return copy(cases = newCases)
+        }
     }
     
     /**
@@ -380,7 +570,22 @@ sealed class LatexNode {
     data class Split(
         val rows: List<List<LatexNode>>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = rows.flatten()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newRows = mutableListOf<List<LatexNode>>()
+            var idx = 0
+            for (row in rows) {
+                val newRow = mutableListOf<LatexNode>()
+                for (_cell in row) {
+                    newRow.add(newChildren[idx++])
+                }
+                newRows.add(newRow)
+            }
+            return copy(rows = newRows)
+        }
+    }
     
     /**
      * Multline 环境（多行单个方程）
@@ -388,7 +593,11 @@ sealed class LatexNode {
     data class Multline(
         val lines: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = lines
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(lines = newChildren)
+    }
     
     /**
      * Eqnarray 环境（旧式方程数组）
@@ -396,7 +605,22 @@ sealed class LatexNode {
     data class Eqnarray(
         val rows: List<List<LatexNode>>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = rows.flatten()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newRows = mutableListOf<List<LatexNode>>()
+            var idx = 0
+            for (row in rows) {
+                val newRow = mutableListOf<LatexNode>()
+                for (_cell in row) {
+                    newRow.add(newChildren[idx++])
+                }
+                newRows.add(newRow)
+            }
+            return copy(rows = newRows)
+        }
+    }
     
     /**
      * Subequations 环境（子方程编号）
@@ -404,7 +628,11 @@ sealed class LatexNode {
     data class Subequations(
         val content: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+    }
     
     /**
      * 二项式系数 \binom{n}{k}
@@ -420,6 +648,11 @@ sealed class LatexNode {
             TEXT,     // \tbinom (text style)
             DISPLAY   // \dbinom (display style)
         }
+
+        override fun children() = listOf(top, bottom)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(top = newChildren[0], bottom = newChildren[1])
     }
     
     /**
@@ -428,7 +661,11 @@ sealed class LatexNode {
     data class TextMode(
         val text: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
     
     /**
      * 方框节点（\boxed）
@@ -437,7 +674,11 @@ sealed class LatexNode {
     data class Boxed(
         val content: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+    }
     
     /**
      * 幻影节点（\phantom）
@@ -446,7 +687,11 @@ sealed class LatexNode {
     data class Phantom(
         val content: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+    }
     
     /**
      * 自定义命令定义节点（\newcommand）
@@ -460,7 +705,11 @@ sealed class LatexNode {
         val numArgs: Int,
         val definition: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = definition
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(definition = newChildren)
+    }
 
     /**
      * 否定修饰节点（\not）
@@ -470,7 +719,11 @@ sealed class LatexNode {
     data class Negation(
         val content: LatexNode,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = listOf(content)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren[0])
+    }
 
     /**
      * 公式编号标签节点（\tag, \tag*）
@@ -481,7 +734,11 @@ sealed class LatexNode {
         val label: LatexNode,
         val starred: Boolean = false,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = listOf(label)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(label = newChildren[0])
+    }
 
     /**
      * 多行下标条件节点（\substack）
@@ -491,7 +748,22 @@ sealed class LatexNode {
     data class Substack(
         val rows: List<List<LatexNode>>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = rows.flatten()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newRows = mutableListOf<List<LatexNode>>()
+            var idx = 0
+            for (row in rows) {
+                val newRow = mutableListOf<LatexNode>()
+                for (_cell in row) {
+                    newRow.add(newChildren[idx++])
+                }
+                newRows.add(newRow)
+            }
+            return copy(rows = newRows)
+        }
+    }
 
     /**
      * Smash 节点（\smash）
@@ -509,6 +781,10 @@ sealed class LatexNode {
             TOP,    // \smash[t]{x} — 只压顶部（ascent）
             BOTTOM  // \smash[b]{x} — 只压底部（descent）
         }
+
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
     }
 
     /**
@@ -518,7 +794,11 @@ sealed class LatexNode {
     data class VPhantom(
         val content: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+    }
 
     /**
      * 水平幻影节点（\hphantom）
@@ -527,7 +807,11 @@ sealed class LatexNode {
     data class HPhantom(
         val content: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+    }
 
     /**
      * 标签定义节点（\label{key}）
@@ -537,7 +821,11 @@ sealed class LatexNode {
     data class Label(
         val key: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
 
     /**
      * 引用节点（\ref{key}）
@@ -547,7 +835,11 @@ sealed class LatexNode {
     data class Ref(
         val key: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
 
     /**
      * 公式引用节点（\eqref{key}）
@@ -557,7 +849,11 @@ sealed class LatexNode {
     data class EqRef(
         val key: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
 
     /**
      * 四角标注节点（\sideset{_a^b}{_c^d}{\sum}）
@@ -575,7 +871,19 @@ sealed class LatexNode {
         val rightSup: LatexNode?,
         val base: LatexNode,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = listOfNotNull(leftSub, leftSup, rightSub, rightSup, base)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            var idx = 0
+            val newLeftSub = if (leftSub != null) newChildren[idx++] else null
+            val newLeftSup = if (leftSup != null) newChildren[idx++] else null
+            val newRightSub = if (rightSub != null) newChildren[idx++] else null
+            val newRightSup = if (rightSup != null) newChildren[idx++] else null
+            val newBase = newChildren[idx]
+            return copy(leftSub = newLeftSub, leftSup = newLeftSup, rightSub = newRightSub, rightSup = newRightSup, base = newBase)
+        }
+    }
 
     /**
      * 张量/指标节点（\tensor{T}{^a_b^c}）
@@ -587,7 +895,17 @@ sealed class LatexNode {
         val base: LatexNode,
         val indices: List<Pair<Boolean, LatexNode>>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = listOf(base) + indices.map { it.second }
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newBase = newChildren[0]
+            val newIndices = indices.mapIndexed { i, (isSuper, _) ->
+                isSuper to newChildren[i + 1]
+            }
+            return copy(base = newBase, indices = newIndices)
+        }
+    }
 
     /**
      * 表格环境节点（\begin{tabular}{ccc}...）
@@ -599,7 +917,22 @@ sealed class LatexNode {
         val rows: List<List<LatexNode>>,
         val alignment: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = rows.flatten()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newRows = mutableListOf<List<LatexNode>>()
+            var idx = 0
+            for (row in rows) {
+                val newRow = mutableListOf<LatexNode>()
+                for (_cell in row) {
+                    newRow.add(newChildren[idx++])
+                }
+                newRows.add(newRow)
+            }
+            return copy(rows = newRows)
+        }
+    }
 
     /**
      * 水平线节点（\hline）
@@ -607,7 +940,11 @@ sealed class LatexNode {
      */
     data class HLine(
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
 
     /**
      * 部分水平线节点（\cline{start-end}）
@@ -619,7 +956,11 @@ sealed class LatexNode {
         val startCol: Int,
         val endCol: Int,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
 
     /**
      * 合并单元格节点（\multicolumn{num}{align}{content}）
@@ -632,7 +973,11 @@ sealed class LatexNode {
         val alignment: String,
         val content: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+    }
 
     /**
      * 自定义运算符名称节点（\operatorname{Tr}）
@@ -642,7 +987,11 @@ sealed class LatexNode {
     data class OperatorName(
         val name: String,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+    }
 
     /**
      * 取模运算符节点
@@ -659,6 +1008,13 @@ sealed class LatexNode {
             PMOD,  // \pmod{n} — (mod n)
             MOD    // \mod — 间距更大的 "mod"
         }
+
+        override fun children() = listOfNotNull(content)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val newContent = if (content != null) newChildren.firstOrNull() else null
+            return copy(content = newContent)
+        }
     }
 
     /**
@@ -669,7 +1025,11 @@ sealed class LatexNode {
     data class InlineMath(
         val children: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = children
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(children = newChildren)
+    }
 
     /**
      * 展示数学模式节点（$$...$$）
@@ -679,5 +1039,9 @@ sealed class LatexNode {
     data class DisplayMath(
         val children: List<LatexNode>,
         override val sourceRange: SourceRange? = null
-    ) : LatexNode()
+    ) : LatexNode() {
+        override fun children() = children
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(children = newChildren)
+    }
 }

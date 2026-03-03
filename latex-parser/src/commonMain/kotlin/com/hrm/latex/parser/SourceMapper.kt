@@ -121,63 +121,7 @@ object SourceMapper {
 
     /**
      * 获取节点的直接子节点列表
+     * 委托给 LatexNode 的自描述方法 children()
      */
-    fun childrenOf(node: LatexNode): List<LatexNode> = when (node) {
-        is LatexNode.Document -> node.children
-        is LatexNode.Group -> node.children
-        is LatexNode.Fraction -> listOf(node.numerator, node.denominator)
-        is LatexNode.Root -> listOfNotNull(node.content, node.index)
-        is LatexNode.Superscript -> listOf(node.base, node.exponent)
-        is LatexNode.Subscript -> listOf(node.base, node.index)
-        is LatexNode.Accent -> listOf(node.content)
-        is LatexNode.Style -> node.content
-        is LatexNode.MathStyle -> node.content
-        is LatexNode.Color -> node.content
-        is LatexNode.Boxed -> node.content
-        is LatexNode.Phantom -> node.content
-        is LatexNode.Smash -> node.content
-        is LatexNode.VPhantom -> node.content
-        is LatexNode.HPhantom -> node.content
-        is LatexNode.Delimited -> node.content
-        is LatexNode.ExtensibleArrow -> listOfNotNull(node.content, node.below)
-        is LatexNode.Stack -> listOfNotNull(node.base, node.above, node.below)
-        is LatexNode.BigOperator -> listOfNotNull(node.subscript, node.superscript)
-        is LatexNode.Negation -> listOf(node.content)
-        is LatexNode.Tag -> listOf(node.label)
-        is LatexNode.Binomial -> listOf(node.top, node.bottom)
-        is LatexNode.Environment -> node.content
-        is LatexNode.Matrix -> node.rows.flatten()
-        is LatexNode.Array -> node.rows.flatten()
-        is LatexNode.Tabular -> node.rows.flatten()
-        is LatexNode.HLine -> emptyList()
-        is LatexNode.CLine -> emptyList()
-        is LatexNode.Multicolumn -> node.content
-        is LatexNode.Aligned -> node.rows.flatten()
-        is LatexNode.Cases -> node.cases.flatMap { listOf(it.first, it.second) }
-        is LatexNode.Split -> node.rows.flatten()
-        is LatexNode.Multline -> node.lines
-        is LatexNode.Eqnarray -> node.rows.flatten()
-        is LatexNode.Subequations -> node.content
-        is LatexNode.Substack -> node.rows.flatten()
-        is LatexNode.NewCommand -> node.definition
-        is LatexNode.SideSet -> listOfNotNull(node.leftSub, node.leftSup, node.rightSub, node.rightSup, node.base)
-        is LatexNode.Tensor -> listOf(node.base) + node.indices.map { it.second }
-        is LatexNode.Command -> node.arguments
-        // 叶节点
-        is LatexNode.Text -> emptyList()
-        is LatexNode.Symbol -> emptyList()
-        is LatexNode.Operator -> emptyList()
-        is LatexNode.Space -> emptyList()
-        is LatexNode.HSpace -> emptyList()
-        is LatexNode.NewLine -> emptyList()
-        is LatexNode.TextMode -> emptyList()
-        is LatexNode.ManualSizedDelimiter -> emptyList()
-        is LatexNode.Label -> emptyList()
-        is LatexNode.Ref -> emptyList()
-        is LatexNode.EqRef -> emptyList()
-        is LatexNode.OperatorName -> emptyList()
-        is LatexNode.ModOperator -> listOfNotNull(node.content)
-        is LatexNode.InlineMath -> node.children
-        is LatexNode.DisplayMath -> node.children
-    }
+    fun childrenOf(node: LatexNode): List<LatexNode> = node.children()
 }

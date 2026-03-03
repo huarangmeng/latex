@@ -220,6 +220,9 @@ object MathSpacing {
 
     /**
      * 将 LatexNode 分类为 AtomType
+     *
+     * 部分节点类型需要根据具体内容做更细粒度的分类（如 Text 的字符、Symbol 的名称），
+     * 其余节点使用默认分类。
      */
     fun classifyNode(node: LatexNode): AtomType {
         return when (node) {
@@ -232,7 +235,7 @@ object MathSpacing {
             is LatexNode.Superscript, is LatexNode.Subscript -> AtomType.ORD
             is LatexNode.Delimited -> AtomType.INNER
             is LatexNode.ManualSizedDelimiter -> classifyDelimiterString(node.delimiter)
-            is LatexNode.Space, is LatexNode.HSpace -> AtomType.ORD // 空格不参与间距计算
+            is LatexNode.Space, is LatexNode.HSpace -> AtomType.ORD
             is LatexNode.Group -> AtomType.ORD
             is LatexNode.Accent -> AtomType.ORD
             is LatexNode.Stack -> AtomType.ORD
