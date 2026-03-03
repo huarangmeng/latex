@@ -35,7 +35,7 @@ import com.hrm.latex.renderer.utils.opentype.GlyphPathData
  * - [OtfMathFontProvider]: 从 OTF 文件的 MATH 表动态读取
  * - [TtfFontSetProvider]: 基于 KaTeX TTF 字体集，提供与当前等价的硬编码值
  */
-interface MathFontProvider {
+internal interface MathFontProvider {
 
     // ─── 能力标识 ───
 

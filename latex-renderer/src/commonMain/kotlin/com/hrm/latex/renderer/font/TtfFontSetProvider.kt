@@ -38,7 +38,7 @@ import com.hrm.latex.renderer.utils.MathConstants
  *
  * @param fontFamilies KaTeX 12 槽位字体家族（含字节数据）
  */
-class TtfFontSetProvider(
+internal class TtfFontSetProvider(
     private val fontFamilies: LatexFontFamilies
 ) : MathFontProvider {
 

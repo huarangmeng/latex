@@ -43,6 +43,7 @@ import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.visitor.AccessibilityVisitor
+import com.hrm.latex.renderer.font.rememberResolvedMathFont
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LineBreakingConfig
@@ -83,10 +84,15 @@ fun Latex(
         config.backgroundColor
     }
 
-    val fontFamilies = config.mathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
+    // ── OTF 字体异步加载（FontResource 方式）──
+    // 当用户通过 MathFont.OTF(fontResource) 配置时，bytes 在此处异步加载。
+    // 加载前 effectiveMathFont 为 Default（TTF 降级渲染），加载后升级为完整 OTF。
+    val effectiveMathFont = rememberResolvedMathFont(config.mathFont)
+
+    val fontFamilies = effectiveMathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
 
     // 构建渲染上下文（fontFamilies 由全局单例管理，bytes 异步加载完成后自动触发重组）
-    val context = config.toContext(isDarkTheme, fontFamilies)
+    val context = config.copy(mathFont = effectiveMathFont).toContext(isDarkTheme, fontFamilies)
 
     // 复用解析器实例以支持真正的增量解析
     val parser = remember { IncrementalLatexParser() }

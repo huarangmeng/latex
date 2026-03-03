@@ -49,7 +49,7 @@ import com.hrm.latex.renderer.utils.opentype.OpenTypeFontParser
  * @param fontBytes OTF 字体文件的完整字节数据
  * @param fontFamily 从 OTF 文件创建的 Compose FontFamily
  */
-class OtfMathFontProvider(
+internal class OtfMathFontProvider(
     private val fontBytes: ByteArray,
     private val fontFamily: FontFamily
 ) : MathFontProvider {

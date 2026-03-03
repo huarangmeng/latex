@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.renderer.font.rememberResolvedMathFont
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LatexFontFamilies
@@ -201,6 +202,8 @@ class LatexExporterState internal constructor(
  * 创建并记住 [LatexExporterState] 实例
  *
  * 必须在 Composable 作用域中调用，以获取 [TextMeasurer] 和 [Density]。
+ * 支持 [MathFont.OTF] 的 FontResource 异步加载：加载前使用 TTF 降级，
+ * 加载完成后自动重组以使用 OTF 字体导出。
  *
  * @param config 可选的渲染配置（用于提前加载字体）
  * @return [LatexExporterState] 实例
@@ -211,7 +214,8 @@ fun rememberLatexExporter(
 ): LatexExporterState {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val fontFamilies = config.mathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
+    val effectiveMathFont = rememberResolvedMathFont(config.mathFont)
+    val fontFamilies = effectiveMathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
 
     val exporter = remember(density, textMeasurer, fontFamilies) {
         LatexExporterState(

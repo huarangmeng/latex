@@ -46,7 +46,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.LatexParser
 import com.hrm.latex.renderer.Latex
+import com.hrm.latex.renderer.font.MathFont
+import com.hrm.latex.renderer.model.LatexConfig
 import kotlinx.coroutines.delay
+import latex.latex_preview.generated.resources.Res
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -79,7 +82,7 @@ fun Preview_Demo_RealTimeInput() {
             Text("实时渲染结果:", style = MaterialTheme.typography.bodyMedium)
             Latex(
                 latex = userInput,
-                isDarkTheme = false
+                isDarkTheme = false,
             )
 
             // 模拟用户逐步输入

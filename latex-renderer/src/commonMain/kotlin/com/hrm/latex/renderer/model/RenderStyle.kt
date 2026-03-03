@@ -81,19 +81,22 @@ data class LatexConfig(
     /**
      * 数学字体配置（唯一的字体入口）。决定排版参数和字体的来源。
      *
-     * - [MathFont.Default]：使用内置的 KaTeX TTF 字体集（默认，不改变现有行为）
-     * - [MathFont.OTF]：使用带 MATH 表的 OTF 字体（更高精度排版）
+     * - [MathFont.Default]：使用内置 Latin Modern Math OTF 字体（高精度排版，推荐）
+     * - [MathFont.KaTeXTTF]：使用内置 KaTeX TTF 字体集
+     * - [MathFont.OTF]：使用自定义的带 MATH 表的 OTF 字体
      * - [MathFont.TTF]：使用自定义的 TTF 字体集
      *
      * 使用示例：
      * ```kotlin
-     * // 默认（KaTeX 内置字体）
+     * // 默认 — 内置 Latin Modern Math OTF（推荐）
      * LatexConfig()
      *
-     * // 使用带 MATH 表的 OTF 字体
-     * val stixBytes = context.assets.open("STIXTwoMath.otf").readBytes()
-     * val stixFamily = FontFamily(Font(stixBytes))
-     * LatexConfig(mathFont = MathFont.OTF(stixBytes, stixFamily))     *
+     * // 使用内置 KaTeX TTF 字体集
+     * LatexConfig(mathFont = MathFont.KaTeXTTF)
+     *
+     * // 使用自定义 OTF 字体（传入 FontResource，内部异步加载）
+     * LatexConfig(mathFont = MathFont.OTF(Res.font.stix_two_math))
+     *
      * // 使用自定义 TTF 字体集
      * LatexConfig(mathFont = MathFont.TTF(customFontFamilies))
      * ```

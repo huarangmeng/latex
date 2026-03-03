@@ -47,10 +47,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.renderer.Latex
-import com.hrm.latex.renderer.font.rememberOtfMathFont
-import com.hrm.latex.renderer.model.LatexConfig
-import latex.latex_preview.generated.resources.Res
-import latex.latex_preview.generated.resources.latinmodern_math
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -75,13 +71,9 @@ data class PreviewItem(
     val title: String,
     val latex: String,
     val content: @Composable () -> Unit = {
-        val mathFont = rememberOtfMathFont(Res.font.latinmodern_math)
-        if (mathFont != null) {
-            Latex(
-                latex = latex,
-                config = LatexConfig(mathFont = mathFont)
-            )
-        }
+        Latex(
+            latex = latex
+        )
     }
 )
 

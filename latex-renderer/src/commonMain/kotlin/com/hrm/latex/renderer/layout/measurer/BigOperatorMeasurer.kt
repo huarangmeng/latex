@@ -24,7 +24,6 @@ package com.hrm.latex.renderer.layout.measurer
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
@@ -43,6 +42,7 @@ import com.hrm.latex.base.log.HLog
 import com.hrm.latex.renderer.font.GlyphVariant
 import com.hrm.latex.renderer.font.MathFontProvider
 import com.hrm.latex.renderer.font.MathFontRole
+import com.hrm.latex.renderer.utils.DelimiterRenderer
 import com.hrm.latex.renderer.utils.FontResolver
 import com.hrm.latex.renderer.utils.InkBoundsEstimator
 import com.hrm.latex.renderer.utils.InkFontCategory
@@ -371,7 +371,7 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
                 HLog.d(TAG, "Integral variant glyph ${variant.glyphId}: pathHeight=${pathData.height}, " +
                         "advance=${variant.advanceMeasurement}, target=$targetHeight")
                 if (pathData.height >= targetHeight) {
-                    return createPathNodeLayout(pathData, drawColor)
+                    return DelimiterRenderer.createPathNodeLayout(pathData, drawColor)
                 }
             }
 
@@ -379,7 +379,7 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
             if (bestPathData != null) {
                 HLog.d(TAG, "Using largest available variant glyph $bestGlyphId " +
                         "(height=${bestPathData.height}, target=$targetHeight)")
-                return createPathNodeLayout(bestPathData, drawColor)
+                return DelimiterRenderer.createPathNodeLayout(bestPathData, drawColor)
             }
             HLog.d(TAG, "All integral variant CFF paths failed, " +
                     "falling back to TextMeasurer/TTF path")
@@ -398,7 +398,7 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val targetVariant = variantsWithId[targetIdx]
         val targetPathData = provider.glyphPath(targetVariant.glyphId, fontSizePx)
         if (targetPathData != null) {
-            return createPathNodeLayout(targetPathData, drawColor)
+            return DelimiterRenderer.createPathNodeLayout(targetPathData, drawColor)
         }
         HLog.d(TAG, "Target variant glyph ${targetVariant.glyphId} CFF path failed, trying fallback variants")
 
@@ -409,41 +409,12 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
             val pathData = provider.glyphPath(variant.glyphId, fontSizePx)
             if (pathData != null) {
                 HLog.d(TAG, "Fallback to variant glyph ${variant.glyphId} succeeded")
-                return createPathNodeLayout(pathData, drawColor)
+                return DelimiterRenderer.createPathNodeLayout(pathData, drawColor)
             }
         }
 
         HLog.d(TAG, "All non-integral variant CFF paths failed")
         return null
-    }
-
-    /**
-     * 从 GlyphPathData 创建 NodeLayout。
-     *
-     * Path 以 (0,0) 为原点（墨水区域左上角），draw 时通过 translate 偏移到实际位置。
-     * 遵循项目规范：Path 预构建 + draw 时 translate。
-     */
-    private fun createPathNodeLayout(
-        pathData: GlyphPathData,
-        drawColor: Color
-    ): NodeLayout {
-        val path = pathData.path
-        val width = pathData.width.coerceAtLeast(1f)
-        val height = pathData.height.coerceAtLeast(1f)
-        val baseline = pathData.baselineY  // baseline 在 Path 坐标系中的 y 位置
-
-        // 如果 minX 不为 0，需要水平偏移以确保墨水从 x=0 开始
-        val xOffset = -pathData.minX.coerceAtMost(0f)
-
-        return NodeLayout(
-            width = width + xOffset,
-            height = height,
-            baseline = baseline
-        ) { x, y ->
-            withTransform({ translate(left = x + xOffset, top = y) }) {
-                drawPath(path, color = drawColor, style = Fill)
-            }
-        }
     }
 
     /**

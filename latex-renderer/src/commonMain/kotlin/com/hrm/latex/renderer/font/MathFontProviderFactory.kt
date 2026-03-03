@@ -30,7 +30,7 @@ import com.hrm.latex.renderer.model.LatexFontFamilies
  *
  * 根据 [MathFont] 配置创建对应的 [MathFontProvider] 实例。
  */
-object MathFontProviderFactory {
+internal object MathFontProviderFactory {
     private const val TAG = "MathFontProviderFactory"
 
     /**
@@ -47,14 +47,20 @@ object MathFontProviderFactory {
         HLog.i(TAG, "create: mathFont=${mathFont::class.simpleName}")
         return when (mathFont) {
             is MathFont.Default -> {
+                // Default 的 OTF 尚未加载完成时，走 TTF 降级
+                TtfFontSetProvider(defaultFontFamilies)
+            }
+
+            is MathFont.KaTeXTTF -> {
                 TtfFontSetProvider(defaultFontFamilies)
             }
 
             is MathFont.OTF -> {
                 val otfFontBytes = defaultFontFamilies.mainBytes
-                if (otfFontBytes != null) {
+                val otfFontFamily = mathFont.fontFamily
+                if (otfFontBytes != null && otfFontFamily != null) {
                     try {
-                        val provider = OtfMathFontProvider(otfFontBytes, mathFont.fontFamily)
+                        val provider = OtfMathFontProvider(otfFontBytes, otfFontFamily)
                         HLog.i(TAG, "OtfMathFontProvider created successfully, " +
                                 "bytesSize=${otfFontBytes.size}")
                         provider

@@ -497,8 +497,9 @@ internal object DelimiterRenderer {
      * 从 GlyphPathData 创建 NodeLayout（单个变体字形）。
      *
      * 宽度使用 advanceWidth（包含右侧 sidebearing），确保与后续内容有正确间距。
+     * 此方法同时被 DelimiterRenderer 和 BigOperatorMeasurer 共享使用。
      */
-    private fun createPathNodeLayout(
+    internal fun createPathNodeLayout(
         pathData: GlyphPathData,
         drawColor: Color
     ): NodeLayout {
