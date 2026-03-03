@@ -201,6 +201,7 @@ object SymbolMap {
         "cdots" to "⋯",
         "vdots" to "⋮",
         "ddots" to "⋱",
+        "dots" to "…",
         "therefore" to "∴",
         "because" to "∵",
         "angle" to "∠",

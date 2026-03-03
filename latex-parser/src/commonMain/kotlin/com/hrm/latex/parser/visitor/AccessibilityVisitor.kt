@@ -159,6 +159,12 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             LatexNode.Accent.AccentType.CANCEL -> "canceled"
             LatexNode.Accent.AccentType.BCANCEL -> "back-canceled"
             LatexNode.Accent.AccentType.XCANCEL -> "cross-canceled"
+            LatexNode.Accent.AccentType.DDDOT -> "triple dot"
+            LatexNode.Accent.AccentType.GRAVE -> "grave"
+            LatexNode.Accent.AccentType.ACUTE -> "acute"
+            LatexNode.Accent.AccentType.CHECK -> "check"
+            LatexNode.Accent.AccentType.BREVE -> "breve"
+            LatexNode.Accent.AccentType.RING -> "ring"
         }
         return "$content $accent"
     }
@@ -306,6 +312,17 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return "$rows by $cols table: $body"
     }
 
+    override fun visitOperatorName(node: LatexNode.OperatorName): String = node.name
+
+    override fun visitModOperator(node: LatexNode.ModOperator): String {
+        val arg = node.content?.let { visit(it) }
+        return when (node.modStyle) {
+            LatexNode.ModOperator.ModStyle.BMOD -> "mod"
+            LatexNode.ModOperator.ModStyle.PMOD -> if (arg != null) "(mod $arg)" else "(mod)"
+            LatexNode.ModOperator.ModStyle.MOD -> if (arg != null) "mod $arg" else "mod"
+        }
+    }
+
     override fun visitBoxed(node: LatexNode.Boxed): String {
         return "boxed: " + node.content.joinToString(" ") { visit(it) }.collapseSpaces()
     }
@@ -337,6 +354,9 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             "⋁", "\\bigvee", "bigvee" -> "disjunction"
             "⋀", "\\bigwedge", "bigwedge" -> "conjunction"
             "∐", "\\coprod", "coprod" -> "coproduct"
+            "⊔", "\\bigsqcup", "bigsqcup" -> "square union"
+            "⊙", "\\bigodot", "bigodot" -> "circle dot"
+            "⊎", "\\biguplus", "biguplus" -> "disjoint union"
             "lim" -> "limit"
             "max" -> "maximum"
             "min" -> "minimum"

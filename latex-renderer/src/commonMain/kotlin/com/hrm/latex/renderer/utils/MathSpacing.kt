@@ -240,6 +240,8 @@ object MathSpacing {
             is LatexNode.TextMode -> AtomType.ORD
             is LatexNode.Boxed -> AtomType.INNER
             is LatexNode.Matrix -> AtomType.INNER
+            is LatexNode.OperatorName -> AtomType.OP
+            is LatexNode.ModOperator -> AtomType.BIN
             else -> AtomType.ORD
         }
     }

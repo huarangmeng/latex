@@ -360,4 +360,42 @@ class EnvironmentExtensionTest {
         assertEquals("c", tabular.alignment)
         assertEquals(1, tabular.rows.size)
     }
+
+    // ========== 星号环境变体测试 ==========
+
+    @Test
+    fun testAlignStar() {
+        val doc = parser.parse("\\begin{align*}a &= b \\\\ c &= d\\end{align*}")
+        assertTrue(doc.children[0] is LatexNode.Aligned)
+        val aligned = doc.children[0] as LatexNode.Aligned
+        assertEquals(2, aligned.rows.size)
+    }
+
+    @Test
+    fun testEquationStar() {
+        val doc = parser.parse("\\begin{equation*}E=mc^2\\end{equation*}")
+        assertTrue(doc.children.isNotEmpty())
+    }
+
+    @Test
+    fun testGatherStar() {
+        val doc = parser.parse("\\begin{gather*}a+b \\\\ c+d\\end{gather*}")
+        assertTrue(doc.children[0] is LatexNode.Aligned)
+    }
+
+    @Test
+    fun testMultlineStar() {
+        val doc = parser.parse("\\begin{multline*}a+b \\\\ +c+d\\end{multline*}")
+        assertTrue(doc.children[0] is LatexNode.Multline)
+        val multline = doc.children[0] as LatexNode.Multline
+        assertEquals(2, multline.lines.size)
+    }
+
+    @Test
+    fun testEqnarrayStar() {
+        val doc = parser.parse("\\begin{eqnarray*}a &=& b \\\\ c &=& d\\end{eqnarray*}")
+        assertTrue(doc.children[0] is LatexNode.Eqnarray)
+        val eqnarray = doc.children[0] as LatexNode.Eqnarray
+        assertEquals(2, eqnarray.rows.size)
+    }
 }

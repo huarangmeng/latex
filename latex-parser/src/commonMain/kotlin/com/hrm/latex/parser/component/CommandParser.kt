@@ -68,6 +68,7 @@ class CommandParser(
             // 上下标（大型运算符）
             "sum", "prod", "int", "oint", "iint", "iiint",
             "bigcup", "bigcap", "bigvee", "bigwedge",
+            "coprod", "bigoplus", "bigotimes", "bigsqcup", "bigodot", "biguplus",
             "lim", "max", "min", "sup", "inf", "limsup", "liminf",
             "det", "gcd", "deg", "dim", "ker", "arg", "hom" -> parseBigOperator(cmdName)
 
@@ -110,6 +111,7 @@ class CommandParser(
             "underline" -> parseAccent(LatexNode.Accent.AccentType.UNDERLINE)
             "dot" -> parseAccent(LatexNode.Accent.AccentType.DOT)
             "ddot" -> parseAccent(LatexNode.Accent.AccentType.DDOT)
+            "dddot" -> parseAccent(LatexNode.Accent.AccentType.DDDOT)
             "vec" -> parseAccent(LatexNode.Accent.AccentType.VEC)
             "overbrace" -> parseAccent(LatexNode.Accent.AccentType.OVERBRACE)
             "underbrace" -> parseAccent(LatexNode.Accent.AccentType.UNDERBRACE)
@@ -119,6 +121,11 @@ class CommandParser(
             "cancel" -> parseAccent(LatexNode.Accent.AccentType.CANCEL)
             "bcancel" -> parseAccent(LatexNode.Accent.AccentType.BCANCEL)
             "xcancel" -> parseAccent(LatexNode.Accent.AccentType.XCANCEL)
+            "grave" -> parseAccent(LatexNode.Accent.AccentType.GRAVE)
+            "acute" -> parseAccent(LatexNode.Accent.AccentType.ACUTE)
+            "check" -> parseAccent(LatexNode.Accent.AccentType.CHECK)
+            "breve" -> parseAccent(LatexNode.Accent.AccentType.BREVE)
+            "ring", "mathring" -> parseAccent(LatexNode.Accent.AccentType.RING)
 
             // 可扩展箭头
             "xrightarrow" -> parseExtensibleArrow(LatexNode.ExtensibleArrow.Direction.RIGHT)
@@ -194,6 +201,17 @@ class CommandParser(
             "arcsin", "arccos", "arctan",
             "sinh", "cosh", "tanh", "coth",
             "ln", "log", "exp", "lg", "sgn", "lcm" -> LatexNode.Operator(cmdName)
+
+            // 自定义运算符名称
+            "operatorname" -> parseOperatorName()
+
+            // 取模运算符
+            "bmod" -> LatexNode.ModOperator(null, LatexNode.ModOperator.ModStyle.BMOD)
+            "pmod" -> parseModWithArg(LatexNode.ModOperator.ModStyle.PMOD)
+            "mod" -> LatexNode.ModOperator(null, LatexNode.ModOperator.ModStyle.MOD)
+
+            // 自适应省略号
+            "dots" -> parseAdaptiveDots()
 
             // 自定义命令
             "newcommand" -> parseNewCommand()
@@ -892,6 +910,90 @@ class CommandParser(
         }
     }
 
+    /**
+     * 解析 \operatorname{Name}
+     * 渲染为正体文本的运算符名称，可以带上下标
+     */
+    private fun parseOperatorName(): LatexNode {
+        val arg = context.parseArgument() ?: return LatexNode.Text("\\operatorname")
+        val name = when (arg) {
+            is LatexNode.Text -> arg.content
+            is LatexNode.Group -> extractText(arg.children)
+            else -> ""
+        }
+        if (name.isEmpty()) return LatexNode.Text("\\operatorname")
+
+        // \operatorname 后面可以跟 \limits/\nolimits 和上下标，类似 BigOperator
+        var subscript: LatexNode? = null
+        var superscript: LatexNode? = null
+        var limitsMode = LatexNode.BigOperator.LimitsMode.AUTO
+
+        while (!tokenStream.isEOF()) {
+            val token = tokenStream.peek()
+            when {
+                token is LatexToken.Command && token.name == "limits" -> {
+                    tokenStream.advance()
+                    limitsMode = LatexNode.BigOperator.LimitsMode.LIMITS
+                }
+                token is LatexToken.Command && token.name == "nolimits" -> {
+                    tokenStream.advance()
+                    limitsMode = LatexNode.BigOperator.LimitsMode.NOLIMITS
+                }
+                token is LatexToken.Subscript && subscript == null -> {
+                    tokenStream.advance()
+                    subscript = parseScriptContent()
+                }
+                token is LatexToken.Superscript && superscript == null -> {
+                    tokenStream.advance()
+                    superscript = parseScriptContent()
+                }
+                else -> break
+            }
+        }
+
+        // 如果有上下标，包装为 BigOperator（运算符名作为 operator）
+        return if (subscript != null || superscript != null) {
+            LatexNode.BigOperator(name, subscript, superscript, limitsMode)
+        } else {
+            LatexNode.OperatorName(name)
+        }
+    }
+
+    /**
+     * 解析带参数的取模运算符
+     * \pmod{n} → "(mod n)"
+     */
+    private fun parseModWithArg(style: LatexNode.ModOperator.ModStyle): LatexNode {
+        val arg = context.parseArgument()
+        return LatexNode.ModOperator(arg, style)
+    }
+
+    /**
+     * 解析 \dots — 自适应省略号
+     * 
+     * 根据上下文自动选择 \ldots（底部省略号）或 \cdots（居中省略号）
+     * 简化实现：默认映射为 \ldots，因为它是最通用的形式
+     */
+    private fun parseAdaptiveDots(): LatexNode {
+        // 查看后面的 token 来决定使用 ldots 还是 cdots
+        // 需要跳过空白 token 来查看真正的下一个内容 token
+        val next = tokenStream.peekSkipping { it is LatexToken.Whitespace }
+        val useCdots = when {
+            // 如果后面是 +, -, *, =, <, > 等二元运算符/关系符，使用 cdots
+            next is LatexToken.Text && next.content.firstOrNull() in setOf('+', '-', '*', '=', '<', '>') -> true
+            next is LatexToken.Command && next.name in setOf(
+                "times", "cdot", "pm", "mp", "leq", "geq", "le", "ge",
+                "neq", "equiv", "approx", "sim", "rightarrow", "leftarrow",
+                "Rightarrow", "Leftarrow", "subset", "supset", "subseteq", "supseteq",
+                "in", "oplus", "otimes"
+            ) -> true
+            else -> false
+        }
+        val unicode = if (useCdots) "⋯" else "…"
+        val cmdName = if (useCdots) "cdots" else "ldots"
+        return LatexNode.Symbol(cmdName, unicode)
+    }
+
     private fun parseSymbolOrGenericCommand(cmdName: String): LatexNode {
         val unicode = SymbolMap.getSymbol(cmdName)
         if (unicode != null) {
@@ -1070,6 +1172,11 @@ class CommandParser(
                 ))
                 is LatexNode.HPhantom -> listOf(LatexNode.HPhantom(
                     replaceParameters(node.content, args)
+                ))
+                is LatexNode.OperatorName -> listOf(node)
+                is LatexNode.ModOperator -> listOf(LatexNode.ModOperator(
+                    node.content?.let { replaceParametersInNode(it, args) },
+                    node.modStyle
                 ))
                 else -> listOf(node)
             }

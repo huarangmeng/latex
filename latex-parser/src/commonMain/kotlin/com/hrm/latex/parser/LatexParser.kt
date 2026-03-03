@@ -283,6 +283,8 @@ class LatexParser : LatexParserContext {
             is LatexNode.Subequations -> node.copy(sourceRange = range)
             is LatexNode.Tabular -> node.copy(sourceRange = range)
             is LatexNode.NewLine -> node.copy(sourceRange = range)
+            is LatexNode.OperatorName -> node.copy(sourceRange = range)
+            is LatexNode.ModOperator -> node.copy(sourceRange = range)
         }
     }
 

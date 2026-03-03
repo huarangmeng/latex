@@ -501,12 +501,12 @@ x \in \R
 
 | 状态 | 功能 | 命令 | 说明 |
 |------|------|------|------|
-| ⬜ | 星号环境变体 | `align*`, `equation*`, `gather*`, `multline*`, `eqnarray*` | 无编号公式最常用写法，当前 EnvironmentParser 精确匹配环境名，`*` 变体走入通用 fallback |
-| ⬜ | 自定义运算符 | `\operatorname{Tr}` | 线性代数、概率论高频使用，当前降级为显示 "operatorname" 文字 |
-| ⬜ | BigOperator 列表补全 | `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus` | SymbolMap 已有 Unicode 映射，但 CommandParser 未列入大型运算符分支，无法带上下限标注 |
-| ⬜ | 自适应省略号 | `\dots` | 最常用省略号命令，根据上下文自动选择 `\ldots` 或 `\cdots`，SymbolMap 缺少映射 |
-| ⬜ | 缺失重音命令 | `\grave`, `\acute`, `\check`, `\breve`, `\ring`, `\dddot` | FontResolver 已有部分字形定义，CommandParser accent 分支缺少映射 |
-| ⬜ | 取模运算符 | `\bmod`, `\pmod{n}`, `\mod` | 数论、密码学公式高频使用，如 `a \equiv b \pmod{n}` |
+| ✅ | 星号环境变体 | `align*`, `equation*`, `gather*`, `multline*`, `eqnarray*` | 无编号公式，EnvironmentParser 已支持 `*` 变体路由 |
+| ✅ | 自定义运算符 | `\operatorname{Tr}` | 正体渲染运算符名，支持 `\limits`/`\nolimits` 和上下标 |
+| ✅ | BigOperator 列表补全 | `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus` | 已加入 CommandParser 大型运算符分支，支持上下限标注 |
+| ✅ | 自适应省略号 | `\dots` | 根据上下文自动选择 `\ldots`（底部）或 `\cdots`（居中），已添加 SymbolMap 映射 |
+| ✅ | 缺失重音命令 | `\grave`, `\acute`, `\check`, `\breve`, `\ring`, `\dddot` | AccentType 枚举和渲染已完成 |
+| ✅ | 取模运算符 | `\bmod`, `\pmod{n}`, `\mod` | ModOperator 节点类型，支持三种取模风格渲染 |
 
 ### 🟡 中优先级（改善表格与特殊场景）
 
@@ -534,9 +534,9 @@ x \in \R
 
 ### 📋 建议实施路线
 
-| 阶段 | 内容 | 预估工作量 |
-|------|------|-----------|
-| **第一批** | 星号环境 + BigOperator 补全 + `\dots` + 重音补全 | 小（主要是添加字符串映射） |
-| **第二批** | `\operatorname` + `\bmod`/`\pmod` + `~` + `%` | 中（需新增解析+渲染逻辑） |
-| **第三批** | 表格竖线 + `\hline` + `\multicolumn` | 中大（表格渲染改动较多） |
-| **第四批** | 低优先级功能按需选取 | 按需 |
+| 阶段 | 内容 | 预估工作量 | 状态 |
+|------|------|-----------|------|
+| **第一批** | 星号环境 + BigOperator 补全 + `\dots` + 重音补全 + `\operatorname` + `\bmod`/`\pmod`/`\mod` | 小~中 | ✅ 已完成 |
+| **第二批** | 表格竖线 + `\hline` + `~` + `%` + `\smash[t/b]` | 中（需新增解析+渲染逻辑） | ⬜ |
+| **第三批** | `\multicolumn` + cases 变体 + AMS 否定符号 | 中大（表格渲染改动较多） | ⬜ |
+| **第四批** | 低优先级功能按需选取 | 按需 | ⬜ |

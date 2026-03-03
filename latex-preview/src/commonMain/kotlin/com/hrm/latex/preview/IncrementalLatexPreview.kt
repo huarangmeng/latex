@@ -43,14 +43,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.LatexParser
 import com.hrm.latex.renderer.Latex
-import com.hrm.latex.renderer.font.MathFont
-import com.hrm.latex.renderer.model.LatexConfig
 import kotlinx.coroutines.delay
-import latex.latex_preview.generated.resources.Res
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * 增量解析的实际应用演示

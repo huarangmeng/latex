@@ -37,6 +37,20 @@ class LatexTokenStream(private val tokens: List<LatexToken>) {
         return if (pos < tokens.size) tokens[pos] else null
     }
 
+    /**
+     * 向前查看跳过满足条件的 token，返回第一个不匹配的 token
+     * 不改变当前位置
+     */
+    fun peekSkipping(skip: (LatexToken) -> Boolean): LatexToken? {
+        var offset = 0
+        while (true) {
+            val token = peek(offset) ?: return null
+            if (token is LatexToken.EOF) return null
+            if (!skip(token)) return token
+            offset++
+        }
+    }
+
     fun advance(): LatexToken? {
         val token = peek()
         position++

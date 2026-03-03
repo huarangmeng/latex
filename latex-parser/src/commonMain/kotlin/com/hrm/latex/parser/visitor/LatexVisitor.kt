@@ -75,6 +75,8 @@ interface LatexVisitor<T> {
     fun visitSideSet(node: LatexNode.SideSet): T
     fun visitTensor(node: LatexNode.Tensor): T
     fun visitTabular(node: LatexNode.Tabular): T
+    fun visitOperatorName(node: LatexNode.OperatorName): T
+    fun visitModOperator(node: LatexNode.ModOperator): T
 }
 
 /**
@@ -306,6 +308,13 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         }
         return defaultVisit(node)
     }
+
+    override fun visitOperatorName(node: LatexNode.OperatorName): T = defaultVisit(node)
+
+    override fun visitModOperator(node: LatexNode.ModOperator): T {
+        node.content?.let { visit(it) }
+        return defaultVisit(node)
+    }
     
     open fun visitBoxed(node: LatexNode.Boxed): T {
         node.content.forEach { visit(it) }
@@ -375,5 +384,7 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         is LatexNode.SideSet -> visitSideSet(node)
         is LatexNode.Tensor -> visitTensor(node)
         is LatexNode.Tabular -> visitTabular(node)
+        is LatexNode.OperatorName -> visitOperatorName(node)
+        is LatexNode.ModOperator -> visitModOperator(node)
     }
 }

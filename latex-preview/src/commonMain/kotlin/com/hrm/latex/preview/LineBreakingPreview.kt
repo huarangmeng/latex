@@ -25,9 +25,9 @@ package com.hrm.latex.preview
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.renderer.LatexAutoWrap
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * line breaking and autowrap preview

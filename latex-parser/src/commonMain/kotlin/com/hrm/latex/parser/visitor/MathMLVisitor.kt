@@ -204,6 +204,12 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Accent.AccentType.CANCEL -> "<menclose notation=\"updiagonalstrike\">$content</menclose>"
             LatexNode.Accent.AccentType.BCANCEL -> "<menclose notation=\"downdiagonalstrike\">$content</menclose>"
             LatexNode.Accent.AccentType.XCANCEL -> "<menclose notation=\"updiagonalstrike downdiagonalstrike\">$content</menclose>"
+            LatexNode.Accent.AccentType.DDDOT -> "<mover>$content<mo>\u20DB</mo></mover>"
+            LatexNode.Accent.AccentType.GRAVE -> "<mover>$content<mo>`</mo></mover>"
+            LatexNode.Accent.AccentType.ACUTE -> "<mover>$content<mo>´</mo></mover>"
+            LatexNode.Accent.AccentType.CHECK -> "<mover>$content<mo>ˇ</mo></mover>"
+            LatexNode.Accent.AccentType.BREVE -> "<mover>$content<mo>˘</mo></mover>"
+            LatexNode.Accent.AccentType.RING -> "<mover>$content<mo>˚</mo></mover>"
         }
     }
 
@@ -417,6 +423,19 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitNewCommand(node: LatexNode.NewCommand): String = ""
+
+    override fun visitOperatorName(node: LatexNode.OperatorName): String {
+        return "<mo>${escapeXml(node.name)}</mo>"
+    }
+
+    override fun visitModOperator(node: LatexNode.ModOperator): String {
+        val arg = node.content?.let { visit(it) } ?: ""
+        return when (node.modStyle) {
+            LatexNode.ModOperator.ModStyle.BMOD -> "<mo>mod</mo>"
+            LatexNode.ModOperator.ModStyle.PMOD -> mrow("<mo>(</mo><mo>mod</mo><mspace width=\"mediummathspace\"/>${arg}<mo>)</mo>")
+            LatexNode.ModOperator.ModStyle.MOD -> mrow("<mo>mod</mo><mspace width=\"mediummathspace\"/>${arg}")
+        }
+    }
 
     // ========== 辅助方法 ==========
 

@@ -172,5 +172,7 @@ object SourceMapper {
         is LatexNode.Label -> emptyList()
         is LatexNode.Ref -> emptyList()
         is LatexNode.EqRef -> emptyList()
+        is LatexNode.OperatorName -> emptyList()
+        is LatexNode.ModOperator -> listOfNotNull(node.content)
     }
 }

@@ -75,6 +75,21 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
             }
 
             is LatexNode.Command -> measureText(node.name, context, measurer, density)
+            is LatexNode.OperatorName -> {
+                val operatorGap =
+                    with(density) { (context.fontSize * MathConstants.OPERATOR_RIGHT_GAP).toPx() }
+                val layout = measureText(
+                    node.name,
+                    context.copy(
+                        fontStyle = FontStyle.Normal,
+                        fontFamily = context.fontFamilies?.main ?: context.fontFamily
+                    ),
+                    measurer,
+                    density
+                )
+                NodeLayout(layout.width + operatorGap, layout.height, layout.baseline, layout.draw)
+            }
+            is LatexNode.ModOperator -> measureModOperator(node, context, measurer, density)
             is LatexNode.Space -> measureSpace(node.type, context, density)
             is LatexNode.HSpace -> measureHSpace(node, context, density)
             is LatexNode.NewLine -> NodeLayout(0f, 0f, 0f) { _, _ -> }
@@ -278,6 +293,112 @@ internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
         ) { x, y ->
             drawText(result, topLeft = Offset(x, y))
         }
+    }
+
+    private fun measureModOperator(
+        node: LatexNode.ModOperator,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        density: Density
+    ): NodeLayout {
+        val romanContext = context.copy(
+            fontStyle = FontStyle.Normal,
+            fontFamily = context.fontFamilies?.main ?: context.fontFamily
+        )
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+
+        return when (node.modStyle) {
+            LatexNode.ModOperator.ModStyle.BMOD -> {
+                // \bmod → " mod " (二元运算符间距)
+                val modLayout = measureAnnotatedText("mod", romanContext, measurer, density)
+                val gap = fontSizePx * MathConstants.THICK_SPACE
+                val totalWidth = gap + modLayout.width + gap
+                NodeLayout(totalWidth, modLayout.height, modLayout.baseline) { x, y ->
+                    modLayout.draw(this, x + gap, y)
+                }
+            }
+            LatexNode.ModOperator.ModStyle.PMOD -> {
+                // \pmod{n} → " (mod n)"
+                val thinGap = fontSizePx * MathConstants.THIN_SPACE
+                val leftParenLayout = measureAnnotatedText("(", romanContext, measurer, density)
+                val modLayout = measureAnnotatedText("mod", romanContext, measurer, density)
+                val rightParenLayout = measureAnnotatedText(")", romanContext, measurer, density)
+
+                val contentLayout = if (node.content != null) {
+                    measureGlobalRef(node.content!!, context, measurer, density)
+                } else null
+
+                val spaceBeforeMod = fontSizePx * MathConstants.QUAD_SPACE
+                var totalWidth = spaceBeforeMod + leftParenLayout.width + modLayout.width
+                if (contentLayout != null) {
+                    totalWidth += thinGap + contentLayout.width
+                }
+                totalWidth += rightParenLayout.width
+
+                val maxAscent = maxOf(
+                    leftParenLayout.baseline, modLayout.baseline,
+                    rightParenLayout.baseline,
+                    contentLayout?.baseline ?: 0f
+                )
+                val maxDescent = maxOf(
+                    leftParenLayout.height - leftParenLayout.baseline,
+                    modLayout.height - modLayout.baseline,
+                    rightParenLayout.height - rightParenLayout.baseline,
+                    (contentLayout?.height ?: 0f) - (contentLayout?.baseline ?: 0f)
+                )
+                val height = maxAscent + maxDescent
+
+                NodeLayout(totalWidth, height, maxAscent) { x, y ->
+                    var cx = x + spaceBeforeMod
+                    leftParenLayout.draw(this, cx, y + maxAscent - leftParenLayout.baseline)
+                    cx += leftParenLayout.width
+                    modLayout.draw(this, cx, y + maxAscent - modLayout.baseline)
+                    cx += modLayout.width
+                    if (contentLayout != null) {
+                        cx += thinGap
+                        contentLayout.draw(this, cx, y + maxAscent - contentLayout.baseline)
+                        cx += contentLayout.width
+                    }
+                    rightParenLayout.draw(this, cx, y + maxAscent - rightParenLayout.baseline)
+                }
+            }
+            LatexNode.ModOperator.ModStyle.MOD -> {
+                // \mod → "  mod " (大间距)
+                val modLayout = measureAnnotatedText("mod", romanContext, measurer, density)
+                val gap = fontSizePx * MathConstants.QUAD_SPACE
+                val totalWidth = gap + modLayout.width + gap
+                NodeLayout(totalWidth, modLayout.height, modLayout.baseline) { x, y ->
+                    modLayout.draw(this, x + gap, y)
+                }
+            }
+        }
+    }
+
+    /**
+     * 通用测量辅助：避免类型系统限制
+     */
+    private fun measureGlobalRef(
+        node: LatexNode,
+        context: RenderContext,
+        measurer: TextMeasurer,
+        density: Density
+    ): NodeLayout {
+        // 直接用 measureAnnotatedText 作为简化处理
+        val text = when (node) {
+            is LatexNode.Text -> node.content
+            is LatexNode.Group -> {
+                node.children.joinToString("") {
+                    when (it) {
+                        is LatexNode.Text -> it.content
+                        is LatexNode.Symbol -> it.unicode
+                        else -> ""
+                    }
+                }
+            }
+            is LatexNode.Symbol -> node.unicode
+            else -> ""
+        }
+        return measureAnnotatedText(text, context, measurer, density)
     }
 
     private fun measureSpace(

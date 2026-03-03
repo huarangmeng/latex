@@ -81,7 +81,8 @@ internal fun measureNode(
 
     return when (node) {
         is LatexNode.Text, is LatexNode.TextMode, is LatexNode.Symbol,
-        is LatexNode.Operator, is LatexNode.Command, is LatexNode.Space,
+        is LatexNode.Operator, is LatexNode.OperatorName, is LatexNode.ModOperator,
+        is LatexNode.Command, is LatexNode.Space,
         is LatexNode.HSpace ->
             MeasurerRegistry.text.measure(
                 node,

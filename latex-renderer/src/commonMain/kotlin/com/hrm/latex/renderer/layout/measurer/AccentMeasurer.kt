@@ -81,6 +81,12 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
             AccentType.VEC -> "→"
             AccentType.DOT -> "˙"
             AccentType.DDOT -> "¨"
+            AccentType.DDDOT -> "⃛"
+            AccentType.GRAVE -> "`"
+            AccentType.ACUTE -> "´"
+            AccentType.CHECK -> "ˇ"
+            AccentType.BREVE -> "˘"
+            AccentType.RING -> "˚"
             else -> ""
         }
 
@@ -97,6 +103,12 @@ internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
             AccentType.VEC -> MathConstants.ACCENT_VEC_HEIGHT to MathConstants.ACCENT_VEC_OFFSET
             AccentType.DOT -> MathConstants.ACCENT_DOT_HEIGHT to MathConstants.ACCENT_DOT_OFFSET
             AccentType.DDOT -> MathConstants.ACCENT_DDOT_HEIGHT to MathConstants.ACCENT_DDOT_OFFSET
+            AccentType.DDDOT -> MathConstants.ACCENT_DDOT_HEIGHT to MathConstants.ACCENT_DDOT_OFFSET
+            AccentType.GRAVE -> MathConstants.ACCENT_HAT_HEIGHT to MathConstants.ACCENT_HAT_OFFSET
+            AccentType.ACUTE -> MathConstants.ACCENT_HAT_HEIGHT to MathConstants.ACCENT_HAT_OFFSET
+            AccentType.CHECK -> MathConstants.ACCENT_HAT_HEIGHT to MathConstants.ACCENT_HAT_OFFSET
+            AccentType.BREVE -> MathConstants.ACCENT_TILDE_HEIGHT to MathConstants.ACCENT_TILDE_OFFSET
+            AccentType.RING -> MathConstants.ACCENT_DOT_HEIGHT to MathConstants.ACCENT_DOT_OFFSET
             else -> MathConstants.ACCENT_DEFAULT_HEIGHT to MathConstants.ACCENT_DEFAULT_OFFSET
         }
 

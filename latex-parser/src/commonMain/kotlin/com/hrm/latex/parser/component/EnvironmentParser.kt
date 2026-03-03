@@ -53,13 +53,13 @@ class EnvironmentParser(private val context: LatexParserContext) {
             "smallmatrix" -> parseMatrix("matrix", isSmall = true)
             "array" -> parseArray()
             "tabular" -> parseTabular()
-            "align", "aligned", "gather", "gathered" -> parseAligned(envName)
+            "align", "aligned", "align*", "gather", "gathered", "gather*" -> parseAligned(envName)
             "split" -> parseSplit()
-            "multline" -> parseMultline()
-            "eqnarray" -> parseEqnarray()
+            "multline", "multline*" -> parseMultline(envName)
+            "eqnarray", "eqnarray*" -> parseEqnarray(envName)
             "subequations" -> parseSubequations()
             "cases" -> parseCases()
-            "equation", "displaymath" -> {
+            "equation", "equation*", "displaymath" -> {
                 val content = parseEnvironmentContent(envName)
                 LatexNode.Environment(envName, content)
             }
@@ -349,14 +349,14 @@ class EnvironmentParser(private val context: LatexParserContext) {
      * 解析 multline 环境
      * 用于需要多行显示的单个方程,第一行左对齐,最后一行右对齐,中间行居中
      */
-    private fun parseMultline(): LatexNode.Multline {
+    private fun parseMultline(envName: String): LatexNode.Multline {
         val lines = mutableListOf<LatexNode>()
         var currentLine = mutableListOf<LatexNode>()
 
         while (!tokenStream.isEOF()) {
             when (val token = tokenStream.peek()) {
                 is LatexToken.EndEnvironment -> {
-                    if (token.name == "multline") {
+                    if (token.name == envName) {
                         if (currentLine.isNotEmpty()) {
                             lines.add(LatexNode.Group(currentLine))
                         }
@@ -392,7 +392,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
      * 用于对齐多个方程,类似 align 但是是旧式语法
      * 通常有三列:左边、关系符、右边
      */
-    private fun parseEqnarray(): LatexNode.Eqnarray {
+    private fun parseEqnarray(envName: String): LatexNode.Eqnarray {
         val rows = mutableListOf<List<LatexNode>>()
         var currentRow = mutableListOf<LatexNode>()
         var currentCell = mutableListOf<LatexNode>()
@@ -400,7 +400,7 @@ class EnvironmentParser(private val context: LatexParserContext) {
         while (!tokenStream.isEOF()) {
             when (val token = tokenStream.peek()) {
                 is LatexToken.EndEnvironment -> {
-                    if (token.name == "eqnarray") {
+                    if (token.name == envName) {
                         if (currentCell.isNotEmpty()) {
                             currentRow.add(LatexNode.Group(currentCell))
                         }

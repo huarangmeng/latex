@@ -24,7 +24,7 @@
 package com.hrm.latex.preview
 
 import androidx.compose.runtime.Composable
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * 化学公式预览示例
@@ -67,7 +67,11 @@ val chemicalPreviewGroups = listOf(
             PreviewItem("rxn3", "中和反应", "\\ce{HCl + NaOH -> NaCl + H2O}"),
             PreviewItem("rxn4", "沉淀反应", "\\ce{Ba^{2+} + SO4^{2-} -> BaSO4 v}"),
             PreviewItem("rxn5", "氧化还原", "\\ce{Zn + 2HCl -> ZnCl2 + H2 ^}"),
-            PreviewItem("rxn6", "复杂反应", "\\ce{2KMnO4 + 16HCl -> 2KCl + 2MnCl2 + 5Cl2 ^ + 8H2O}"),
+            PreviewItem(
+                "rxn6",
+                "复杂反应",
+                "\\ce{2KMnO4 + 16HCl -> 2KCl + 2MnCl2 + 5Cl2 ^ + 8H2O}"
+            ),
         )
     ),
     PreviewGroup(

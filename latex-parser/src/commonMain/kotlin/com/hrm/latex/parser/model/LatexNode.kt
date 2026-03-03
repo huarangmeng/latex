@@ -243,8 +243,9 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class AccentType {
-            HAT, TILDE, BAR, DOT, DDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE,
-            WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW, CANCEL, BCANCEL, XCANCEL
+            HAT, TILDE, BAR, DOT, DDOT, DDDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE,
+            WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW, CANCEL, BCANCEL, XCANCEL,
+            GRAVE, ACUTE, CHECK, BREVE, RING
         }
     }
     
@@ -581,4 +582,31 @@ sealed class LatexNode {
         val alignment: String,
         override val sourceRange: SourceRange? = null
     ) : LatexNode()
+
+    /**
+     * 自定义运算符名称节点（\operatorname{Tr}）
+     * 以正体渲染运算符名，可带上下标
+     * @param name 运算符名称
+     */
+    data class OperatorName(
+        val name: String,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode()
+
+    /**
+     * 取模运算符节点
+     * @param content 可选的参数内容（如 \pmod{n} 中的 n）
+     * @param modStyle 取模风格
+     */
+    data class ModOperator(
+        val content: LatexNode?,
+        val modStyle: ModStyle,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        enum class ModStyle {
+            BMOD,  // \bmod — 二元运算符 "mod"
+            PMOD,  // \pmod{n} — (mod n)
+            MOD    // \mod — 间距更大的 "mod"
+        }
+    }
 }
