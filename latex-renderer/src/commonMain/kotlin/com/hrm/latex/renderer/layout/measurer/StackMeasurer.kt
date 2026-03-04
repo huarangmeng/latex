@@ -32,20 +32,26 @@ import com.hrm.latex.renderer.model.shrink
 import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.isCenteredSymbol
 import kotlin.math.max
+import kotlin.reflect.KClass
 
 /**
  * 堆叠渲染器，用于 \overset、\underset、\stackrel 等命令
  */
-internal class StackMeasurer : NodeMeasurer<LatexNode.Stack> {
+internal class StackMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.Stack::class
+    )
 
     override fun measure(
-        node: LatexNode.Stack,
+        node: LatexNode,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
+        node as LatexNode.Stack
         // 先对 Stack 结构做规范化 ：\overset{a}{\underset{b}{X}} 会产生 Stack 套 Stack
         // 如果不扁平化，会导致定位/贴合基于"已经堆叠后的盒子"，从而出现上下异常。
         fun unwrapSingleGroup(node0: LatexNode): LatexNode {

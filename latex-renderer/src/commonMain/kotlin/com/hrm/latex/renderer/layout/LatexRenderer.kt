@@ -70,6 +70,7 @@ internal object LatexRenderer {
      *
      * 包含：measureGroup → padding 计算 → 高亮区域计算。
      *
+     * @param highlightRanges 高亮区域配置（从 LatexConfig 传入，不参与渲染树遍历）
      * @param layoutMap 可选的布局映射表，用于编辑器集成。传入非 null 值时，
      *   测量过程中会将每个子节点的相对位置记录到其中。
      */
@@ -78,6 +79,7 @@ internal object LatexRenderer {
         context: RenderContext,
         textMeasurer: TextMeasurer,
         density: Density,
+        highlightRanges: List<HighlightRange> = emptyList(),
         layoutMap: LayoutMap? = null
     ): LatexRenderResult {
         val layout = measureGroup(children, context, textMeasurer, density, layoutMap)
@@ -89,7 +91,6 @@ internal object LatexRenderer {
         val canvasWidth = layout.width + horizontalPadding * 2
         val canvasHeight = layout.height + verticalPadding * 2
 
-        val highlightRanges = context.highlightRanges
         val highlightRects = if (highlightRanges.isEmpty()) {
             emptyList()
         } else {

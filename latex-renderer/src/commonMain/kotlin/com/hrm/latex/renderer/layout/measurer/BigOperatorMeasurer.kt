@@ -53,6 +53,7 @@ import com.hrm.latex.renderer.utils.opentype.GlyphPathData
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.reflect.KClass
 
 /**
  * 大型运算符测量器 — 处理 \sum, \int, \prod 等
@@ -64,20 +65,25 @@ import kotlin.math.pow
  * 使用 MathConstants 集中管理所有排版参数。
  * 使用 FontResolver.compensatedFontWeight() 补偿字号放大导致的笔画变粗。
  */
-internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
+internal class BigOperatorMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.BigOperator::class
+    )
 
     private companion object {
         const val TAG = "BigOperatorMeasurer"
     }
 
     override fun measure(
-        node: LatexNode.BigOperator,
+        node: LatexNode,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
+        node as LatexNode.BigOperator
         val symbol = mapBigOp(node.operator)
         val isIntegral = node.operator.contains("int")
         val isNamedOperator = symbol == node.operator && symbol.all { it.isLetter() }
@@ -159,9 +165,9 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         // 2. 计算总需要的垂直拉伸倍数（相对于基础墨水高度）
         var totalVerticalScale = 1.0f
         if (isIntegral && context.mathStyle == MathStyle.DISPLAY) {
-            if (context.bigOpHeightHint != null) {
+            if (context.layoutHints.bigOpHeightHint != null) {
                 val targetHeight =
-                    context.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
+                    context.layoutHints.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
                 val currentInkHeight = baseInkBounds.inkHeight
                 if (currentInkHeight > 0f && targetHeight > currentInkHeight) {
                     totalVerticalScale = targetHeight / currentInkHeight
@@ -351,8 +357,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
 
         if (isIntegral && context.mathStyle == MathStyle.DISPLAY) {
             // 积分符号：选择满足高度要求的最佳变体
-            val targetHeight = if (context.bigOpHeightHint != null) {
-                context.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
+            val targetHeight = if (context.layoutHints.bigOpHeightHint != null) {
+                context.layoutHints.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
             } else {
                 fontSizePx * MathConstants.INTEGRAL_MIN_VERTICAL_SCALE
             }
@@ -437,8 +443,8 @@ internal class BigOperatorMeasurer : NodeMeasurer<LatexNode.BigOperator> {
         val fontSizePx = with(density) { originalContext.fontSize.toPx() }
 
         // 计算目标高度（仅用于在多个变体间选择，不用于 fontSize 缩放）
-        val targetHeight = if (originalContext.bigOpHeightHint != null) {
-            originalContext.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
+        val targetHeight = if (originalContext.layoutHints.bigOpHeightHint != null) {
+            originalContext.layoutHints.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
         } else {
             // 无高度暗示时，使用 display-size 变体的自然高度
             fontSizePx * MathConstants.INTEGRAL_MIN_VERTICAL_SCALE

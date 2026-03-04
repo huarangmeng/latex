@@ -41,22 +41,28 @@ import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.reflect.KClass
 
 /**
  * 装饰符号测量器
  *
  * 负责测量重音符号（如 \hat, \vec）和可伸缩的宽装饰（如 \widehat, \overline, \underbrace）。
  */
-internal class AccentMeasurer : NodeMeasurer<LatexNode.Accent> {
+internal class AccentMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.Accent::class
+    )
 
     override fun measure(
-        node: LatexNode.Accent,
+        node: LatexNode,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
+        node as LatexNode.Accent
         val contentLayout = measureGroup(listOf(node.content), context)
 
         // 判断是否是宽装饰（需要横向拉伸）

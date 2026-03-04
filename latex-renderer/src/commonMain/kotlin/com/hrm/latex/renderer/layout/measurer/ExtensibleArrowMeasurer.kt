@@ -36,22 +36,28 @@ import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.shrink
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
+import kotlin.reflect.KClass
 
 /**
  * 可扩展箭头测量器
  *
  * 支持 \xrightarrow{文字}、\xleftarrow{文字} 等命令
  */
-internal class ExtensibleArrowMeasurer : NodeMeasurer<LatexNode.ExtensibleArrow> {
+internal class ExtensibleArrowMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.ExtensibleArrow::class
+    )
 
     override fun measure(
-        node: LatexNode.ExtensibleArrow,
+        node: LatexNode,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
+        node as LatexNode.ExtensibleArrow
         val aboveStyle = context.shrink(MathConstants.STACK_SCRIPT_SCALE)
         val aboveLayout = measureGroup(listOf(node.content), aboveStyle)
         val belowLayout = node.below?.let { measureGroup(listOf(it), aboveStyle) }

@@ -41,18 +41,31 @@ import com.hrm.latex.renderer.utils.MathFontUtils
 import com.hrm.latex.renderer.utils.isCenteredSymbol
 import com.hrm.latex.renderer.utils.parseDimension
 import com.hrm.latex.renderer.utils.spaceWidthPx
+import kotlin.reflect.KClass
 
 /**
  * 文本内容测量器
  */
-internal class TextContentMeasurer : NodeMeasurer<LatexNode> {
+internal class TextContentMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.Text::class,
+        LatexNode.TextMode::class,
+        LatexNode.Symbol::class,
+        LatexNode.Operator::class,
+        LatexNode.OperatorName::class,
+        LatexNode.ModOperator::class,
+        LatexNode.Command::class,
+        LatexNode.Space::class,
+        LatexNode.HSpace::class
+    )
 
     override fun measure(
         node: LatexNode,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         return when (node) {

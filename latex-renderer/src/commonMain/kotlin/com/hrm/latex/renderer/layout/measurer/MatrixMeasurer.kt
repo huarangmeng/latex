@@ -37,11 +37,24 @@ import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.reflect.KClass
 
 /**
  * 矩阵与数组测量器
  */
-internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
+internal class MatrixMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.Matrix::class,
+        LatexNode.Array::class,
+        LatexNode.Cases::class,
+        LatexNode.Aligned::class,
+        LatexNode.Split::class,
+        LatexNode.Multline::class,
+        LatexNode.Eqnarray::class,
+        LatexNode.Subequations::class,
+        LatexNode.Tabular::class
+    )
 
     enum class ColumnAlignment { LEFT, CENTER, RIGHT }
 
@@ -64,21 +77,21 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         return when (node) {
-            is LatexNode.Matrix -> measureMatrix(node, context, measurer, density, measureGlobal)
+            is LatexNode.Matrix -> measureMatrix(node, context, measurer, density, measureNode)
             is LatexNode.Array -> measureMatrixLike(
                 node.rows,
                 context,
                 measurer,
                 density,
-                measureGlobal
+                measureNode
             )
 
-            is LatexNode.Tabular -> measureTabular(node, context, measurer, density, measureGlobal)
-            is LatexNode.Cases -> measureCases(node, context, measurer, density, measureGlobal)
+            is LatexNode.Tabular -> measureTabular(node, context, measurer, density, measureNode)
+            is LatexNode.Cases -> measureCases(node, context, measurer, density, measureNode)
             is LatexNode.Aligned, is LatexNode.Split -> {
                 val rows =
                     if (node is LatexNode.Aligned) node.rows else (node as LatexNode.Split).rows
@@ -89,7 +102,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
                     context,
                     measurer,
                     density,
-                    measureGlobal,
+                    measureNode,
                     alignments = alignments
                 )
             }
@@ -102,12 +115,12 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
                     context,
                     measurer,
                     density,
-                    measureGlobal,
+                    measureNode,
                     alignments = alignments
                 )
             }
 
-            is LatexNode.Multline -> measureMultline(node, context, density, measureGlobal)
+            is LatexNode.Multline -> measureMultline(node, context, density, measureNode)
             is LatexNode.Subequations -> measureGroup(node.content, context)
             else -> throw IllegalArgumentException("Unsupported node type: ${node::class.simpleName}")
         }
@@ -118,9 +131,9 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout
+        measureNode: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
-        val contentLayout = measureMatrixLike(node.rows, context, measurer, density, measureGlobal)
+        val contentLayout = measureMatrixLike(node.rows, context, measurer, density, measureNode)
         val bracketType = node.type
         if (bracketType == LatexNode.Matrix.MatrixType.PLAIN) return contentLayout
 
@@ -179,13 +192,13 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         alignments: List<ColumnAlignment>? = null,
         colSpacingRatio: Float = MathConstants.MATRIX_COLUMN_SPACING,
         rowSpacingRatio: Float = MathConstants.MATRIX_ROW_SPACING,
         isBaselineFirstRow: Boolean = false
     ): NodeLayout {
-        val measuredRows = rows.map { row -> row.map { measureGlobal(it, context) } }
+        val measuredRows = rows.map { row -> row.map { measureNode(it, context) } }
         val colCount = measuredRows.maxOfOrNull { it.size } ?: 0
         val rowCount = measuredRows.size
         if (rowCount == 0) return NodeLayout(0f, 0f, 0f) { _, _ -> }
@@ -248,7 +261,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout
+        measureNode: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         // dcases 使用 displaystyle 测量内容
         val contentContext = if (node.style == LatexNode.Cases.CasesStyle.DISPLAY) {
@@ -259,7 +272,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
 
         val rows = node.cases.map { listOf(it.second, LatexNode.Text(" if "), it.first) }
         val matrixLayout = measureMatrixLike(
-            rows, contentContext, measurer, density, measureGlobal,
+            rows, contentContext, measurer, density, measureNode,
             alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.CENTER, ColumnAlignment.LEFT)
         )
 
@@ -317,7 +330,7 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout
+        measureNode: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         val (alignments, vLinePositions) = parseAlignments(node.alignment)
 
@@ -365,12 +378,12 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         val measuredRows = dataRows.map { row ->
             row.map { cell ->
                 if (cell is LatexNode.Multicolumn) {
-                    val contentLayout = measureGlobal(LatexNode.Group(cell.content), context)
+                    val contentLayout = measureNode(LatexNode.Group(cell.content), context)
                     val (cellAligns, cellVLines) = parseAlignments(cell.alignment)
                     val align = cellAligns.firstOrNull() ?: ColumnAlignment.CENTER
                     CellInfo(contentLayout, cell.columnCount, align, cellVLines, cellAligns.size)
                 } else {
-                    CellInfo(measureGlobal(cell, context), 1, ColumnAlignment.CENTER)
+                    CellInfo(measureNode(cell, context), 1, ColumnAlignment.CENTER)
                 }
             }
         }
@@ -612,9 +625,9 @@ internal class MatrixMeasurer : NodeMeasurer<LatexNode> {
         node: LatexNode.Multline,
         context: RenderContext,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout
+        measureNode: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
-        val lineLayouts = node.lines.map { measureGlobal(it, context) }
+        val lineLayouts = node.lines.map { measureNode(it, context) }
         if (lineLayouts.isEmpty()) return NodeLayout(0f, 0f, 0f) { _, _ -> }
 
         val maxWidth = lineLayouts.maxOf { it.width }

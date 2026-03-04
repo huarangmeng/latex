@@ -34,6 +34,7 @@ import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.shrink
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
+import kotlin.reflect.KClass
 
 /**
  * 根号测量器 — 处理 \sqrt[#index]{content}
@@ -49,16 +50,21 @@ import kotlin.math.max
  * Path 以 (0,0) 为原点构建，draw 时通过 translate 偏移。
  * NodeLayout 尺寸包含 Stroke 半宽。
  */
-internal class RootMeasurer : NodeMeasurer<LatexNode.Root> {
+internal class RootMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.Root::class
+    )
 
     override fun measure(
-        node: LatexNode.Root,
+        node: LatexNode,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
+        node as LatexNode.Root
         val indexStyle = context.shrink(MathConstants.RADICAL_INDEX_SCALE)
 
         val contentLayout = measureGroup(listOf(node.content), context)

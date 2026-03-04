@@ -102,7 +102,7 @@ fun LatexEditorCanvas(
     // 测量，同时填充 layoutMap
     val renderResult = remember(children, context, density) {
         layoutMap?.clear()
-        LatexRenderer.measure(children, context, measurer, density, layoutMap)
+        LatexRenderer.measure(children, context, measurer, density, layoutMap = layoutMap)
     }
 
     // 通知渲染信息变化

@@ -45,6 +45,7 @@ import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.visitor.AccessibilityVisitor
 import com.hrm.latex.renderer.font.rememberResolvedMathFont
 import com.hrm.latex.renderer.layout.LatexRenderer
+import com.hrm.latex.renderer.model.HighlightRange
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LineBreakingConfig
 import com.hrm.latex.renderer.model.RenderContext
@@ -151,6 +152,7 @@ fun Latex(
         modifier = modifier,
         children = document.children,
         context = context,
+        highlightRanges = config.highlight.ranges,
         backgroundColor = resolvedBackgroundColor,
         contentDescription = accessibilityDescription
     )
@@ -202,6 +204,7 @@ fun LatexAutoWrap(
  * @param modifier 修饰符
  * @param children 文档根节点
  * @param context 渲染上下文
+ * @param highlightRanges 高亮区域配置（不参与渲染树遍历）
  * @param backgroundColor 背景颜色
  * @param contentDescription 无障碍描述文本（非空时启用 semantics）
  */
@@ -210,6 +213,7 @@ private fun LatexDocument(
     modifier: Modifier = Modifier,
     children: List<LatexNode>,
     context: RenderContext,
+    highlightRanges: List<HighlightRange> = emptyList(),
     backgroundColor: Color = Color.Transparent,
     contentDescription: String? = null
 ) {
@@ -217,8 +221,8 @@ private fun LatexDocument(
     val density = LocalDensity.current
 
     // 使用 LatexRenderer 共享逻辑进行测量（与导出路径共用同一份代码）
-    val renderResult = remember(children, context, density) {
-        LatexRenderer.measure(children, context, measurer, density)
+    val renderResult = remember(children, context, density, highlightRanges) {
+        LatexRenderer.measure(children, context, measurer, density, highlightRanges)
     }
 
     val widthDp = with(density) { renderResult.canvasWidth.toDp() }

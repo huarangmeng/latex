@@ -32,6 +32,7 @@ import com.hrm.latex.renderer.utils.DelimiterRenderer
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
+import kotlin.reflect.KClass
 
 /**
  * 二项式测量器 — 处理 \binom{n}{k}
@@ -39,16 +40,21 @@ import kotlin.math.max
  * 布局类似分数，但无横线，左右包裹圆括号。
  * 使用 DelimiterRenderer 统一渲染括号。
  */
-internal class BinomialMeasurer : NodeMeasurer<LatexNode.Binomial> {
+internal class BinomialMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.Binomial::class
+    )
 
     override fun measure(
-        node: LatexNode.Binomial,
+        node: LatexNode,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
+        node as LatexNode.Binomial
         val childStyle = context.shrink(MathConstants.BINOMIAL_CHILD_SCALE)
         val numLayout = measureGroup(listOf(node.top), childStyle)
         val denLayout = measureGroup(listOf(node.bottom), childStyle)

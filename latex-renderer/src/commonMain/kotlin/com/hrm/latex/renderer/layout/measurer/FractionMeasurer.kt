@@ -32,6 +32,7 @@ import com.hrm.latex.renderer.model.toFractionChildStyle
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
+import kotlin.reflect.KClass
 
 /**
  * 分数测量器 — 处理 \frac{num}{den}
@@ -40,6 +41,7 @@ import kotlin.math.max
  * ```
  *   ┌─── numerator (居中) ───┐
  *   │         gap             │
+ * ```
  *   ├───── fraction line ─────┤  ← baseline = lineY + ruleThickness/2 + axisHeight
  *   │         gap             │
  *   └─── denominator (居中) ──┘
@@ -50,16 +52,21 @@ import kotlin.math.max
  * - TEXT → SCRIPT
  * - SCRIPT → SCRIPT_SCRIPT
  */
-internal class FractionMeasurer : NodeMeasurer<LatexNode.Fraction> {
+internal class FractionMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.Fraction::class
+    )
 
     override fun measure(
-        node: LatexNode.Fraction,
+        node: LatexNode,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
+        node as LatexNode.Fraction
         val childStyle = context.toFractionChildStyle()
         val numeratorLayout = measureGroup(listOf(node.numerator), childStyle)
         val denominatorLayout = measureGroup(listOf(node.denominator), childStyle)

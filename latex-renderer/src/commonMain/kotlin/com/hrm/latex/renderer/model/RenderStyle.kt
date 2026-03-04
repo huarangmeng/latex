@@ -167,28 +167,50 @@ enum class FontVariant {
 }
 
 /**
+ * 布局提示：父级向子级传递的单向布局通信通道。
+ *
+ * 这些字段不属于渲染样式状态，而是 measureGroup 阶段的临时参数。
+ * 独立为数据类后，RenderContext 的 copy() 更清晰：
+ * 样式变换（字体、颜色、缩放）不会意外携带布局提示。
+ */
+internal data class LayoutHints(
+    /** 大型运算符（积分等）的目标高度提示，由 measureGroup 注入 */
+    val bigOpHeightHint: Float? = null,
+    /** 自动断行的最大行宽（px），null 表示不限制 */
+    val maxLineWidth: Float? = null,
+    /** 是否启用自动断行 */
+    val lineBreakingEnabled: Boolean = false,
+)
+
+/**
  * 内部渲染上下文（渲染树遍历过程中的状态）
  *
  * 使用 data class 以便利的 copy() 操作。
  * 注意：不应将 RenderContext 作为 remember 的 key —— 应使用
  * 产生它的输入（LatexConfig + isDark 等）作为 key。
+ *
+ * 职责划分：
+ * - 字体状态：fontFamily, fontFamilies, fontWeight, fontStyle, fontVariant, isVariantFontFamily
+ * - 样式状态：fontSize, color, errorColor, mathStyle
+ * - 布局提示：[layoutHints]（父→子的单向通信，与样式无关）
+ * - 排版参数：[mathFontProvider]（OTF MATH 表或 KaTeX 字体的排版参数源）
  */
 internal data class RenderContext(
+    // ── 样式状态 ──
     val fontSize: TextUnit,
     val color: Color,
     val errorColor: Color = Color(0xFFCC0000),
+    val mathStyle: MathStyle = MathStyle.DISPLAY,
+    // ── 字体状态 ──
     val fontWeight: FontWeight? = null,
     val fontStyle: FontStyle? = null,
     val fontFamily: FontFamily? = null,
     val fontVariant: FontVariant = FontVariant.NORMAL,
     val fontFamilies: LatexFontFamilies? = null,
     val isVariantFontFamily: Boolean = false,
-    val mathStyle: MathStyle = MathStyle.DISPLAY,
-    val bigOpHeightHint: Float? = null,
-    val maxLineWidth: Float? = null,
-    val lineBreakingEnabled: Boolean = false,
-    val highlightRanges: List<HighlightRange> = emptyList(),
-    /** 数学字体排版参数提供者 */
+    // ── 布局提示 ──
+    val layoutHints: LayoutHints = LayoutHints(),
+    // ── 排版参数 ──
     val mathFontProvider: MathFontProvider? = null,
 )
 
@@ -223,9 +245,10 @@ internal fun LatexConfig.toContext(
         fontFamily = fontFamilies.main,
         fontFamilies = fontFamilies,
         isVariantFontFamily = false,
-        maxLineWidth = if (lineBreaking.enabled) lineBreaking.maxWidth else null,
-        lineBreakingEnabled = lineBreaking.enabled,
-        highlightRanges = highlight.ranges,
+        layoutHints = LayoutHints(
+            maxLineWidth = if (lineBreaking.enabled) lineBreaking.maxWidth else null,
+            lineBreakingEnabled = lineBreaking.enabled,
+        ),
         mathFontProvider = provider
     )
 }

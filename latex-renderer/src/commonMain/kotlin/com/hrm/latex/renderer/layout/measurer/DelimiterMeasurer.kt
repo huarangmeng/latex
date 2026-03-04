@@ -35,6 +35,7 @@ import com.hrm.latex.renderer.utils.DelimiterRenderer
 import com.hrm.latex.renderer.utils.FontResolver
 import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
+import kotlin.reflect.KClass
 
 /**
  * 定界符测量器
@@ -43,14 +44,19 @@ import com.hrm.latex.renderer.utils.MathConstants
  * 1. 自动伸缩的括号 (\left( ... \right))
  * 2. 手动控制大小的括号 (\big, \Big, \bigg, \Bigg)
  */
-internal class DelimiterMeasurer : NodeMeasurer<LatexNode> {
+internal class DelimiterMeasurer : NodeMeasurer {
+
+    override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
+        LatexNode.Delimited::class,
+        LatexNode.ManualSizedDelimiter::class
+    )
 
     override fun measure(
         node: LatexNode,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        measureGlobal: (LatexNode, RenderContext) -> NodeLayout,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout,
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         return when (node) {
