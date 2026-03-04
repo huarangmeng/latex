@@ -907,7 +907,7 @@ val basicLatexPreviewGroups = listOf(
 
 @Preview
 @Composable
-fun BasicLatexPreview(onBack: () -> Unit) {
+fun BasicLatexPreview(onBack: () -> Unit = {}) {
     PreviewCategoryScreen(
         title = "基础 LaTeX",
         groups = basicLatexPreviewGroups,
