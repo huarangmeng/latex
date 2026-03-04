@@ -14,9 +14,6 @@
 ```bash
 # 运行桌面预览应用
 ./gradlew :latex-preview:run
-
-# 打包桌面应用（可选）
-./gradlew :latex-preview:createDistributable
 ```
 
 ## 注意事项
