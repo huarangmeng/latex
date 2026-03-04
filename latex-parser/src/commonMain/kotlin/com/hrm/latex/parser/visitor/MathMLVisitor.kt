@@ -475,10 +475,27 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     private fun escapeXml(text: String): String {
-        return text
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
+        // 快速路径：大多数字符串不含特殊字符，直接返回
+        var needsEscape = false
+        for (ch in text) {
+            if (ch == '&' || ch == '<' || ch == '>' || ch == '"') {
+                needsEscape = true
+                break
+            }
+        }
+        if (!needsEscape) return text
+
+        // 慢路径：单遍扫描构建结果
+        val sb = StringBuilder(text.length + 8)
+        for (ch in text) {
+            when (ch) {
+                '&' -> sb.append("&amp;")
+                '<' -> sb.append("&lt;")
+                '>' -> sb.append("&gt;")
+                '"' -> sb.append("&quot;")
+                else -> sb.append(ch)
+            }
+        }
+        return sb.toString()
     }
 }

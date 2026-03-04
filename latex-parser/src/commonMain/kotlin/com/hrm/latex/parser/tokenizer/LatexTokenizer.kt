@@ -168,18 +168,18 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
             return
         }
 
-        // 读取命令名
-        val commandName = buildString {
-            while (position < input.length) {
-                val char = peek() ?: break
-                if (char.isLetter() || (isEmpty() && char == '@')) {
-                    append(char)
-                    advance()
-                } else {
-                    break
+        // 读取命令名 — 使用 index tracking + substring 替代 buildString
+        val cmdStart = position
+        if (position < input.length) {
+            val firstChar = input[position]
+            if (firstChar.isLetter() || firstChar == '@') {
+                position++
+                while (position < input.length && input[position].isLetter()) {
+                    position++
                 }
             }
         }
+        val commandName = if (position > cmdStart) input.substring(cmdStart, position) else ""
 
         if (commandName.isEmpty()) {
             // 处理特殊符号，如 \{, \}, \$, \% 等
@@ -227,14 +227,11 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
         if (peek() != '{') return null
 
         advance() // 跳过 {
-        val name = buildString {
-            while (position < input.length) {
-                val char = peek() ?: break
-                if (char == '}') break
-                append(char)
-                advance()
-            }
+        val nameStart = position
+        while (position < input.length && input[position] != '}') {
+            position++
         }
+        val name = if (position > nameStart) input.substring(nameStart, position) else ""
 
         if (peek() == '}') {
             advance() // 跳过 }
@@ -245,17 +242,12 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
 
     private fun handleText() {
         val start = position
-        val text = buildString {
-            while (position < input.length) {
-                val char = peek() ?: break
-                if (isTextStopChar(char)) break
-                append(char)
-                advance()
-            }
+        while (position < input.length && !isTextStopChar(input[position])) {
+            position++
         }
 
-        if (text.isNotEmpty()) {
-            tokens.add(LatexToken.Text(text, SourceRange(start, position)))
+        if (position > start) {
+            tokens.add(LatexToken.Text(input.substring(start, position), SourceRange(start, position)))
         }
     }
 
@@ -428,7 +420,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
 
         // handleComment 不产生 token（注释被吞掉），需要递归处理
         return if (tokens.size > savedSize) {
-            tokens.removeLast()
+            tokens.removeAt(tokens.lastIndex)
         } else {
             // 注释被跳过了，递归取下一个
             nextToken()

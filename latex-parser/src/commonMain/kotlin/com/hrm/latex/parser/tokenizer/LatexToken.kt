@@ -33,20 +33,53 @@ import com.hrm.latex.parser.model.SourceRange
 sealed class LatexToken {
     abstract val range: SourceRange
 
-    data class Text(val content: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class Command(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class BeginEnvironment(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class EndEnvironment(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class LeftBrace(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class RightBrace(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class LeftBracket(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class RightBracket(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class Superscript(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class Subscript(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class Ampersand(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class NewLine(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class Whitespace(val content: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    /** 创建带有新 SourceRange 的副本（消除 shiftToken 中的 when 分派） */
+    abstract fun withRange(newRange: SourceRange): LatexToken
+
+    data class Text(val content: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class Command(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class BeginEnvironment(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class EndEnvironment(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class LeftBrace(override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class RightBrace(override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class LeftBracket(override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class RightBracket(override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class Superscript(override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class Subscript(override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class Ampersand(override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class NewLine(override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class Whitespace(val content: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
     /** `$` 数学模式切换符（单个 `$` 或 `$$`，由 count 区分） */
-    data class MathShift(val count: Int, override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
-    data class EOF(override val range: SourceRange = SourceRange.EMPTY) : LatexToken()
+    data class MathShift(val count: Int, override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
+    data class EOF(override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+        override fun withRange(newRange: SourceRange) = copy(range = newRange)
+    }
 }

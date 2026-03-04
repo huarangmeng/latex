@@ -95,7 +95,11 @@ class IncrementalLatexParser {
      */
     fun append(text: String) {
         val oldText = tokenizer.getCurrentText()
-        val newText = oldText + text
+        // 使用 StringBuilder 避免 O(n) 字符串拷贝
+        val newText = buildString(oldText.length + text.length) {
+            append(oldText)
+            append(text)
+        }
         HLog.d(TAG) { "追加内容: '$text', 新长度: ${newText.length}" }
         applyEdit(oldText, newText)
     }
@@ -448,8 +452,10 @@ class IncrementalLatexParser {
 
         // 检查是否以反斜杠结尾（未完成的命令）
         // 最后一个有意义的 token 如果是单个 "\" 命令，说明命令未完成
-        val trimmed = text.trimEnd()
-        if (trimmed.endsWith("\\")) return false
+        // 使用反向字符扫描替代 trimEnd() 字符串分配
+        var i = text.length - 1
+        while (i >= 0 && text[i].isWhitespace()) i--
+        if (i >= 0 && text[i] == '\\') return false
 
         return true
     }

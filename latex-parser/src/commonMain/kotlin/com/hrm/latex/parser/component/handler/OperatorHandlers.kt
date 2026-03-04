@@ -29,6 +29,15 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  * 数学算子 & 运算符名称命令：\sin, \cos, \operatorname, \mathop, \bmod, \pmod, \mod, \dots
  */
 internal fun CommandRegistry.installOperatorHandlers() {
+
+    // \dots 判断用的常量集合 — 提取为文件级避免每次调用 \dots 时重新创建
+    val dotsTextChars = setOf('+', '-', '*', '=', '<', '>')
+    val dotsCmdNames = setOf(
+        "times", "cdot", "pm", "mp", "leq", "geq", "le", "ge",
+        "neq", "equiv", "approx", "sim", "rightarrow", "leftarrow",
+        "Rightarrow", "Leftarrow", "subset", "supset", "subseteq", "supseteq",
+        "in", "oplus", "otimes"
+    )
     // 标准数学算子（正体渲染）
     val standardOps = arrayOf(
         "sin", "cos", "tan", "cot", "sec", "csc",
@@ -90,13 +99,8 @@ internal fun CommandRegistry.installOperatorHandlers() {
     register("dots") { _, _, stream ->
         val next = stream.peekSkipping { it is LatexToken.Whitespace }
         val useCdots = when {
-            next is LatexToken.Text && next.content.firstOrNull() in setOf('+', '-', '*', '=', '<', '>') -> true
-            next is LatexToken.Command && next.name in setOf(
-                "times", "cdot", "pm", "mp", "leq", "geq", "le", "ge",
-                "neq", "equiv", "approx", "sim", "rightarrow", "leftarrow",
-                "Rightarrow", "Leftarrow", "subset", "supset", "subseteq", "supseteq",
-                "in", "oplus", "otimes"
-            ) -> true
+            next is LatexToken.Text && next.content.firstOrNull() in dotsTextChars -> true
+            next is LatexToken.Command && next.name in dotsCmdNames -> true
             else -> false
         }
         val unicode = if (useCdots) "⋯" else "…"

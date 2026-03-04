@@ -918,7 +918,14 @@ sealed class LatexNode {
         val indices: List<Pair<Boolean, LatexNode>>,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        override fun children() = listOf(base) + indices.map { it.second }
+        override fun children(): List<LatexNode> {
+            val result = ArrayList<LatexNode>(1 + indices.size)
+            result.add(base)
+            for ((_, indexNode) in indices) {
+                result.add(indexNode)
+            }
+            return result
+        }
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>): LatexNode {
             val newBase = newChildren[0]

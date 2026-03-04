@@ -39,6 +39,9 @@ import com.hrm.latex.parser.model.LatexNode
 class AccessibilityVisitor : BaseLatexVisitor<String>() {
 
     companion object {
+        /** 预编译的空白折叠正则 — 避免每次 collapseSpaces() 调用时重新编译 */
+        private val WHITESPACE_REGEX = Regex("\\s+")
+
         /**
          * 将 LaTeX AST 转换为可访问性文本描述
          */
@@ -404,6 +407,6 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
     }
 
     private fun String.collapseSpaces(): String {
-        return replace(Regex("\\s+"), " ").trim()
+        return replace(WHITESPACE_REGEX, " ").trim()
     }
 }

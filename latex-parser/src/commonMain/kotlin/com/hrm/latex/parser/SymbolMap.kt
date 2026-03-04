@@ -266,15 +266,8 @@ object SymbolMap {
         "hookrightarrow" to "↪",
         "hookleftarrow" to "↩",
 
-        // 半箭头（鱼叉箭头）
-        "leftharpoonup" to "↼",
-        "leftharpoondown" to "↽",
-        "rightharpoonup" to "⇀",
-        "rightharpoondown" to "⇁",
-
         // 缺失的关系符号
         "mid" to "∣",
-        "owns" to "∋",
 
         // AMS 否定关系符号
         "nless" to "≮",
@@ -321,8 +314,6 @@ object SymbolMap {
         "Vdash" to "⊩",
         "Vvdash" to "⊪",
         "models" to "⊧",
-        "therefore" to "∴",
-        "because" to "∵",
 
         // AMS 额外常用符号
         "checkmark" to "✓",
@@ -392,7 +383,6 @@ object SymbolMap {
         "measuredangle" to "∡",
         "sphericalangle" to "∢",
         "backprime" to "‵",
-        "nexists" to "∄",
         "Finv" to "Ⅎ",
         "Game" to "⅁",
         "diagup" to "╱",

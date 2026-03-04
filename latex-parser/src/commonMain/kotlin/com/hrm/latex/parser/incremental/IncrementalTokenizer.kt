@@ -60,7 +60,12 @@ class IncrementalTokenizer {
         val tokenizer = LatexTokenizer(text)
         val allTokens = tokenizer.tokenize()
         // 移除末尾的 EOF token，我们自行管理
-        cachedTokens = allTokens.filterNot { it is LatexToken.EOF }.toMutableList()
+        // 使用 in-place 过滤替代 filterNot + toMutableList 双拷贝
+        cachedTokens = ArrayList<LatexToken>(allTokens.size).also { list ->
+            for (token in allTokens) {
+                if (token !is LatexToken.EOF) list.add(token)
+            }
+        }
         return allTokens
     }
 
@@ -94,11 +99,7 @@ class IncrementalTokenizer {
         val dirtyEnd = findLastAffectedToken(edit.oldEndOffset)
 
         // === 第 2 步：保留脏区域前的 token（偏移不变） ===
-        val prefixTokens = if (dirtyStart > 0) {
-            oldTokens.subList(0, dirtyStart).toList()
-        } else {
-            emptyList()
-        }
+        // 不再拷贝 prefix，直接在 oldTokens 上按索引操作
 
         // === 第 3 步：确定重新分词的文本范围 ===
         // 重新分词的起点 = 第一个脏 token 的起始位置（在新文本中）
@@ -110,8 +111,9 @@ class IncrementalTokenizer {
 
         // 后缀 token（编辑区域之后的旧 token，待偏移平移后复用）
         val suffixStartIdx = dirtyEnd + 1
-        val suffixTokens = if (suffixStartIdx < oldTokens.size) {
-            oldTokens.subList(suffixStartIdx, oldTokens.size).toList()
+        // 使用 subList view 而非 toList() 拷贝（只读用途）
+        val suffixTokens: List<LatexToken> = if (suffixStartIdx < oldTokens.size) {
+            oldTokens.subList(suffixStartIdx, oldTokens.size)
         } else {
             emptyList()
         }
@@ -138,8 +140,11 @@ class IncrementalTokenizer {
             suffixTokens, newMiddleTokens, delta, suffixExpectedStart
         )
 
-        cachedTokens = mutableListOf<LatexToken>().apply {
-            addAll(prefixTokens)
+        // 就地构建：prefix(0..dirtyStart) + middle + adjustedSuffix
+        cachedTokens = ArrayList<LatexToken>(dirtyStart + newMiddleTokens.size + adjustedSuffixTokens.size).apply {
+            for (i in 0 until dirtyStart) {
+                add(oldTokens[i])
+            }
             addAll(newMiddleTokens)
             addAll(adjustedSuffixTokens)
         }
@@ -283,59 +288,30 @@ class IncrementalTokenizer {
     }
 
     /**
-     * 检查两个 token 是否"匹配"（类型相同且位置相同）
-     * 用于收敛检测
+     * 检查两个 token 是否"匹配"（类型相同、内容相同且位置相同）
+     * 用于收敛检测。
+     * 因为 LatexToken 子类全部是 data class，== 已正确实现语义相等。
      */
-    private fun tokensMatch(a: LatexToken, b: LatexToken): Boolean {
-        if (a.range != b.range) return false
-        return when {
-            a is LatexToken.Text && b is LatexToken.Text -> a.content == b.content
-            a is LatexToken.Command && b is LatexToken.Command -> a.name == b.name
-            a is LatexToken.BeginEnvironment && b is LatexToken.BeginEnvironment -> a.name == b.name
-            a is LatexToken.EndEnvironment && b is LatexToken.EndEnvironment -> a.name == b.name
-            a is LatexToken.Whitespace && b is LatexToken.Whitespace -> a.content == b.content
-            a is LatexToken.MathShift && b is LatexToken.MathShift -> a.count == b.count
-            a is LatexToken.LeftBrace && b is LatexToken.LeftBrace -> true
-            a is LatexToken.RightBrace && b is LatexToken.RightBrace -> true
-            a is LatexToken.LeftBracket && b is LatexToken.LeftBracket -> true
-            a is LatexToken.RightBracket && b is LatexToken.RightBracket -> true
-            a is LatexToken.Superscript && b is LatexToken.Superscript -> true
-            a is LatexToken.Subscript && b is LatexToken.Subscript -> true
-            a is LatexToken.Ampersand && b is LatexToken.Ampersand -> true
-            a is LatexToken.NewLine && b is LatexToken.NewLine -> true
-            else -> false
-        }
-    }
+    private fun tokensMatch(a: LatexToken, b: LatexToken): Boolean = a == b
 
     /**
-     * 将 token 的 SourceRange 平移指定偏移量
+     * 将 token 的 SourceRange 平移指定偏移量。
+     * 使用 LatexToken.withRange() 多态方法，消除 when 分派。
      */
     private fun shiftToken(token: LatexToken, offset: Int): LatexToken {
         if (offset == 0) return token
         val newRange = SourceRange(token.range.start + offset, token.range.end + offset)
-        return when (token) {
-            is LatexToken.Text -> token.copy(range = newRange)
-            is LatexToken.Command -> token.copy(range = newRange)
-            is LatexToken.BeginEnvironment -> token.copy(range = newRange)
-            is LatexToken.EndEnvironment -> token.copy(range = newRange)
-            is LatexToken.LeftBrace -> token.copy(range = newRange)
-            is LatexToken.RightBrace -> token.copy(range = newRange)
-            is LatexToken.LeftBracket -> token.copy(range = newRange)
-            is LatexToken.RightBracket -> token.copy(range = newRange)
-            is LatexToken.Superscript -> token.copy(range = newRange)
-            is LatexToken.Subscript -> token.copy(range = newRange)
-            is LatexToken.Ampersand -> token.copy(range = newRange)
-            is LatexToken.NewLine -> token.copy(range = newRange)
-            is LatexToken.Whitespace -> token.copy(range = newRange)
-            is LatexToken.MathShift -> token.copy(range = newRange)
-            is LatexToken.EOF -> token.copy(range = newRange)
-        }
+        return token.withRange(newRange)
     }
 
     /**
-     * 构建最终结果（含 EOF）
+     * 构建最终结果（含 EOF）。
+     * 使用 ArrayList + add 替代 cachedTokens + EOF 的 list 拼接拷贝。
      */
     private fun buildResult(textLength: Int): List<LatexToken> {
-        return cachedTokens + LatexToken.EOF(SourceRange(textLength, textLength))
+        val result = ArrayList<LatexToken>(cachedTokens.size + 1)
+        result.addAll(cachedTokens)
+        result.add(LatexToken.EOF(SourceRange(textLength, textLength)))
+        return result
     }
 }
