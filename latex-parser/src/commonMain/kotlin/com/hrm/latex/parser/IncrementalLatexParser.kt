@@ -23,49 +23,66 @@
 
 package com.hrm.latex.parser
 
-import com.hrm.latex.base.LatexConstants
 import com.hrm.latex.base.log.HLog
+import com.hrm.latex.parser.incremental.IncrementalTokenizer
+import com.hrm.latex.parser.incremental.TextEdit
+import com.hrm.latex.parser.incremental.TreeReuser
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.SourceRange
 
 /**
- * 增量 LaTeX 解析器
- * 支持逐步输入 LaTeX 内容并实时解析渲染
+ * 增量 LaTeX 解析器（tree-sitter 风格）
  *
- * 使用场景：
- * - 实时输入/打字效果
+ * 核心设计参考 tree-sitter 的增量解析三层策略：
+ *
+ * ### 第 1 层：增量分词（Token 复用）
+ * 编辑发生时，通过 [IncrementalTokenizer] 只重新分词编辑影响的区域，
+ * 前后未变更的 token 直接复用（偏移平移），避免全文重新分词。
+ *
+ * ### 第 2 层：AST 子树复用
+ * 通过 [TreeReuser] 将旧 AST 的顶层子节点分为 prefix/dirty/suffix 三段：
+ * - prefix：编辑区域前，直接保留
+ * - dirty：与编辑区域重叠，使用新 token 重新解析
+ * - suffix：编辑区域后，偏移平移后复用
+ *
+ * ### 第 3 层：容错解析
+ * 对于不完整输入（如流式打字场景），使用智能截断而非暴力回退：
+ * 在完整解析失败时，按结构边界（`{}`、`$`、`\begin..\end`）截断到最近的安全点。
+ *
+ * ### 使用场景
+ * - 实时输入 / 打字效果
  * - 流式传输的 LaTeX 内容
- * - 实时预览
+ * - 实时预览编辑器
  *
- * 示例：
+ * ### 示例
  * ```kotlin
  * val parser = IncrementalLatexParser()
  * parser.append("\\int_{-\\")
- * val result1 = parser.getCurrentDocument() // 解析已有内容
+ * val result1 = parser.getCurrentDocument()
  * parser.append("infty}^{\\infty}")
- * val result2 = parser.getCurrentDocument() // 更新解析结果
+ * val result2 = parser.getCurrentDocument()
  * ```
+ *
+ * ### 性能对比（vs 旧方案）
+ * | 操作 | 旧方案 | 新方案 |
+ * |------|--------|--------|
+ * | 追加 1 字符 | 全文 tokenize + 全文 parse | 增量 tokenize + 局部 parse + 子树复用 |
+ * | 中间插入 | 全文 tokenize + 全文 parse | 增量 tokenize + 局部 parse + 前缀/后缀复用 |
+ * | 解析失败 | 逐字符回退（最坏 O(n²)） | 结构边界截断（O(n)） |
  */
 class IncrementalLatexParser {
 
-    /**
-     * 累积的输入内容
-     */
-    private val buffer = StringBuilder()
+    /** 增量分词器（维护 token 缓存） */
+    private val tokenizer = IncrementalTokenizer()
 
-    /**
-     * 最后一次成功解析的位置
-     */
-    private var lastSuccessfulPosition = 0
+    /** 基础解析器（用于解析 token 列表） */
+    private val baseParser = LatexParser()
 
-    /**
-     * 缓存的解析结果
-     */
+    /** 缓存的解析结果 */
     private var cachedDocument: LatexNode.Document? = null
 
-    /**
-     * 基础解析器实例
-     */
-    private val baseParser = LatexParser()
+    /** 最后一次成功解析的位置 */
+    private var lastSuccessfulPosition = 0
 
     companion object {
         private const val TAG = "IncrementalLatexParser"
@@ -76,18 +93,338 @@ class IncrementalLatexParser {
      * @param text 新增的文本内容
      */
     fun append(text: String) {
-        buffer.append(text)
-        HLog.d(TAG, "追加内容: $text, 当前缓冲区: $buffer")
+        val oldText = tokenizer.getCurrentText()
+        val newText = oldText + text
+        HLog.d(TAG, "追加内容: '$text', 新长度: ${newText.length}")
+        applyEdit(oldText, newText)
+    }
 
-        // 触发重新解析
-        reparseFromLastPosition()
+    /**
+     * 完全替换输入内容
+     * @param newText 新的完整文本
+     */
+    fun setInput(newText: String) {
+        val oldText = tokenizer.getCurrentText()
+        if (oldText == newText) return
+        HLog.d(TAG, "替换内容, 新长度: ${newText.length}")
+        applyEdit(oldText, newText)
+    }
+
+    /**
+     * 应用编辑操作（核心增量解析入口）
+     *
+     * @param oldText 编辑前的完整文本
+     * @param newText 编辑后的完整文本
+     */
+    private fun applyEdit(oldText: String, newText: String) {
+        if (newText.isEmpty()) {
+            clear()
+            return
+        }
+
+        // 计算编辑差异
+        val edit = TextEdit.diff(oldText, newText)
+        HLog.d(
+            TAG, "编辑差异: start=${edit.startOffset}, " +
+                    "oldEnd=${edit.oldEndOffset}, newEnd=${edit.newEndOffset}, delta=${edit.delta}"
+        )
+
+        // 第 1 层：增量分词（总是执行，即使后续走全量解析也需要更新 token 缓存）
+        val isFirstParse = oldText.isEmpty()
+        if (isFirstParse) {
+            tokenizer.tokenize(newText)
+        } else {
+            tokenizer.update(newText, edit)
+        }
+
+        // 第 2 层：决策 — 增量解析 vs 全量解析
+        val oldDoc = cachedDocument
+        val canIncrementalParse = !isFirstParse
+                && oldDoc != null
+                && oldDoc.children.isNotEmpty()
+                && lastSuccessfulPosition == oldText.length  // 上次完整解析成功
+                && edit.startOffset > 0                       // 编辑不在最开头
+                && !edit.isInsertion                          // 非纯追加（中间编辑场景）
+
+        cachedDocument = if (canIncrementalParse) {
+            incrementalParse(newText, oldDoc!!, edit)
+        } else {
+            fullParse(newText)
+        }
+    }
+
+    /**
+     * 增量解析：复用旧 AST 子树 + 只重新解析脏区域
+     *
+     * 适用场景：上次完整解析成功，且本次编辑发生在文本中间（非纯追加）。
+     * 通过 [TreeReuser] 将旧 AST 的顶层子节点分为三段（prefix/dirty/suffix），
+     * 只重新解析 dirty 区域，前缀和后缀直接复用。
+     */
+    private fun incrementalParse(
+        newText: String,
+        oldDoc: LatexNode.Document,
+        edit: TextEdit
+    ): LatexNode.Document {
+
+        val oldChildren = oldDoc.children
+
+        // 对旧 AST 进行三段划分
+        val partition = TreeReuser.partition(oldChildren, edit)
+        HLog.d(
+            TAG, "子树划分: prefix=${partition.prefix.size}, " +
+                    "dirty=${partition.dirty.size}, suffix=${partition.suffix.size}"
+        )
+
+        // 确定脏区域在新文本中的范围
+        val dirtyStart = if (partition.prefix.isNotEmpty()) {
+            partition.prefix.last().sourceRange?.end ?: 0
+        } else {
+            0
+        }
+
+        val dirtyEnd = if (partition.suffix.isNotEmpty()) {
+            val firstSuffixOldStart = partition.suffix.first().sourceRange?.start ?: newText.length
+            firstSuffixOldStart + edit.delta
+        } else {
+            newText.length
+        }
+
+        // 重新解析脏区域
+        val dirtyText = if (dirtyStart < dirtyEnd && dirtyEnd <= newText.length) {
+            newText.substring(dirtyStart, dirtyEnd)
+        } else {
+            ""
+        }
+
+        val newDirtyChildren = if (dirtyText.isNotEmpty()) {
+            parseSafe(dirtyText, dirtyStart)
+        } else {
+            emptyList()
+        }
+
+        // 后缀节点偏移平移
+        val shiftedSuffix = TreeReuser.shiftNodes(partition.suffix, edit.delta)
+
+        // 拼接三段
+        val newChildren = mutableListOf<LatexNode>().apply {
+            addAll(partition.prefix)
+            addAll(newDirtyChildren)
+            addAll(shiftedSuffix)
+        }
+
+        lastSuccessfulPosition = newText.length
+        return LatexNode.Document(
+            newChildren,
+            sourceRange = SourceRange(0, newText.length)
+        )
+    }
+
+    /**
+     * 安全解析子区域，解析失败时进行容错截断
+     *
+     * @param text 待解析的文本片段
+     * @param globalOffset 该片段在完整文本中的起始偏移（用于 sourceRange 调整）
+     * @return 解析出的节点列表
+     */
+    private fun parseSafe(text: String, globalOffset: Int): List<LatexNode> {
+        // 先尝试完整解析
+        val doc = tryParse(text)
+        if (doc != null) {
+            return adjustSourceRanges(doc.children, globalOffset)
+        }
+
+        // 完整解析失败 → 结构边界截断
+        val truncated = truncateToSafeBoundary(text)
+        if (truncated.isNotEmpty() && truncated != text) {
+            val truncDoc = tryParse(truncated)
+            if (truncDoc != null) {
+                return adjustSourceRanges(truncDoc.children, globalOffset)
+            }
+        }
+
+        // 截断后仍失败 → 返回原始文本节点
+        HLog.w(TAG, "脏区域解析完全失败, 返回原始文本, 长度=${text.length}")
+        return if (text.isNotBlank()) {
+            listOf(
+                LatexNode.Text(
+                    text,
+                    sourceRange = SourceRange(globalOffset, globalOffset + text.length)
+                )
+            )
+        } else {
+            emptyList()
+        }
+    }
+
+    /**
+     * 尝试解析，失败返回 null（不抛异常）
+     */
+    private fun tryParse(text: String): LatexNode.Document? {
+        return try {
+            baseParser.parse(text)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 将子区域解析结果的 sourceRange 调整到全局坐标
+     *
+     * 子区域解析时 sourceRange 基于子串的局部坐标（从 0 开始），
+     * 需要加上 globalOffset 转换为完整文本中的全局坐标。
+     */
+    private fun adjustSourceRanges(nodes: List<LatexNode>, globalOffset: Int): List<LatexNode> {
+        if (globalOffset == 0) return nodes
+        return nodes.map { node -> shiftNodeRange(node, globalOffset) }
+    }
+
+    /**
+     * 递归平移节点及其子节点的 sourceRange
+     */
+    private fun shiftNodeRange(node: LatexNode, offset: Int): LatexNode {
+        val oldRange = node.sourceRange
+        val shiftedNode = if (oldRange != null) {
+            node.withSourceRange(SourceRange(oldRange.start + offset, oldRange.end + offset))
+        } else {
+            node
+        }
+
+        val children = node.children()
+        if (children.isEmpty()) return shiftedNode
+
+        val shiftedChildren = children.map { child -> shiftNodeRange(child, offset) }
+        return shiftedNode.withChildren(shiftedChildren)
+    }
+
+    /**
+     * 全量解析（首次或无法增量时使用）
+     */
+    private fun fullParse(text: String): LatexNode.Document {
+        // 先尝试完整解析
+        val doc = tryParse(text)
+        if (doc != null) {
+            lastSuccessfulPosition = text.length
+            HLog.d(TAG, "全量解析成功")
+            return doc
+        }
+
+        // 完整解析失败 → 结构边界截断
+        HLog.d(TAG, "全量解析失败, 尝试结构边界截断")
+        return truncatedParse(text)
+    }
+
+    /**
+     * 容错截断解析
+     *
+     * 与旧方案的逐字符回退不同，新方案按结构边界截断：
+     * 找到最后一个"安全点"（结构闭合的位置），只解析到安全点。
+     *
+     * 安全点的定义：
+     * 1. 最后一个闭合的 `}` 后
+     * 2. 最后一个闭合的 `$`/`$$` 后
+     * 3. 最后一个 `\end{...}` 后
+     * 4. 最后一个完整命令（无未闭合 `{`）后
+     */
+    private fun truncatedParse(text: String): LatexNode.Document {
+        val truncated = truncateToSafeBoundary(text)
+        if (truncated.isNotEmpty()) {
+            val doc = tryParse(truncated)
+            if (doc != null) {
+                lastSuccessfulPosition = truncated.length
+                HLog.d(TAG, "截断解析成功, 截断位置: ${truncated.length}/${text.length}")
+                return doc
+            }
+        }
+
+        // 逐步缩短到半长度尝试
+        var length = text.length * 3 / 4
+        while (length > 0) {
+            val sub = truncateToSafeBoundary(text.substring(0, length))
+            if (sub.isNotEmpty()) {
+                val doc = tryParse(sub)
+                if (doc != null) {
+                    lastSuccessfulPosition = sub.length
+                    HLog.d(TAG, "渐进截断解析成功, 截断位置: ${sub.length}/${text.length}")
+                    return doc
+                }
+            }
+            length = length * 3 / 4
+        }
+
+        HLog.w(TAG, "所有解析策略失败, 返回空文档")
+        lastSuccessfulPosition = 0
+        return LatexNode.Document(emptyList())
+    }
+
+    /**
+     * 截断文本到最近的结构安全边界
+     *
+     * 扫描文本，跟踪花括号深度、数学模式状态、环境嵌套，
+     * 返回最后一个所有结构都已闭合的位置。
+     */
+    private fun truncateToSafeBoundary(text: String): String {
+        if (text.isEmpty()) return ""
+
+        var braceDepth = 0
+        var mathMode = false      // 在 $ 内
+        var displayMath = false   // 在 $$ 内
+        var lastSafePos = 0
+        var i = 0
+
+        while (i < text.length) {
+            val ch = text[i]
+            when {
+                ch == '\\' -> {
+                    // 跳过转义字符
+                    i += 2
+                    continue
+                }
+                ch == '{' -> braceDepth++
+                ch == '}' -> {
+                    braceDepth = maxOf(0, braceDepth - 1)
+                    if (braceDepth == 0 && !mathMode && !displayMath) {
+                        lastSafePos = i + 1
+                    }
+                }
+                ch == '$' -> {
+                    if (i + 1 < text.length && text[i + 1] == '$') {
+                        displayMath = !displayMath
+                        i += 2
+                        if (!displayMath && braceDepth == 0) {
+                            lastSafePos = i
+                        }
+                        continue
+                    } else {
+                        mathMode = !mathMode
+                        if (!mathMode && braceDepth == 0 && !displayMath) {
+                            lastSafePos = i + 1
+                        }
+                    }
+                }
+            }
+            // 在所有结构闭合时更新安全位置
+            if (braceDepth == 0 && !mathMode && !displayMath) {
+                // 空格/换行是天然的安全点
+                if (ch == ' ' || ch == '\n' || ch == '\t') {
+                    lastSafePos = i + 1
+                }
+            }
+            i++
+        }
+
+        // 如果整个文本结构都闭合了，返回完整文本
+        if (braceDepth == 0 && !mathMode && !displayMath) {
+            return text
+        }
+
+        return if (lastSafePos > 0) text.substring(0, lastSafePos) else ""
     }
 
     /**
      * 清空所有内容和状态
      */
     fun clear() {
-        buffer.clear()
+        tokenizer.tokenize("") // 清空 tokenizer 缓存
         lastSuccessfulPosition = 0
         cachedDocument = null
         HLog.d(TAG, "清空解析器状态")
@@ -99,7 +436,10 @@ class IncrementalLatexParser {
      */
     fun getCurrentDocument(): LatexNode.Document {
         if (cachedDocument == null) {
-            reparseFromLastPosition()
+            val text = tokenizer.getCurrentText()
+            if (text.isNotEmpty()) {
+                cachedDocument = fullParse(text)
+            }
         }
         return cachedDocument ?: LatexNode.Document(emptyList())
     }
@@ -107,105 +447,13 @@ class IncrementalLatexParser {
     /**
      * 获取当前缓冲区的完整内容
      */
-    fun getCurrentInput(): String = buffer.toString()
-
-    /**
-     * 从上次成功位置重新解析
-     */
-    private fun reparseFromLastPosition() {
-        val input = buffer.toString()
-        if (input.isEmpty()) {
-            cachedDocument = LatexNode.Document(emptyList())
-            return
-        }
-
-        // 快速路径：如果输入很短，直接尝试解析
-        if (input.length <= LatexConstants.INCREMENTAL_PARSE_FAST_PATH_MAX_LENGTH) {
-            try {
-                cachedDocument = baseParser.parse(input)
-                lastSuccessfulPosition = input.length
-                HLog.d(TAG, "快速路径解析成功")
-                return
-            } catch (e: Exception) {
-                HLog.w(TAG, "快速路径解析失败: ${e.message}")
-                cachedDocument = LatexNode.Document(emptyList())
-                return
-            }
-        }
-
-        try {
-            // 尝试完整解析
-            cachedDocument = baseParser.parse(input)
-            lastSuccessfulPosition = input.length
-            HLog.d(TAG, "完整解析成功")
-        } catch (e: Exception) {
-            // 完整解析失败，尝试部分解析
-            HLog.d(TAG, "完整解析失败，尝试部分解析: ${e.message}")
-            cachedDocument = parsePartial(input)
-        }
-    }
-
-    /**
-     * 部分解析：处理不完整的 LaTeX 内容
-     *
-     * 策略：两阶段回退算法
-     * 1. 精细回退阶段（最近 N 字符）：逐字符回退，适合处理末尾的增量输入错误
-     * 2. 快速回退阶段（之前所有字符）：步进回退，牺牲精度换性能
-     *
-     * 时间复杂度：O(n) 最坏情况，O(1) 平均情况（增量输入通常错误在末尾）
-     *
-     * 注意：解析有效性不是单调的，不能使用二分查找
-     * 示例：`\int_{` 解析失败，但 `\int` 解析成功
-     *
-     * @param input 待解析的不完整 LaTeX 字符串
-     * @return 可解析部分的文档节点
-     */
-    private fun parsePartial(input: String): LatexNode.Document {
-        HLog.d(TAG, "开始部分解析，输入长度: ${input.length}")
-
-        var length = input.length
-        val firstStageLimit = maxOf(
-            1,
-            input.length - LatexConstants.INCREMENTAL_PARSE_FINE_BACKTRACK_RANGE
-        )
-
-        // 第一阶段：精细回退（逐字符）
-        while (length >= firstStageLimit) {
-            try {
-                val testInput = input.substring(0, length)
-                val doc = baseParser.parse(testInput)
-                lastSuccessfulPosition = length
-                HLog.d(TAG, "部分解析成功，解析到位置: $length")
-                return doc
-            } catch (e: Exception) {
-                // 预期的解析错误，继续回退
-                length--
-            }
-        }
-
-        // 第二阶段：快速回退（步进）
-        while (length > 0) {
-            try {
-                val testInput = input.substring(0, length)
-                val doc = baseParser.parse(testInput)
-                lastSuccessfulPosition = length
-                HLog.d(TAG, "快速回退解析成功，解析到位置: $length")
-                return doc
-            } catch (e: Exception) {
-                length -= LatexConstants.INCREMENTAL_PARSE_FAST_BACKTRACK_STEP
-                if (length < 0) length = 0
-            }
-        }
-
-        HLog.w(TAG, "部分解析完全失败，返回空文档")
-        return LatexNode.Document(emptyList())
-    }
+    fun getCurrentInput(): String = tokenizer.getCurrentText()
 
     /**
      * 获取解析进度（已成功解析的字符数 / 总字符数）
      */
     fun getProgress(): Float {
-        val total = buffer.length
+        val total = tokenizer.getCurrentText().length
         return if (total > 0) {
             lastSuccessfulPosition.toFloat() / total
         } else {
@@ -217,7 +465,7 @@ class IncrementalLatexParser {
      * 获取未解析的部分（可用于调试或显示）
      */
     fun getUnparsedContent(): String {
-        val total = buffer.toString()
+        val total = tokenizer.getCurrentText()
         return if (lastSuccessfulPosition < total.length) {
             total.substring(lastSuccessfulPosition)
         } else {

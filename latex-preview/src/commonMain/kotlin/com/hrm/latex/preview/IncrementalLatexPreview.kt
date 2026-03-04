@@ -95,10 +95,10 @@ fun Preview_Demo_RealTimeInput() {
 
                 val fullFormula = "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}"
                 userInput = ""
-                delay(500)
+                delay(300)
 
                 fullFormula.forEach { char ->
-                    delay(150)
+                    delay(20)
                     userInput += char
                 }
             }
@@ -141,7 +141,7 @@ fun Preview_Demo_ProgressTracking() {
             LaunchedEffect(Unit) {
                 currentText = ""
                 formula.forEach { char ->
-                    delay(120)
+                    delay(20)
                     currentText += char
                 }
             }
@@ -303,10 +303,10 @@ fun Preview_Demo_ComparisonWithStandard() {
             // 模拟逐步输入
             LaunchedEffect(Unit) {
                 incrementalText = ""
-                delay(1000)
+                delay(30)
 
                 formula.forEach { char ->
-                    delay(150) // 增加延迟
+                    delay(20) // 增加延迟
                     incrementalText += char
                 }
             }
