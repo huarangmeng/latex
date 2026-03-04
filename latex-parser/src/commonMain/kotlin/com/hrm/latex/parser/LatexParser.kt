@@ -213,13 +213,18 @@ class LatexParser : LatexParserContext {
     }
 
     /**
-     * 解析命令参数 {...}
+     * 解析命令参数 {...} 或单个 token
+     * 标准 LaTeX 行为：跳过参数前的空白
      */
     override fun parseArgument(): LatexNode? {
+        // 跳过空白：\hat f 与 \hat{f} 等价
+        while (tokenStream.peek() is LatexToken.Whitespace) {
+            tokenStream.advance()
+        }
         return when (tokenStream.peek()) {
             is LatexToken.LeftBrace -> parseGroup()
             else -> {
-                parseExpression()
+                parseFactor()
             }
         }
     }
@@ -258,11 +263,13 @@ class LatexParser : LatexParserContext {
 
     /**
      * 解析上下标内容
+     * 有花括号 → 解析整个 group
+     * 无花括号 → 只取单个因子（标准 LaTeX 行为：a_k^2 中 _ 只取 k，^ 只取 2）
      */
     private fun parseScriptContent(): LatexNode {
         return when (tokenStream.peek()) {
             is LatexToken.LeftBrace -> parseGroup()
-            else -> parseExpression() ?: LatexNode.Text("")
+            else -> parseFactor() ?: LatexNode.Text("")
         }
     }
 

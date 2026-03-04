@@ -67,8 +67,8 @@ val basicLatexPreviewGroups = listOf(
         title = "1. 基础级别",
         description = "简单文本、上下标、分数",
         items = listOf(
-            PreviewItem("1", "简单文本", "Hello LaTeX"),
-            PreviewItem("2", "简单上标", "x^2"),
+            PreviewItem("1", "简单文本", "\\left( \\sum_{k=1}^n a_k b_k \\right)^2 \\leq \\left( \\sum_{k=1}^n a_k^2 \\right) \\left( \\sum_{k=1}^n b_k^2 \\right)\n"),
+            PreviewItem("2", "简单上标", "f(x) = \\int_{-\\infty}^\\infty \\hat f(\\xi)\\,e^{2 \\pi i \\xi x} \\,d\\xi"),
             PreviewItem("3", "简单下标", "a_i"),
             PreviewItem("4", "上标+下标", "x_i^2"),
             PreviewItem("5", "简单分数", "\\frac{1}{2}"),

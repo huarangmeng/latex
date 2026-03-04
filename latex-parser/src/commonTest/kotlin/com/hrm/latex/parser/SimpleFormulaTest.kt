@@ -169,8 +169,25 @@ class SimpleFormulaTest {
     
     @Test
     fun testSuperAndSubscript() {
-        val doc = parser.parse("x_i^2")
-        assertTrue(doc.children.isNotEmpty())
+        // a_k^2 should parse as Superscript(base=Subscript(base=a, index=k), exponent=2)
+        // NOT as Subscript(base=a, index=Superscript(base=k, exponent=2))
+        val doc = parser.parse("a_k^2")
+        assertEquals(1, doc.children.size, "a_k^2 should produce a single top-level node")
+        val top = doc.children[0]
+        assertTrue(top is LatexNode.Superscript, "Top node should be Superscript, got ${top::class.simpleName}")
+        val sup = top as LatexNode.Superscript
+        // exponent should be "2"
+        assertTrue(sup.exponent is LatexNode.Text)
+        assertEquals("2", (sup.exponent as LatexNode.Text).content)
+        // base should be Subscript
+        assertTrue(sup.base is LatexNode.Subscript, "Base of Superscript should be Subscript, got ${sup.base::class.simpleName}")
+        val sub = sup.base as LatexNode.Subscript
+        // subscript base should be "a"
+        assertTrue(sub.base is LatexNode.Text)
+        assertEquals("a", (sub.base as LatexNode.Text).content)
+        // subscript index should be "k"
+        assertTrue(sub.index is LatexNode.Text)
+        assertEquals("k", (sub.index as LatexNode.Text).content)
     }
     
     @Test

@@ -116,4 +116,46 @@ class AccentExtensionTest {
             assertTrue(desc.contains(expected), "Accessibility for $input should contain '$expected', got: $desc")
         }
     }
+
+    @Test
+    fun should_parse_hat_without_braces() {
+        // \hat f (with space, no braces) should parse same as \hat{f}
+        val result = parser.parse("\\hat f")
+        assertIs<LatexNode.Document>(result)
+        val accent = result.children[0]
+        assertIs<LatexNode.Accent>(accent)
+        assertEquals(LatexNode.Accent.AccentType.HAT, accent.accentType)
+        // content should be Text("f"), not a Space
+        val content = accent.content
+        assertIs<LatexNode.Text>(content)
+        assertEquals("f", content.content)
+    }
+
+    @Test
+    fun should_parse_vec_without_braces() {
+        // \vec v (with space, no braces) should parse same as \vec{v}
+        val result = parser.parse("\\vec v")
+        assertIs<LatexNode.Document>(result)
+        val accent = result.children[0]
+        assertIs<LatexNode.Accent>(accent)
+        assertEquals(LatexNode.Accent.AccentType.VEC, accent.accentType)
+        val content = accent.content
+        assertIs<LatexNode.Text>(content)
+        assertEquals("v", content.content)
+    }
+
+    @Test
+    fun should_parse_hat_f_in_context() {
+        // \hat f(\xi) — hat should only capture f, not f(\xi)
+        val result = parser.parse("\\hat f(x)")
+        assertIs<LatexNode.Document>(result)
+        val accent = result.children[0]
+        assertIs<LatexNode.Accent>(accent)
+        assertEquals(LatexNode.Accent.AccentType.HAT, accent.accentType)
+        val content = accent.content
+        assertIs<LatexNode.Text>(content)
+        assertEquals("f", content.content)
+        // The rest "(x)" should be separate nodes
+        assertTrue(result.children.size > 1, "Remaining tokens should be separate nodes")
+    }
 }
