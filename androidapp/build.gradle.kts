@@ -47,7 +47,7 @@ dependencies {
 //    implementation(libs.latex.base)
     implementation(projects.composeApp)
     implementation(libs.androidx.activity.compose)
-    debugImplementation(libs.androidx.compose.uiTooling)
+    debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.testExt.junit)
     androidTestImplementation(libs.androidx.espresso.core)

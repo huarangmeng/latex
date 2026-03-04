@@ -25,6 +25,7 @@ package com.hrm.latex.parser
 import com.hrm.latex.parser.model.LatexNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -311,5 +312,92 @@ class IncrementalLatexParserTest {
 
         val doc = parser.getCurrentDocument()
         assertTrue(doc.children.any { it is LatexNode.Fraction })
+    }
+
+    // ========== 核心场景：不完整输入保留旧结果（无异常闪烁） ==========
+
+    @Test
+    fun append_incompleteInput_retainsLastSuccessfulResult() {
+        val parser = IncrementalLatexParser()
+
+        // 第一步：完整输入 x+y → 解析成功
+        parser.append("x+y")
+        val doc1 = parser.getCurrentDocument()
+        assertTrue(doc1.children.isNotEmpty(), "Complete input should parse")
+        val childCount1 = doc1.children.size
+
+        // 第二步：追加不完整内容 +\frac{ → 解析失败
+        // 期望：保留上次成功的 "x+y" 解析结果，不展示异常
+        parser.append("+\\frac{")
+        val doc2 = parser.getCurrentDocument()
+        assertEquals(
+            childCount1, doc2.children.size,
+            "Incomplete input should retain last successful result, not show error"
+        )
+    }
+
+    @Test
+    fun append_incompleteToComplete_updatesResult() {
+        val parser = IncrementalLatexParser()
+
+        // 完整输入 → 成功
+        parser.append("x+y")
+        val doc1 = parser.getCurrentDocument()
+        assertTrue(doc1.children.isNotEmpty())
+
+        // 追加不完整 → 保留旧结果
+        parser.append("+\\frac{a")
+        val docMid = parser.getCurrentDocument()
+        assertNotNull(docMid)
+
+        // 补全 → 更新为新结果
+        parser.append("}{b}")
+        val doc2 = parser.getCurrentDocument()
+        assertTrue(doc2.children.isNotEmpty())
+        // 完整输入后应包含 Fraction
+        val hasFraction = doc2.children.any { it is LatexNode.Fraction }
+        assertTrue(hasFraction, "After completing input, should contain Fraction")
+    }
+
+    @Test
+    fun append_streamingFraction_noIntermediateError() {
+        val parser = IncrementalLatexParser()
+        val formula = "\\frac{a}{b}"
+
+        // 逐字符追加，记录每一步的文档
+        var lastSuccessfulChildCount = 0
+
+        formula.forEach { ch ->
+            parser.append(ch.toString())
+            val doc = parser.getCurrentDocument()
+
+            // 核心断言：在整个输入过程中，不应出现包含原始 LaTeX 源码的 Text 节点
+            // （如 "\frac{a" 这样的文本）
+            for (node in doc.children) {
+                if (node is LatexNode.Text) {
+                    val text = node.content
+                    assertFalse(
+                        text.contains("\\frac"),
+                        "Should never render raw LaTeX command as text: '$text'"
+                    )
+                }
+            }
+
+            // 节点数只增不减（或保持不变），不应因中间状态而清空
+            if (doc.children.isNotEmpty()) {
+                assertTrue(
+                    doc.children.size >= lastSuccessfulChildCount || lastSuccessfulChildCount == 0,
+                    "Document should not shrink during streaming"
+                )
+                lastSuccessfulChildCount = doc.children.size
+            }
+        }
+
+        // 最终应包含 Fraction
+        val finalDoc = parser.getCurrentDocument()
+        assertTrue(
+            finalDoc.children.any { it is LatexNode.Fraction },
+            "Final document should contain Fraction"
+        )
     }
 }

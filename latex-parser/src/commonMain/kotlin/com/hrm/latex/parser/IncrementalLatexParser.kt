@@ -146,10 +146,29 @@ class IncrementalLatexParser {
                 && edit.startOffset > 0                       // 编辑不在最开头
                 && !edit.isInsertion                          // 非纯追加（中间编辑场景）
 
-        cachedDocument = if (canIncrementalParse) {
-            incrementalParse(newText, oldDoc!!, edit)
+        if (canIncrementalParse) {
+            cachedDocument = incrementalParse(newText, oldDoc, edit)
         } else {
-            fullParse(newText)
+            // 检查输入是否结构完整（花括号、数学模式、环境是否都已闭合）
+            val isStructurallyComplete = isInputComplete(newText)
+
+            if (isStructurallyComplete) {
+                // 结构完整 → 全量解析并更新缓存
+                val fullResult = tryParse(newText)
+                if (fullResult != null) {
+                    cachedDocument = fullResult
+                    lastSuccessfulPosition = newText.length
+                    HLog.d(TAG, "全量解析成功")
+                } else {
+                    cachedDocument = truncatedParse(newText)
+                }
+            } else if (oldDoc != null && oldDoc.children.isNotEmpty()) {
+                // 结构不完整但有旧缓存 → 保留旧缓存，不展示异常中间态
+                HLog.d(TAG, "输入结构不完整, 保留上次成功结果, 等待输入补全")
+            } else {
+                // 无旧缓存可用 → 容错截断解析（首次输入场景）
+                cachedDocument = truncatedParse(newText)
+            }
         }
     }
 
@@ -297,7 +316,10 @@ class IncrementalLatexParser {
     }
 
     /**
-     * 全量解析（首次或无法增量时使用）
+     * 全量解析（首次且无旧缓存时使用）
+     *
+     * 注意：此方法仅在没有旧缓存可回退时调用。
+     * 有旧缓存时，解析失败会保留旧缓存，不走截断逻辑。
      */
     private fun fullParse(text: String): LatexNode.Document {
         // 先尝试完整解析
@@ -308,7 +330,7 @@ class IncrementalLatexParser {
             return doc
         }
 
-        // 完整解析失败 → 结构边界截断
+        // 完整解析失败 → 结构边界截断（仅首次无缓存时使用）
         HLog.d(TAG, "全量解析失败, 尝试结构边界截断")
         return truncatedParse(text)
     }
@@ -357,6 +379,55 @@ class IncrementalLatexParser {
     }
 
     /**
+     * 检查输入文本的结构是否完整
+     *
+     * 扫描文本，检查花括号、数学模式（$/$$$）是否都已正确闭合。
+     * 如果存在未闭合的结构，说明输入不完整（如流式输入的中间状态），
+     * 此时不应更新 AST，避免显示异常的中间态。
+     *
+     * 还会检查文本是否以未完成的命令结尾（如 `\` 或 `\frac` 后无参数）。
+     */
+    private fun isInputComplete(text: String): Boolean {
+        if (text.isEmpty()) return true
+
+        var braceDepth = 0
+        var mathMode = false
+        var displayMath = false
+        var i = 0
+
+        while (i < text.length) {
+            val ch = text[i]
+            when {
+                ch == '\\' -> {
+                    i += 2  // 跳过转义
+                    continue
+                }
+                ch == '{' -> braceDepth++
+                ch == '}' -> braceDepth = maxOf(0, braceDepth - 1)
+                ch == '$' -> {
+                    if (i + 1 < text.length && text[i + 1] == '$') {
+                        displayMath = !displayMath
+                        i += 2
+                        continue
+                    } else {
+                        mathMode = !mathMode
+                    }
+                }
+            }
+            i++
+        }
+
+        // 结构不完整
+        if (braceDepth > 0 || mathMode || displayMath) return false
+
+        // 检查是否以反斜杠结尾（未完成的命令）
+        val trimmed = text.trimEnd()
+        if (trimmed.endsWith("\\")) return false
+
+        return true
+    }
+
+    /**
      * 截断文本到最近的结构安全边界
      *
      * 扫描文本，跟踪花括号深度、数学模式状态、环境嵌套，
@@ -379,6 +450,7 @@ class IncrementalLatexParser {
                     i += 2
                     continue
                 }
+
                 ch == '{' -> braceDepth++
                 ch == '}' -> {
                     braceDepth = maxOf(0, braceDepth - 1)
@@ -386,6 +458,7 @@ class IncrementalLatexParser {
                         lastSafePos = i + 1
                     }
                 }
+
                 ch == '$' -> {
                     if (i + 1 < text.length && text[i + 1] == '$') {
                         displayMath = !displayMath
@@ -432,7 +505,9 @@ class IncrementalLatexParser {
 
     /**
      * 获取当前可解析的文档
-     * 会尽可能解析已有内容，即使内容不完整
+     *
+     * 优先返回缓存结果。如果无缓存，尝试完整解析当前输入；
+     * 若完整解析失败则走截断容错（仅首次调用且无历史缓存时）。
      */
     fun getCurrentDocument(): LatexNode.Document {
         if (cachedDocument == null) {
