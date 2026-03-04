@@ -34,7 +34,7 @@ class LatexTokenStream(private val tokens: List<LatexToken>) {
 
     fun peek(offset: Int = 0): LatexToken? {
         val pos = position + offset
-        return if (pos < tokens.size) tokens[pos] else null
+        return if (pos in tokens.indices) tokens[pos] else null
     }
 
     /**

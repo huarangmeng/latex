@@ -202,14 +202,11 @@ class IncrementalTokenizer {
     }
 
     /**
-     * 对新文本的指定区域进行重新分词
+     * 对新文本的指定区域进行逐 token 重新分词（收敛即停）
      *
-     * 从 [startOffset] 开始分词，直到：
-     * 1. 新 token 的位置和类型与旧后缀 token（偏移平移后）完全匹配（收敛）
-     * 2. 或者达到文本末尾
-     *
-     * 收敛检测是 tree-sitter 增量分词的核心优化：
-     * 一旦新分出的 token 与旧 token 对齐，后续 token 必然完全相同，可停止分词。
+     * 从 [startOffset] 开始在 [newText] 上逐 token 扫描，每产出一个 token 就
+     * 检查是否与后缀 token（偏移平移后）收敛。一旦收敛立即停止，避免对整个
+     * 尾部进行全量分词。
      */
     private fun retokenizeRegion(
         newText: String,
@@ -220,33 +217,34 @@ class IncrementalTokenizer {
     ): List<LatexToken> {
         if (startOffset >= newText.length) return emptyList()
 
-        // 对编辑区域进行全量分词（从 startOffset 到文本末尾）
-        // 然后用收敛检测截断
-        val subText = newText.substring(startOffset)
-        val subTokenizer = LatexTokenizer(subText)
-        val rawTokens = subTokenizer.tokenize()
-            .filterNot { it is LatexToken.EOF }
+        // 直接在完整 newText 上从 startOffset 开始逐 token 扫描
+        val scanner = LatexTokenizer(newText, startOffset)
+        val result = ArrayList<LatexToken>()
 
-        // 将子串中的 token 偏移量调整到全局坐标
-        val adjustedTokens = rawTokens.map { token ->
-            shiftToken(token, startOffset)
+        // 预计算收敛目标（后缀首 token 偏移平移后的形态）
+        val convergenceTarget = if (suffixTokens.isNotEmpty()) {
+            shiftToken(suffixTokens.first(), delta)
+        } else {
+            null
         }
 
-        // 收敛检测：如果某个新 token 与后缀 token（偏移平移后）的起始位置和类型匹配
-        if (suffixTokens.isNotEmpty()) {
-            val firstSuffixShifted = shiftToken(suffixTokens.first(), delta)
-            for (i in adjustedTokens.indices) {
-                val newToken = adjustedTokens[i]
-                if (newToken.range.start >= suffixExpectedStart
-                    && tokensMatch(newToken, firstSuffixShifted)
-                ) {
-                    // 收敛！只保留到此处
-                    return adjustedTokens.subList(0, i)
-                }
+        while (true) {
+            val token = scanner.nextToken()
+            if (token is LatexToken.EOF) break
+
+            // 收敛检测：新 token 已达到或超过后缀预期起始位置，且与后缀首 token 匹配
+            if (convergenceTarget != null
+                && token.range.start >= suffixExpectedStart
+                && tokensMatch(token, convergenceTarget)
+            ) {
+                // 收敛！后续 token 必然与旧后缀完全相同，停止分词
+                break
             }
+
+            result.add(token)
         }
 
-        return adjustedTokens
+        return result
     }
 
     /**

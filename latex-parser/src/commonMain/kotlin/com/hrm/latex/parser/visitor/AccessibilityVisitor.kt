@@ -341,6 +341,11 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
 
     override fun visitNewCommand(node: LatexNode.NewCommand): String = ""
 
+    override fun visitError(node: LatexNode.Error): String {
+        val recovered = node.recovered.joinToString(" ") { visit(it) }.collapseSpaces()
+        return if (recovered.isNotBlank()) "error: $recovered" else "error: ${node.message}"
+    }
+
     // ========== 辅助方法 ==========
 
     private fun symbolName(symbol: String, unicode: String): String {

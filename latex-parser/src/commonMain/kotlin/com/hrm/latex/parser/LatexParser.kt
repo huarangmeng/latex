@@ -38,17 +38,12 @@ import com.hrm.latex.parser.tokenizer.LatexTokenizer
 /**
  * LaTeX 语法解析器
  *
- * Refactored to use component-based architecture:
- * - LatexTokenStream: Token management
- * - EnvironmentParser: Environment logic
- * - CommandParser: Command logic
+ * 组件化架构:
+ * - [LatexTokenStream]: Token 流管理
+ * - [EnvironmentParser]: 环境解析
+ * - [CommandParser]: 命令解析
  */
-class LatexParser : LatexParserContext {
-
-    override lateinit var tokenStream: LatexTokenStream
-    override val customCommands: MutableMap<String, CustomCommand> = mutableMapOf()
-    private lateinit var environmentParser: EnvironmentParser
-    private lateinit var commandParser: CommandParser
+class LatexParser {
 
     companion object {
         private const val TAG = "LatexParser"
@@ -56,22 +51,48 @@ class LatexParser : LatexParserContext {
 
     /**
      * 解析 LaTeX 字符串
-     * @throws ParseException 解析失败时抛出异常
      */
     fun parse(input: String): LatexNode.Document {
-        HLog.d(TAG, "开始解析 LaTeX: $input")
+        HLog.d(TAG) { "开始解析 LaTeX: $input" }
+        val tokens = LatexTokenizer(input).tokenize()
+        return ParseSession(tokens, input.length).parse()
+    }
 
-        // 词法分析
-        val tokenizer = LatexTokenizer(input)
-        val tokens = tokenizer.tokenize()
+    /**
+     * 从 token 列表直接解析（供增量解析器使用，避免二次分词）
+     */
+    fun parse(tokens: List<LatexToken>, inputLength: Int): LatexNode.Document {
+        HLog.d(TAG) { "从 token 列表解析, token 数: ${tokens.size}" }
+        return ParseSession(tokens, inputLength).parse()
+    }
 
-        // 初始化组件
-        tokenStream = LatexTokenStream(tokens)
-        environmentParser = EnvironmentParser(this)
-        val chemicalParser = ChemicalParser(this)
-        commandParser = CommandParser(this, chemicalParser)
+    class ParseException(message: String) : Exception(message)
+}
 
-        // 语法分析
+/**
+ * 解析会话：封装单次解析的所有可变状态。
+ *
+ * 每次 [LatexParser.parse] 创建一个新的 ParseSession，
+ * 解析完成后即被丢弃，不存在跨调用的状态污染。
+ */
+internal class ParseSession(
+    tokens: List<LatexToken>,
+    private val inputLength: Int
+) : LatexParserContext {
+
+    companion object {
+        private const val TAG = "ParseSession"
+    }
+
+    override val tokenStream = LatexTokenStream(tokens)
+    override val customCommands: MutableMap<String, CustomCommand> = mutableMapOf()
+    override val diagnostics: MutableList<ParseDiagnostic> = mutableListOf()
+
+    private val environmentParser = EnvironmentParser(this)
+    private val chemicalParser = ChemicalParser(this)
+    private val commandParser = CommandParser(this, chemicalParser)
+
+    fun parse(): LatexNode.Document {
         val children = mutableListOf<LatexNode>()
         while (!tokenStream.isEOF()) {
             val node = parseExpression()
@@ -82,15 +103,12 @@ class LatexParser : LatexParserContext {
 
         val document = LatexNode.Document(
             children,
-            sourceRange = SourceRange(0, input.length)
+            sourceRange = SourceRange(0, inputLength)
         )
-        HLog.d(TAG, "解析成功，生成 ${children.size} 个节点")
+        HLog.d(TAG) { "解析成功，生成 ${children.size} 个节点, 诊断: ${diagnostics.size} 条" }
         return document
     }
 
-    /**
-     * 解析表达式（处理上标下标）
-     */
     override fun parseExpression(): LatexNode? {
         val startOffset = tokenStream.currentSourceOffset()
         var node = parseFactor() ?: return null
@@ -118,9 +136,6 @@ class LatexParser : LatexParserContext {
         return node
     }
 
-    /**
-     * 解析基本因子（不含上标下标）
-     */
     override fun parseFactor(): LatexNode? {
         when (val token = tokenStream.peek()) {
             is LatexToken.Text -> {
@@ -130,10 +145,8 @@ class LatexParser : LatexParserContext {
 
             is LatexToken.Command -> {
                 val cmdStart = token.range.start
-                tokenStream.advance() // Consume command token
+                tokenStream.advance()
                 val result = commandParser.parseCommand(token.name)
-                // CommandParser 内部已填充 sourceRange，但对于简单命令可能未填充
-                // 如果 result 没有 sourceRange，用命令开始到当前位置补充
                 return if (result?.sourceRange == null && result != null) {
                     result.withSourceRange(tokenStream.rangeFrom(cmdStart))
                 } else {
@@ -185,15 +198,23 @@ class LatexParser : LatexParserContext {
 
             is LatexToken.EOF -> return null
             else -> {
+                // P1: 记录诊断而非静默丢弃
+                val range = token?.range
+                if (range != null) {
+                    diagnostics.add(
+                        ParseDiagnostic(
+                            range = range,
+                            message = "Unexpected token: $token",
+                            severity = ParseDiagnostic.Severity.WARNING
+                        )
+                    )
+                }
                 tokenStream.advance()
                 return null
             }
         }
     }
 
-    /**
-     * 解析分组 {...}
-     */
     override fun parseGroup(): LatexNode.Group {
         val startOffset = tokenStream.currentSourceOffset()
         tokenStream.expect("{")
@@ -212,41 +233,28 @@ class LatexParser : LatexParserContext {
         return LatexNode.Group(children, sourceRange = tokenStream.rangeFrom(startOffset))
     }
 
-    /**
-     * 解析命令参数 {...} 或单个 token
-     * 标准 LaTeX 行为：跳过参数前的空白
-     */
     override fun parseArgument(): LatexNode? {
-        // 跳过空白：\hat f 与 \hat{f} 等价
         while (tokenStream.peek() is LatexToken.Whitespace) {
             tokenStream.advance()
         }
         return when (tokenStream.peek()) {
             is LatexToken.LeftBrace -> parseGroup()
-            else -> {
-                parseFactor()
-            }
+            else -> parseFactor()
         }
     }
 
-    /**
-     * 解析数学模式 $...$ 或 $$...$$
-     * @param openToken 开始的 MathShift token
-     */
     private fun parseMathMode(openToken: LatexToken.MathShift): LatexNode {
         val startOffset = openToken.range.start
         val count = openToken.count
-        tokenStream.advance() // 消费开始的 $ 或 $$
+        tokenStream.advance()
 
         val children = mutableListOf<LatexNode>()
         while (!tokenStream.isEOF()) {
             val next = tokenStream.peek()
-            // 遇到匹配的结束 MathShift
             if (next is LatexToken.MathShift && next.count == count) {
-                tokenStream.advance() // 消费结束的 $ 或 $$
+                tokenStream.advance()
                 break
             }
-            // 对于 $$...$$，如果遇到单个 $ 也当作内容（不匹配）
             val node = parseExpression()
             if (node != null) {
                 children.add(node)
@@ -261,18 +269,10 @@ class LatexParser : LatexParserContext {
         }
     }
 
-    /**
-     * 解析上下标内容
-     * 有花括号 → 解析整个 group
-     * 无花括号 → 只取单个因子（标准 LaTeX 行为：a_k^2 中 _ 只取 k，^ 只取 2）
-     */
     private fun parseScriptContent(): LatexNode {
         return when (tokenStream.peek()) {
             is LatexToken.LeftBrace -> parseGroup()
             else -> parseFactor() ?: LatexNode.Text("")
         }
     }
-
-    // Internal exception class mostly for backward compatibility or internal usage
-    class ParseException(message: String) : Exception(message)
 }

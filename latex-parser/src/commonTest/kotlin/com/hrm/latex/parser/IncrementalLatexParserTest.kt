@@ -300,6 +300,86 @@ class IncrementalLatexParserTest {
         assertTrue(doc.children.isNotEmpty())
     }
 
+    /**
+     * 模拟 Latex.kt 的 LaunchedEffect 行为：
+     * 每次 latex 变化时，计算 delta 并 append(delta)
+     * 
+     * 这正是渲染层的实际调用模式：
+     * val currentInput = parser.getCurrentInput()
+     * if (latex.startsWith(currentInput) && latex.length > currentInput.length) {
+     *     parser.append(latex.substring(currentInput.length))
+     * } else {
+     *     parser.clear()
+     *     parser.append(latex)
+     * }
+     */
+    @Test
+    fun charByChar_inftyFormula_simulateLatexComposable() {
+        val parser = IncrementalLatexParser()
+        val fullFormula = "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}"
+
+        fullFormula.forEach { char ->
+            val latex = parser.getCurrentInput() + char
+            val currentInput = parser.getCurrentInput()
+            if (latex.startsWith(currentInput) && latex.length > currentInput.length) {
+                val delta = latex.substring(currentInput.length)
+                parser.append(delta)
+            } else {
+                parser.clear()
+                parser.append(latex)
+            }
+        }
+
+        val doc = parser.getCurrentDocument()
+        assertTrue(doc.children.isNotEmpty(), "Document should not be empty")
+
+        // 关键断言：\infty 应该解析为 Symbol 节点，而非 Text("infty")
+        val allNodes = mutableListOf<LatexNode>()
+        fun collectAll(node: LatexNode) {
+            allNodes.add(node)
+            node.children().forEach { collectAll(it) }
+        }
+        doc.children.forEach { collectAll(it) }
+
+        // 检查没有 Text("infty") — 如果有说明 \infty 被解析为了纯文本
+        val hasTextInfty = allNodes.any { it is LatexNode.Text && it.content == "infty" }
+        assertFalse(hasTextInfty, "\\infty should NOT be parsed as Text('infty')")
+
+        // 检查存在 Symbol 节点（\infty 应被解析为 Symbol）
+        val hasSymbol = allNodes.any { it is LatexNode.Symbol }
+        assertTrue(hasSymbol, "Should contain Symbol nodes for \\infty")
+
+        // 检查存在 Root 节点（\sqrt 应被解析为 Root）
+        val hasRoot = allNodes.any { it is LatexNode.Root }
+        assertTrue(hasRoot, "Should contain Root node for \\sqrt")
+    }
+
+    /**
+     * 同上，但更简单的测试：单次 append 完整公式
+     */
+    @Test
+    fun singleAppend_inftyFormula_parsesCorrectly() {
+        val parser = IncrementalLatexParser()
+        parser.append("\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}")
+        
+        val doc = parser.getCurrentDocument()
+        val allNodes = mutableListOf<LatexNode>()
+        fun collectAll(node: LatexNode) {
+            allNodes.add(node)
+            node.children().forEach { collectAll(it) }
+        }
+        doc.children.forEach { collectAll(it) }
+        
+        val hasTextInfty = allNodes.any { it is LatexNode.Text && it.content == "infty" }
+        assertFalse(hasTextInfty, "\\infty should NOT be parsed as Text('infty')")
+        
+        val hasSymbol = allNodes.any { it is LatexNode.Symbol }
+        assertTrue(hasSymbol, "Should contain Symbol nodes")
+        
+        val hasRoot = allNodes.any { it is LatexNode.Root }
+        assertTrue(hasRoot, "Should contain Root node")
+    }
+
     @Test
     fun append_multipleClears_doesNotCorruptState() {
         val parser = IncrementalLatexParser()

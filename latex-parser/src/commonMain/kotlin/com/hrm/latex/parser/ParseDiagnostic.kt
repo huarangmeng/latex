@@ -20,39 +20,28 @@
  * SOFTWARE.
  */
 
+package com.hrm.latex.parser
 
-package com.hrm.latex.parser.component
-
-import com.hrm.latex.parser.ParseDiagnostic
-import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.SourceRange
 
 /**
- * 自定义命令定义
- * @param name 命令名（不含反斜杠）
- * @param numArgs 参数个数（0-9）
- * @param definition 定义内容（AST 节点列表）
- */
-data class CustomCommand(
-    val name: String,
-    val numArgs: Int,
-    val definition: List<LatexNode>
-)
-
-/**
- * 解析器上下文接口，用于解决循环依赖和提供通用解析能力。
+ * 解析诊断信息
  *
- * [customCommands] 暴露为 MutableMap 以便 MacroHandlers 注册新命令，
- * 但只有 MacroHandlers 应该写入，其余 handler 仅读取。
+ * 记录解析过程中遇到的非致命问题（如未识别的 token、不完整的结构等），
+ * 供渲染层用于错误标注或调试。
  *
- * [diagnostics] 收集解析过程中的非致命诊断信息。
+ * @param range 问题在源文本中的位置
+ * @param message 人类可读的诊断描述
+ * @param severity 严重级别
  */
-internal interface LatexParserContext {
-    val tokenStream: LatexTokenStream
-    val customCommands: MutableMap<String, CustomCommand>
-    val diagnostics: MutableList<ParseDiagnostic>
-
-    fun parseExpression(): LatexNode?
-    fun parseFactor(): LatexNode?
-    fun parseArgument(): LatexNode?
-    fun parseGroup(): LatexNode.Group
+data class ParseDiagnostic(
+    val range: SourceRange,
+    val message: String,
+    val severity: Severity
+) {
+    enum class Severity {
+        INFO,
+        WARNING,
+        ERROR
+    }
 }

@@ -29,6 +29,7 @@ import com.hrm.latex.parser.incremental.TextEdit
 import com.hrm.latex.parser.incremental.TreeReuser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.SourceRange
+import com.hrm.latex.parser.tokenizer.LatexToken
 
 /**
  * 增量 LaTeX 解析器（tree-sitter 风格）
@@ -95,7 +96,7 @@ class IncrementalLatexParser {
     fun append(text: String) {
         val oldText = tokenizer.getCurrentText()
         val newText = oldText + text
-        HLog.d(TAG, "追加内容: '$text', 新长度: ${newText.length}")
+        HLog.d(TAG) { "追加内容: '$text', 新长度: ${newText.length}" }
         applyEdit(oldText, newText)
     }
 
@@ -106,7 +107,7 @@ class IncrementalLatexParser {
     fun setInput(newText: String) {
         val oldText = tokenizer.getCurrentText()
         if (oldText == newText) return
-        HLog.d(TAG, "替换内容, 新长度: ${newText.length}")
+        HLog.d(TAG) { "替换内容, 新长度: ${newText.length}" }
         applyEdit(oldText, newText)
     }
 
@@ -124,10 +125,10 @@ class IncrementalLatexParser {
 
         // 计算编辑差异
         val edit = TextEdit.diff(oldText, newText)
-        HLog.d(
-            TAG, "编辑差异: start=${edit.startOffset}, " +
+        HLog.d(TAG) {
+            "编辑差异: start=${edit.startOffset}, " +
                     "oldEnd=${edit.oldEndOffset}, newEnd=${edit.newEndOffset}, delta=${edit.delta}"
-        )
+        }
 
         // 第 1 层：增量分词（总是执行，即使后续走全量解析也需要更新 token 缓存）
         val isFirstParse = oldText.isEmpty()
@@ -138,13 +139,18 @@ class IncrementalLatexParser {
         }
 
         // 第 2 层：决策 — 增量解析 vs 全量解析
+        //
+        // 纯追加（isInsertion）不走增量 AST 解析路径，因为追加的文本可能与前一个
+        // token 合并（如 "\fr" + "a" → "\fra"），导致 AST 前缀节点失效。
+        // 增量分词（IncrementalTokenizer）已正确处理 token 合并，但 AST 级别的
+        // TreeReuser 无法感知这种合并。纯追加仍通过全量解析 + token 缓存复用加速。
         val oldDoc = cachedDocument
         val canIncrementalParse = !isFirstParse
                 && oldDoc != null
                 && oldDoc.children.isNotEmpty()
                 && lastSuccessfulPosition == oldText.length  // 上次完整解析成功
                 && edit.startOffset > 0                       // 编辑不在最开头
-                && !edit.isInsertion                          // 非纯追加（中间编辑场景）
+                && !edit.isInsertion                          // 非纯插入（中间替换/删除场景）
 
         if (canIncrementalParse) {
             cachedDocument = incrementalParse(newText, oldDoc, edit)
@@ -153,18 +159,18 @@ class IncrementalLatexParser {
             val isStructurallyComplete = isInputComplete(newText)
 
             if (isStructurallyComplete) {
-                // 结构完整 → 全量解析并更新缓存
-                val fullResult = tryParse(newText)
+                // 结构完整 → 优先使用缓存的 token 列表解析（避免二次分词）
+                val fullResult = tryParseFromTokens() ?: tryParse(newText)
                 if (fullResult != null) {
                     cachedDocument = fullResult
                     lastSuccessfulPosition = newText.length
-                    HLog.d(TAG, "全量解析成功")
+                    HLog.d(TAG) { "全量解析成功" }
                 } else {
                     cachedDocument = truncatedParse(newText)
                 }
             } else if (oldDoc != null && oldDoc.children.isNotEmpty()) {
                 // 结构不完整但有旧缓存 → 保留旧缓存，不展示异常中间态
-                HLog.d(TAG, "输入结构不完整, 保留上次成功结果, 等待输入补全")
+                HLog.d(TAG) { "输入结构不完整, 保留上次成功结果, 等待输入补全" }
             } else {
                 // 无旧缓存可用 → 容错截断解析（首次输入场景）
                 cachedDocument = truncatedParse(newText)
@@ -189,10 +195,10 @@ class IncrementalLatexParser {
 
         // 对旧 AST 进行三段划分
         val partition = TreeReuser.partition(oldChildren, edit)
-        HLog.d(
-            TAG, "子树划分: prefix=${partition.prefix.size}, " +
+        HLog.d(TAG) {
+            "子树划分: prefix=${partition.prefix.size}, " +
                     "dirty=${partition.dirty.size}, suffix=${partition.suffix.size}"
-        )
+        }
 
         // 确定脏区域在新文本中的范围
         val dirtyStart = if (partition.prefix.isNotEmpty()) {
@@ -262,7 +268,7 @@ class IncrementalLatexParser {
         }
 
         // 截断后仍失败 → 返回原始文本节点
-        HLog.w(TAG, "脏区域解析完全失败, 返回原始文本, 长度=${text.length}")
+        HLog.w(TAG) { "脏区域解析完全失败, 返回原始文本, 长度=${text.length}" }
         return if (text.isNotBlank()) {
             listOf(
                 LatexNode.Text(
@@ -281,6 +287,23 @@ class IncrementalLatexParser {
     private fun tryParse(text: String): LatexNode.Document? {
         return try {
             baseParser.parse(text)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 使用已缓存的 token 列表解析，避免二次分词
+     */
+    private fun tryParseFromTokens(): LatexNode.Document? {
+        return try {
+            val tokens = tokenizer.getCurrentTokens()
+            val text = tokenizer.getCurrentText()
+            if (tokens.isNotEmpty() && text.isNotEmpty()) {
+                baseParser.parse(tokens, text.length)
+            } else {
+                null
+            }
         } catch (e: Exception) {
             null
         }
@@ -326,12 +349,12 @@ class IncrementalLatexParser {
         val doc = tryParse(text)
         if (doc != null) {
             lastSuccessfulPosition = text.length
-            HLog.d(TAG, "全量解析成功")
+            HLog.d(TAG) { "全量解析成功" }
             return doc
         }
 
         // 完整解析失败 → 结构边界截断（仅首次无缓存时使用）
-        HLog.d(TAG, "全量解析失败, 尝试结构边界截断")
+        HLog.d(TAG) { "全量解析失败, 尝试结构边界截断" }
         return truncatedParse(text)
     }
 
@@ -353,7 +376,7 @@ class IncrementalLatexParser {
             val doc = tryParse(truncated)
             if (doc != null) {
                 lastSuccessfulPosition = truncated.length
-                HLog.d(TAG, "截断解析成功, 截断位置: ${truncated.length}/${text.length}")
+                HLog.d(TAG) { "截断解析成功, 截断位置: ${truncated.length}/${text.length}" }
                 return doc
             }
         }
@@ -366,61 +389,65 @@ class IncrementalLatexParser {
                 val doc = tryParse(sub)
                 if (doc != null) {
                     lastSuccessfulPosition = sub.length
-                    HLog.d(TAG, "渐进截断解析成功, 截断位置: ${sub.length}/${text.length}")
+                    HLog.d(TAG) { "渐进截断解析成功, 截断位置: ${sub.length}/${text.length}" }
                     return doc
                 }
             }
             length = length * 3 / 4
         }
 
-        HLog.w(TAG, "所有解析策略失败, 返回空文档")
+        HLog.w(TAG) { "所有解析策略失败, 返回空文档" }
         lastSuccessfulPosition = 0
         return LatexNode.Document(emptyList())
     }
 
     /**
-     * 检查输入文本的结构是否完整
+     * 检查输入的结构是否完整（利用已缓存的 token 列表，避免逐字符扫描）
      *
-     * 扫描文本，检查花括号、数学模式（$/$$$）是否都已正确闭合。
+     * 遍历 token 列表，检查花括号、数学模式（$/$$$）、环境是否都已正确闭合。
      * 如果存在未闭合的结构，说明输入不完整（如流式输入的中间状态），
      * 此时不应更新 AST，避免显示异常的中间态。
      *
-     * 还会检查文本是否以未完成的命令结尾（如 `\` 或 `\frac` 后无参数）。
+     * 性能优势（vs 旧方案）：
+     * - 旧方案逐字符扫描 O(n) 其中 n = 文本长度
+     * - 新方案遍历 token 列表 O(m) 其中 m = token 数量，通常 m << n
+     * - 且 token 列表已由增量分词器维护，无额外分配
      */
     private fun isInputComplete(text: String): Boolean {
         if (text.isEmpty()) return true
 
+        val tokens = tokenizer.getCurrentTokens()
+
         var braceDepth = 0
         var mathMode = false
         var displayMath = false
-        var i = 0
+        var envDepth = 0
+        var lastToken: LatexToken? = null
 
-        while (i < text.length) {
-            val ch = text[i]
-            when {
-                ch == '\\' -> {
-                    i += 2  // 跳过转义
-                    continue
-                }
-                ch == '{' -> braceDepth++
-                ch == '}' -> braceDepth = maxOf(0, braceDepth - 1)
-                ch == '$' -> {
-                    if (i + 1 < text.length && text[i + 1] == '$') {
+        for (token in tokens) {
+            when (token) {
+                is LatexToken.LeftBrace -> braceDepth++
+                is LatexToken.RightBrace -> braceDepth = maxOf(0, braceDepth - 1)
+                is LatexToken.MathShift -> {
+                    if (token.count == 2) {
                         displayMath = !displayMath
-                        i += 2
-                        continue
                     } else {
                         mathMode = !mathMode
                     }
                 }
+                is LatexToken.BeginEnvironment -> envDepth++
+                is LatexToken.EndEnvironment -> envDepth = maxOf(0, envDepth - 1)
+                is LatexToken.EOF -> break
+                else -> { /* no-op */ }
             }
-            i++
+            lastToken = token
         }
 
         // 结构不完整
-        if (braceDepth > 0 || mathMode || displayMath) return false
+        if (braceDepth > 0 || mathMode || displayMath || envDepth > 0) return false
 
         // 检查是否以反斜杠结尾（未完成的命令）
+        // 最后一个有意义的 token 如果是单个 "\" 命令，说明命令未完成
         val trimmed = text.trimEnd()
         if (trimmed.endsWith("\\")) return false
 
@@ -500,7 +527,7 @@ class IncrementalLatexParser {
         tokenizer.tokenize("") // 清空 tokenizer 缓存
         lastSuccessfulPosition = 0
         cachedDocument = null
-        HLog.d(TAG, "清空解析器状态")
+        HLog.d(TAG) { "清空解析器状态" }
     }
 
     /**

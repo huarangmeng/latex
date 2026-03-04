@@ -50,8 +50,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("(", delim.left)
         assertEquals(")", delim.right)
-        assertTrue(delim.scalable)
-        assertEquals(null, delim.manualSize)
     }
     
     @Test
@@ -60,7 +58,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("[", delim.left)
         assertEquals("]", delim.right)
-        assertTrue(delim.scalable)
     }
     
     @Test
@@ -69,7 +66,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("{", delim.left)
         assertEquals("}", delim.right)
-        assertTrue(delim.scalable)
     }
     
     @Test
@@ -78,7 +74,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("|", delim.left)
         assertEquals("|", delim.right)
-        assertTrue(delim.scalable)
     }
     
     @Test
@@ -87,7 +82,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("⟨", delim.left)
         assertEquals("⟩", delim.right)
-        assertTrue(delim.scalable)
     }
     
     @Test
@@ -96,7 +90,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("⌊", delim.left)
         assertEquals("⌋", delim.right)
-        assertTrue(delim.scalable)
     }
     
     @Test
@@ -105,7 +98,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("⌈", delim.left)
         assertEquals("⌉", delim.right)
-        assertTrue(delim.scalable)
     }
     
     @Test
@@ -137,7 +129,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("", delim.left, "左侧应该是空字符串（不显示）")
         assertEquals("|", delim.right)
-        assertTrue(delim.scalable)
         assertTrue(delim.content.any { it is LatexNode.Fraction })
     }
     
@@ -148,7 +139,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("{", delim.left)
         assertEquals("", delim.right, "右侧应该是空字符串（不显示）")
-        assertTrue(delim.scalable)
     }
     
     @Test
@@ -158,7 +148,6 @@ class DelimiterTest {
         val delim = doc.children[0] as LatexNode.Delimited
         assertEquals("", delim.left)
         assertEquals("", delim.right)
-        assertTrue(delim.scalable)
     }
     
     @Test
@@ -329,10 +318,6 @@ class DelimiterTest {
         // 应该有手动大小的分隔符（作为独立节点）
         val manualDelimiters = doc.children.filterIsInstance<LatexNode.ManualSizedDelimiter>()
         assertTrue(manualDelimiters.isNotEmpty(), "应该有手动大小分隔符")
-        
-        // 应该有自动伸缩的内层括号
-        val autoDelimiters = allDelimiters.filter { it.scalable }
-        assertTrue(autoDelimiters.isNotEmpty(), "应该有自动伸缩分隔符")
     }
     
     @Test

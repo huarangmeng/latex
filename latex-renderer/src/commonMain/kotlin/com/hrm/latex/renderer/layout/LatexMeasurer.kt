@@ -324,6 +324,8 @@ internal fun measureNode(
         is LatexNode.DisplayMath -> measureGroup(
             node.children, context.copy(mathStyle = MathStyle.DISPLAY), measurer, density
         )
+
+        else -> NodeLayout(0f, 0f, 0f) { _, _ -> }
     }
 }
 

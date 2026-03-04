@@ -85,6 +85,7 @@ interface LatexVisitor<T> {
     fun visitModOperator(node: LatexNode.ModOperator): T
     fun visitInlineMath(node: LatexNode.InlineMath): T
     fun visitDisplayMath(node: LatexNode.DisplayMath): T
+    fun visitError(node: LatexNode.Error): T
 }
 
 /**
@@ -362,66 +363,15 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         return defaultVisit(node)
     }
 
-    /**
-     * 访问任意节点 — 按节点类型分派到对应的 visit 方法
-     */
-    fun visit(node: LatexNode): T = when (node) {
-        is LatexNode.Document -> visitDocument(node)
-        is LatexNode.Text -> visitText(node)
-        is LatexNode.Command -> visitCommand(node)
-        is LatexNode.Environment -> visitEnvironment(node)
-        is LatexNode.Group -> visitGroup(node)
-        is LatexNode.Superscript -> visitSuperscript(node)
-        is LatexNode.Subscript -> visitSubscript(node)
-        is LatexNode.Fraction -> visitFraction(node)
-        is LatexNode.Root -> visitRoot(node)
-        is LatexNode.Matrix -> visitMatrix(node)
-        is LatexNode.Array -> visitArray(node)
-        is LatexNode.Space -> visitSpace(node)
-        is LatexNode.HSpace -> visitHSpace(node)
-        is LatexNode.NewLine -> visitNewLine(node)
-        is LatexNode.Symbol -> visitSymbol(node)
-        is LatexNode.Operator -> visitOperator(node)
-        is LatexNode.Delimited -> visitDelimited(node)
-        is LatexNode.ManualSizedDelimiter -> visitManualSizedDelimiter(node)
-        is LatexNode.Accent -> visitAccent(node)
-        is LatexNode.ExtensibleArrow -> visitExtensibleArrow(node)
-        is LatexNode.Stack -> visitStack(node)
-        is LatexNode.Style -> visitStyle(node)
-        is LatexNode.Color -> visitColor(node)
-        is LatexNode.MathStyle -> visitMathStyle(node)
-        is LatexNode.BigOperator -> visitBigOperator(node)
-        is LatexNode.Aligned -> visitAligned(node)
-        is LatexNode.Cases -> visitCases(node)
-        is LatexNode.Split -> visitSplit(node)
-        is LatexNode.Multline -> visitMultline(node)
-        is LatexNode.Eqnarray -> visitEqnarray(node)
-        is LatexNode.Subequations -> visitSubequations(node)
-        is LatexNode.Binomial -> visitBinomial(node)
-        is LatexNode.TextMode -> visitTextMode(node)
-        is LatexNode.Boxed -> visitBoxed(node)
-        is LatexNode.Phantom -> visitPhantom(node)
-        is LatexNode.NewCommand -> visitNewCommand(node)
-        is LatexNode.Negation -> visitNegation(node)
-        is LatexNode.Tag -> visitTag(node)
-        is LatexNode.Substack -> visitSubstack(node)
-        is LatexNode.Smash -> visitSmash(node)
-        is LatexNode.VPhantom -> visitVPhantom(node)
-        is LatexNode.HPhantom -> visitHPhantom(node)
-        is LatexNode.Label -> visitLabel(node)
-        is LatexNode.Ref -> visitRef(node)
-        is LatexNode.EqRef -> visitEqRef(node)
-        is LatexNode.SideSet -> visitSideSet(node)
-        is LatexNode.Tensor -> visitTensor(node)
-        is LatexNode.Tabular -> visitTabular(node)
-        is LatexNode.HLine -> visitHLine(node)
-        is LatexNode.CLine -> visitCLine(node)
-        is LatexNode.Multicolumn -> visitMulticolumn(node)
-        is LatexNode.OperatorName -> visitOperatorName(node)
-        is LatexNode.ModOperator -> visitModOperator(node)
-        is LatexNode.InlineMath -> visitInlineMath(node)
-        is LatexNode.DisplayMath -> visitDisplayMath(node)
+    override fun visitError(node: LatexNode.Error): T {
+        node.recovered.forEach { visit(it) }
+        return defaultVisit(node)
     }
+
+    /**
+     * 访问任意节点 — 通过双分派委托到 [LatexNode.accept]
+     */
+    fun visit(node: LatexNode): T = node.accept(this)
 }
 
 /**
@@ -450,65 +400,9 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
     }
 
     /**
-     * 访问任意节点 — 按节点类型分派
+     * 访问任意节点 — 通过双分派委托到 [LatexNode.accept]
      */
-    fun visit(node: LatexNode): T = when (node) {
-        is LatexNode.Document -> visitDocument(node)
-        is LatexNode.Text -> visitText(node)
-        is LatexNode.Command -> visitCommand(node)
-        is LatexNode.Environment -> visitEnvironment(node)
-        is LatexNode.Group -> visitGroup(node)
-        is LatexNode.Superscript -> visitSuperscript(node)
-        is LatexNode.Subscript -> visitSubscript(node)
-        is LatexNode.Fraction -> visitFraction(node)
-        is LatexNode.Root -> visitRoot(node)
-        is LatexNode.Matrix -> visitMatrix(node)
-        is LatexNode.Array -> visitArray(node)
-        is LatexNode.Space -> visitSpace(node)
-        is LatexNode.HSpace -> visitHSpace(node)
-        is LatexNode.NewLine -> visitNewLine(node)
-        is LatexNode.Symbol -> visitSymbol(node)
-        is LatexNode.Operator -> visitOperator(node)
-        is LatexNode.Delimited -> visitDelimited(node)
-        is LatexNode.ManualSizedDelimiter -> visitManualSizedDelimiter(node)
-        is LatexNode.Accent -> visitAccent(node)
-        is LatexNode.ExtensibleArrow -> visitExtensibleArrow(node)
-        is LatexNode.Stack -> visitStack(node)
-        is LatexNode.Style -> visitStyle(node)
-        is LatexNode.Color -> visitColor(node)
-        is LatexNode.MathStyle -> visitMathStyle(node)
-        is LatexNode.BigOperator -> visitBigOperator(node)
-        is LatexNode.Aligned -> visitAligned(node)
-        is LatexNode.Cases -> visitCases(node)
-        is LatexNode.Split -> visitSplit(node)
-        is LatexNode.Multline -> visitMultline(node)
-        is LatexNode.Eqnarray -> visitEqnarray(node)
-        is LatexNode.Subequations -> visitSubequations(node)
-        is LatexNode.Binomial -> visitBinomial(node)
-        is LatexNode.TextMode -> visitTextMode(node)
-        is LatexNode.Boxed -> visitBoxed(node)
-        is LatexNode.Phantom -> visitPhantom(node)
-        is LatexNode.NewCommand -> visitNewCommand(node)
-        is LatexNode.Negation -> visitNegation(node)
-        is LatexNode.Tag -> visitTag(node)
-        is LatexNode.Substack -> visitSubstack(node)
-        is LatexNode.Smash -> visitSmash(node)
-        is LatexNode.VPhantom -> visitVPhantom(node)
-        is LatexNode.HPhantom -> visitHPhantom(node)
-        is LatexNode.Label -> visitLabel(node)
-        is LatexNode.Ref -> visitRef(node)
-        is LatexNode.EqRef -> visitEqRef(node)
-        is LatexNode.SideSet -> visitSideSet(node)
-        is LatexNode.Tensor -> visitTensor(node)
-        is LatexNode.Tabular -> visitTabular(node)
-        is LatexNode.HLine -> visitHLine(node)
-        is LatexNode.CLine -> visitCLine(node)
-        is LatexNode.Multicolumn -> visitMulticolumn(node)
-        is LatexNode.OperatorName -> visitOperatorName(node)
-        is LatexNode.ModOperator -> visitModOperator(node)
-        is LatexNode.InlineMath -> visitInlineMath(node)
-        is LatexNode.DisplayMath -> visitDisplayMath(node)
-    }
+    fun visit(node: LatexNode): T = node.accept(this)
 
     // 所有 visit 方法默认委托到 visitChildren（自动遍历 node.children()）
     override fun visitDocument(node: LatexNode.Document): T = visitChildren(node)
@@ -566,4 +460,5 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
     override fun visitModOperator(node: LatexNode.ModOperator): T = visitChildren(node)
     override fun visitInlineMath(node: LatexNode.InlineMath): T = visitChildren(node)
     override fun visitDisplayMath(node: LatexNode.DisplayMath): T = visitChildren(node)
+    override fun visitError(node: LatexNode.Error): T = visitChildren(node)
 }

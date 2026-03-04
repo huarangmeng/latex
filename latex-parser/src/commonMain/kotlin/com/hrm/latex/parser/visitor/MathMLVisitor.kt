@@ -433,6 +433,15 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
 
     override fun visitNewCommand(node: LatexNode.NewCommand): String = ""
 
+    override fun visitError(node: LatexNode.Error): String {
+        val content = node.recovered.joinToString("") { visit(it) }
+        return if (content.isNotEmpty()) {
+            "<merror><mtext>${escapeXml(node.message)}</mtext>$content</merror>"
+        } else {
+            "<merror><mtext>${escapeXml(node.message)}</mtext></merror>"
+        }
+    }
+
     override fun visitOperatorName(node: LatexNode.OperatorName): String {
         return "<mo>${escapeXml(node.name)}</mo>"
     }

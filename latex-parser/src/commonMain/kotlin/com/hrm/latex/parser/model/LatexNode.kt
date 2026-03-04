@@ -23,6 +23,8 @@
 
 package com.hrm.latex.parser.model
 
+import com.hrm.latex.parser.visitor.LatexVisitor
+
 /**
  * LaTeX 抽象语法树节点
  *
@@ -30,10 +32,11 @@ package com.hrm.latex.parser.model
  * 默认为 null，表示位置未知（例如宏展开生成的节点）。
  *
  * ## 自描述协议
- * 每个节点实现三个自描述方法，消除外部对节点结构的重复 when 表达式：
+ * 每个节点实现四个自描述方法，消除外部对节点结构的重复 when 表达式：
  * - [children]：返回所有直接子节点（有序列表）
  * - [withSourceRange]：创建带有新 sourceRange 的副本
  * - [withChildren]：用新子节点列表重建自身（结构不变，子节点替换）
+ * - [accept]：双分派 Visitor 调用，消除 Visitor 基类中的 when 表达式
  */
 sealed class LatexNode {
     abstract val sourceRange: SourceRange?
@@ -51,9 +54,69 @@ sealed class LatexNode {
      */
     abstract fun withChildren(newChildren: List<LatexNode>): LatexNode
 
+    /** 双分派：将访问者分派到对应的 visit 方法 */
+    abstract fun <T> accept(visitor: LatexVisitor<T>): T
+
+    // ====================================================================
+    // 函数式遍历 API
+    // ====================================================================
+
     /**
-     * 文档根节点
+     * 深度优先折叠：对自身及所有后代节点应用 [combine]
+     *
+     * 用法示例：
+     * ```kotlin
+     * val nodeCount = doc.fold(0) { acc, _ -> acc + 1 }
+     * ```
      */
+    fun <T> fold(initial: T, combine: (T, LatexNode) -> T): T {
+        var acc = combine(initial, this)
+        for (child in children()) {
+            acc = child.fold(acc, combine)
+        }
+        return acc
+    }
+
+    /**
+     * 深度优先映射：对每个节点应用 [transform]，自底向上重建树
+     *
+     * 用法示例：
+     * ```kotlin
+     * val cleaned = doc.mapNodes { if (it is LatexNode.Space) LatexNode.Text(" ") else it }
+     * ```
+     */
+    fun mapNodes(transform: (LatexNode) -> LatexNode): LatexNode {
+        val mappedChildren = children().map { it.mapNodes(transform) }
+        val rebuilt = if (mappedChildren.isEmpty()) this else withChildren(mappedChildren)
+        return transform(rebuilt)
+    }
+
+    // ====================================================================
+    // 行列结构辅助
+    // ====================================================================
+
+    companion object {
+        /**
+         * 按原始行结构重建 rows 的通用实现。
+         * 供 Matrix/Array/Aligned/Split/Eqnarray/Tabular/Substack 共用。
+         */
+        fun rebuildRows(
+            originalRows: List<List<LatexNode>>,
+            newChildren: List<LatexNode>
+        ): List<List<LatexNode>> {
+            val result = mutableListOf<List<LatexNode>>()
+            var idx = 0
+            for (row in originalRows) {
+                result.add(List(row.size) { newChildren[idx++] })
+            }
+            return result
+        }
+    }
+
+    // ====================================================================
+    // 节点类型
+    // ====================================================================
+
     data class Document(
         val children: List<LatexNode>,
         override val sourceRange: SourceRange? = null
@@ -61,8 +124,9 @@ sealed class LatexNode {
         override fun children() = children
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(children = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitDocument(this)
     }
-    
+
     /**
      * 文本节点
      */
@@ -73,8 +137,9 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitText(this)
     }
-    
+
     /**
      * 命令节点（如 \frac, \sqrt 等）
      */
@@ -87,8 +152,9 @@ sealed class LatexNode {
         override fun children() = arguments
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(arguments = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitCommand(this)
     }
-    
+
     /**
      * 环境节点（如 \begin{equation}...\end{equation}）
      */
@@ -101,8 +167,9 @@ sealed class LatexNode {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitEnvironment(this)
     }
-    
+
     /**
      * 分组节点（花括号包围的内容）
      */
@@ -113,8 +180,9 @@ sealed class LatexNode {
         override fun children() = children
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(children = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitGroup(this)
     }
-    
+
     /**
      * 上标节点（^）
      */
@@ -127,8 +195,10 @@ sealed class LatexNode {
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) =
             copy(base = newChildren[0], exponent = newChildren[1])
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSuperscript(this)
     }
-    
+
     /**
      * 下标节点（_）
      */
@@ -141,8 +211,10 @@ sealed class LatexNode {
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) =
             copy(base = newChildren[0], index = newChildren[1])
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSubscript(this)
     }
-    
+
     /**
      * 分数节点
      */
@@ -155,8 +227,10 @@ sealed class LatexNode {
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) =
             copy(numerator = newChildren[0], denominator = newChildren[1])
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitFraction(this)
     }
-    
+
     /**
      * 根号节点
      */
@@ -172,8 +246,10 @@ sealed class LatexNode {
             val newIndex = if (index != null) newChildren.getOrNull(1) else null
             return copy(content = newContent, index = newIndex)
         }
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitRoot(this)
     }
-    
+
     /**
      * 矩阵节点
      */
@@ -184,31 +260,17 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class MatrixType {
-            PLAIN,      // matrix
-            PAREN,      // pmatrix ()
-            BRACKET,    // bmatrix []
-            BRACE,      // Bmatrix {}
-            VBAR,       // vmatrix ||
-            DOUBLE_VBAR // Vmatrix ||||
+            PLAIN, PAREN, BRACKET, BRACE, VBAR, DOUBLE_VBAR
         }
 
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
-            // 按原始行结构重建 rows
-            val newRows = mutableListOf<List<LatexNode>>()
-            var idx = 0
-            for (row in rows) {
-                val newRow = mutableListOf<LatexNode>()
-                for (_cell in row) {
-                    newRow.add(newChildren[idx++])
-                }
-                newRows.add(newRow)
-            }
-            return copy(rows = newRows)
-        }
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(rows = rebuildRows(rows, newChildren))
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitMatrix(this)
     }
-    
+
     /**
      * 数组节点（array环境，更通用的表格）
      */
@@ -219,20 +281,12 @@ sealed class LatexNode {
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
-            val newRows = mutableListOf<List<LatexNode>>()
-            var idx = 0
-            for (row in rows) {
-                val newRow = mutableListOf<LatexNode>()
-                for (_cell in row) {
-                    newRow.add(newChildren[idx++])
-                }
-                newRows.add(newRow)
-            }
-            return copy(rows = newRows)
-        }
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(rows = rebuildRows(rows, newChildren))
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitArray(this)
     }
-    
+
     /**
      * 空格节点
      */
@@ -241,20 +295,15 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class SpaceType {
-            THIN,       // \,
-            MEDIUM,     // \:
-            THICK,      // \;
-            QUAD,       // \quad
-            QQUAD,      // \qquad
-            NORMAL,     // normal space
-            NEGATIVE_THIN // \!
+            THIN, MEDIUM, THICK, QUAD, QQUAD, NORMAL, NEGATIVE_THIN
         }
 
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSpace(this)
     }
-    
+
     /**
      * 自定义水平空格节点 (\hspace)
      */
@@ -265,8 +314,9 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitHSpace(this)
     }
-    
+
     /**
      * 换行节点
      */
@@ -276,8 +326,9 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitNewLine(this)
     }
-    
+
     /**
      * 特殊符号节点（包括希腊字母、运算符符号、数学符号等）
      * 例如：α, β, ×, ÷, ≤, →
@@ -290,8 +341,9 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSymbol(this)
     }
-    
+
     /**
      * 数学运算符节点
      * 注意：当前解析器将运算符符号（如 \times, \div）解析为 Symbol
@@ -304,44 +356,42 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitOperator(this)
     }
-    
+
     /**
      * 括号节点（自动伸缩）
-     * 
+     *
      * 使用场景：
      * 1. 自动伸缩：`\left( ... \right)` - scalable=true
      * 2. 不对称分隔符：`\left. ... \right|` - left="" 或 right=""
-     * 
+     *
      * @param left 左分隔符（空字符串表示不显示）
      * @param right 右分隔符（空字符串表示不显示）
      * @param content 括号内的内容
-     * @param scalable true=自动伸缩（始终为 true，保留用于向后兼容）
-     * @param manualSize 已弃用，保留用于向后兼容
      */
     data class Delimited(
         val left: String,
         val right: String,
         val content: List<LatexNode>,
-        val scalable: Boolean = true,
-        val manualSize: Float? = null,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitDelimited(this)
     }
-    
+
     /**
      * 手动大小分隔符节点
-     * 
+     *
      * 与 Delimited 不同，这是一个独立的符号，不包裹内容
-     * 
+     *
      * 使用场景：
      * - `\big(` - 生成一个 1.2x 大小的左括号符号
      * - `\Big[` - 生成一个 1.8x 大小的左方括号符号
      * - `\bigg\{` - 生成一个 2.4x 大小的左花括号符号
-     * 
+     *
      * @param delimiter 分隔符符号（如 "(", "[", "|" 等）
      * @param size 缩放因子（1.2f, 1.8f, 2.4f, 3.0f）
      */
@@ -353,8 +403,9 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitManualSizedDelimiter(this)
     }
-    
+
     /**
      * 装饰节点（如上划线、下划线、箭头等）
      */
@@ -372,8 +423,9 @@ sealed class LatexNode {
         override fun children() = listOf(content)
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren[0])
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitAccent(this)
     }
-    
+
     /**
      * 可扩展箭头节点（箭头上方或下方可显示文字）
      */
@@ -384,11 +436,7 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class Direction {
-            RIGHT,       // \xrightarrow
-            LEFT,        // \xleftarrow
-            BOTH,        // \xleftrightarrow
-            HOOK_RIGHT,  // \xhookrightarrow
-            HOOK_LEFT    // \xhookleftarrow
+            RIGHT, LEFT, BOTH, HOOK_RIGHT, HOOK_LEFT
         }
 
         override fun children() = listOfNotNull(content, below)
@@ -398,8 +446,10 @@ sealed class LatexNode {
             val newBelow = if (below != null) newChildren.getOrNull(1) else null
             return copy(content = newContent, below = newBelow)
         }
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitExtensibleArrow(this)
     }
-    
+
     /**
      * 堆叠节点（在基础内容上方或下方添加内容）
      */
@@ -414,12 +464,14 @@ sealed class LatexNode {
         override fun withChildren(newChildren: List<LatexNode>): LatexNode {
             var idx = 0
             val newBase = newChildren[idx++]
-            val newAbove = if (above != null) newChildren.getOrNull(idx++)  else null
+            val newAbove = if (above != null) newChildren.getOrNull(idx++) else null
             val newBelow = if (below != null) newChildren.getOrNull(idx) else null
             return copy(base = newBase, above = newAbove, below = newBelow)
         }
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitStack(this)
     }
-    
+
     /**
      * 字体样式节点
      */
@@ -429,23 +481,16 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class StyleType {
-            BOLD,              // \mathbf - 文本粗体
-            BOLD_SYMBOL,       // \boldsymbol - 符号粗体（包括希腊字母）
-            ITALIC,            // \mathit
-            ROMAN,             // \mathrm
-            SANS_SERIF,        // \mathsf
-            MONOSPACE,         // \mathtt
-            BLACKBOARD_BOLD,   // \mathbb
-            FRAKTUR,           // \mathfrak
-            SCRIPT,            // \mathscr
-            CALLIGRAPHIC       // \mathcal
+            BOLD, BOLD_SYMBOL, ITALIC, ROMAN, SANS_SERIF, MONOSPACE,
+            BLACKBOARD_BOLD, FRAKTUR, SCRIPT, CALLIGRAPHIC
         }
 
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitStyle(this)
     }
-    
+
     /**
      * 颜色节点
      */
@@ -457,11 +502,12 @@ sealed class LatexNode {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitColor(this)
     }
-    
+
     /**
      * 数学模式节点（控制公式大小）
-     * 
+     *
      * @property content 内容
      * @property mathStyleType 数学模式类型
      */
@@ -471,17 +517,15 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class MathStyleType {
-            DISPLAY,         // \displaystyle - 显示模式（最大）
-            TEXT,            // \textstyle - 文本模式（正常）
-            SCRIPT,          // \scriptstyle - 脚本模式（上下标大小）
-            SCRIPT_SCRIPT    // \scriptscriptstyle - 小脚本模式（二级上下标大小）
+            DISPLAY, TEXT, SCRIPT, SCRIPT_SCRIPT
         }
 
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitMathStyle(this)
     }
-    
+
     /**
      * 大型运算符（求和、积分、乘积等）
      */
@@ -492,11 +536,7 @@ sealed class LatexNode {
         val limitsMode: LimitsMode = LimitsMode.AUTO,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        enum class LimitsMode {
-            AUTO,       // 默认（根据 MathStyle 和运算符类型决定）
-            LIMITS,     // 强制上下模式 (\limits)
-            NOLIMITS    // 强制侧边模式 (\nolimits)
-        }
+        enum class LimitsMode { AUTO, LIMITS, NOLIMITS }
 
         override fun children() = listOfNotNull(subscript, superscript)
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -506,8 +546,10 @@ sealed class LatexNode {
             val newSup = if (superscript != null) newChildren.getOrNull(idx) else null
             return copy(subscript = newSub, superscript = newSup)
         }
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitBigOperator(this)
     }
-    
+
     /**
      * 对齐环境
      */
@@ -516,26 +558,16 @@ sealed class LatexNode {
         val alignType: AlignType = AlignType.CENTER,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        enum class AlignType {
-            LEFT, CENTER, RIGHT
-        }
+        enum class AlignType { LEFT, CENTER, RIGHT }
 
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
-            val newRows = mutableListOf<List<LatexNode>>()
-            var idx = 0
-            for (row in rows) {
-                val newRow = mutableListOf<LatexNode>()
-                for (_cell in row) {
-                    newRow.add(newChildren[idx++])
-                }
-                newRows.add(newRow)
-            }
-            return copy(rows = newRows)
-        }
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(rows = rebuildRows(rows, newChildren))
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitAligned(this)
     }
-    
+
     /**
      * 案例环境（cases / dcases / rcases）
      * @param cases 每个 case 是 (表达式, 条件) 对
@@ -546,11 +578,7 @@ sealed class LatexNode {
         val style: CasesStyle = CasesStyle.NORMAL,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        enum class CasesStyle {
-            NORMAL,   // cases — 标准左花括号
-            DISPLAY,  // dcases — 使用 displaystyle 的左花括号
-            RIGHT     // rcases — 右花括号
-        }
+        enum class CasesStyle { NORMAL, DISPLAY, RIGHT }
 
         override fun children() = cases.flatMap { listOf(it.first, it.second) }
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -562,8 +590,10 @@ sealed class LatexNode {
             }
             return copy(cases = newCases)
         }
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitCases(this)
     }
-    
+
     /**
      * Split 环境（用于单个方程内的多行分割）
      */
@@ -573,20 +603,12 @@ sealed class LatexNode {
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
-            val newRows = mutableListOf<List<LatexNode>>()
-            var idx = 0
-            for (row in rows) {
-                val newRow = mutableListOf<LatexNode>()
-                for (_cell in row) {
-                    newRow.add(newChildren[idx++])
-                }
-                newRows.add(newRow)
-            }
-            return copy(rows = newRows)
-        }
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(rows = rebuildRows(rows, newChildren))
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSplit(this)
     }
-    
+
     /**
      * Multline 环境（多行单个方程）
      */
@@ -597,8 +619,9 @@ sealed class LatexNode {
         override fun children() = lines
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(lines = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitMultline(this)
     }
-    
+
     /**
      * Eqnarray 环境（旧式方程数组）
      */
@@ -608,20 +631,12 @@ sealed class LatexNode {
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
-            val newRows = mutableListOf<List<LatexNode>>()
-            var idx = 0
-            for (row in rows) {
-                val newRow = mutableListOf<LatexNode>()
-                for (_cell in row) {
-                    newRow.add(newChildren[idx++])
-                }
-                newRows.add(newRow)
-            }
-            return copy(rows = newRows)
-        }
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(rows = rebuildRows(rows, newChildren))
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitEqnarray(this)
     }
-    
+
     /**
      * Subequations 环境（子方程编号）
      */
@@ -632,8 +647,9 @@ sealed class LatexNode {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSubequations(this)
     }
-    
+
     /**
      * 二项式系数 \binom{n}{k}
      */
@@ -643,18 +659,16 @@ sealed class LatexNode {
         val style: BinomialStyle = BinomialStyle.NORMAL,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        enum class BinomialStyle {
-            NORMAL,   // \binom
-            TEXT,     // \tbinom (text style)
-            DISPLAY   // \dbinom (display style)
-        }
+        enum class BinomialStyle { NORMAL, TEXT, DISPLAY }
 
         override fun children() = listOf(top, bottom)
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) =
             copy(top = newChildren[0], bottom = newChildren[1])
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitBinomial(this)
     }
-    
+
     /**
      * 文本模式（在数学公式中插入普通文本）
      */
@@ -665,8 +679,9 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitTextMode(this)
     }
-    
+
     /**
      * 方框节点（\boxed）
      * 在内容周围绘制边框
@@ -678,8 +693,9 @@ sealed class LatexNode {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitBoxed(this)
     }
-    
+
     /**
      * 幻影节点（\phantom）
      * 占据空间但不显示内容，用于对齐
@@ -691,8 +707,9 @@ sealed class LatexNode {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitPhantom(this)
     }
-    
+
     /**
      * 自定义命令定义节点（\newcommand）
      * 该节点不参与渲染，仅用于记录命令定义
@@ -709,6 +726,7 @@ sealed class LatexNode {
         override fun children() = definition
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(definition = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitNewCommand(this)
     }
 
     /**
@@ -723,6 +741,7 @@ sealed class LatexNode {
         override fun children() = listOf(content)
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren[0])
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitNegation(this)
     }
 
     /**
@@ -738,6 +757,7 @@ sealed class LatexNode {
         override fun children() = listOf(label)
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(label = newChildren[0])
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitTag(this)
     }
 
     /**
@@ -751,18 +771,10 @@ sealed class LatexNode {
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
-            val newRows = mutableListOf<List<LatexNode>>()
-            var idx = 0
-            for (row in rows) {
-                val newRow = mutableListOf<LatexNode>()
-                for (_cell in row) {
-                    newRow.add(newChildren[idx++])
-                }
-                newRows.add(newRow)
-            }
-            return copy(rows = newRows)
-        }
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(rows = rebuildRows(rows, newChildren))
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSubstack(this)
     }
 
     /**
@@ -776,15 +788,12 @@ sealed class LatexNode {
         val smashType: SmashType = SmashType.BOTH,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        enum class SmashType {
-            BOTH,   // \smash{x} — 压缩高度和深度
-            TOP,    // \smash[t]{x} — 只压顶部（ascent）
-            BOTTOM  // \smash[b]{x} — 只压底部（descent）
-        }
+        enum class SmashType { BOTH, TOP, BOTTOM }
 
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSmash(this)
     }
 
     /**
@@ -798,6 +807,7 @@ sealed class LatexNode {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitVPhantom(this)
     }
 
     /**
@@ -811,6 +821,7 @@ sealed class LatexNode {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitHPhantom(this)
     }
 
     /**
@@ -825,6 +836,7 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitLabel(this)
     }
 
     /**
@@ -839,6 +851,7 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitRef(this)
     }
 
     /**
@@ -853,6 +866,7 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitEqRef(this)
     }
 
     /**
@@ -881,8 +895,16 @@ sealed class LatexNode {
             val newRightSub = if (rightSub != null) newChildren[idx++] else null
             val newRightSup = if (rightSup != null) newChildren[idx++] else null
             val newBase = newChildren[idx]
-            return copy(leftSub = newLeftSub, leftSup = newLeftSup, rightSub = newRightSub, rightSup = newRightSup, base = newBase)
+            return copy(
+                leftSub = newLeftSub,
+                leftSup = newLeftSup,
+                rightSub = newRightSub,
+                rightSup = newRightSup,
+                base = newBase
+            )
         }
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSideSet(this)
     }
 
     /**
@@ -905,6 +927,8 @@ sealed class LatexNode {
             }
             return copy(base = newBase, indices = newIndices)
         }
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitTensor(this)
     }
 
     /**
@@ -920,18 +944,10 @@ sealed class LatexNode {
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
-            val newRows = mutableListOf<List<LatexNode>>()
-            var idx = 0
-            for (row in rows) {
-                val newRow = mutableListOf<LatexNode>()
-                for (_cell in row) {
-                    newRow.add(newChildren[idx++])
-                }
-                newRows.add(newRow)
-            }
-            return copy(rows = newRows)
-        }
+        override fun withChildren(newChildren: List<LatexNode>) =
+            copy(rows = rebuildRows(rows, newChildren))
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitTabular(this)
     }
 
     /**
@@ -944,6 +960,7 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitHLine(this)
     }
 
     /**
@@ -960,6 +977,7 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitCLine(this)
     }
 
     /**
@@ -977,6 +995,7 @@ sealed class LatexNode {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitMulticolumn(this)
     }
 
     /**
@@ -991,6 +1010,7 @@ sealed class LatexNode {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitOperatorName(this)
     }
 
     /**
@@ -1003,11 +1023,7 @@ sealed class LatexNode {
         val modStyle: ModStyle,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        enum class ModStyle {
-            BMOD,  // \bmod — 二元运算符 "mod"
-            PMOD,  // \pmod{n} — (mod n)
-            MOD    // \mod — 间距更大的 "mod"
-        }
+        enum class ModStyle { BMOD, PMOD, MOD }
 
         override fun children() = listOfNotNull(content)
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -1015,6 +1031,8 @@ sealed class LatexNode {
             val newContent = if (content != null) newChildren.firstOrNull() else null
             return copy(content = newContent)
         }
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitModOperator(this)
     }
 
     /**
@@ -1029,6 +1047,7 @@ sealed class LatexNode {
         override fun children() = children
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(children = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitInlineMath(this)
     }
 
     /**
@@ -1043,5 +1062,26 @@ sealed class LatexNode {
         override fun children() = children
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(children = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitDisplayMath(this)
+    }
+
+    /**
+     * 错误恢复节点
+     *
+     * 当解析器遇到无法识别的输入时，将其包装为 Error 节点而非静默丢弃。
+     * 渲染层可用 errorColor 渲染此节点，使用户能看到问题所在。
+     *
+     * @param message 错误描述
+     * @param recovered 错误恢复后解析出的部分内容（可能为空）
+     */
+    data class Error(
+        val message: String,
+        val recovered: List<LatexNode> = emptyList(),
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        override fun children() = recovered
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(recovered = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitError(this)
     }
 }

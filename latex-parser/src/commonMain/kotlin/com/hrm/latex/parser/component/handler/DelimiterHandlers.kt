@@ -83,7 +83,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
             else -> ")"
         }
 
-        LatexNode.Delimited(left, right, content, true)
+        LatexNode.Delimited(left, right, content)
     }
 
     // 手动大小控制

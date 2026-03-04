@@ -67,7 +67,7 @@ internal class CommandParser(
      * 解析命令
      */
     fun parseCommand(cmdName: String): LatexNode? {
-        HLog.d(TAG, "解析命令: \\$cmdName")
+        HLog.d(TAG) { "解析命令: \\$cmdName" }
 
         // 1. 优先检查自定义命令
         val customCmd = context.customCommands[cmdName]

@@ -195,6 +195,22 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         output.append(")")
         return ""
     }
+
+    override fun visitError(node: LatexNode.Error): String {
+        output.append("Error('${node.message}')")
+        if (node.recovered.isNotEmpty()) {
+            output.append("\n")
+            indent++
+            printIndent()
+            output.append("recovered: ")
+            node.recovered.forEachIndexed { i, child ->
+                if (i > 0) output.append(", ")
+                visit(child)
+            }
+            indent--
+        }
+        return ""
+    }
     
     fun print(node: LatexNode): String {
         output.clear()

@@ -74,8 +74,9 @@ class NewCommandTest {
         val input = "\\newcommand{\\R}{\\mathbb{R}} x \\in \\R"
         val result = parser.parse(input)
         
-        // 验证命令被注册
-        assertTrue(parser.customCommands.containsKey("R"))
+        // 验证命令定义存在
+        val newCmd = result.children.filterIsInstance<LatexNode.NewCommand>()
+        assertTrue(newCmd.any { it.commandName == "R" }, "应该有 R 命令定义")
         
         // 验证展开结果包含 mathbb{R}
         val lastNode = result.children.last()
@@ -88,7 +89,8 @@ class NewCommandTest {
         val input = "\\newcommand{\\diff}[1]{\\frac{d}{d#1}} \\diff{x}"
         val result = parser.parse(input)
         
-        assertTrue(parser.customCommands.containsKey("diff"))
+        val newCmd = result.children.filterIsInstance<LatexNode.NewCommand>()
+        assertTrue(newCmd.any { it.commandName == "diff" }, "应该有 diff 命令定义")
         
         // 最后一个节点应该是展开的分数
         val lastNode = result.children.last()
@@ -106,7 +108,8 @@ class NewCommandTest {
         val input = "\\newcommand{\\pdiff}[2]{\\frac{\\partial #1}{\\partial #2}} \\pdiff{f}{x}"
         val result = parser.parse(input)
         
-        assertTrue(parser.customCommands.containsKey("pdiff"))
+        val newCmd = result.children.filterIsInstance<LatexNode.NewCommand>()
+        assertTrue(newCmd.any { it.commandName == "pdiff" }, "应该有 pdiff 命令定义")
         
         val lastNode = result.children.last()
         assertTrue(lastNode is LatexNode.Group)
@@ -125,9 +128,10 @@ class NewCommandTest {
         """.trimIndent()
         val result = parser.parse(input)
         
-        assertTrue(parser.customCommands.containsKey("N"))
-        assertTrue(parser.customCommands.containsKey("Z"))
-        assertEquals(2, parser.customCommands.size)
+        val newCmds = result.children.filterIsInstance<LatexNode.NewCommand>()
+        assertTrue(newCmds.any { it.commandName == "N" }, "应该有 N 命令定义")
+        assertTrue(newCmds.any { it.commandName == "Z" }, "应该有 Z 命令定义")
+        assertEquals(2, newCmds.size)
     }
 
     @Test
@@ -161,12 +165,12 @@ class NewCommandTest {
         val input = "\\newcommand{\\abs}[1]{\\left|#1\\right|}"
         val result = parser.parse(input)
         
-        assertTrue(parser.customCommands.containsKey("abs"))
-        val customCmd = parser.customCommands["abs"]!!
+        val newCmd = result.children.filterIsInstance<LatexNode.NewCommand>()
+            .first { it.commandName == "abs" }
         
         // 检查定义内容
-        assertEquals(1, customCmd.definition.size, "定义应包含一个节点（Delimited）")
-        val defNode = customCmd.definition[0]
+        assertEquals(1, newCmd.definition.size, "定义应包含一个节点（Delimited）")
+        val defNode = newCmd.definition[0]
         assertTrue(defNode is LatexNode.Delimited, "定义应该是 Delimited 节点")
         
         val delimited = defNode as LatexNode.Delimited
@@ -186,7 +190,8 @@ class NewCommandTest {
         val input = "\\newcommand{\\abs}[1]{\\left|#1\\right|} \\abs{x}"
         val result = parser.parse(input)
         
-        assertTrue(parser.customCommands.containsKey("abs"))
+        val newCmd = result.children.filterIsInstance<LatexNode.NewCommand>()
+        assertTrue(newCmd.any { it.commandName == "abs" }, "应该有 abs 命令定义")
         
         val lastNode = result.children.last()
         assertTrue(lastNode is LatexNode.Group, "自定义命令应展开为 Group")
@@ -229,15 +234,16 @@ class NewCommandTest {
         val input = "\\newcommand{\\myvec}[1]{\\boldsymbol{#1}}"
         val result = parser.parse(input)
         
-        // 简单检查是否注册了任何自定义命令
-        assertTrue(parser.customCommands.isNotEmpty(), "应该有自定义命令注册，实际有 ${parser.customCommands.size} 个")
+        // 通过 AST 检查是否注册了自定义命令
+        val newCmds = result.children.filterIsInstance<LatexNode.NewCommand>()
+        assertTrue(newCmds.isNotEmpty(), "应该有自定义命令定义")
         
-        // 打印所有注册的命令名用于调试
-        val commandNames = parser.customCommands.keys.joinToString(", ")
-        println("注册的自定义命令: $commandNames")
+        // 打印所有命令名用于调试
+        val commandNames = newCmds.joinToString(", ") { it.commandName }
+        println("定义的自定义命令: $commandNames")
         
         // 检查具体的命令
-        assertTrue(parser.customCommands.containsKey("myvec"), "应该找到 myvec 命令，实际找到: $commandNames")
+        assertTrue(newCmds.any { it.commandName == "myvec" }, "应该找到 myvec 命令，实际找到: $commandNames")
     }
     
     @Test
@@ -246,7 +252,8 @@ class NewCommandTest {
         val input = "\\newcommand{\\myvec}[1]{\\boldsymbol{#1}} \\myvec{v}"
         val result = parser.parse(input)
         
-        assertTrue(parser.customCommands.containsKey("myvec"), "应该注册自定义的 myvec 命令")
+        val newCmds = result.children.filterIsInstance<LatexNode.NewCommand>()
+        assertTrue(newCmds.any { it.commandName == "myvec" }, "应该有 myvec 命令定义")
         
         // 应该有至少两个节点：NewCommand 定义和展开的 Group（可能还有空格）
         assertTrue(result.children.size >= 2, "应该至少有两个节点")
@@ -270,7 +277,8 @@ class NewCommandTest {
         val input = "\\newcommand{\\mychoose}[2]{\\binom{#1}{#2}} \\mychoose{n}{k}"
         val result = parser.parse(input)
 
-        assertTrue(parser.customCommands.containsKey("mychoose"))
+        val newCmds = result.children.filterIsInstance<LatexNode.NewCommand>()
+        assertTrue(newCmds.any { it.commandName == "mychoose" }, "应该有 mychoose 命令定义")
 
         val lastNode = result.children.last()
         assertTrue(lastNode is LatexNode.Group, "custom command should expand to Group")

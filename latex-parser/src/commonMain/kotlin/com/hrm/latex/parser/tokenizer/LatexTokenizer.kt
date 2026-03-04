@@ -28,20 +28,54 @@ import com.hrm.latex.parser.model.SourceRange
 
 /**
  * LaTeX 词法分析器
+ *
+ * @param input 完整输入文本
+ * @param startOffset 起始偏移量（默认 0）。用于增量分词时从指定位置开始扫描，
+ *        产出的 token 的 SourceRange 直接反映在 input 中的全局位置。
  */
-class LatexTokenizer(private val input: String) {
-    private var position = 0
-    private val tokens = mutableListOf<LatexToken>()
+class LatexTokenizer(private val input: String, startOffset: Int = 0) {
+    private var position = startOffset
+    private val tokens = ArrayList<LatexToken>(estimateTokenCount(input.length - startOffset))
 
     companion object {
         private const val TAG = "LatexTokenizer"
+
+        /**
+         * handleText() 停止字符集 — 提取为 companion object 常量，
+         * 避免每个字符循环迭代都创建新的 Set 实例（P0 热路径优化）。
+         * 使用 BooleanArray 查表替代 Set.contains()，O(1) 且无装箱。
+         */
+        private val TEXT_STOP_CHARS = BooleanArray(128).apply {
+            for (ch in charArrayOf(
+                '\\', '{', '}', '[', ']', '^', '_', '&',
+                '\n', '\r', '(', ')', '|', '~', '%', '$',
+                ' ', '\t'
+            )) {
+                this[ch.code] = true
+            }
+        }
+
+        /** 判断字符是否为 text token 的停止字符 */
+        @Suppress("NOTHING_TO_INLINE")
+        private inline fun isTextStopChar(ch: Char): Boolean {
+            val code = ch.code
+            return code < 128 && TEXT_STOP_CHARS[code]
+        }
+
+        /**
+         * 根据输入长度预估 token 数量，减少 ArrayList 扩容次数。
+         * 经验值：平均每 4~5 个字符产生 1 个 token。
+         */
+        private fun estimateTokenCount(inputLength: Int): Int {
+            return (inputLength / 4).coerceAtLeast(16)
+        }
     }
 
     /**
      * 执行词法分析
      */
     fun tokenize(): List<LatexToken> {
-        HLog.d(TAG, "开始词法分析，输入长度: ${input.length}")
+        HLog.d(TAG) { "开始词法分析，输入长度: ${input.length}" }
 
         while (position < input.length) {
             when (val char = peek()) {
@@ -108,7 +142,7 @@ class LatexTokenizer(private val input: String) {
         }
 
         tokens.add(LatexToken.EOF(SourceRange(position, position)))
-        HLog.d(TAG, "词法分析完成，生成 ${tokens.size} 个 token")
+        HLog.d(TAG) { "词法分析完成，生成 ${tokens.size} 个 token" }
         return tokens
     }
 
@@ -153,6 +187,11 @@ class LatexTokenizer(private val input: String) {
             if (char != null && !char.isWhitespace()) {
                 advance()
                 tokens.add(LatexToken.Command(char.toString(), SourceRange(start, position)))
+            } else {
+                // \ 后跟 EOF 或空白 — 产生一个空命令 token 以确保反斜杠位置被覆盖。
+                // 对增量分词至关重要：如果此处不产生 token，反斜杠的位置会成为"空洞"，
+                // 后续追加的字符（如 \+i → \i）不会被正确关联为 Command token。
+                tokens.add(LatexToken.Command("", SourceRange(start, position)))
             }
             return
         }
@@ -209,13 +248,7 @@ class LatexTokenizer(private val input: String) {
         val text = buildString {
             while (position < input.length) {
                 val char = peek() ?: break
-                // 停止字符：特殊符号、空白字符、括号等
-                if (char in setOf('\\', '{', '}', '[', ']', '^', '_', '&', '\n', '\r', '(', ')', '|', '~', '%', '$')) {
-                    break
-                }
-                if (char == ' ' || char == '\t') {
-                    break
-                }
+                if (isTextStopChar(char)) break
                 append(char)
                 advance()
             }
@@ -321,6 +354,84 @@ class LatexTokenizer(private val input: String) {
             val char = peek() ?: break
             if (!char.isWhitespace()) break
             advance()
+        }
+    }
+
+    // ========== 流式 API（增量分词使用） ==========
+
+    /**
+     * 扫描并返回下一个 token。
+     *
+     * 与 [tokenize] 不同，此方法不将 token 加入内部列表，
+     * 而是直接返回。到达文本末尾时返回 EOF token。
+     * 用于 [IncrementalTokenizer] 的逐 token 收敛分词。
+     */
+    fun nextToken(): LatexToken {
+        if (position >= input.length) {
+            return LatexToken.EOF(SourceRange(position, position))
+        }
+
+        val savedSize = tokens.size
+        when (val char = peek()) {
+            '\\' -> handleBackslash()
+            '%' -> handleComment()
+            '~' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Whitespace("\u00A0", SourceRange(start, position)))
+            }
+            '{' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.LeftBrace(SourceRange(start, position)))
+            }
+            '}' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.RightBrace(SourceRange(start, position)))
+            }
+            '[' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.LeftBracket(SourceRange(start, position)))
+            }
+            ']' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.RightBracket(SourceRange(start, position)))
+            }
+            '^' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Superscript(SourceRange(start, position)))
+            }
+            '_' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Subscript(SourceRange(start, position)))
+            }
+            '&' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Ampersand(SourceRange(start, position)))
+            }
+            '$' -> handleMathShift()
+            '(', ')', '|' -> {
+                val start = position
+                tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
+                advance()
+            }
+            '\n', '\r' -> handleNewLine()
+            ' ', '\t' -> handleWhitespace()
+            else -> handleText()
+        }
+
+        // handleComment 不产生 token（注释被吞掉），需要递归处理
+        return if (tokens.size > savedSize) {
+            tokens.removeLast()
+        } else {
+            // 注释被跳过了，递归取下一个
+            nextToken()
         }
     }
 }

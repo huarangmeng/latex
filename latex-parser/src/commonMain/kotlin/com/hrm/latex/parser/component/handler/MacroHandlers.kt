@@ -57,7 +57,7 @@ internal fun CommandRegistry.installMacroHandlers() {
         }
 
         ctx.customCommands[commandName] = CustomCommand(commandName, numArgs, definition)
-        HLog.d(TAG, "注册自定义命令: \\$commandName[$numArgs]")
+        HLog.d(TAG) { "注册自定义命令: \\$commandName[$numArgs]" }
         LatexNode.NewCommand(commandName, numArgs, definition)
     }
 
@@ -111,7 +111,7 @@ internal fun CommandRegistry.installMacroHandlers() {
 
         val definition = listOf(LatexNode.OperatorName(operatorName))
         ctx.customCommands[commandName] = CustomCommand(commandName, 0, definition)
-        HLog.d(TAG, "注册运算符: \\$commandName → operatorname{$operatorName}")
+        HLog.d(TAG) { "注册运算符: \\$commandName → operatorname{$operatorName}" }
         LatexNode.NewCommand(commandName, 0, definition)
     }
 }

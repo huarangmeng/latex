@@ -42,7 +42,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
         val envName = beginToken.name
         val startOffset = beginToken.range.start
 
-        HLog.d(TAG, "解析环境: $envName")
+        HLog.d(TAG) { "解析环境: $envName" }
 
         val result = when (envName) {
             "matrix", "pmatrix", "bmatrix", "Bmatrix", "vmatrix", "Vmatrix" -> parseMatrix(
@@ -116,7 +116,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
                         tokenStream.advance()
                         break
                     } else {
-                        HLog.w(TAG, "mismatched end environment: expected $envName, got ${token.name}")
+                        HLog.w(TAG) { "mismatched end environment: expected $envName, got ${token.name}" }
                         tokenStream.advance()
                     }
                 }
