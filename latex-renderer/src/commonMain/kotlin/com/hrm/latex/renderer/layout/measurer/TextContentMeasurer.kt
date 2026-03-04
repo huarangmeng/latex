@@ -257,28 +257,11 @@ internal class TextContentMeasurer : NodeMeasurer {
     }
 
     private fun isLowercaseGreek(symbol: String): Boolean {
-        return symbol in setOf(
-            "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa",
-            "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi",
-            "chi", "psi", "omega",
-            "varpi", "varrho", "varsigma", "vartheta", "varphi", "varepsilon"
-        )
+        return symbol in LOWERCASE_GREEK_SYMBOLS
     }
 
     private fun isUppercaseGreek(symbol: String): Boolean {
-        return symbol in setOf(
-            "Gamma",
-            "Delta",
-            "Theta",
-            "Lambda",
-            "Xi",
-            "Pi",
-            "Sigma",
-            "Upsilon",
-            "Phi",
-            "Psi",
-            "Omega"
-        )
+        return symbol in UPPERCASE_GREEK_SYMBOLS
     }
 
     /**
@@ -286,7 +269,26 @@ internal class TextContentMeasurer : NodeMeasurer {
      * 某些符号（如 ℏ, ∇, ∂）在正常字重下笔画过粗，需要使用极细字重
      */
     private fun needsLightWeight(symbol: String): Boolean {
-        return symbol in setOf(
+        return symbol in LIGHT_WEIGHT_SYMBOLS
+    }
+
+    companion object {
+        /** 小写希腊字母命令名集合（编译时常量，避免每次调用重新创建） */
+        private val LOWERCASE_GREEK_SYMBOLS = setOf(
+            "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa",
+            "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi",
+            "chi", "psi", "omega",
+            "varpi", "varrho", "varsigma", "vartheta", "varphi", "varepsilon"
+        )
+
+        /** 大写希腊字母命令名集合 */
+        private val UPPERCASE_GREEK_SYMBOLS = setOf(
+            "Gamma", "Delta", "Theta", "Lambda", "Xi",
+            "Pi", "Sigma", "Upsilon", "Phi", "Psi", "Omega"
+        )
+
+        /** 需要极细字重的符号 */
+        private val LIGHT_WEIGHT_SYMBOLS = setOf(
             "hbar",      // ℏ (h-bar)
             "nabla",     // ∇ (nabla)
             "partial"    // ∂ (partial derivative)

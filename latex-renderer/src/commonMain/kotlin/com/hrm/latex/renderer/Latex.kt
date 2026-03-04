@@ -43,6 +43,7 @@ import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.visitor.AccessibilityVisitor
+import com.hrm.latex.renderer.font.MathFontProviderFactory
 import com.hrm.latex.renderer.font.rememberResolvedMathFont
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.model.HighlightRange
@@ -92,8 +93,20 @@ fun Latex(
 
     val fontFamilies = effectiveMathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies()
 
+    // 缓存 MathFontProvider 实例：Provider 不是 data class，每次创建新实例会导致
+    // RenderContext 的 equals 失效，进而使下游 remember(context) 永远 miss。
+    // 通过 remember 保证 effectiveMathFont + fontFamilies 不变时复用同一 Provider 引用。
+    val provider = remember(effectiveMathFont, fontFamilies) {
+        MathFontProviderFactory.create(
+            mathFont = effectiveMathFont,
+            defaultFontFamilies = fontFamilies
+        )
+    }
+
     // 构建渲染上下文（fontFamilies 由全局单例管理，bytes 异步加载完成后自动触发重组）
-    val context = config.copy(mathFont = effectiveMathFont).toContext(isDarkTheme, fontFamilies)
+    val context = remember(config, isDarkTheme, fontFamilies, provider) {
+        config.copy(mathFont = effectiveMathFont).toContext(isDarkTheme, fontFamilies, provider)
+    }
 
     // 复用解析器实例以支持真正的增量解析
     val parser = remember { IncrementalLatexParser() }

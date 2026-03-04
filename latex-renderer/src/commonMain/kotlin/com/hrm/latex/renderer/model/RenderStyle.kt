@@ -212,17 +212,34 @@ internal data class RenderContext(
     val layoutHints: LayoutHints = LayoutHints(),
     // ── 排版参数 ──
     val mathFontProvider: MathFontProvider? = null,
-)
+) {
+    /**
+     * 缓存的 TextStyle，避免每次 textStyle() 调用都创建新对象。
+     * 定义在 body 中，不参与 data class 的 equals/hashCode。
+     * copy() 产生新实例时会重新惰性计算。
+     */
+    val cachedTextStyle: TextStyle by lazy {
+        TextStyle(
+            color = color,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
+            fontStyle = fontStyle,
+            fontFamily = fontFamily
+        )
+    }
+}
 
 /**
  * 从外部配置创建初始上下文
  *
  * @param isDark 是否深色模式
  * @param fontFamilies 已解析的字体家族（由调用方通过 mathFont.fontFamiliesOrNull() ?: defaultLatexFontFamilies() 提供）
+ * @param provider 预创建的 MathFontProvider（由调用方缓存，避免每次重组创建新实例）
  */
 internal fun LatexConfig.toContext(
     isDark: Boolean,
-    fontFamilies: LatexFontFamilies
+    fontFamilies: LatexFontFamilies,
+    provider: MathFontProvider? = null
 ): RenderContext {
     val resolvedColor = if (isDark) {
         if (darkColor != Color.Unspecified) darkColor else Color.White
@@ -232,8 +249,8 @@ internal fun LatexConfig.toContext(
 
     val resolvedErrorColor = if (isDark) Color(0xFFFF6666) else Color(0xFFCC0000)
 
-    // 从 mathFont 配置创建 MathFontProvider
-    val provider = MathFontProviderFactory.create(
+    // 使用调用方传入的 provider（已缓存），或按需创建（兼容旧调用路径）
+    val resolvedProvider = provider ?: MathFontProviderFactory.create(
         mathFont = mathFont,
         defaultFontFamilies = fontFamilies
     )
@@ -249,17 +266,11 @@ internal fun LatexConfig.toContext(
             maxLineWidth = if (lineBreaking.enabled) lineBreaking.maxWidth else null,
             lineBreakingEnabled = lineBreaking.enabled,
         ),
-        mathFontProvider = provider
+        mathFontProvider = resolvedProvider
     )
 }
 
-internal fun RenderContext.textStyle(): TextStyle = TextStyle(
-    color = color,
-    fontSize = fontSize,
-    fontWeight = fontWeight,
-    fontStyle = fontStyle,
-    fontFamily = fontFamily
-)
+internal fun RenderContext.textStyle(): TextStyle = cachedTextStyle
 
 /**
  * 进入上下标时的样式转换：使用 MathStyle 状态机自动决定字号

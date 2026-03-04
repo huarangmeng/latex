@@ -35,8 +35,15 @@ const val TAG = "LatexUtils"
 
 /**
  * 分割多行内容
+ *
+ * 性能优化：先检测是否存在 NewLine 节点，无则直接返回单行包装，避免分配列表。
  */
 fun splitLines(nodes: List<LatexNode>): List<List<LatexNode>> {
+    // 短路：无 NewLine 节点时直接返回，避免分配 mutableList
+    if (nodes.none { it is LatexNode.NewLine }) {
+        return listOf(nodes)
+    }
+
     val result = mutableListOf<MutableList<LatexNode>>()
     var current = mutableListOf<LatexNode>()
     nodes.forEach { node ->
@@ -184,35 +191,40 @@ fun parseColor(color: String): Color? {
 }
 
 /**
+ * 居中显示的符号集合（编译时常量，避免每次调用重新创建）
+ */
+private val CENTERED_SYMBOLS = setOf(
+    // 箭头
+    "rightarrow", "leftarrow", "leftrightarrow",
+    "Rightarrow", "Leftarrow", "Leftrightarrow",
+    "longrightarrow", "longleftarrow", "longleftrightarrow",
+    "Longleftarrow", "Longrightarrow", "Longleftrightarrow",
+    "uparrow", "downarrow", "updownarrow",
+    "Uparrow", "Downarrow", "Updownarrow",
+    "mapsto", "to", "longmapsto",
+    "implies", "iff",
+    "nearrow", "searrow", "nwarrow", "swarrow",
+    // 等号和关系符号
+    "equals", "neq", "approx", "equiv", "sim", "simeq", "cong",
+    "leq", "geq", "ll", "gg", "le", "ge",
+    "subset", "supset", "subseteq", "supseteq",
+    "prec", "succ", "preceq", "succeq",
+    "in", "ni", "notin",
+    "propto", "perp", "parallel",
+    "vdash", "dashv",
+    // 二元运算符
+    "plus", "minus", "times", "div", "cdot",
+    "pm", "mp", "ast", "star", "circ",
+    "oplus", "ominus", "otimes", "oslash",
+    "cup", "cap", "setminus", "wedge", "vee",
+    "land", "lor"
+)
+
+/**
  * 判断符号是否应该垂直居中
  *
  * 箭头、等号、加减号等二元运算符应该居中显示
  */
 fun isCenteredSymbol(symbol: String): Boolean {
-    return symbol in setOf(
-        // 箭头
-        "rightarrow", "leftarrow", "leftrightarrow",
-        "Rightarrow", "Leftarrow", "Leftrightarrow",
-        "longrightarrow", "longleftarrow", "longleftrightarrow",
-        "Longleftarrow", "Longrightarrow", "Longleftrightarrow",
-        "uparrow", "downarrow", "updownarrow",
-        "Uparrow", "Downarrow", "Updownarrow",
-        "mapsto", "to", "longmapsto",
-        "implies", "iff",
-        "nearrow", "searrow", "nwarrow", "swarrow",
-        // 等号和关系符号
-        "equals", "neq", "approx", "equiv", "sim", "simeq", "cong",
-        "leq", "geq", "ll", "gg", "le", "ge",
-        "subset", "supset", "subseteq", "supseteq",
-        "prec", "succ", "preceq", "succeq",
-        "in", "ni", "notin",
-        "propto", "perp", "parallel",
-        "vdash", "dashv",
-        // 二元运算符
-        "plus", "minus", "times", "div", "cdot",
-        "pm", "mp", "ast", "star", "circ",
-        "oplus", "ominus", "otimes", "oslash",
-        "cup", "cap", "setminus", "wedge", "vee",
-        "land", "lor"
-    )
+    return symbol in CENTERED_SYMBOLS
 }
