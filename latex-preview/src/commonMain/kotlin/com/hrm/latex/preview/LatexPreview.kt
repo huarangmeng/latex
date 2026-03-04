@@ -125,6 +125,13 @@ val previewCategories = listOf(
         groups = exportPreviewGroups
     ),
     PreviewCategory(
+        id = "inline_math",
+        title = "行内公式",
+        description = "预测量 API + InlineTextContent 行内数学公式",
+        icon = "📏",
+        groups = inlineMathPreviewGroups
+    ),
+    PreviewCategory(
         id = "editor",
         title = "LaTeX 编辑器",
         description = "实时编辑和渲染 LaTeX 公式",

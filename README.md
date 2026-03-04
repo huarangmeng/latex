@@ -16,13 +16,14 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Multi-platform Consistency**: Uses Compose Multiplatform for consistent rendering on Android, iOS, Desktop (JVM), and Web (Wasm/JS).
 - **Automatic Line Breaking**: Smart line wrapping for long formulas at logical breakpoints (operators, relations).
 - **Image Export**: Export rendered formulas as PNG/JPEG/WEBP images with configurable resolution scaling.
+- **Pre-measurement API**: Synchronous pre-measurement of formula dimensions (width/height/baseline) for Compose `InlineTextContent` inline math embedding.
 - **Accessibility**: Built-in screen reader support with MathSpeak-style formula descriptions (MathSpeak).
 - **LaTeX → MathML**: Convert LaTeX AST to Presentation MathML output.
 - **Formula Highlight**: Highlight sub-expressions within formulas via `HighlightConfig`.
 - **Animation**: Animated formula transitions (crossfade / slide / fade+slide).
 - **WYSIWYG Editor** *(Experimental)*: Built-in LaTeX editor with cursor positioning, tap-to-place, and real-time rendered preview.
 
-## 📐 Supported LaTeX Features (332+)
+## 📐 Supported LaTeX Features (333+)
 
 <details>
 <summary><b>Math Formulas</b> — fractions, roots, binomials</summary>
@@ -224,6 +225,23 @@ Latex(
 ```
 
 The `AccessibilityVisitor` converts the LaTeX AST into descriptive text covering fractions, roots, superscripts/subscripts, matrices, Greek letters, operators, and more.
+
+### Pre-measurement API (Inline Math Support)
+
+Pre-measure formula dimensions for embedding inline math via `InlineTextContent`:
+
+```kotlin
+val measurer = rememberLatexMeasurer(config)
+val dims = measurer.measure("\\frac{a}{b}", config) ?: return
+
+val placeholder = Placeholder(
+    width = with(density) { dims.widthPx.toSp() },
+    height = with(density) { dims.heightPx.toSp() },
+    placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+)
+```
+
+`LatexDimensions` provides `widthPx`, `heightPx`, `baselinePx` (with padding) and their content-only counterparts. Use `measureBatch()` for multiple formulas.
 
 ### WYSIWYG Editor (Experimental)
 

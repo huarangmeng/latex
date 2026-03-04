@@ -67,8 +67,8 @@ val basicLatexPreviewGroups = listOf(
         title = "1. 基础级别",
         description = "简单文本、上下标、分数",
         items = listOf(
-            PreviewItem("1", "简单文本", "\\left( \\sum_{k=1}^n a_k b_k \\right)^2 \\leq \\left( \\sum_{k=1}^n a_k^2 \\right) \\left( \\sum_{k=1}^n b_k^2 \\right)\n"),
-            PreviewItem("2", "简单上标", "f(x) = \\int_{-\\infty}^\\infty \\hat f(\\xi)\\,e^{2 \\pi i \\xi x} \\,d\\xi"),
+            PreviewItem("1", "简单文本", "Hello LaTeX"),
+            PreviewItem("2", "简单上标", "x^2"),
             PreviewItem("3", "简单下标", "a_i"),
             PreviewItem("4", "上标+下标", "x_i^2"),
             PreviewItem("5", "简单分数", "\\frac{1}{2}"),
@@ -752,18 +752,46 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("3", "否定序关系", "a \\nprec b \\quad c \\nsucc d"),
             PreviewItem("4", "否定相似/全等", "a \\ncong b \\quad c \\nsim d"),
             PreviewItem("5", "否定整除/平行", "a \\nmid b \\quad c \\nparallel d"),
-            PreviewItem("6", "否定推导", "\\nvdash \\quad \\nvDash \\quad \\nVdash \\quad \\nVDash"),
-            PreviewItem("7", "否定三角关系", "\\ntriangleleft \\quad \\ntriangleright \\quad \\ntrianglelefteq \\quad \\ntrianglerighteq"),
+            PreviewItem(
+                "6",
+                "否定推导",
+                "\\nvdash \\quad \\nvDash \\quad \\nVdash \\quad \\nVDash"
+            ),
+            PreviewItem(
+                "7",
+                "否定三角关系",
+                "\\ntriangleleft \\quad \\ntriangleright \\quad \\ntrianglelefteq \\quad \\ntrianglerighteq"
+            ),
             PreviewItem("8", "否定比较", "a \\nless b \\quad c \\ngtr d"),
             PreviewItem("9", "AMS 额外关系", "a \\leqslant b \\quad c \\geqslant d"),
             PreviewItem("10", "逻辑推导", "\\vDash \\quad \\Vdash \\quad \\Vvdash \\quad \\models"),
-            PreviewItem("11", "综合示例", "\\forall x \\in A, \\; x \\nleq 0 \\implies x \\nsubseteq B"),
-            PreviewItem("12", "杂项符号", "\\checkmark \\quad \\complement \\quad \\eth \\quad \\mho"),
+            PreviewItem(
+                "11",
+                "综合示例",
+                "\\forall x \\in A, \\; x \\nleq 0 \\implies x \\nsubseteq B"
+            ),
+            PreviewItem(
+                "12",
+                "杂项符号",
+                "\\checkmark \\quad \\complement \\quad \\eth \\quad \\mho"
+            ),
             PreviewItem("13", "双头箭头", "\\twoheadrightarrow \\quad \\twoheadleftarrow"),
-            PreviewItem("14", "双线箭头", "\\leftleftarrows \\quad \\rightrightarrows \\quad \\leftrightarrows \\quad \\rightleftarrows"),
-            PreviewItem("15", "弯曲箭头", "\\curvearrowright \\quad \\curvearrowleft \\quad \\circlearrowright \\quad \\circlearrowleft"),
+            PreviewItem(
+                "14",
+                "双线箭头",
+                "\\leftleftarrows \\quad \\rightrightarrows \\quad \\leftrightarrows \\quad \\rightleftarrows"
+            ),
+            PreviewItem(
+                "15",
+                "弯曲箭头",
+                "\\curvearrowright \\quad \\curvearrowleft \\quad \\circlearrowright \\quad \\circlearrowleft"
+            ),
             PreviewItem("16", "特殊关系", "\\lessdot \\quad \\gtrdot \\quad \\lll \\quad \\ggg"),
-            PreviewItem("17", "几何符号", "\\blacksquare \\quad \\square \\quad \\lozenge \\quad \\blacktriangle \\quad \\blacktriangledown"),
+            PreviewItem(
+                "17",
+                "几何符号",
+                "\\blacksquare \\quad \\square \\quad \\lozenge \\quad \\blacktriangle \\quad \\blacktriangledown"
+            ),
             PreviewItem("18", "希伯来字母", "\\aleph \\quad \\beth \\quad \\gimel \\quad \\daleth"),
             PreviewItem("19", "角度符号", "\\angle \\quad \\measuredangle \\quad \\sphericalangle"),
         )
@@ -775,8 +803,16 @@ val basicLatexPreviewGroups = listOf(
         items = listOf(
             PreviewItem("1", "行内数学", "The formula \$E=mc^2\$ is famous"),
             PreviewItem("2", "展示数学", "\$\$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\$\$"),
-            PreviewItem("3", "混合文本+数学", "Given \$a > 0\$ and \$b > 0\$, we have \$\$a + b \\geq 2\\sqrt{ab}\$\$"),
-            PreviewItem("4", "多个行内公式", "Let \$x \\in \\mathbb{R}\$, then \$x^2 \\geq 0\$ for all \$x\$"),
+            PreviewItem(
+                "3",
+                "混合文本+数学",
+                "Given \$a > 0\$ and \$b > 0\$, we have \$\$a + b \\geq 2\\sqrt{ab}\$\$"
+            ),
+            PreviewItem(
+                "4",
+                "多个行内公式",
+                "Let \$x \\in \\mathbb{R}\$, then \$x^2 \\geq 0\$ for all \$x\$"
+            ),
             PreviewItem("5", "转义美元符号", "Price is \\\$10 and \$x = 5\$"),
         )
     ),
