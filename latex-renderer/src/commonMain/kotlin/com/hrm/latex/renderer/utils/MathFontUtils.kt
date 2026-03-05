@@ -93,4 +93,31 @@ object MathFontUtils {
             }
         }.joinToString("")
     }
+
+    /**
+     * 转换为数学斜体 (Mathematical Italic) - OTF 数学字体专用
+     *
+     * 在 OTF 数学字体中，数学变量不是通过 FontStyle.Italic 实现的，
+     * 而是通过 Unicode Mathematical Alphanumeric Symbols 块中的专用码位。
+     *
+     * 映射范围:
+     * - A-Z → U+1D434-U+1D44D (Mathematical Italic Capital)
+     * - a-z → U+1D44E-U+1D467 (Mathematical Italic Small)
+     * - 特殊: h → U+210E (ℎ, Planck constant)
+     *
+     * 数字 0-9 不做转换（数学中数字保持正体）
+     */
+    fun toMathItalic(text: String): String {
+        return text.map { char ->
+            when (char) {
+                in 'A'..'Z' -> codePointToString(0x1D434 + (char.code - 'A'.code))
+                in 'a'..'z' -> {
+                    if (char == 'h') "ℎ"  // U+210E, Planck constant
+                    else codePointToString(0x1D44E + (char.code - 'a'.code))
+                }
+                // 数字保持原样（数学中数字不斜体）
+                else -> char.toString()
+            }
+        }.joinToString("")
+    }
 }

@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import com.hrm.latex.renderer.Latex
 import com.hrm.latex.renderer.measure.rememberLatexMeasurer
 import com.hrm.latex.renderer.model.LatexConfig
+import net.sergeych.sprintf.format
 
 /**
  * 行内数学公式预览分组

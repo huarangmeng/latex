@@ -28,6 +28,12 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        exclusiveContent {
+            forRepository(maven("https://maven.universablockchain.com/"))
+            filter {
+                includeGroup("net.sergeych")
+            }
+        }
     }
 }
 
