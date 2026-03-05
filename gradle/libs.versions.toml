@@ -17,6 +17,7 @@ kotlin = "2.3.10"
 kotlinx-coroutines = "1.10.2"
 latex = "1.2.1"
 androidx-navigationevent = "1.0.1"
+mp_stools = "1.6.3"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -43,6 +44,8 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMul
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
+
+mp_stools = { module = "net.sergeych:mp_stools", version.ref = "mp_stools" }
 
 [bundles]
 latex = ["latex-base", "latex-parser", "latex-renderer"]

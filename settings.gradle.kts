@@ -28,6 +28,7 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        maven("https://maven.universablockchain.com/")
     }
 }
 
