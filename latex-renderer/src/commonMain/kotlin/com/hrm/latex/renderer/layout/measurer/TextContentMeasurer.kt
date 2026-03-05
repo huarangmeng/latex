@@ -128,12 +128,29 @@ internal class TextContentMeasurer : NodeMeasurer {
             applyFontVariant(text, context.fontVariant)
         }
 
+        // OTF 模式下，用 Unicode 数学斜体码位代替 FontStyle.Italic
+        // 或其他判断方式
+        val hasMathTable = context.mathFontProvider?.hasGlyphVariants == true
+
         val resolvedStyle =
             if (context.fontStyle == null && context.fontVariant == FontVariant.NORMAL) {
-                when {
-                    transformedText.any { it.isLetter() } -> context.copy(fontStyle = FontStyle.Italic)
-                    transformedText.any { it.isDigit() } -> context.copy(fontStyle = FontStyle.Normal)
-                    else -> context
+                if (hasMathTable) {
+                    // OTF 模式：字母→映射到 Math Italic Unicode，数字→保持正体
+                    val mathText = MathFontUtils.toMathItalic(transformedText)
+                    // 不设 FontStyle.Italic，因为字形已由 Unicode 码位决定
+                    return measureAnnotatedText(
+                        mathText,
+                        context.copy(fontStyle = FontStyle.Normal),
+                        measurer,
+                        density
+                    )
+                } else {
+                    // TTF 模式：保持原有逻辑
+                    when {
+                        transformedText.any { it.isLetter() } -> context.copy(fontStyle = FontStyle.Italic)
+                        transformedText.any { it.isDigit() } -> context.copy(fontStyle = FontStyle.Normal)
+                        else -> context
+                    }
                 }
             } else {
                 context
