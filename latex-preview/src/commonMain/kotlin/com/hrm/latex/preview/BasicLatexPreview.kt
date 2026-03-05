@@ -242,8 +242,51 @@ val basicLatexPreviewGroups = listOf(
         )
     ),
     PreviewGroup(
+        id = "radicals",
+        title = "7. 根号专题",
+        description = "根号字形变体、嵌套根式、n次根",
+        items = listOf(
+            PreviewItem("1", "简单根号", "\\sqrt{2}"),
+            PreviewItem("2", "变量根号", "\\sqrt{x^2 + y^2}"),
+            PreviewItem("3", "分数根号", "\\sqrt{\\frac{a}{b}}"),
+            PreviewItem("4", "三次根号", "\\sqrt[3]{8} = 2"),
+            PreviewItem("5", "n次根号", "\\sqrt[n]{x^n} = |x|"),
+            PreviewItem("6", "嵌套根式", "\\sqrt{1 + \\sqrt{1 + \\sqrt{1 + x}}}"),
+            PreviewItem(
+                "7",
+                "大内容根号",
+                "\\sqrt{\\frac{a^2 + b^2}{c^2 + d^2}}"
+            ),
+            PreviewItem(
+                "8",
+                "根号与分数混合",
+                "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"
+            ),
+            PreviewItem(
+                "9",
+                "高斯积分根号",
+                "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}"
+            ),
+            PreviewItem(
+                "10",
+                "深层嵌套根式",
+                "\\sqrt{x + \\sqrt{y + \\sqrt{z + \\sqrt{w + \\sqrt{v + u}}}}}"
+            ),
+            PreviewItem(
+                "11",
+                "根号内积分",
+                "\\sqrt{\\int_0^1 f(x) dx}"
+            ),
+            PreviewItem(
+                "12",
+                "根号与上下标",
+                "\\sqrt{a_1^2 + a_2^2 + \\cdots + a_n^2}"
+            ),
+        )
+    ),
+    PreviewGroup(
         id = "delimiters",
-        title = "7. 分隔符专题",
+        title = "8. 分隔符专题",
         description = "括号、自动伸缩、手动大小控制",
         items = listOf(
             PreviewItem(
@@ -324,7 +367,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "accents",
-        title = "8. 装饰符号专题",
+        title = "9. 装饰符号专题",
         description = "上标装饰、箭头、帽子、取消线等",
         items = listOf(
             PreviewItem("1", "简单帽子", "\\hat{x}"),
@@ -379,7 +422,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "colors",
-        title = "9 颜色专题",
+        title = "10. 颜色专题",
         description = "文本颜色、公式着色",
         items = listOf(
             PreviewItem("1", "基础颜色", "\\color{red}{红色} + \\color{blue}{蓝色}"),
@@ -397,7 +440,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "special_effects",
-        title = "10. 特殊效果",
+        title = "11. 特殊效果",
         description = "方框（boxed）、幻影（phantom）、取消线变体、否定修饰",
         items = listOf(
             PreviewItem("1", "简单方框", "\\boxed{E = mc^2}"),
@@ -507,7 +550,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "custom_commands",
-        title = "11. 自定义命令",
+        title = "12. 自定义命令",
         description = "newcommand 定义和使用",
         items = listOf(
             PreviewItem("1", "无参数命令", "\\newcommand{\\R}{\\mathbb{R}} x \\in \\R"),
@@ -568,7 +611,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "spaces",
-        title = "12. 间距专题",
+        title = "13. 间距专题",
         description = "负空格、自定义空格、水平间距",
         items = listOf(
             PreviewItem("1", "标准空格对比", "a \\, b \\: c \\; d \\quad e \\qquad f"),
@@ -581,7 +624,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "mathstyle",
-        title = "13. 数学模式切换",
+        title = "14. 数学模式切换",
         description = "displaystyle, textstyle, scriptstyle, scriptscriptstyle",
         items = listOf(
             PreviewItem(
@@ -618,7 +661,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "environments",
-        title = "14. 环境专题",
+        title = "15. 环境专题",
         description = "split、multline、eqnarray、subequations、cases 环境",
         items = listOf(
             PreviewItem("1", "split 基础", "\\begin{split} x &= a + b \\\\ &= c \\end{split}"),
@@ -744,7 +787,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "ams_relations",
-        title = "15. AMS 符号",
+        title = "16. AMS 符号",
         description = "AMS 符号",
         items = listOf(
             PreviewItem("1", "否定不等式", "a \\nleq b \\quad c \\ngeq d"),
@@ -798,7 +841,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "math_mode",
-        title = "16. 数学模式切换",
+        title = "17. 数学模式切换",
         description = "\$...\$ 行内数学 和 \$\$...\$\$ 展示数学",
         items = listOf(
             PreviewItem("1", "行内数学", "The formula \$E=mc^2\$ is famous"),
@@ -818,7 +861,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "animated",
-        title = "17. 动画过渡",
+        title = "18. 动画过渡",
         description = "AnimatedLatex 公式切换动画",
         items = listOf(
             PreviewItem(
