@@ -38,48 +38,38 @@ import com.hrm.latex.renderer.model.RenderContext
 internal object GroupLayoutPostProcessor {
 
     /**
-     * 积分高度推断：根据积分右侧相邻内容的高度调整积分符号的目标高度。
+     * 填充延迟测量的积分节点。
      *
-     * 仅在 DISPLAY 模式下生效。避免积分被拉伸到与同行其他大型结构
-     * （如求和+分数）一样高，而是仅匹配其作用域内的被积函数高度。
+     * 在初始测量阶段，DISPLAY 模式下的积分节点被标记为 null（延迟测量）。
+     * 此方法根据已测量的右侧邻居高度注入 bigOpHeightHint，一次性完成积分测量。
+     * 相比旧的 adjustIntegralHeights（先测量后重新测量），消除了重复测量开销。
      *
      * @param nodes 行内节点列表
-     * @param initialLayouts 初步测量结果（与 nodes 一一对应）
+     * @param layouts 初始布局列表（积分节点为 null）
      * @param context 渲染上下文
      * @param measurer 文本测量器
      * @param density 密度
-     * @return 调整后的布局列表（未命中积分的节点保持原布局）
+     * @return 完整的布局列表（所有 null 已填充）
      */
-    fun adjustIntegralHeights(
+    fun fillDeferredIntegrals(
         nodes: List<LatexNode>,
-        initialLayouts: List<NodeLayout>,
+        layouts: List<NodeLayout?>,
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density
     ): List<NodeLayout> {
-        val hasIntegrals = nodes.any { it is LatexNode.BigOperator && it.operator.contains("int") }
-        if (!hasIntegrals || context.mathStyle != MathStyle.DISPLAY) {
-            return initialLayouts
-        }
-
         return nodes.mapIndexed { index, node ->
-            val isIntegral = node is LatexNode.BigOperator && node.operator.contains("int")
-            if (isIntegral) {
-                val rightContentHeight = computeRightContentHeight(nodes, initialLayouts, index)
-                if (rightContentHeight > 0) {
-                    measureNode(
-                        node,
-                        context.copy(
-                            layoutHints = context.layoutHints.copy(bigOpHeightHint = rightContentHeight)
-                        ),
-                        measurer,
-                        density
+            layouts[index] ?: run {
+                // 此节点是延迟测量的积分
+                val rightContentHeight = computeRightContentHeight(nodes, layouts, index)
+                val hintedContext = if (rightContentHeight > 0f) {
+                    context.copy(
+                        layoutHints = context.layoutHints.copy(bigOpHeightHint = rightContentHeight)
                     )
                 } else {
-                    initialLayouts[index]
+                    context
                 }
-            } else {
-                initialLayouts[index]
+                measureNode(node, hintedContext, measurer, density)
             }
         }
     }
@@ -88,11 +78,11 @@ internal object GroupLayoutPostProcessor {
      * 计算指定积分右侧相邻非运算符内容的总高度。
      *
      * 扫描范围：从 index+1 开始，遇到下一个大型运算符停止，
-     * 跳过 Space/HSpace 空白节点。
+     * 跳过 Space/HSpace 空白节点和未测量（null）的节点。
      */
     private fun computeRightContentHeight(
         nodes: List<LatexNode>,
-        layouts: List<NodeLayout>,
+        layouts: List<NodeLayout?>,
         integralIndex: Int
     ): Float {
         var rightContentAscent = 0f
@@ -101,7 +91,7 @@ internal object GroupLayoutPostProcessor {
             val rightNode = nodes[j]
             if (rightNode is LatexNode.BigOperator) break
             if (rightNode is LatexNode.Space || rightNode is LatexNode.HSpace) continue
-            val layout = layouts[j]
+            val layout = layouts[j] ?: continue
             if (layout.baseline > rightContentAscent) rightContentAscent = layout.baseline
             if (layout.height - layout.baseline > rightContentDescent) {
                 rightContentDescent = layout.height - layout.baseline

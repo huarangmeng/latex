@@ -97,15 +97,15 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         // 仅在 provider 具备真实字形变体数据（OTF MATH 表）时使用，
         // TTF 模式的估算变体不适用于大型运算符，走原有 fontSize 缩放策略
         val provider = context.mathFontProvider
-        HLog.d(TAG, "measure: symbol=$renderSymbol, isIntegral=$isIntegral, " +
+        HLog.d(TAG) { "measure: symbol=$renderSymbol, isIntegral=$isIntegral, " +
                 "provider=${provider?.let { it::class.simpleName }}, " +
-                "hasGlyphVariants=${provider?.hasGlyphVariants}")
+                "hasGlyphVariants=${provider?.hasGlyphVariants}" }
         if (!isNamedOperator && provider != null && provider.hasGlyphVariants) {
             val opLayout = measureWithVariants(
                 renderSymbol, context, measurer, density, provider, isIntegral
             )
-            HLog.d(TAG, "OTF path: opLayout=${opLayout != null}, " +
-                    "size=${opLayout?.let { "${it.width}x${it.height}" }}")
+            HLog.d(TAG) { "OTF path: opLayout=${opLayout != null}, " +
+                    "size=${opLayout?.let { "${it.width}x${it.height}" }}" }
             if (opLayout != null) {
                 val superLayout = node.superscript?.let { measureGroup(listOf(it), limitStyle) }
                 val subLayout = node.subscript?.let { measureGroup(listOf(it), limitStyle) }
@@ -127,7 +127,7 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         }
 
         // ── TTF 回退路径：fontSize 缩放 + Canvas scale（保持原有逻辑） ──
-        HLog.d(TAG, "TTF fallback path: symbol=$renderSymbol")
+        HLog.d(TAG) { "TTF fallback path: symbol=$renderSymbol" }
         val scaleFactor = resolveScaleFactor(context, useSideMode, isIntegral)
         val opStyle = buildOperatorStyle(context, isNamedOperator, scaleFactor)
 
@@ -287,9 +287,9 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         val fontSizePx = with(density) { context.fontSize.toPx() }
 
         val variants = provider.verticalVariants(renderSymbol, fontSizePx)
-        HLog.d(TAG, "measureWithVariants: symbol=$renderSymbol, fontSizePx=$fontSizePx, " +
+        HLog.d(TAG) { "measureWithVariants: symbol=$renderSymbol, fontSizePx=$fontSizePx, " +
                 "variants=${variants.size}, " +
-                "details=${variants.map { "(id=${it.glyphId}, char='${it.glyphChar}', h=${it.advanceMeasurement})" }}")
+                "details=${variants.map { "(id=${it.glyphId}, char='${it.glyphChar}', h=${it.advanceMeasurement})" }}" }
         if (variants.isEmpty()) return null
 
         val drawColor = context.color
@@ -301,10 +301,10 @@ internal class BigOperatorMeasurer : NodeMeasurer {
                 variants, context, density, provider, isIntegral, fontSizePx, drawColor
             )
             if (pathResult != null) {
-                HLog.d(TAG, "Glyph Path rendering succeeded: ${pathResult.width}x${pathResult.height}")
+                HLog.d(TAG) { "Glyph Path rendering succeeded: ${pathResult.width}x${pathResult.height}" }
                 return pathResult
             }
-            HLog.d(TAG, "Glyph Path rendering failed, falling back to TextMeasurer variants")
+            HLog.d(TAG) { "Glyph Path rendering failed, falling back to TextMeasurer variants" }
         }
 
         // ── 降级：TextMeasurer 方案 ──
@@ -369,13 +369,13 @@ internal class BigOperatorMeasurer : NodeMeasurer {
                 if (variant.glyphId == 0) continue
                 val pathData = provider.glyphPath(variant.glyphId, fontSizePx)
                 if (pathData == null) {
-                    HLog.d(TAG, "Integral variant glyph ${variant.glyphId}: CFF path extraction FAILED")
+                    HLog.d(TAG) { "Integral variant glyph ${variant.glyphId}: CFF path extraction FAILED" }
                     continue
                 }
                 bestPathData = pathData
                 bestGlyphId = variant.glyphId
-                HLog.d(TAG, "Integral variant glyph ${variant.glyphId}: pathHeight=${pathData.height}, " +
-                        "advance=${variant.advanceMeasurement}, target=$targetHeight")
+                HLog.d(TAG) { "Integral variant glyph ${variant.glyphId}: pathHeight=${pathData.height}, " +
+                        "advance=${variant.advanceMeasurement}, target=$targetHeight" }
                 if (pathData.height >= targetHeight) {
                     return DelimiterRenderer.createPathNodeLayout(pathData, drawColor)
                 }
@@ -383,12 +383,12 @@ internal class BigOperatorMeasurer : NodeMeasurer {
 
             // 所有变体都不够高 → 使用最大成功提取的变体
             if (bestPathData != null) {
-                HLog.d(TAG, "Using largest available variant glyph $bestGlyphId " +
-                        "(height=${bestPathData.height}, target=$targetHeight)")
+                HLog.d(TAG) { "Using largest available variant glyph $bestGlyphId " +
+                        "(height=${bestPathData.height}, target=$targetHeight)" }
                 return DelimiterRenderer.createPathNodeLayout(bestPathData, drawColor)
             }
-            HLog.d(TAG, "All integral variant CFF paths failed, " +
-                    "falling back to TextMeasurer/TTF path")
+            HLog.d(TAG) { "All integral variant CFF paths failed, " +
+                    "falling back to TextMeasurer/TTF path" }
             return null
         }
 
@@ -406,7 +406,7 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         if (targetPathData != null) {
             return DelimiterRenderer.createPathNodeLayout(targetPathData, drawColor)
         }
-        HLog.d(TAG, "Target variant glyph ${targetVariant.glyphId} CFF path failed, trying fallback variants")
+        HLog.d(TAG) { "Target variant glyph ${targetVariant.glyphId} CFF path failed, trying fallback variants" }
 
         // 目标失败 → 从最大到最小逐级尝试其他变体
         for (i in variantsWithId.indices.reversed()) {
@@ -414,12 +414,12 @@ internal class BigOperatorMeasurer : NodeMeasurer {
             val variant = variantsWithId[i]
             val pathData = provider.glyphPath(variant.glyphId, fontSizePx)
             if (pathData != null) {
-                HLog.d(TAG, "Fallback to variant glyph ${variant.glyphId} succeeded")
+                HLog.d(TAG) { "Fallback to variant glyph ${variant.glyphId} succeeded" }
                 return DelimiterRenderer.createPathNodeLayout(pathData, drawColor)
             }
         }
 
-        HLog.d(TAG, "All non-integral variant CFF paths failed")
+        HLog.d(TAG) { "All non-integral variant CFF paths failed" }
         return null
     }
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.model.HighlightRange
 import com.hrm.latex.renderer.model.RenderContext
+import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
 
 /**
@@ -82,6 +83,9 @@ internal object LatexRenderer {
         highlightRanges: List<HighlightRange> = emptyList(),
         layoutMap: LayoutMap? = null
     ): LatexRenderResult {
+        // 清除每次测量周期的缓存（字体/字号可能已变化）
+        LayoutUtils.clearCache()
+
         val layout = measureGroup(children, context, textMeasurer, density, layoutMap)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }

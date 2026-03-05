@@ -204,8 +204,22 @@ internal class ScriptMeasurer : NodeMeasurer {
 
         val superLayout = if (isSuper) currentScriptLayout else otherScriptLayout
         val subLayout = if (isSuper) otherScriptLayout else currentScriptLayout
-        val superRelY = -superscriptShift
-        val subRelY = subscriptShift
+        var superRelY = -superscriptShift
+        var subRelY = subscriptShift
+
+        // 上下标重叠保护（TeXbook Rule 18e）：
+        // 确保上标底部与下标顶部之间至少有 4 × ruleThickness 的间距
+        val ruleThickness = provider?.fractionRuleThickness(fontSizePx)
+            ?: (fontSizePx * MathConstants.FRACTION_RULE_THICKNESS)
+        val minGap = ruleThickness * 4f
+        val superBottom = superRelY + (superLayout.height - superLayout.baseline)
+        val subTop = subRelY - subLayout.baseline
+        val currentGap = subTop - superBottom
+        if (currentGap < minGap) {
+            val pushEach = (minGap - currentGap) / 2f
+            superRelY -= pushEach
+            subRelY += pushEach
+        }
 
         val superTopRel = superRelY - superLayout.baseline
         val superBottomRel = superRelY + (superLayout.height - superLayout.baseline)

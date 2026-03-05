@@ -219,14 +219,35 @@ internal fun measureGroup(
     }
 
     // 单行 (InlineRow)
-    // 第一遍测量：获取所有节点的初步尺寸
-    val initialLayouts =
-        precomputedLayouts ?: nodes.map { measureNode(it, context, measurer, density) }
+    // 积分延迟测量优化：DISPLAY 模式下，积分节点先跳过，等非积分节点测量完毕后
+    // 根据右侧邻居高度注入 heightHint 一次性测量，避免双重测量。
+    val hasIntegrals = context.mathStyle == MathStyle.DISPLAY &&
+            nodes.any { it is LatexNode.BigOperator && it.operator.contains("int") }
 
-    // 后处理：积分高度推断（根据右侧相邻内容调整积分符号高度）
-    val finalMeasuredNodes = GroupLayoutPostProcessor.adjustIntegralHeights(
-        nodes, initialLayouts, context, measurer, density
-    )
+    val initialLayouts: List<NodeLayout?>
+    if (hasIntegrals && precomputedLayouts == null) {
+        // 延迟测量路径：积分节点暂置 null
+        initialLayouts = nodes.map { node ->
+            if (node is LatexNode.BigOperator && node.operator.contains("int")) {
+                null // 延迟测量
+            } else {
+                measureNode(node, context, measurer, density)
+            }
+        }
+    } else {
+        initialLayouts = precomputedLayouts?.map { it }
+            ?: nodes.map { measureNode(it, context, measurer, density) }
+    }
+
+    // 填充延迟的积分节点（使用右侧邻居高度作为 heightHint）
+    val finalMeasuredNodes = if (initialLayouts.any { it == null }) {
+        GroupLayoutPostProcessor.fillDeferredIntegrals(
+            nodes, initialLayouts, context, measurer, density
+        )
+    } else {
+        @Suppress("UNCHECKED_CAST")
+        initialLayouts as List<NodeLayout>
+    }
 
     // 计算 TeX 标准原子间距
     val isScript = context.mathStyle == MathStyle.SCRIPT ||
