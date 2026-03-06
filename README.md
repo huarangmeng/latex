@@ -22,8 +22,10 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Formula Highlight**: Highlight sub-expressions within formulas via `HighlightConfig`.
 - **Animation**: Animated formula transitions (crossfade / slide / fade+slide).
 - **WYSIWYG Editor** *(Experimental)*: Built-in LaTeX editor with cursor positioning, tap-to-place, and real-time rendered preview.
+- **Structured Diagnostics**: `parseWithDiagnostics()` provides 8-category structured diagnostics with severity filtering.
+- **RTL Support**: Complete right-to-left text direction support (`\RLE`, `\LRE`, RTL/LTR environments, nesting).
 
-## 📐 Supported LaTeX Features (333+)
+## 📐 Supported LaTeX Features (372+)
 
 <details>
 <summary><b>Math Formulas</b> — fractions, roots, binomials</summary>
@@ -46,9 +48,13 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 </details>
 
 <details>
-<summary><b>Large Operators (28)</b> — sums, integrals, limits</summary>
+<summary><b>Large Operators (28)</b> — sums, integrals, limits, modular arithmetic</summary>
 
-`\sum`, `\prod`, `\int`, `\oint`, `\iint`, `\iiint`, `\bigcup`, `\bigcap`, `\bigvee`, `\bigwedge`, `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus`, `\lim`, `\max`, `\min`, `\sup`, `\inf`, `\limsup`, `\liminf`, `\operatorname`, `\substack`, `\DeclareMathOperator`, `\mathop`
+- **Sums/Integrals**: `\sum`, `\prod`, `\int`, `\oint`, `\iint`, `\iiint`, `\bigcup`, `\bigcap`, `\bigvee`, `\bigwedge`, `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus`
+- **Limits**: `\lim`, `\max`, `\min`, `\sup`, `\inf`, `\limsup`, `\liminf`
+- **Custom operators**: `\operatorname{name}`, `\DeclareMathOperator{\Tr}{Tr}`, `\mathop{content}`
+- **Multi-line subscripts**: `\substack{cond1 \\ cond2}`
+- **Modular arithmetic**: `\bmod` (binary), `\pmod{n}` (parenthesized), `\mod` (wide spacing)
 </details>
 
 <details>
@@ -66,9 +72,14 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 </details>
 
 <details>
-<summary><b>Accents & Decorations (31)</b></summary>
+<summary><b>Accents & Decorations (35)</b> — accents, cancels, extensible arrows, stacking, bracket annotations</summary>
 
-`\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`, `\vec`, `\overbrace`, `\underbrace`, `\widehat`, `\overrightarrow`, `\overleftarrow`, `\cancel`, `\bcancel`, `\xcancel`, `\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xleftrightarrow`, `\overset`, `\underset`, `\stackrel`
+- **Accents**: `\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`/`\mathring`, `\vec`, `\widehat`
+- **Brace annotations**: `\overbrace{...}^{text}`, `\underbrace{...}_{text}`, `\overbracket{...}`, `\underbracket{...}`
+- **Arrow decorations**: `\overrightarrow`, `\overleftarrow`
+- **Cancel lines**: `\cancel`, `\bcancel` (reverse), `\xcancel` (cross)
+- **Extensible arrows**: `\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xRightarrow`, `\xLeftarrow`, `\xLeftrightarrow`, `\xmapsto`
+- **Stacking**: `\overset`, `\underset`, `\stackrel`
 </details>
 
 <details>
@@ -84,9 +95,15 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 </details>
 
 <details>
-<summary><b>Environments (21)</b></summary>
+<summary><b>Environments (21)</b> — alignment, piecewise, matrices, tables</summary>
 
-`equation(*)`, `displaymath`, `align(*)`, `aligned`, `gather(*)`, `gathered`, `cases`, `dcases`, `rcases`, `split`, `multline(*)`, `eqnarray(*)`, `subequations`, `tabular`, `flalign(*)`, `alignat(*)`
+- **Equation environments**: `equation(*)`, `displaymath`
+- **Alignment environments**: `align(*)`, `aligned`, `flalign(*)`, `alignat(*)`
+- **Centering environments**: `gather(*)`, `gathered`
+- **Piecewise functions**: `cases`, `dcases` (displaystyle), `rcases` (right brace)
+- **Multi-line/splitting**: `split`, `multline(*)`
+- **Others**: `eqnarray(*)`, `subequations`, `tabular` (l/c/r column alignment)
+- **Auto-numbering**: Supports `\tag`/`\tag*`, `\label`/`\ref`/`\eqref`, starred environments skip numbering
 </details>
 
 <details>
@@ -96,17 +113,66 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 </details>
 
 <details>
-<summary><b>Advanced Features</b></summary>
+<summary><b>Colors & Background</b></summary>
 
-- **Colors**: `\color{red}{...}`, `\textcolor{#FF5733}{...}` (named + hex)
-- **Chemical formulas**: `\ce{H2O}`, `\ce{A + B -> C}`, `\ce{A <=> B}`, ions, coefficients
-- **Boxes & phantoms**: `\boxed`, `\phantom`, `\smash`, `\vphantom`, `\hphantom`
-- **Tags**: `\tag{1}`, `\tag*{A}`
-- **Custom commands**: `\newcommand`, `\renewcommand`, `\def` (0–9 parameters)
-- **Labels & refs**: `\label`, `\ref`, `\eqref`
-- **Tensor notation**: `\sideset`, `\tensor`, `\indices`
-- **Modular arithmetic**: `\bmod`, `\pmod`, `\mod`
-- **Error handling**: Unrecognized commands rendered in error color instead of silent failure
+- **Text color**: `\color{red}{...}`, `\textcolor{#FF5733}{...}` (named + hex)
+- **Background color**: `\colorbox{yellow}{text}`, `\fcolorbox{borderColor}{bgColor}{text}`
+</details>
+
+<details>
+<summary><b>Chemical Formulas (13)</b> — mhchem package</summary>
+
+`\ce{H2O}`, `\ce{H2SO4}`, `\ce{Na+}`, `\ce{SO4^{2-}}`, `\ce{A + B -> C}`, `\ce{A <=> B}`, coefficients, isotope notation, complexes
+</details>
+
+<details>
+<summary><b>Special Effects & Layout (9)</b></summary>
+
+- **Boxes**: `\boxed{E=mc^2}`, `\fbox{text}`
+- **Phantoms & spacing**: `\phantom`, `\smash`, `\vphantom`, `\hphantom`
+- **Zero-width overlaps**: `\mathclap{content}`, `\mathllap{content}`, `\mathrlap{content}`
+</details>
+
+<details>
+<summary><b>Advanced Annotations (6)</b> — hyperlinks, tensors, four-corner scripts</summary>
+
+- **Hyperlinks**: `\href{url}{text}`, `\url{url}` (blue underline, click callback)
+- **Four-corner scripts**: `\sideset{_a^b}{_c^d}{\sum}`
+- **Pre-scripts**: `\prescript{A}{Z}{X}` (isotope notation)
+- **Tensor indices**: `\tensor{T}{^a_b^c}`, `\indices{^a_b}`
+</details>
+
+<details>
+<summary><b>Custom Commands & Macros (9)</b></summary>
+
+`\newcommand`, `\renewcommand`, `\def` (0–9 parameters, optional argument defaults), `\newenvironment`, `\renewenvironment`
+</details>
+
+<details>
+<summary><b>Section Structure Commands</b></summary>
+
+`\section`, `\subsection`, `\subsubsection`, `\paragraph`, `\subparagraph` (with starred variants)
+</details>
+
+<details>
+<summary><b>RTL Text Direction</b></summary>
+
+- **Commands**: `\RLE{...}`, `\LRE{...}`, `\textarabic{...}`, `\texthebrew{...}`
+- **Environments**: `\begin{RTL}...\end{RTL}`, `\begin{LTR}...\end{LTR}`
+- **Nesting**: supports RTL inside LTR and vice versa
+</details>
+
+<details>
+<summary><b>Labels & References</b></summary>
+
+`\label`, `\ref`, `\eqref`, `\tag{1}`, `\tag*{A}`
+</details>
+
+<details>
+<summary><b>Error Handling</b></summary>
+
+- Unrecognized commands rendered in error color instead of silent failure
+- `parseWithDiagnostics()` provides structured diagnostics (8 categories, filter by severity)
 </details>
 
 ## 📸 Rendering Preview
@@ -271,8 +337,8 @@ This library publishes two variants for each release to support different Kotlin
 
 | Variant | Kotlin | Compose Multiplatform | Artifact Version |
 |---------|--------|-----------------------|------------------|
-| **Standard** | 2.3.0+ | 1.10.0+ | `1.2.7` |
-| **Kotlin 2.1.0** | 2.1.0 | 1.9.3 | `1.2.7-kt2.1.0` |
+| **Standard** | 2.3.0+ | 1.10.0+ | `1.3.0` |
+| **Kotlin 2.1.0** | 2.1.0 | 1.9.3 | `1.3.0-kt2.1.0` |
 
 > Choose the variant that matches your project's Kotlin version. If your project uses **Kotlin 2.1.0**, use the `-kt2.1.0` suffixed version.
 
@@ -282,7 +348,7 @@ Add dependencies in `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-latex = "1.2.7"
+latex = "1.3.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -296,7 +362,7 @@ If your project uses Kotlin 2.1.0, use the `-kt2.1.0` suffixed artifacts:
 
 ```toml
 [versions]
-latex = "1.2.7-kt2.1.0"
+latex = "1.3.0-kt2.1.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }

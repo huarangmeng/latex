@@ -22,8 +22,10 @@
 - **公式高亮**：通过 `HighlightConfig` 高亮子表达式。
 - **动画过渡**：公式切换动画（crossfade / slide / fade+slide）。
 - **所见即所得编辑器** *（实验性）*：内置 LaTeX 编辑器，支持光标定位、点击定位和实时渲染预览。
+- **结构化诊断**：`parseWithDiagnostics()` 提供 8 种分类的结构化诊断信息，按严重级别过滤。
+- **RTL 支持**：完整的从右到左文本方向支持（`\RLE`、`\LRE`、RTL/LTR 环境，支持嵌套）。
 
-## 📐 已支持的 LaTeX 功能（333+）
+## 📐 已支持的 LaTeX 功能（372+）
 
 <details>
 <summary><b>数学公式</b> — 分数、根号、二项式</summary>
@@ -46,9 +48,13 @@
 </details>
 
 <details>
-<summary><b>大型运算符（28）</b> — 求和、积分、极限</summary>
+<summary><b>大型运算符（28）</b> — 求和、积分、极限、取模</summary>
 
-`\sum`, `\prod`, `\int`, `\oint`, `\iint`, `\iiint`, `\bigcup`, `\bigcap`, `\bigvee`, `\bigwedge`, `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus`, `\lim`, `\max`, `\min`, `\sup`, `\inf`, `\limsup`, `\liminf`, `\operatorname`, `\substack`, `\DeclareMathOperator`, `\mathop`
+- **求和/积分**：`\sum`, `\prod`, `\int`, `\oint`, `\iint`, `\iiint`, `\bigcup`, `\bigcap`, `\bigvee`, `\bigwedge`, `\coprod`, `\bigoplus`, `\bigotimes`, `\bigsqcup`, `\bigodot`, `\biguplus`
+- **极限类**：`\lim`, `\max`, `\min`, `\sup`, `\inf`, `\limsup`, `\liminf`
+- **自定义运算符**：`\operatorname{名称}`, `\DeclareMathOperator{\Tr}{Tr}`, `\mathop{内容}`
+- **多行下标**：`\substack{条件1 \\ 条件2}`
+- **取模运算**：`\bmod`（二元取模）, `\pmod{n}`（括号取模）, `\mod`（宽间距取模）
 </details>
 
 <details>
@@ -66,9 +72,14 @@
 </details>
 
 <details>
-<summary><b>装饰符号（31）</b></summary>
+<summary><b>装饰符号（35）</b> — 重音、取消线、可扩展箭头、堆叠、括号标注</summary>
 
-`\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`, `\vec`, `\overbrace`, `\underbrace`, `\widehat`, `\overrightarrow`, `\overleftarrow`, `\cancel`, `\bcancel`, `\xcancel`, `\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xleftrightarrow`, `\overset`, `\underset`, `\stackrel`
+- **重音符号**：`\hat`, `\tilde`, `\bar`, `\overline`, `\underline`, `\dot`, `\ddot`, `\dddot`, `\grave`, `\acute`, `\check`, `\breve`, `\ring`/`\mathring`, `\vec`, `\widehat`
+- **大括号标注**：`\overbrace{...}^{text}`, `\underbrace{...}_{text}`, `\overbracket{...}`, `\underbracket{...}`
+- **箭头装饰**：`\overrightarrow`, `\overleftarrow`
+- **取消线**：`\cancel`, `\bcancel`（反向）, `\xcancel`（交叉）
+- **可扩展箭头**：`\xrightarrow`, `\xleftarrow`, `\xhookrightarrow`, `\xhookleftarrow`, `\xRightarrow`, `\xLeftarrow`, `\xLeftrightarrow`, `\xmapsto`
+- **堆叠**：`\overset`, `\underset`, `\stackrel`
 </details>
 
 <details>
@@ -84,9 +95,15 @@
 </details>
 
 <details>
-<summary><b>环境（21）</b></summary>
+<summary><b>环境（21）</b> — 对齐、分段、矩阵、表格</summary>
 
-`equation(*)`, `displaymath`, `align(*)`, `aligned`, `gather(*)`, `gathered`, `cases`, `dcases`, `rcases`, `split`, `multline(*)`, `eqnarray(*)`, `subequations`, `tabular`, `flalign(*)`, `alignat(*)`
+- **公式环境**：`equation(*)`, `displaymath`
+- **对齐环境**：`align(*)`, `aligned`, `flalign(*)`, `alignat(*)`
+- **居中环境**：`gather(*)`, `gathered`
+- **分段函数**：`cases`, `dcases`（displaystyle）, `rcases`（右花括号）
+- **多行/分割**：`split`, `multline(*)`
+- **其他**：`eqnarray(*)`, `subequations`, `tabular`（l/c/r 列对齐）
+- **公式自动编号**：支持 `\tag`/`\tag*`、`\label`/`\ref`/`\eqref`，星号环境不参与编号
 </details>
 
 <details>
@@ -96,17 +113,66 @@
 </details>
 
 <details>
-<summary><b>高级功能</b></summary>
+<summary><b>颜色与背景色</b></summary>
 
-- **颜色**：`\color{red}{...}`, `\textcolor{#FF5733}{...}`（命名颜色 + 十六进制）
-- **化学公式**：`\ce{H2O}`, `\ce{A + B -> C}`, `\ce{A <=> B}`, 离子, 系数
-- **方框与幻影**：`\boxed`, `\phantom`, `\smash`, `\vphantom`, `\hphantom`
-- **标签**：`\tag{1}`, `\tag*{A}`
-- **自定义命令**：`\newcommand`, `\renewcommand`, `\def`（0–9 个参数）
-- **标签引用**：`\label`, `\ref`, `\eqref`
-- **张量标记**：`\sideset`, `\tensor`, `\indices`
-- **取模运算**：`\bmod`, `\pmod`, `\mod`
-- **错误处理**：无法识别的命令以错误颜色渲染，而非静默忽略
+- **文本颜色**：`\color{red}{...}`, `\textcolor{#FF5733}{...}`（命名颜色 + 十六进制）
+- **背景色**：`\colorbox{yellow}{文本}`, `\fcolorbox{borderColor}{bgColor}{文本}`
+</details>
+
+<details>
+<summary><b>化学公式（13）</b> — mhchem 宏包</summary>
+
+`\ce{H2O}`, `\ce{H2SO4}`, `\ce{Na+}`, `\ce{SO4^{2-}}`, `\ce{A + B -> C}`, `\ce{A <=> B}`, 系数、同位素标记、配合物
+</details>
+
+<details>
+<summary><b>特殊效果与布局（9）</b></summary>
+
+- **方框**：`\boxed{E=mc^2}`, `\fbox{text}`
+- **幻影与间距**：`\phantom`, `\smash`, `\vphantom`, `\hphantom`
+- **零宽叠加**：`\mathclap{内容}`, `\mathllap{内容}`, `\mathrlap{内容}`
+</details>
+
+<details>
+<summary><b>高级标注（6）</b> — 超链接、张量、四角标</summary>
+
+- **超链接**：`\href{url}{text}`, `\url{url}`（蓝色下划线，支持点击回调）
+- **四角标注**：`\sideset{_a^b}{_c^d}{\sum}`
+- **前置上下标**：`\prescript{A}{Z}{X}`（同位素标记）
+- **张量指标**：`\tensor{T}{^a_b^c}`, `\indices{^a_b}`
+</details>
+
+<details>
+<summary><b>自定义命令与宏定义（9）</b></summary>
+
+`\newcommand`, `\renewcommand`, `\def`（0–9 个参数，支持可选参数默认值）, `\newenvironment`, `\renewenvironment`
+</details>
+
+<details>
+<summary><b>章节结构命令</b></summary>
+
+`\section`, `\subsection`, `\subsubsection`, `\paragraph`, `\subparagraph`（含星号变体）
+</details>
+
+<details>
+<summary><b>RTL 文本方向</b></summary>
+
+- **命令**：`\RLE{...}`, `\LRE{...}`, `\textarabic{...}`, `\texthebrew{...}`
+- **环境**：`\begin{RTL}...\end{RTL}`, `\begin{LTR}...\end{LTR}`
+- **嵌套**：支持 RTL 内嵌 LTR，反之亦然
+</details>
+
+<details>
+<summary><b>标签与引用</b></summary>
+
+`\label`, `\ref`, `\eqref`, `\tag{1}`, `\tag*{A}`
+</details>
+
+<details>
+<summary><b>错误处理</b></summary>
+
+- 无法识别的命令以错误颜色渲染，而非静默忽略
+- `parseWithDiagnostics()` 提供结构化诊断（8 种分类，按严重级别过滤）
 </details>
 
 ## 📸 渲染预览
@@ -271,8 +337,8 @@ fun MyEditor() {
 
 | 变体 | Kotlin | Compose Multiplatform | 制品版本号 |
 |------|--------|-----------------------|-----------|
-| **标准版** | 2.3.0+ | 1.10.0+ | `1.2.7` |
-| **Kotlin 2.1.0 兼容版** | 2.1.0 | 1.9.3 | `1.2.7-kt2.1.0` |
+| **标准版** | 2.3.0+ | 1.10.0+ | `1.3.0` |
+| **Kotlin 2.1.0 兼容版** | 2.1.0 | 1.9.3 | `1.3.0-kt2.1.0` |
 
 > 请选择与你项目 Kotlin 版本匹配的变体。如果你的项目使用 **Kotlin 2.1.0**，请使用带 `-kt2.1.0` 后缀的版本。
 
@@ -282,7 +348,7 @@ fun MyEditor() {
 
 ```toml
 [versions]
-latex = "1.2.7"
+latex = "1.3.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -296,7 +362,7 @@ latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref 
 
 ```toml
 [versions]
-latex = "1.2.7-kt2.1.0"
+latex = "1.3.0-kt2.1.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
