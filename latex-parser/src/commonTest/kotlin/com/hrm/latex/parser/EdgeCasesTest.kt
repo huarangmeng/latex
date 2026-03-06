@@ -25,6 +25,7 @@ package com.hrm.latex.parser
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -211,5 +212,55 @@ class EdgeCasesTest {
             \end{cases}
         """.trimIndent())
         assertTrue(doc.children.isNotEmpty())
+    }
+
+    // ============ 诊断增强（P1）============
+
+    @Test
+    fun testParseWithDiagnosticsReturnsParseResult() {
+        val result = parser.parseWithDiagnostics("\\frac{a}{b}")
+        assertNotNull(result.document)
+        assertTrue(result.document.children.isNotEmpty())
+    }
+
+    @Test
+    fun testParseWithDiagnosticsCollectsErrors() {
+        val result = parser.parseWithDiagnostics("x + \\unknowncmd + y")
+        assertNotNull(result.document)
+        assertTrue(result.document.children.isNotEmpty(), "应仍然产生 AST")
+    }
+
+    @Test
+    fun testParseResultErrorFiltering() {
+        val result = parser.parseWithDiagnostics("\\frac{a}{b}")
+        // 有效输入不应有错误
+        assertTrue(result.errors.isEmpty(), "有效 LaTeX 不应产生错误")
+    }
+
+    @Test
+    fun testParseResultDiagnosticsByCategory() {
+        val result = parser.parseWithDiagnostics("x + y")
+        val unexpectedTokenDiags = result.diagnosticsByCategory(ParseDiagnostic.Category.UNEXPECTED_TOKEN)
+        // 正常输入不应有 UNEXPECTED_TOKEN 诊断
+        assertTrue(unexpectedTokenDiags.isEmpty())
+    }
+
+    @Test
+    fun testParseDiagnosticCategories() {
+        // 验证诊断分类枚举值
+        val categories = ParseDiagnostic.Category.entries
+        assertTrue(categories.contains(ParseDiagnostic.Category.UNKNOWN_COMMAND))
+        assertTrue(categories.contains(ParseDiagnostic.Category.MISSING_BRACE))
+        assertTrue(categories.contains(ParseDiagnostic.Category.MISMATCHED_ENVIRONMENT))
+        assertTrue(categories.contains(ParseDiagnostic.Category.UNEXPECTED_TOKEN))
+    }
+
+    @Test
+    fun testParseResultProperties() {
+        val result = parser.parseWithDiagnostics("x^2")
+        assertNotNull(result.document)
+        assertNotNull(result.diagnostics)
+        assertNotNull(result.errors)
+        assertNotNull(result.warnings)
     }
 }

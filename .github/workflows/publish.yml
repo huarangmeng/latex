@@ -193,15 +193,6 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
 
-      # ---------- 打 Tag ----------
-      - name: Create alias Git Tag
-        run: |
-          ALIAS_VERSION="${BASE_VERSION}-kt2.1.0"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${ALIAS_VERSION}" -m "Alias release ${ALIAS_VERSION} (based on ${BASE_VERSION})"
-          git push origin "v${ALIAS_VERSION}"
-
       # ---------- 发布完成 ----------
       - name: "✅ 发布完成"
         run: |
@@ -211,7 +202,6 @@ jobs:
           echo ""
           echo "  正常版本: ${BASE_VERSION}"
           echo "  别名版本: ${ALIAS_VERSION}"
-          echo "  Git Tag:  v${ALIAS_VERSION}"
           echo ""
           echo "  依赖版本:"
           echo "    kotlin:              ${ALIAS_KOTLIN_VERSION}"

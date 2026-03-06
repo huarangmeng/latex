@@ -120,7 +120,9 @@ internal class BigOperatorMeasurer : NodeMeasurer {
                 } else {
                     layoutDisplayMode(
                         context, density, measurer, opLayout, superLayout, subLayout,
-                        isNamedOperator
+                        isNamedOperator,
+                        subOverflow = computeLapOverflow(node.subscript, limitStyle, measureGroup),
+                        superOverflow = computeLapOverflow(node.superscript, limitStyle, measureGroup)
                     )
                 }
             }
@@ -262,7 +264,9 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         } else {
             layoutDisplayMode(
                 context, density, measurer, opLayout, superLayout, subLayout,
-                isNamedOperator
+                isNamedOperator,
+                subOverflow = computeLapOverflow(node.subscript, limitStyle, measureGroup),
+                superOverflow = computeLapOverflow(node.superscript, limitStyle, measureGroup)
             )
         }
     }
@@ -628,10 +632,74 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         }
     }
 
+    /**
+     * MathLap 节点的溢出信息。
+     * @param contentWidth 内容的实际宽度
+     * @param lapType 叠加类型（CLAP/LLAP/RLAP），决定溢出方向
+     */
+    private data class LapOverflow(val contentWidth: Float, val lapType: LatexNode.MathLap.LapType)
+
+    /**
+     * 计算 MathLap（\mathclap/\mathllap/\mathrlap）节点的内容溢出信息。
+     *
+     * 当上标/下标是 MathLap 节点时，其 NodeLayout.width=0，但实际内容可能
+     * 远宽于运算符。此函数返回内容的实际宽度和叠加类型，供 layoutDisplayMode 使用，
+     * 确保返回的 NodeLayout 尺寸能完整容纳溢出内容。
+     *
+     * 注意：解析器可能将 `_{\\mathclap{...}}` 解析为 Group 包裹 MathLap 的结构，
+     * 因此需要穿透外层 Group 找到内部的 MathLap 节点。
+     *
+     * @return 溢出信息（非 MathLap 节点返回 null）
+     */
+    private fun computeLapOverflow(
+        scriptNode: LatexNode?,
+        limitStyle: RenderContext,
+        measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
+    ): LapOverflow? {
+        // 直接是 MathLap
+        if (scriptNode is LatexNode.MathLap) {
+            val contentLayout = measureGroup(scriptNode.content, limitStyle)
+            return LapOverflow(contentLayout.width, scriptNode.lapType)
+        }
+        // 穿透 Group 包裹：_{\\mathclap{...}} 解析为 Group([MathLap])
+        if (scriptNode is LatexNode.Group && scriptNode.children.size == 1) {
+            val inner = scriptNode.children[0]
+            if (inner is LatexNode.MathLap) {
+                val contentLayout = measureGroup(inner.content, limitStyle)
+                return LapOverflow(contentLayout.width, inner.lapType)
+            }
+        }
+        return null
+    }
+
+    /**
+     * 计算单个 MathLap 溢出在 display 模式下的左右边界。
+     *
+     * @param overflow 溢出信息（null 表示无溢出）
+     * @param anchorX 叠加锚点的 x 坐标（居中于 baseMaxWidth 的中点）
+     * @return (leftBound, rightBound) 相对于 x=0 的左右边界
+     */
+    private fun lapBounds(overflow: LapOverflow?, anchorX: Float): Pair<Float, Float> {
+        if (overflow == null) return 0f to 0f
+        return when (overflow.lapType) {
+            // CLAP: 内容以锚点为中心居中
+            LatexNode.MathLap.LapType.CLAP ->
+                (anchorX - overflow.contentWidth / 2f) to (anchorX + overflow.contentWidth / 2f)
+            // LLAP: 内容向左扩展，右边界在锚点
+            LatexNode.MathLap.LapType.LLAP ->
+                (anchorX - overflow.contentWidth) to anchorX
+            // RLAP: 内容向右扩展，左边界在锚点
+            LatexNode.MathLap.LapType.RLAP ->
+                anchorX to (anchorX + overflow.contentWidth)
+        }
+    }
+
     private fun layoutDisplayMode(
         context: RenderContext, density: Density, measurer: TextMeasurer,
         opLayout: NodeLayout, superLayout: NodeLayout?, subLayout: NodeLayout?,
-        isNamedOperator: Boolean
+        isNamedOperator: Boolean,
+        subOverflow: LapOverflow? = null,
+        superOverflow: LapOverflow? = null
     ): NodeLayout {
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
         val fontSizePx = with(density) { context.fontSize.toPx() }
@@ -643,7 +711,24 @@ internal class BigOperatorMeasurer : NodeMeasurer {
                 ?: (fontSizePx * MathConstants.SYMBOL_OP_LIMIT_GAP)
         }
 
-        val maxWidth = max(opLayout.width, max(superLayout?.width ?: 0f, subLayout?.width ?: 0f))
+        // 基础宽度：基于 op/super/sub 报告的 width
+        val baseMaxWidth = max(opLayout.width, max(superLayout?.width ?: 0f, subLayout?.width ?: 0f))
+
+        // 处理 MathLap（\mathclap 等）溢出：
+        // MathLap 报告 width=0，但内容基于运算符中心绘制（CLAP 居中/LLAP 向左/RLAP 向右），
+        // 可能向左右两侧溢出。需要计算溢出范围并扩展总宽度。
+        val opCenter = baseMaxWidth / 2f
+        val (subLeft, subRight) = lapBounds(subOverflow, opCenter)
+        val (superLeft, superRight) = lapBounds(superOverflow, opCenter)
+
+        // 合并所有溢出的左右边界
+        val overflowLeft = min(0f, min(subLeft, superLeft))
+        val overflowRight = max(baseMaxWidth, max(subRight, superRight))
+
+        // 需要的左移量，确保所有内容在正坐标区域
+        val leftShift = if (overflowLeft < 0f) -overflowLeft else 0f
+
+        val maxWidth = overflowRight + leftShift
 
         // opLayout 已经是墨水高度，不需要额外估算
         val glyphVisualPart = opLayout.height
@@ -662,9 +747,10 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         val baseline = opVisualCenter + axisHeight
 
         return NodeLayout(maxWidth, totalHeight, baseline) { x, y ->
-            opLayout.draw(this, x + (maxWidth - opLayout.width) / 2, y + opDrawY)
-            superLayout?.draw(this, x + (maxWidth - superLayout.width) / 2, y + superDrawY)
-            subLayout?.draw(this, x + (maxWidth - subLayout.width) / 2, y + subDrawY)
+            // leftShift 确保溢出内容不在负坐标区域
+            opLayout.draw(this, x + leftShift + (baseMaxWidth - opLayout.width) / 2, y + opDrawY)
+            superLayout?.draw(this, x + leftShift + (baseMaxWidth - superLayout.width) / 2, y + superDrawY)
+            subLayout?.draw(this, x + leftShift + (baseMaxWidth - subLayout.width) / 2, y + subDrawY)
         }
     }
 }

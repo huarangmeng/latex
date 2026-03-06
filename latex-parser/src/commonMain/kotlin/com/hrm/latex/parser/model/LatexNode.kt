@@ -687,13 +687,18 @@ sealed class LatexNode {
     }
 
     /**
-     * 方框节点（\boxed）
+     * 方框节点（\boxed, \fbox）
      * 在内容周围绘制边框
+     * @param content 内容
+     * @param boxStyle 边框样式
      */
     data class Boxed(
         val content: List<LatexNode>,
+        val boxStyle: BoxStyle = BoxStyle.NORMAL,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
+        enum class BoxStyle { NORMAL, FBOX }
+
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
@@ -720,11 +725,13 @@ sealed class LatexNode {
      * @param commandName 命令名（不含反斜杠）
      * @param numArgs 参数个数（0-9）
      * @param definition 命令定义（AST 节点列表）
+     * @param defaultArg 可选参数的默认值（对应 \newcommand{\cmd}[2][default]{body} 中的 default）
      */
     data class NewCommand(
         val commandName: String,
         val numArgs: Int,
         val definition: List<LatexNode>,
+        val defaultArg: String? = null,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         override fun children() = definition
@@ -1110,6 +1117,51 @@ sealed class LatexNode {
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitHyperlink(this)
+    }
+
+    /**
+     * 前置上下标节点（\prescript{sup}{sub}{base}）
+     * 在基础符号的左前方放置上下标
+     * @param preSuperscript 前置上标
+     * @param preSubscript 前置下标
+     * @param base 基础符号
+     */
+    data class Prescript(
+        val preSuperscript: LatexNode?,
+        val preSubscript: LatexNode?,
+        val base: LatexNode,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        override fun children() = listOfNotNull(preSuperscript, preSubscript, base)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            var idx = 0
+            val newPreSup = if (preSuperscript != null) newChildren[idx++] else null
+            val newPreSub = if (preSubscript != null) newChildren[idx++] else null
+            val newBase = newChildren[idx]
+            return copy(preSuperscript = newPreSup, preSubscript = newPreSub, base = newBase)
+        }
+
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitPrescript(this)
+    }
+
+    /**
+     * 零宽叠加节点（\mathclap, \mathllap, \mathrlap）
+     * 绘制内容但宽度为零（或单侧为零）
+     * @param content 内容
+     * @param lapType 叠加类型
+     */
+    data class MathLap(
+        val content: List<LatexNode>,
+        val lapType: LapType,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        enum class LapType { CLAP, LLAP, RLAP }
+
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitMathLap(this)
     }
 
     /**

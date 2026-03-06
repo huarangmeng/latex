@@ -165,6 +165,25 @@ internal fun measureNode(
             node.children, context.copy(mathStyle = MathStyle.DISPLAY), measurer, density
         )
 
+        // MathLap: 绘制内容但宽度为零（或部分为零）
+        is LatexNode.MathLap -> {
+            val contentLayout = measureGroup(node.content, context, measurer, density)
+            when (node.lapType) {
+                // clap: 居中对齐，宽度为零
+                LatexNode.MathLap.LapType.CLAP -> NodeLayout(0f, contentLayout.height, contentLayout.baseline) { x, y ->
+                    contentLayout.draw(this, x - contentLayout.width / 2f, y)
+                }
+                // llap: 内容向左扩展，宽度为零
+                LatexNode.MathLap.LapType.LLAP -> NodeLayout(0f, contentLayout.height, contentLayout.baseline) { x, y ->
+                    contentLayout.draw(this, x - contentLayout.width, y)
+                }
+                // rlap: 内容向右扩展，宽度为零
+                LatexNode.MathLap.LapType.RLAP -> NodeLayout(0f, contentLayout.height, contentLayout.baseline) { x, y ->
+                    contentLayout.draw(this, x, y)
+                }
+            }
+        }
+
         else -> NodeLayout(0f, 0f, 0f) { _, _ -> }
     }
 }

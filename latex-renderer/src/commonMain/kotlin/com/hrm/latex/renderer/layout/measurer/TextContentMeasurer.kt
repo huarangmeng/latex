@@ -84,7 +84,7 @@ internal class TextContentMeasurer : NodeMeasurer {
                     measurer,
                     density
                 )
-                NodeLayout(layout.width + operatorGap, layout.height, layout.baseline, layout.draw)
+                NodeLayout(layout.width + operatorGap, layout.height, layout.baseline, draw = layout.draw)
             }
 
             is LatexNode.Command -> {
@@ -104,7 +104,7 @@ internal class TextContentMeasurer : NodeMeasurer {
                     measurer,
                     density
                 )
-                NodeLayout(layout.width + operatorGap, layout.height, layout.baseline, layout.draw)
+                NodeLayout(layout.width + operatorGap, layout.height, layout.baseline, draw = layout.draw)
             }
             is LatexNode.ModOperator -> measureModOperator(node, context, measurer, density)
             is LatexNode.Space -> measureSpace(node.type, context, density)
@@ -186,7 +186,7 @@ internal class TextContentMeasurer : NodeMeasurer {
                     layout.width,
                     layout.height,
                     layout.height * MathConstants.CENTERED_SYMBOL_BASELINE,
-                    layout.draw
+                    draw = layout.draw
                 )
             }
             return layout
@@ -216,7 +216,7 @@ internal class TextContentMeasurer : NodeMeasurer {
                 layout.width,
                 layout.height,
                 layout.height * MathConstants.CENTERED_SYMBOL_BASELINE,
-                layout.draw
+                draw = layout.draw
             )
         }
 

@@ -4,7 +4,7 @@
 [![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.0-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Android API](https://img.shields.io/badge/Android%20API-24%2B-brightgreen.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base.svg)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base?filter=!*-kt*)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
 
 A high-performance LaTeX mathematical formula parsing and rendering library developed based on Kotlin Multiplatform (KMP). It supports consistent rendering effects on Android, iOS, Desktop (JVM), and Web (Wasm/JS) platforms.
 
@@ -265,17 +265,46 @@ fun MyEditor() {
 
 ## 📦 Installation
 
+### Version Compatibility
+
+This library publishes two variants for each release to support different Kotlin/Compose versions:
+
+| Variant | Kotlin | Compose Multiplatform | Artifact Version |
+|---------|--------|-----------------------|------------------|
+| **Standard** | 2.3.0+ | 1.10.0+ | `1.2.7` |
+| **Kotlin 2.1.0** | 2.1.0 | 1.9.3 | `1.2.7-kt2.1.0` |
+
+> Choose the variant that matches your project's Kotlin version. If your project uses **Kotlin 2.1.0**, use the `-kt2.1.0` suffixed version.
+
+### Standard Version (Kotlin 2.3.0+)
+
 Add dependencies in `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-latex = "1.2.1"
+latex = "1.2.7"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
 latex-parser = { module = "io.github.huarangmeng:latex-parser", version.ref = "latex" }
 latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref = "latex" }
 ```
+
+### Kotlin 2.1.0 Compatible Version
+
+If your project uses Kotlin 2.1.0, use the `-kt2.1.0` suffixed artifacts:
+
+```toml
+[versions]
+latex = "1.2.7-kt2.1.0"
+
+[libraries]
+latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
+latex-parser = { module = "io.github.huarangmeng:latex-parser", version.ref = "latex" }
+latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref = "latex" }
+```
+
+### Add to Your Module
 
 Reference in your module's `build.gradle.kts`:
 

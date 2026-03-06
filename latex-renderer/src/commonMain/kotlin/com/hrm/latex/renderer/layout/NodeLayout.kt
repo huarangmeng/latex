@@ -45,6 +45,6 @@ class NodeLayout(
 ) {
     companion object {
         internal val EMPTY: NodeLayout
-            get() = NodeLayout(0f, 0f, 0f, { _, _ -> })
+            get() = NodeLayout(0f, 0f, 0f) { _, _ -> }
     }
 }

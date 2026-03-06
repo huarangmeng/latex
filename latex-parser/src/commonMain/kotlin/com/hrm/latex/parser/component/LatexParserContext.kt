@@ -31,11 +31,13 @@ import com.hrm.latex.parser.model.LatexNode
  * @param name 命令名（不含反斜杠）
  * @param numArgs 参数个数（0-9）
  * @param definition 定义内容（AST 节点列表）
+ * @param defaultArg 第一个参数的默认值（可选参数语法 \newcommand{\cmd}[2][default]{body}）
  */
 data class CustomCommand(
     val name: String,
     val numArgs: Int,
-    val definition: List<LatexNode>
+    val definition: List<LatexNode>,
+    val defaultArg: String? = null
 )
 
 /**

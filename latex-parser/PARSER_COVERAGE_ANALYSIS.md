@@ -408,10 +408,14 @@ x^{\sum_{i=1}^{n}}
 
 #### 特殊效果
 - ✅ `\boxed{E = mc^2}` 方框（在公式周围绘制矩形边框）
+- ✅ `\fbox{text}` 文本模式方框（同 `\boxed` 但使用 FBOX 样式）
 - ✅ `\phantom{x}` 幻影空间（占据空间但不显示内容，用于对齐）
 - ✅ `\smash{x}` 高度压缩（绘制内容但不占据垂直空间）
 - ✅ `\vphantom{x}` 垂直幻影（只占据垂直空间，宽度为零）
 - ✅ `\hphantom{x}` 水平幻影（只占据水平空间，高度为零）
+- ✅ `\mathclap{内容}` 零宽居中叠加（绘制内容但宽度为0，内容居中对齐）
+- ✅ `\mathllap{内容}` 零宽左叠加（内容向左扩展）
+- ✅ `\mathrlap{内容}` 零宽右叠加（内容向右扩展）
 
 #### 公式标签
 - ✅ `\tag{1}` 公式编号标签（右侧显示 `(1)`）
@@ -421,6 +425,7 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\newcommand{\R}{\mathbb{R}}` 自定义命令定义
 - ✅ `\newcommand{\diff}[1]{\frac{d}{d#1}}` 单参数命令
 - ✅ `\newcommand{\pdiff}[2]{\frac{\partial #1}{\partial #2}}` 多参数命令
+- ✅ `\newcommand{\cmd}[2][default]{body}` 可选参数默认值（第一个参数可省略）
 - ✅ `\renewcommand{\cmd}{def}` 重定义已有命令（语法同 `\newcommand`）
 - ✅ `\def\name{body}` TeX 原始宏定义
 - ✅ `\def\name#1#2{body}` 带参数的 TeX 宏定义
@@ -432,6 +437,9 @@ x^{\sum_{i=1}^{n}}
 
 #### 四角标注
 - ✅ `\sideset{_a^b}{_c^d}{\sum}` 大型运算符四角上下标
+
+#### 前置上下标
+- ✅ `\prescript{A}{Z}{X}` 前置上下标（同位素标记，原子前方标注质量数和原子序数）
 
 #### 张量/指标
 - ✅ `\tensor{T}{^a_b^c}` 张量指标排列
@@ -527,8 +535,8 @@ x \in \R
 | 数学模式切换 | 6/6 | 0 | 100% |
 | 空格 | 8/8 | 0 | 100% |
 | 环境 | 21/21 | 0 | 100% |
-| 高级功能 | 65/65 | 0 | 100% |
-| **总体** | **342+/342+** | **0** | **100%** |
+| 高级功能 | 71/72 | 1 | 99% |
+| **总体** | **348+/349+** | **1** | **99.7%** |
 
 ---
 
@@ -559,6 +567,7 @@ x \in \R
 - ✅ 宏定义（`\newcommand`、`\renewcommand`、`\def`）
 - ✅ 标签引用（`\label`、`\ref`、`\eqref`）
 - ✅ 四角标注（`\sideset{_a^b}{_c^d}{\sum}`）
+- ✅ 前置上下标（`\prescript{A}{Z}{X}`，同位素标记）
 - ✅ 张量指标（`\tensor`、`\indices`）
 - ✅ AMS 否定关系符号（`\nleq`、`\ngeq`、`\nsubseteq`、`\nprec` 等 30+）
 - ✅ AMS 额外常用符号（`\checkmark`、`\complement`、`\eth`、`\mho`、双头箭头、几何符号等 80+）
@@ -578,6 +587,16 @@ x \in \R
 - ✅ 方括号标注（`\overbracket`、`\underbracket`）
 - ✅ 交互式子表达式回调（`onNodeClick` 点击公式子部分，教育应用场景）
 - ✅ 所见即所得编辑器集成（cursor/input API，位于 `latex-renderer/editor/`）
+- ✅ 前置上下标（`\prescript{A}{Z}{X}`，同位素标记）
+- ✅ 零宽叠加（`\mathclap`、`\mathllap`、`\mathrlap`，精确对齐控制）
+- ✅ `\newcommand` 可选参数默认值（`\newcommand{\cmd}[2][default]{body}`）
+- ✅ 结构化诊断面板 API（`parseWithDiagnostics()` 返回 `ParseResult`，8 种诊断分类）
+- ✅ `\fbox` 文本模式方框（`\boxed` 扩展装饰变体）
+- ✅ 前置上下标（`\prescript{A}{Z}{X}`，同位素标记）
+- ✅ 零宽叠加（`\mathclap`、`\mathllap`、`\mathrlap`，精确对齐控制）
+- ✅ `\newcommand` 可选参数默认值（`\newcommand{\cmd}[2][default]{body}` 语法）
+- ✅ 结构化诊断面板 API（`parseWithDiagnostics()` 返回 `ParseResult`，支持分类过滤）
+- ✅ `\fbox` 文本模式方框（`\boxed` 扩展装饰变体）
 
 ### 适用场景
 对于**数学论文、教科书和化学文档的常见场景**，当前解析器已经完全覆盖所有核心功能！
@@ -608,33 +627,31 @@ x \in \R
 
 ### 🟡 P1 — 中等价值 / 较高难度
 
-#### ❌ `\prescript` 前置上下标
+#### ✅ `\prescript` 前置上下标
 - **命令**: `\prescript{A}{Z}{X}`
 - **场景**: 同位素标记（原子前方标注质量数和原子序数）
-- **实现方向**: Parser 新增 `Prescript` 节点 → 在 `SideSetTensorMeasurer` 基础上扩展
+- **实现**: Parser 新增 `Prescript` 节点 → `SideSetTensorMeasurer` 中扩展 `measurePrescript`
 
-#### ❌ `\mathclap` / `\mathllap` / `\mathrlap` 零宽叠加
+#### ✅ `\mathclap` / `\mathllap` / `\mathrlap` 零宽叠加
 - **命令**: `\mathclap{内容}`, `\mathllap{内容}`, `\mathrlap{内容}`
 - **场景**: 精确对齐控制，让公式内容水平叠加不占空间
-- **实现方向**: 类似 `\phantom` 的逻辑但反向——绘制内容但宽度为 0
+- **实现**: 新增 `MathLap` 节点，在 `LatexMeasurer` 中内联处理，宽度为 0 但绘制内容
 
 #### ❌ 公式编号自动计算
 - **现状**: `\tag{1}` 支持手动标签，`\label`/`\ref`/`\eqref` 支持引用但渲染为键名
 - **实现方向**: 实现自动编号计数器（equation 环境内自增），`\ref` 渲染为实际编号
 
-#### ❌ `\newcommand` 可选参数默认值
+#### ✅ `\newcommand` 可选参数默认值
 - **命令**: `\newcommand{\cmd}[2][default]{body}`
-- **现状**: `\newcommand` 已支持位置参数 `#1`~`#9`，但尚无默认值语法
-- **实现方向**: 扩展宏定义解析，支持 `[default]` 可选参数语法
+- **实现**: 扩展宏定义解析，`CustomCommand` 新增 `defaultArg` 字段，调用时自动检查 `[value]` 可选参数
 
-#### ❌ 诊断增强（结构化错误列表）
-- **现状**: `ParseDiagnostic` 已有基础，渲染层以 errorColor 标记
-- **实现方向**: 语法级别诊断（缺失 `}` 位置、不匹配的 `\begin`/`\end`）；暴露诊断面板 API（返回结构化错误列表 + 位置信息）
+#### ✅ 诊断增强（结构化错误列表）
+- **实现**: `ParseDiagnostic.Category` 枚举（8 种分类），`ParseResult` 数据类，`parseWithDiagnostics()` API
+- **能力**: 按严重级别和分类过滤诊断，支持诊断面板
 
-#### ❌ `\boxed` 扩展装饰变体
-- **命令**: `\fbox{}`, `\doublebox{}`, 圆角边框等
-- **现状**: `\boxed` 已有基础支持
-- **实现方向**: 在 `BoxedPhantomMeasurer` 中扩展更多边框变体样式
+#### ✅ `\boxed` 扩展装饰变体
+- **命令**: `\fbox{}`
+- **实现**: `Boxed.BoxStyle` 枚举（NORMAL/FBOX），`BoxedPhantomMeasurer` 计划支持更多样式
 
 ---
 
@@ -678,10 +695,10 @@ x \in \R
 | P0 ⭐⭐ | 完整可扩展箭头家族 | 低 | 中 | ✅ **已实现** |
 | P0 ⭐⭐ | `\underbracket`/`\overbracket` | 低 | 中 | ✅ **已实现** |
 | P1 ⭐⭐ | 公式自动编号 | 中 | 高 | ✅ tag/label/ref 体系 |
-| P1 ⭐⭐ | 诊断增强 | 中 | 中 | ✅ ParseDiagnostic |
-| P1 ⭐⭐ | `\newcommand` 默认值 | 低 | 中 | ✅ 宏展开机制 |
-| P1 ⭐⭐ | `\prescript` 前置上下标 | 中 | 中 | ✅ SideSetTensorMeasurer |
-| P1 ⭐⭐ | `\mathclap`/`\mathllap`/`\mathrlap` | 低 | 中 | ✅ phantom 逻辑 |
+| P1 ⭐⭐ | 诊断增强 | 中 | 中 | ✅ **已实现** |
+| P1 ⭐⭐ | `\newcommand` 默认值 | 低 | 中 | ✅ **已实现** |
+| P1 ⭐⭐ | `\prescript` 前置上下标 | 中 | 中 | ✅ **已实现** |
+| P1 ⭐⭐ | `\mathclap`/`\mathllap`/`\mathrlap` | 低 | 中 | ✅ **已实现** |
 | P2 ⭐ | SVG 矢量导出 | 高 | 中 | ✅ NodeLayout draw 指令 |
 | P2 ⭐ | 自定义环境 | 中 | 中 | ✅ 宏展开 + 环境解析 |
 | P2 ⭐ | TikZ 子集 | 很高 | 高 | ❌ 需要全新解析器 |

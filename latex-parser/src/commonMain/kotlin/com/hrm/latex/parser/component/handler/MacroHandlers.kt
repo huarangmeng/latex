@@ -40,6 +40,7 @@ internal fun CommandRegistry.installMacroHandlers() {
 
         // 可选参数 [numArgs]
         var numArgs = 0
+        var defaultArg: String? = null
         if (stream.peek() is LatexToken.LeftBracket) {
             stream.advance() // [
             val numNodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
@@ -47,6 +48,16 @@ internal fun CommandRegistry.installMacroHandlers() {
                 stream.expect("]")
             }
             numArgs = ParseUtils.extractText(numNodes).toIntOrNull() ?: 0
+
+            // 可选默认值 [defaultArg]（紧跟在 [numArgs] 后面的第二个方括号参数）
+            if (stream.peek() is LatexToken.LeftBracket) {
+                stream.advance() // [
+                val defaultNodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
+                if (!stream.isEOF()) {
+                    stream.expect("]")
+                }
+                defaultArg = ParseUtils.extractText(defaultNodes)
+            }
         }
 
         // 定义 {definition}
@@ -56,9 +67,9 @@ internal fun CommandRegistry.installMacroHandlers() {
             else -> listOf(defArg)
         }
 
-        ctx.customCommands[commandName] = CustomCommand(commandName, numArgs, definition)
-        HLog.d(TAG) { "注册自定义命令: \\$commandName[$numArgs]" }
-        LatexNode.NewCommand(commandName, numArgs, definition)
+        ctx.customCommands[commandName] = CustomCommand(commandName, numArgs, definition, defaultArg)
+        HLog.d(TAG) { "注册自定义命令: \\$commandName[$numArgs]${if (defaultArg != null) "[default=$defaultArg]" else ""}" }
+        LatexNode.NewCommand(commandName, numArgs, definition, defaultArg)
     }
 
     register("newcommand", "renewcommand", handler = newCommandHandler)

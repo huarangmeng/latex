@@ -35,13 +35,14 @@ import kotlin.math.min
 import kotlin.reflect.KClass
 
 /**
- * 四角标注测量器 — 处理 \sideset, \tensor
+ * 四角标注测量器 — 处理 \sideset, \tensor, \prescript
  */
 internal class SideSetTensorMeasurer : NodeMeasurer {
 
     override val handledNodeTypes: Set<KClass<out LatexNode>> = setOf(
         LatexNode.SideSet::class,
-        LatexNode.Tensor::class
+        LatexNode.Tensor::class,
+        LatexNode.Prescript::class
     )
 
     override fun measure(
@@ -54,6 +55,7 @@ internal class SideSetTensorMeasurer : NodeMeasurer {
     ): NodeLayout = when (node) {
         is LatexNode.SideSet -> measureSideSet(node, context, density, measureNode)
         is LatexNode.Tensor -> measureTensor(node, context, density, measureNode)
+        is LatexNode.Prescript -> measurePrescript(node, context, density, measureNode)
         else -> throw IllegalArgumentException("Unsupported node type: ${node::class.simpleName}")
     }
 
@@ -238,6 +240,66 @@ internal class SideSetTensorMeasurer : NodeMeasurer {
                 col.subLayout?.let { sub ->
                     sub.draw(this, colX, y + baseline + subRelY - sub.baseline)
                 }
+            }
+        }
+    }
+
+    /**
+     * 测量 \prescript{上标}{下标}{base} — 前置上下标
+     * 类似 SideSet 但只有左侧标注
+     */
+    private fun measurePrescript(
+        node: LatexNode.Prescript,
+        context: RenderContext,
+        density: Density,
+        measureNode: (LatexNode, RenderContext) -> NodeLayout
+    ): NodeLayout {
+        val baseLayout = measureNode(node.base, context)
+        val scriptContext = context.shrink(MathConstants.SCRIPT_SCALE)
+
+        val preSupLayout = node.preSuperscript?.let { measureNode(it, scriptContext) }
+        val preSubLayout = node.preSubscript?.let { measureNode(it, scriptContext) }
+
+        val preWidth = max(preSupLayout?.width ?: 0f, preSubLayout?.width ?: 0f)
+
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val scriptGap = fontSizePx * 0.05f
+
+        val totalWidth = preWidth + scriptGap + baseLayout.width
+
+        // 使用 MathFontProvider 的精确参数，回退到 MathConstants
+        val provider = context.mathFontProvider
+        val supShift = provider?.superscriptShiftUp(fontSizePx)
+            ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+        val subShift = provider?.subscriptShiftDown(fontSizePx)
+            ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
+
+        val topExtent = preSupLayout?.let { supShift + it.height } ?: 0f
+        val aboveBase = max(baseLayout.baseline, topExtent)
+
+        val belowBase = max(
+            baseLayout.height - baseLayout.baseline,
+            preSubLayout?.let { subShift + it.height } ?: 0f
+        )
+
+        val totalHeight = aboveBase + belowBase
+        val baseline = aboveBase
+
+        val baseRelX = preWidth + scriptGap
+        val baseRelY = aboveBase - baseLayout.baseline
+
+        return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
+            baseLayout.draw(this, x + baseRelX, y + baseRelY)
+
+            preSupLayout?.let {
+                val lsX = x + preWidth - it.width
+                val lsY = y + aboveBase - supShift - it.height
+                it.draw(this, lsX, lsY)
+            }
+            preSubLayout?.let {
+                val lsX = x + preWidth - it.width
+                val lsY = y + aboveBase + subShift
+                it.draw(this, lsX, lsY)
             }
         }
     }

@@ -577,6 +577,15 @@ val basicLatexPreviewGroups = listOf(
                     )
                 }
             ),
+            PreviewItem("44", "prescript 基础", "\\prescript{A}{Z}{X}"),
+            PreviewItem("45", "prescript 同位素", "\\prescript{235}{92}{U}"),
+            PreviewItem("46", "prescript 部分", "\\prescript{14}{}{C}"),
+            PreviewItem("47", "fbox 文本方框", "\\fbox{Important}"),
+            PreviewItem("48", "fbox 数学内容", "\\fbox{x^2 + y^2 = r^2}"),
+            PreviewItem("49", "fbox vs boxed", "\\fbox{a} \\quad \\boxed{a}"),
+            PreviewItem("50", "mathclap 零宽居中", "\\sum_{\\mathclap{1 \\le i \\le n}} x_i"),
+            PreviewItem("51", "mathrlap 零宽右叠", "\\mathrlap{\\overbrace{\\phantom{abc}}}abc"),
+            PreviewItem("52", "mathllap 零宽左叠", "abc\\mathllap{\\underbrace{\\phantom{abc}}}"),
         )
     ),
     PreviewGroup(
@@ -637,6 +646,16 @@ val basicLatexPreviewGroups = listOf(
                 "14",
                 "mathop + limits",
                 "\\mathop{op}\\limits_{i=0}^{n} x_i"
+            ),
+            PreviewItem(
+                "15",
+                "可选参数默认值",
+                "\\newcommand{\\greet}[1][World]{Hello\\ #1} \\greet \\quad \\greet[LaTeX]"
+            ),
+            PreviewItem(
+                "16",
+                "双参数+默认值",
+                "\\newcommand{\\pair}[2][x]{#1+#2} \\pair{y} \\quad \\pair[a]{b}"
             ),
         )
     ),

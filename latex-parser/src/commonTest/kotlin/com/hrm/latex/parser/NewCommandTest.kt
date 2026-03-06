@@ -25,6 +25,7 @@ package com.hrm.latex.parser
 
 import com.hrm.latex.parser.model.LatexNode
 import kotlin.test.Test
+import kotlin.test.assertIs
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -355,6 +356,61 @@ class NewCommandTest {
     fun should_parse_def_without_args() {
         val parser = LatexParser()
         val result = parser.parse("\\def\\myvar{\\alpha} \\myvar")
+        assertTrue(result.children.isNotEmpty())
+    }
+
+    // ===================== \newcommand 可选参数默认值 =====================
+
+    @Test
+    fun should_parse_newcommand_with_default_arg() {
+        val parser = LatexParser()
+        // \newcommand{\greet}[1][World]{Hello #1}
+        val result = parser.parse("\\newcommand{\\greet}[1][World]{Hello #1} \\greet")
+        assertTrue(result.children.isNotEmpty(), "应包含 newcommand 定义 + 展开")
+
+        // 验证 NewCommand 节点的 defaultArg
+        val newCmd = result.children.first()
+        assertIs<LatexNode.NewCommand>(newCmd)
+        assertEquals("greet", newCmd.commandName)
+        assertEquals(1, newCmd.numArgs)
+        assertEquals("World", newCmd.defaultArg)
+    }
+
+    @Test
+    fun should_expand_with_default_arg_when_no_optional_provided() {
+        val parser = LatexParser()
+        // 定义有默认值的命令，使用时不传可选参数
+        val result = parser.parse("\\newcommand{\\greet}[1][World]{Hello #1} \\greet{}")
+        // 应将 "World" 作为第一个参数展开
+        assertTrue(result.children.size >= 2)
+    }
+
+    @Test
+    fun should_expand_with_explicit_optional_arg() {
+        val parser = LatexParser()
+        // 定义有默认值的命令，使用时传入可选参数 [LaTeX]
+        val result = parser.parse("\\newcommand{\\greet}[1][World]{Hello #1} \\greet[LaTeX]")
+        assertTrue(result.children.size >= 2)
+    }
+
+    @Test
+    fun should_parse_two_arg_command_with_default() {
+        val parser = LatexParser()
+        // \newcommand{\cmd}[2][default]{#1 and #2}
+        val result = parser.parse("\\newcommand{\\cmd}[2][default]{#1 and #2} \\cmd{second}")
+        assertTrue(result.children.isNotEmpty())
+
+        val newCmd = result.children.first()
+        assertIs<LatexNode.NewCommand>(newCmd)
+        assertEquals(2, newCmd.numArgs)
+        assertEquals("default", newCmd.defaultArg)
+    }
+
+    @Test
+    fun should_parse_two_arg_command_with_explicit_optional() {
+        val parser = LatexParser()
+        // 明确传入可选参数
+        val result = parser.parse("\\newcommand{\\cmd}[2][x]{#1 + #2} \\cmd[y]{z}")
         assertTrue(result.children.isNotEmpty())
     }
 }

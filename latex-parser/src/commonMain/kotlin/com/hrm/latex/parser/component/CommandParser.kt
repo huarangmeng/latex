@@ -113,13 +113,43 @@ internal class CommandParser(
     /**
      * 展开自定义命令
      * 将 #1, #2, ... 替换为实际参数
+     *
+     * 支持可选参数默认值：当 customCmd.defaultArg 非空时，
+     * 第一个参数为可选参数。如果调用时提供了 [value] 则使用 value，否则使用默认值。
      */
     private fun expandCustomCommand(customCmd: CustomCommand): LatexNode {
-        // 收集参数
         val args = mutableListOf<LatexNode>()
-        for (i in 0 until customCmd.numArgs) {
-            val arg = context.parseArgument() ?: LatexNode.Text("")
-            args.add(arg)
+
+        if (customCmd.defaultArg != null && customCmd.numArgs > 0) {
+            // 第一个参数是可选参数：检查是否提供了 [value]
+            val firstArg = if (tokenStream.peek() is LatexToken.LeftBracket) {
+                tokenStream.advance() // consume [
+                val nodes = mutableListOf<LatexNode>()
+                while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
+                    val node = context.parseExpression()
+                    if (node != null) nodes.add(node)
+                }
+                if (!tokenStream.isEOF()) {
+                    tokenStream.advance() // consume ]
+                }
+                if (nodes.size == 1) nodes[0] else LatexNode.Group(nodes)
+            } else {
+                // 使用默认值
+                LatexNode.Text(customCmd.defaultArg)
+            }
+            args.add(firstArg)
+
+            // 收集剩余的必选参数
+            for (i in 1 until customCmd.numArgs) {
+                val arg = context.parseArgument() ?: LatexNode.Text("")
+                args.add(arg)
+            }
+        } else {
+            // 所有参数都是必选参数
+            for (i in 0 until customCmd.numArgs) {
+                val arg = context.parseArgument() ?: LatexNode.Text("")
+                args.add(arg)
+            }
         }
 
         // 替换定义中的参数占位符

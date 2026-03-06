@@ -211,6 +211,41 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         }
         return ""
     }
+
+    override fun visitPrescript(node: LatexNode.Prescript): String {
+        output.append("Prescript\n")
+        indent++
+        if (node.preSuperscript != null) {
+            printIndent()
+            output.append("preSup: ")
+            visit(node.preSuperscript)
+            output.append("\n")
+        }
+        if (node.preSubscript != null) {
+            printIndent()
+            output.append("preSub: ")
+            visit(node.preSubscript)
+            output.append("\n")
+        }
+        printIndent()
+        output.append("base: ")
+        visit(node.base)
+        indent--
+        return ""
+    }
+
+    override fun visitMathLap(node: LatexNode.MathLap): String {
+        output.append("MathLap(${node.lapType})\n")
+        indent++
+        printIndent()
+        output.append("content: ")
+        node.content.forEachIndexed { i, child ->
+            if (i > 0) output.append(", ")
+            visit(child)
+        }
+        indent--
+        return ""
+    }
     
     fun print(node: LatexNode): String {
         output.clear()

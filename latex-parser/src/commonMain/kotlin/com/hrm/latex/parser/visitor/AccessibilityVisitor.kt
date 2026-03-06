@@ -364,6 +364,18 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
     }
 
+    override fun visitPrescript(node: LatexNode.Prescript): String {
+        val base = visit(node.base)
+        val parts = mutableListOf<String>()
+        node.preSuperscript?.let { parts.add("pre-superscript ${visit(it)}") }
+        node.preSubscript?.let { parts.add("pre-subscript ${visit(it)}") }
+        return "$base with ${parts.joinToString(", ")}"
+    }
+
+    override fun visitMathLap(node: LatexNode.MathLap): String {
+        return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
+    }
+
     // ========== 辅助方法 ==========
 
     private fun symbolName(symbol: String, unicode: String): String {

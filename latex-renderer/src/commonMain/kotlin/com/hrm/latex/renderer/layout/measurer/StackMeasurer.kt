@@ -103,7 +103,7 @@ internal class StackMeasurer : NodeMeasurer {
                 val extraWidth = maxScriptWidth * MathConstants.STACK_ARROW_EXTRA_WIDTH
                 val targetWidth = maxScriptWidth + extraWidth
                 baseLayout =
-                    NodeLayout(targetWidth, baseLayout.height, baseLayout.baseline, baseLayout.draw)
+                    NodeLayout(targetWidth, baseLayout.height, baseLayout.baseline, draw = baseLayout.draw)
             }
         }
 

@@ -67,4 +67,55 @@ class SideSetTest {
         assertNull(sideSet.rightSub)
         assertNull(sideSet.rightSup)
     }
+
+    // ============ \prescript 前置上下标 ============
+
+    @Test
+    fun testPrescriptBasic() {
+        val doc = parser.parse("\\prescript{A}{Z}{X}")
+        assertEquals(1, doc.children.size)
+        val prescript = doc.children[0] as LatexNode.Prescript
+        assertNotNull(prescript.preSuperscript)
+        assertNotNull(prescript.preSubscript)
+        assertNotNull(prescript.base)
+    }
+
+    @Test
+    fun testPrescriptIsotopeNotation() {
+        // 同位素标记: ^{235}_{92}U
+        val doc = parser.parse("\\prescript{235}{92}{U}")
+        assertEquals(1, doc.children.size)
+        val prescript = doc.children[0] as LatexNode.Prescript
+        assertNotNull(prescript.preSuperscript)
+        assertNotNull(prescript.preSubscript)
+    }
+
+    @Test
+    fun testPrescriptOnlySupscript() {
+        // 只有前置上标
+        val doc = parser.parse("\\prescript{A}{}{X}")
+        assertEquals(1, doc.children.size)
+        val prescript = doc.children[0] as LatexNode.Prescript
+        assertNotNull(prescript.preSuperscript)
+        assertNull(prescript.preSubscript, "空花括号应视为 null")
+    }
+
+    @Test
+    fun testPrescriptOnlySubscript() {
+        // 只有前置下标
+        val doc = parser.parse("\\prescript{}{Z}{X}")
+        assertEquals(1, doc.children.size)
+        val prescript = doc.children[0] as LatexNode.Prescript
+        assertNull(prescript.preSuperscript, "空花括号应视为 null")
+        assertNotNull(prescript.preSubscript)
+    }
+
+    @Test
+    fun testPrescriptBothEmpty() {
+        val doc = parser.parse("\\prescript{}{}{X}")
+        assertEquals(1, doc.children.size)
+        val prescript = doc.children[0] as LatexNode.Prescript
+        assertNull(prescript.preSuperscript)
+        assertNull(prescript.preSubscript)
+    }
 }

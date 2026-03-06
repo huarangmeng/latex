@@ -88,6 +88,8 @@ interface LatexVisitor<T> {
     fun visitError(node: LatexNode.Error): T
     fun visitHyperlink(node: LatexNode.Hyperlink): T
     fun visitColorBox(node: LatexNode.ColorBox): T
+    fun visitPrescript(node: LatexNode.Prescript): T
+    fun visitMathLap(node: LatexNode.MathLap): T
 }
 
 /**
@@ -380,6 +382,18 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         return defaultVisit(node)
     }
 
+    override fun visitPrescript(node: LatexNode.Prescript): T {
+        node.preSuperscript?.let { visit(it) }
+        node.preSubscript?.let { visit(it) }
+        visit(node.base)
+        return defaultVisit(node)
+    }
+
+    override fun visitMathLap(node: LatexNode.MathLap): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
     /**
      * 访问任意节点 — 通过双分派委托到 [LatexNode.accept]
      */
@@ -475,4 +489,6 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
     override fun visitError(node: LatexNode.Error): T = visitChildren(node)
     override fun visitHyperlink(node: LatexNode.Hyperlink): T = visitChildren(node)
     override fun visitColorBox(node: LatexNode.ColorBox): T = visitChildren(node)
+    override fun visitPrescript(node: LatexNode.Prescript): T = visitChildren(node)
+    override fun visitMathLap(node: LatexNode.MathLap): T = visitChildren(node)
 }

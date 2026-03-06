@@ -273,7 +273,7 @@ private fun LatexDocument(
                     if (hit != null) {
                         // 超链接专用回调：命中 Hyperlink 节点时直接返回 URL
                         if (onHyperlinkClick != null && hit.node is LatexNode.Hyperlink) {
-                            onHyperlinkClick((hit.node as LatexNode.Hyperlink).url)
+                            onHyperlinkClick(hit.node.url)
                         }
                         // 通用节点点击回调
                         if (onNodeClick != null) {

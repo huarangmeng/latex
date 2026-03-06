@@ -286,4 +286,72 @@ class SpecialEffectTest {
         assertIs<LatexNode.ColorBox>(colorBox)
         assertEquals("red", colorBox.backgroundColor)
     }
+
+    // ============ \fbox 文本模式方框 ============
+
+    @Test
+    fun should_parse_fbox() {
+        val doc = parser.parse("\\fbox{text}")
+        val boxed = doc.children.first()
+        assertIs<LatexNode.Boxed>(boxed)
+        assertEquals(LatexNode.Boxed.BoxStyle.FBOX, boxed.boxStyle)
+        assertTrue(boxed.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_fbox_with_math() {
+        val doc = parser.parse("\\fbox{x^2 + y^2}")
+        val boxed = doc.children.first()
+        assertIs<LatexNode.Boxed>(boxed)
+        assertEquals(LatexNode.Boxed.BoxStyle.FBOX, boxed.boxStyle)
+    }
+
+    @Test
+    fun should_parse_boxed_with_normal_style() {
+        val doc = parser.parse("\\boxed{E = mc^2}")
+        val boxed = doc.children.first()
+        assertIs<LatexNode.Boxed>(boxed)
+        assertEquals(LatexNode.Boxed.BoxStyle.NORMAL, boxed.boxStyle)
+    }
+
+    // ============ \mathclap / \mathllap / \mathrlap 零宽叠加 ============
+
+    @Test
+    fun should_parse_mathclap() {
+        val doc = parser.parse("\\mathclap{text}")
+        val lap = doc.children.first()
+        assertIs<LatexNode.MathLap>(lap)
+        assertEquals(LatexNode.MathLap.LapType.CLAP, lap.lapType)
+        assertTrue(lap.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_mathllap() {
+        val doc = parser.parse("\\mathllap{text}")
+        val lap = doc.children.first()
+        assertIs<LatexNode.MathLap>(lap)
+        assertEquals(LatexNode.MathLap.LapType.LLAP, lap.lapType)
+    }
+
+    @Test
+    fun should_parse_mathrlap() {
+        val doc = parser.parse("\\mathrlap{text}")
+        val lap = doc.children.first()
+        assertIs<LatexNode.MathLap>(lap)
+        assertEquals(LatexNode.MathLap.LapType.RLAP, lap.lapType)
+    }
+
+    @Test
+    fun should_parse_mathclap_with_complex_content() {
+        val doc = parser.parse("\\sum_{\\mathclap{1 \\le i \\le n}} x_i")
+        assertTrue(doc.children.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_mathrlap_with_empty_content() {
+        val doc = parser.parse("\\mathrlap{}")
+        val lap = doc.children.first()
+        assertIs<LatexNode.MathLap>(lap)
+        assertEquals(LatexNode.MathLap.LapType.RLAP, lap.lapType)
+    }
 }

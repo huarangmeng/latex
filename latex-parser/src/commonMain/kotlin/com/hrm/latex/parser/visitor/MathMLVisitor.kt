@@ -464,6 +464,18 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         return "<mstyle mathbackground=\"${escapeXml(node.backgroundColor)}\">$content</mstyle>"
     }
 
+    override fun visitPrescript(node: LatexNode.Prescript): String {
+        val base = visit(node.base)
+        val preSub = node.preSubscript?.let { visit(it) } ?: "<none/>"
+        val preSup = node.preSuperscript?.let { visit(it) } ?: "<none/>"
+        return "<mmultiscripts>$base<none/><none/><mprescripts/>$preSub$preSup</mmultiscripts>"
+    }
+
+    override fun visitMathLap(node: LatexNode.MathLap): String {
+        val content = node.content.joinToString("") { visit(it) }
+        return "<mpadded width=\"0\">$content</mpadded>"
+    }
+
     override fun visitOperatorName(node: LatexNode.OperatorName): String {
         return "<mo>${escapeXml(node.name)}</mo>"
     }

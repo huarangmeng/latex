@@ -59,6 +59,20 @@ class LatexParser {
     }
 
     /**
+     * 解析 LaTeX 字符串，返回包含 AST 和结构化诊断信息的 ParseResult
+     *
+     * 相比 [parse] 方法，此方法额外返回解析过程中收集的所有诊断信息，
+     * 支持诊断面板 API、错误过滤和分类查询。
+     */
+    fun parseWithDiagnostics(input: String): ParseResult {
+        HLog.d(TAG) { "开始解析 LaTeX (带诊断): $input" }
+        val tokens = LatexTokenizer(input).tokenize()
+        val session = ParseSession(tokens, input.length)
+        val document = session.parse()
+        return ParseResult(document, session.diagnostics.toList())
+    }
+
+    /**
      * 从 token 列表直接解析（供增量解析器使用，避免二次分词）
      */
     fun parse(tokens: List<LatexToken>, inputLength: Int): LatexNode.Document {
@@ -198,14 +212,15 @@ internal class ParseSession(
 
             is LatexToken.EOF -> return null
             else -> {
-                // P1: 记录诊断而非静默丢弃
+            // P1: 记录诊断而非静默丢弃
                 val range = token?.range
                 if (range != null) {
                     diagnostics.add(
                         ParseDiagnostic(
                             range = range,
                             message = "Unexpected token: $token",
-                            severity = ParseDiagnostic.Severity.WARNING
+                            severity = ParseDiagnostic.Severity.WARNING,
+                            category = ParseDiagnostic.Category.UNEXPECTED_TOKEN
                         )
                     )
                 }

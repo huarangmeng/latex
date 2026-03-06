@@ -105,4 +105,44 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
         }
         LatexNode.Negation(next)
     }
+
+    // \fbox — 文本模式方框，行为同 \boxed 但使用 FBOX 样式
+    register("fbox") { _, ctx, _ ->
+        val arg = ctx.parseArgument() ?: LatexNode.Text("")
+        val content = when (arg) {
+            is LatexNode.Group -> arg.children
+            else -> listOf(arg)
+        }
+        LatexNode.Boxed(content, LatexNode.Boxed.BoxStyle.FBOX)
+    }
+
+    // \mathclap — 零宽居中叠加
+    register("mathclap") { _, ctx, _ ->
+        val arg = ctx.parseArgument() ?: LatexNode.Text("")
+        val content = when (arg) {
+            is LatexNode.Group -> arg.children
+            else -> listOf(arg)
+        }
+        LatexNode.MathLap(content, LatexNode.MathLap.LapType.CLAP)
+    }
+
+    // \mathllap — 零宽左叠加（内容向左扩展）
+    register("mathllap") { _, ctx, _ ->
+        val arg = ctx.parseArgument() ?: LatexNode.Text("")
+        val content = when (arg) {
+            is LatexNode.Group -> arg.children
+            else -> listOf(arg)
+        }
+        LatexNode.MathLap(content, LatexNode.MathLap.LapType.LLAP)
+    }
+
+    // \mathrlap — 零宽右叠加（内容向右扩展）
+    register("mathrlap") { _, ctx, _ ->
+        val arg = ctx.parseArgument() ?: LatexNode.Text("")
+        val content = when (arg) {
+            is LatexNode.Group -> arg.children
+            else -> listOf(arg)
+        }
+        LatexNode.MathLap(content, LatexNode.MathLap.LapType.RLAP)
+    }
 }

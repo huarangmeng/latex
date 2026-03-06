@@ -4,7 +4,7 @@
 [![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.0-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Android API](https://img.shields.io/badge/Android%20API-24%2B-brightgreen.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base.svg)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base?filter=!*-kt*)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
 
 这是一个基于 Kotlin Multiplatform (KMP) 开发的高性能 LaTeX 数学公式解析与渲染库。支持在 Android, iOS, Desktop (JVM) 和 Web (Wasm/JS) 平台上实现一致的渲染效果。
 
@@ -265,17 +265,46 @@ fun MyEditor() {
 
 ## 📦 安装
 
+### 版本兼容性
+
+本库为每个版本发布两个变体，以支持不同的 Kotlin/Compose 版本：
+
+| 变体 | Kotlin | Compose Multiplatform | 制品版本号 |
+|------|--------|-----------------------|-----------|
+| **标准版** | 2.3.0+ | 1.10.0+ | `1.2.7` |
+| **Kotlin 2.1.0 兼容版** | 2.1.0 | 1.9.3 | `1.2.7-kt2.1.0` |
+
+> 请选择与你项目 Kotlin 版本匹配的变体。如果你的项目使用 **Kotlin 2.1.0**，请使用带 `-kt2.1.0` 后缀的版本。
+
+### 标准版（Kotlin 2.3.0+）
+
 在 `gradle/libs.versions.toml` 中添加依赖：
 
 ```toml
 [versions]
-latex = "1.2.1"
+latex = "1.2.7"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
 latex-parser = { module = "io.github.huarangmeng:latex-parser", version.ref = "latex" }
 latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref = "latex" }
 ```
+
+### Kotlin 2.1.0 兼容版
+
+如果你的项目使用 Kotlin 2.1.0，请使用带 `-kt2.1.0` 后缀的制品：
+
+```toml
+[versions]
+latex = "1.2.7-kt2.1.0"
+
+[libraries]
+latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
+latex-parser = { module = "io.github.huarangmeng:latex-parser", version.ref = "latex" }
+latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref = "latex" }
+```
+
+### 添加到模块
 
 在模块的 `build.gradle.kts` 中引用：
 
