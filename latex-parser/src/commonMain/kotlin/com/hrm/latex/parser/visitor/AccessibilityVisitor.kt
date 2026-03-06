@@ -390,6 +390,15 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return "$level: $content"
     }
 
+    override fun visitTextDirection(node: LatexNode.TextDirection): String {
+        val content = node.content.joinToString(" ") { visit(it) }.collapseSpaces()
+        val dir = when (node.direction) {
+            LatexNode.TextDirection.Direction.RTL -> "right-to-left"
+            LatexNode.TextDirection.Direction.LTR -> "left-to-right"
+        }
+        return "$dir: $content"
+    }
+
     // ========== 辅助方法 ==========
 
     private fun symbolName(symbol: String, unicode: String): String {

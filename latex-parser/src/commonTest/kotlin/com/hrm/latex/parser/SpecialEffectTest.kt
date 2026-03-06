@@ -354,4 +354,98 @@ class SpecialEffectTest {
         assertIs<LatexNode.MathLap>(lap)
         assertEquals(LatexNode.MathLap.LapType.RLAP, lap.lapType)
     }
+
+    // ============ \RLE / \LRE / \textarabic / \texthebrew 文本方向 ============
+
+    @Test
+    fun should_parse_RLE_command() {
+        val doc = parser.parse("\\RLE{مرحبا}")
+        val dir = doc.children.first()
+        assertIs<LatexNode.TextDirection>(dir)
+        assertEquals(LatexNode.TextDirection.Direction.RTL, dir.direction)
+        assertTrue(dir.content.isNotEmpty(), "RLE 应有子内容")
+    }
+
+    @Test
+    fun should_parse_LRE_command() {
+        val doc = parser.parse("\\LRE{Hello}")
+        val dir = doc.children.first()
+        assertIs<LatexNode.TextDirection>(dir)
+        assertEquals(LatexNode.TextDirection.Direction.LTR, dir.direction)
+        assertTrue(dir.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_textarabic_command() {
+        val doc = parser.parse("\\textarabic{مرحبا بالعالم}")
+        val dir = doc.children.first()
+        assertIs<LatexNode.TextDirection>(dir)
+        assertEquals(LatexNode.TextDirection.Direction.RTL, dir.direction)
+        assertTrue(dir.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_texthebrew_command() {
+        val doc = parser.parse("\\texthebrew{שלום}")
+        val dir = doc.children.first()
+        assertIs<LatexNode.TextDirection>(dir)
+        assertEquals(LatexNode.TextDirection.Direction.RTL, dir.direction)
+        assertTrue(dir.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_RTL_environment() {
+        val doc = parser.parse("\\begin{RTL}مرحبا\\end{RTL}")
+        val dir = doc.children.first()
+        assertIs<LatexNode.TextDirection>(dir)
+        assertEquals(LatexNode.TextDirection.Direction.RTL, dir.direction)
+        assertTrue(dir.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_LTR_environment() {
+        val doc = parser.parse("\\begin{LTR}Hello World\\end{LTR}")
+        val dir = doc.children.first()
+        assertIs<LatexNode.TextDirection>(dir)
+        assertEquals(LatexNode.TextDirection.Direction.LTR, dir.direction)
+        assertTrue(dir.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_nested_RLE_LRE() {
+        val doc = parser.parse("\\RLE{مرحبا \\LRE{Hello} عالم}")
+        val dir = doc.children.first()
+        assertIs<LatexNode.TextDirection>(dir)
+        assertEquals(LatexNode.TextDirection.Direction.RTL, dir.direction)
+        // 内部应包含嵌套的 LTR 方向节点
+        val hasNestedLtr = dir.content.any { it is LatexNode.TextDirection }
+        assertTrue(hasNestedLtr, "应支持嵌套 RLE/LRE")
+        val nested = dir.content.filterIsInstance<LatexNode.TextDirection>().first()
+        assertEquals(LatexNode.TextDirection.Direction.LTR, nested.direction)
+    }
+
+    @Test
+    fun should_parse_RLE_with_math() {
+        val doc = parser.parse("\\RLE{x^2 + y^2 = r^2}")
+        val dir = doc.children.first()
+        assertIs<LatexNode.TextDirection>(dir)
+        assertEquals(LatexNode.TextDirection.Direction.RTL, dir.direction)
+        assertTrue(dir.content.size > 1, "RTL 内可包含数学内容")
+    }
+
+    @Test
+    fun should_handle_empty_RLE() {
+        val doc = parser.parse("\\RLE{}")
+        val dir = doc.children.first()
+        assertIs<LatexNode.TextDirection>(dir)
+        assertEquals(LatexNode.TextDirection.Direction.RTL, dir.direction)
+    }
+
+    @Test
+    fun should_parse_mixed_RTL_and_normal() {
+        val doc = parser.parse("Hello \\RLE{مرحبا} World")
+        assertTrue(doc.children.size >= 3, "应包含文本和 RTL 节点")
+        val hasRtl = doc.children.any { it is LatexNode.TextDirection }
+        assertTrue(hasRtl, "应包含 RTL 方向节点")
+    }
 }

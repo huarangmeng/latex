@@ -92,6 +92,7 @@ interface LatexVisitor<T> {
     fun visitMathLap(node: LatexNode.MathLap): T
     fun visitNewEnvironment(node: LatexNode.NewEnvironment): T
     fun visitSectionHeading(node: LatexNode.SectionHeading): T
+    fun visitTextDirection(node: LatexNode.TextDirection): T
 }
 
 /**
@@ -405,6 +406,11 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         return defaultVisit(node)
     }
 
+    override fun visitTextDirection(node: LatexNode.TextDirection): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
     /**
      * 访问任意节点 — 通过双分派委托到 [LatexNode.accept]
      */
@@ -504,4 +510,5 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
     override fun visitMathLap(node: LatexNode.MathLap): T = visitChildren(node)
     override fun visitNewEnvironment(node: LatexNode.NewEnvironment): T = visitChildren(node)
     override fun visitSectionHeading(node: LatexNode.SectionHeading): T = visitChildren(node)
+    override fun visitTextDirection(node: LatexNode.TextDirection): T = visitChildren(node)
 }

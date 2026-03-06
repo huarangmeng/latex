@@ -483,6 +483,15 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         return "<mtext>${escapeXml(content)}</mtext>"
     }
 
+    override fun visitTextDirection(node: LatexNode.TextDirection): String {
+        val content = node.content.joinToString("") { visit(it) }
+        val dir = when (node.direction) {
+            LatexNode.TextDirection.Direction.RTL -> "rtl"
+            LatexNode.TextDirection.Direction.LTR -> "ltr"
+        }
+        return "<mrow dir=\"$dir\">$content</mrow>"
+    }
+
     override fun visitOperatorName(node: LatexNode.OperatorName): String {
         return "<mo>${escapeXml(node.name)}</mo>"
     }

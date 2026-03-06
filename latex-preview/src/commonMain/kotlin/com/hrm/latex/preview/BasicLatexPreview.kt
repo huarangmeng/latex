@@ -455,7 +455,7 @@ val basicLatexPreviewGroups = listOf(
     PreviewGroup(
         id = "special_effects",
         title = "11. 特殊效果与布局",
-        description = "方框（boxed/fbox）、幻影（phantom）、取消线变体、否定修饰、smash",
+        description = "方框（boxed/fbox）、幻影（phantom）、取消线变体、否定修饰、smash、RTL 文本方向",
         items = listOf(
             PreviewItem("1", "简单方框", "\\boxed{E = mc^2}"),
             PreviewItem("2", "方框中的分数", "\\boxed{\\frac{a + b}{c}}"),
@@ -488,6 +488,10 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("25", "fbox vs boxed", "\\fbox{a} \\quad \\boxed{a}"),
             PreviewItem("26", "underbrace 标注", "\\underbrace{x+y+z}_{n}"),
             PreviewItem("27", "overbrace 标注", "\\overbrace{a+b+c}^{3\\text{ terms}}"),
+            PreviewItem("28", "RTL 文本方向", "\\RLE{مرحبا بالعالم}"),
+            PreviewItem("29", "LTR 嵌套在 RTL 中", "\\RLE{مرحبا \\LRE{Hello} عالم}"),
+            PreviewItem("30", "RTL 环境", "\\begin{RTL}مرحبا بالعالم\\end{RTL}"),
+            PreviewItem("31", "RTL 数学混排", "\\RLE{x^2 + y^2 = r^2}"),
         )
     ),
     PreviewGroup(

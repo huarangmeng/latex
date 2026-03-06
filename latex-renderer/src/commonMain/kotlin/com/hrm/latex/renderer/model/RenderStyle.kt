@@ -199,6 +199,16 @@ enum class FontVariant {
 }
 
 /**
+ * 文本方向
+ */
+enum class TextDirection {
+    /** 从左到右（默认） */
+    LTR,
+    /** 从右到左（阿拉伯语、希伯来语等） */
+    RTL
+}
+
+/**
  * 布局提示：父级向子级传递的单向布局通信通道。
  *
  * 这些字段不属于渲染样式状态，而是 measureGroup 阶段的临时参数。
@@ -246,6 +256,8 @@ internal data class RenderContext(
     val mathFontProvider: MathFontProvider? = null,
     // ── 公式编号 ──
     val equationNumbering: com.hrm.latex.renderer.layout.EquationNumberingState? = null,
+    // ── 文本方向 ──
+    val textDirection: TextDirection = TextDirection.LTR,
 ) {
     /**
      * 缓存的 TextStyle，避免每次 textStyle() 调用都创建新对象。

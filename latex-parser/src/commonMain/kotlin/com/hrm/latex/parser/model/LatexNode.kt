@@ -1241,4 +1241,31 @@ sealed class LatexNode {
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSectionHeading(this)
     }
+
+    /**
+     * 文本方向节点（RTL/LTR 切换）
+     *
+     * 支持以下 LaTeX 命令和环境：
+     * - `\RLE{...}` — 强制从右到左
+     * - `\LRE{...}` — 强制从左到右（嵌套在 RTL 中使用）
+     * - `\textarabic{...}` — 阿拉伯语文本（RTL）
+     * - `\texthebrew{...}` — 希伯来语文本（RTL）
+     * - `\begin{RTL}...\end{RTL}` — RTL 环境
+     * - `\begin{LTR}...\end{LTR}` — LTR 环境（嵌套在 RTL 中使用）
+     *
+     * @param content 子内容节点列表
+     * @param direction 文本方向
+     */
+    data class TextDirection(
+        val content: List<LatexNode>,
+        val direction: Direction,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        enum class Direction { RTL, LTR }
+
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitTextDirection(this)
+    }
 }

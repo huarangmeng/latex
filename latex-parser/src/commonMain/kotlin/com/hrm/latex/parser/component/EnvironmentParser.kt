@@ -68,6 +68,16 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
                 LatexNode.Environment(envName, content)
             }
 
+            "RTL" -> {
+                val content = parseEnvironmentContent("RTL")
+                LatexNode.TextDirection(content, LatexNode.TextDirection.Direction.RTL)
+            }
+
+            "LTR" -> {
+                val content = parseEnvironmentContent("LTR")
+                LatexNode.TextDirection(content, LatexNode.TextDirection.Direction.LTR)
+            }
+
             else -> {
                 // 检查是否为自定义环境
                 val customEnv = context.customEnvironments[envName]

@@ -49,6 +49,7 @@ import androidx.compose.ui.text.drawText
 import com.hrm.latex.renderer.layout.measurer.TextContentMeasurer
 import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
+import com.hrm.latex.renderer.model.TextDirection
 import com.hrm.latex.renderer.model.applyMathStyle
 import com.hrm.latex.renderer.model.applyStyle
 import com.hrm.latex.renderer.model.textStyle
@@ -201,6 +202,16 @@ internal fun measureNode(
             }
         }
 
+        // TextDirection: RTL/LTR 文本方向切换
+        is LatexNode.TextDirection -> {
+            val dir = when (node.direction) {
+                LatexNode.TextDirection.Direction.RTL -> TextDirection.RTL
+                LatexNode.TextDirection.Direction.LTR -> TextDirection.LTR
+            }
+            val dirContext = context.copy(textDirection = dir)
+            measureGroup(node.content, dirContext, measurer, density)
+        }
+
         else -> NodeLayout(0f, 0f, 0f) { _, _ -> }
     }
 }
@@ -335,12 +346,25 @@ internal fun measureGroup(
     }
 
     return NodeLayout(totalWidth, height, baseline) { x, y ->
-        var currentX = x
-        finalMeasuredNodes.forEachIndexed { index, child ->
-            val childY = y + (baseline - child.baseline)
-            child.draw(this, currentX, childY)
-            currentX += child.width
-            if (index < spacings.size) currentX += spacings[index]
+        val isRtl = context.textDirection == TextDirection.RTL
+        if (isRtl) {
+            // RTL: 子元素从右到左排列
+            var currentX = x + totalWidth
+            finalMeasuredNodes.forEachIndexed { index, child ->
+                currentX -= child.width
+                val childY = y + (baseline - child.baseline)
+                child.draw(this, currentX, childY)
+                if (index < spacings.size) currentX -= spacings[index]
+            }
+        } else {
+            // LTR: 默认从左到右排列
+            var currentX = x
+            finalMeasuredNodes.forEachIndexed { index, child ->
+                val childY = y + (baseline - child.baseline)
+                child.draw(this, currentX, childY)
+                currentX += child.width
+                if (index < spacings.size) currentX += spacings[index]
+            }
         }
     }
 }
