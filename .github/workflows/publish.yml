@@ -11,10 +11,9 @@
 # │ 1. gradle.properties:                                            │
 # │    VERSION=1.2.4  →  VERSION=1.2.4-kt2.1.0                      │
 # │                                                                  │
-# │ 2. gradle/libs.versions.toml (降级依赖版本):                     │
-# │    kotlin = "2.3.10"  →  kotlin = "2.1.0"                        │
-# │    composeMultiplatform = "1.10.1"  →  composeMultiplatform = "1.9.3" │
-# │    composeMaterial3 = "1.9.0"  →  composeMaterial3 = "1.9.0"     │
+  # │ 2. gradle/libs.versions.toml (降级依赖版本):                     │
+  # │    kotlin = "2.3.10"  →  kotlin = "2.1.0"                        │
+  # │    composeMultiplatform = "1.10.1"  →  composeMultiplatform = "1.9.3" │
 # │                                                                  │
 # │ 模块间依赖保持本地项目引用 api(projects.latexXxx) 不变，         │
 # │ Gradle 会自动将 POM 中的依赖版本解析为当前 VERSION（别名版本），  │
@@ -41,7 +40,6 @@ env:
   # └─────────────────────────────────────────────────────┘
   ALIAS_KOTLIN_VERSION: "2.1.0"               # 当前正式版: 2.3.10
   ALIAS_COMPOSE_MULTIPLATFORM_VERSION: "1.9.3" # 当前正式版: 1.10.1
-  ALIAS_COMPOSE_MATERIAL3_VERSION: "1.9.0"     # 当前正式版: 1.9.0
 
 jobs:
   # ==================== Job 1: 正常发布 ====================
@@ -134,27 +132,24 @@ jobs:
           echo "│ 修改 ${FILE}                                             │"
           echo "├──────────────────────────────────────────────────────────┤"
           echo "│ [修改前]"
-          grep -E '^(kotlin |composeMultiplatform |composeMaterial3 )' "$FILE" || \
-          grep -E '^(kotlin=|composeMultiplatform=|composeMaterial3=)' "$FILE" || \
-          grep -E '^kotlin |^composeMultiplatform |^composeMaterial3 ' "$FILE"
+          grep -E '^(kotlin |composeMultiplatform )' "$FILE" || \
+          grep -E '^(kotlin=|composeMultiplatform=)' "$FILE" || \
+          grep -E '^kotlin |^composeMultiplatform ' "$FILE"
           echo "│"
 
           # Kotlin 版本
           sed -i '' "s/^kotlin = \".*\"/kotlin = \"${ALIAS_KOTLIN_VERSION}\"/" "$FILE"
           # Compose Multiplatform 版本
           sed -i '' "s/^composeMultiplatform = \".*\"/composeMultiplatform = \"${ALIAS_COMPOSE_MULTIPLATFORM_VERSION}\"/" "$FILE"
-          # Compose Material3 版本
-          sed -i '' "s/^composeMaterial3 = \".*\"/composeMaterial3 = \"${ALIAS_COMPOSE_MATERIAL3_VERSION}\"/" "$FILE"
 
           echo "│ [修改后]"
-          grep -E '^(kotlin |composeMultiplatform |composeMaterial3 )' "$FILE" || \
-          grep -E '^kotlin=|^composeMultiplatform=|^composeMaterial3=' "$FILE" || \
-          grep -E '^kotlin |^composeMultiplatform |^composeMaterial3 ' "$FILE"
+          grep -E '^(kotlin |composeMultiplatform )' "$FILE" || \
+          grep -E '^(kotlin=|composeMultiplatform=)' "$FILE" || \
+          grep -E '^kotlin |^composeMultiplatform ' "$FILE"
           echo "│"
           echo "│ ✅ 依赖版本已降级:"
           echo "│    kotlin:              → ${ALIAS_KOTLIN_VERSION}"
           echo "│    composeMultiplatform: → ${ALIAS_COMPOSE_MULTIPLATFORM_VERSION}"
-          echo "│    composeMaterial3:     → ${ALIAS_COMPOSE_MATERIAL3_VERSION}"
           echo "└──────────────────────────────────────────────────────────┘"
 
       # ---------- 汇总验证 ----------
@@ -175,7 +170,6 @@ jobs:
           echo "║  ② gradle/libs.versions.toml (降级后):"
           echo "║     kotlin              = ${ALIAS_KOTLIN_VERSION}"
           echo "║     composeMultiplatform = ${ALIAS_COMPOSE_MULTIPLATFORM_VERSION}"
-          echo "║     composeMaterial3     = ${ALIAS_COMPOSE_MATERIAL3_VERSION}"
           echo "║"
           echo "║  ③ 模块间依赖: 保持本地项目引用 (Gradle 自动解析为别名版本)"
           echo "║"
@@ -222,7 +216,6 @@ jobs:
           echo "  依赖版本:"
           echo "    kotlin:              ${ALIAS_KOTLIN_VERSION}"
           echo "    composeMultiplatform: ${ALIAS_COMPOSE_MULTIPLATFORM_VERSION}"
-          echo "    composeMaterial3:     ${ALIAS_COMPOSE_MATERIAL3_VERSION}"
           echo ""
           echo "  发布结果:"
           echo "    io.github.huarangmeng:latex-base:${ALIAS_VERSION}"

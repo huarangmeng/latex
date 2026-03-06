@@ -24,6 +24,7 @@
 package com.hrm.latex.parser.model
 
 import com.hrm.latex.parser.visitor.LatexVisitor
+import kotlin.js.JsName
 
 /**
  * LaTeX 抽象语法树节点
@@ -42,6 +43,7 @@ sealed class LatexNode {
     abstract val sourceRange: SourceRange?
 
     /** 返回所有直接子节点（有序）。叶节点返回 emptyList()。 */
+    @JsName("getChildren")
     abstract fun children(): List<LatexNode>
 
     /** 用新 sourceRange 创建副本 */
