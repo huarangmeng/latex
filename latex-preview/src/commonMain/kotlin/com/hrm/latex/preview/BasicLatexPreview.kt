@@ -418,6 +418,16 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("30", "breve 重音", "\\breve{u}"),
             PreviewItem("31", "ring 重音", "\\ring{A}"),
             PreviewItem("32", "dddot 重音", "\\dddot{x}"),
+            PreviewItem("33", "overbracket 方括号", "\\overbracket{x + y}"),
+            PreviewItem("34", "underbracket 方括号", "\\underbracket{a + b}"),
+            PreviewItem("35", "方括号嵌套", "\\overbracket{\\frac{a}{b} + c}"),
+            PreviewItem("36", "overbrace vs overbracket", "\\overbrace{x+y} \\quad \\overbracket{x+y}"),
+            PreviewItem("37", "xRightarrow 双线", "A \\xRightarrow{f} B"),
+            PreviewItem("38", "xLeftarrow 双线", "A \\xLeftarrow{g} B"),
+            PreviewItem("39", "xLeftrightarrow 双线", "A \\xLeftrightarrow{\\sim} B"),
+            PreviewItem("40", "xmapsto 映射", "x \\xmapsto{f} f(x)"),
+            PreviewItem("41", "xRightarrow 带下标", "A \\xRightarrow[below]{above} B"),
+            PreviewItem("42", "箭头对比", "\\xrightarrow{f} \\quad \\xRightarrow{f} \\quad \\xmapsto{f}"),
         )
     ),
     PreviewGroup(
@@ -436,6 +446,10 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem("6", "强调重点", "E = mc^2 \\quad \\color{red}{(爱因斯坦质能方程)}"),
             PreviewItem("7", "十六进制颜色", "\\color{#FF5733}{橙红色} \\color{#33FF57}{青绿色}"),
+            PreviewItem("8", "colorbox 背景色", "\\colorbox{yellow}{重要}"),
+            PreviewItem("9", "fcolorbox 带边框", "\\fcolorbox{red}{yellow}{重要}"),
+            PreviewItem("10", "colorbox 蓝色背景", "\\colorbox{cyan}{x^2 + y^2}"),
+            PreviewItem("11", "fcolorbox 组合", "\\fcolorbox{blue}{#FFFFCC}{E = mc^2}"),
         )
     ),
     PreviewGroup(
@@ -546,6 +560,23 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem("38", "错误指示(未知命令)", "x + \\unknowncmd + y"),
             PreviewItem("39", "错误指示(混合)", "\\frac{a}{b} + \\notacommand + \\sqrt{c}"),
+            PreviewItem("40", "href 超链接", "\\href{https://example.com}{点击这里}"),
+            PreviewItem("41", "url 链接", "\\url{https://example.com}"),
+            PreviewItem("42", "href 数学内容", "\\href{https://wiki.org}{E = mc^2}"),
+            PreviewItem(
+                "43", "href 超链接(带点击回调)", "\\href{https://example.com}{点击这里}",
+                content = {
+                    Latex(
+                        latex = "\\href{https://example.com}{点击这里}",
+                        config = LatexConfig(
+                            onHyperlinkClick = { url ->
+                                println("超链接被点击: $url")
+                            }
+                        ),
+                        isDarkTheme = false
+                    )
+                }
+            ),
         )
     ),
     PreviewGroup(

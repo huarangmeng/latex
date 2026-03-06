@@ -102,6 +102,38 @@ data class LatexConfig(
      * ```
      */
     val mathFont: MathFont = MathFont.Default,
+    /**
+     * 交互式公式：点击子表达式时的回调。
+     * 传入被点击节点的 LaTeX 源码范围（起始和结束偏移量）。
+     * 为 null 时不启用点击交互。
+     *
+     * 使用示例：
+     * ```kotlin
+     * LatexConfig(
+     *     onNodeClick = { startOffset, endOffset, latex ->
+     *         println("Clicked: ${latex.substring(startOffset, endOffset)}")
+     *     }
+     * )
+     * ```
+     */
+    val onNodeClick: ((startOffset: Int, endOffset: Int, latex: String) -> Unit)? = null,
+    /**
+     * 超链接点击回调：点击 \href 或 \url 节点时触发，直接返回 URL 字符串。
+     * 为 null 时不启用超链接专用点击（仍可通过 onNodeClick 处理）。
+     *
+     * 当 onHyperlinkClick 和 onNodeClick 同时配置时，点击超链接节点
+     * 会**同时**触发两个回调（先触发 onHyperlinkClick，再触发 onNodeClick）。
+     *
+     * 使用示例：
+     * ```kotlin
+     * LatexConfig(
+     *     onHyperlinkClick = { url ->
+     *         uriHandler.openUri(url)
+     *     }
+     * )
+     * ```
+     */
+    val onHyperlinkClick: ((url: String) -> Unit)? = null,
 )
 
 /**

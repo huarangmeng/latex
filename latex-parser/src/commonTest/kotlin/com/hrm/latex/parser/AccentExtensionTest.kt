@@ -158,4 +158,82 @@ class AccentExtensionTest {
         // The rest "(x)" should be separate nodes
         assertTrue(result.children.size > 1, "Remaining tokens should be separate nodes")
     }
+
+    // ============ \overbracket / \underbracket 方括号标注 ============
+
+    @Test
+    fun should_parse_overbracket() {
+        val result = parser.parse("\\overbracket{x+y}")
+        val accent = result.children.first()
+        assertIs<LatexNode.Accent>(accent)
+        assertEquals(LatexNode.Accent.AccentType.OVERBRACKET, accent.accentType)
+    }
+
+    @Test
+    fun should_parse_underbracket() {
+        val result = parser.parse("\\underbracket{a+b}")
+        val accent = result.children.first()
+        assertIs<LatexNode.Accent>(accent)
+        assertEquals(LatexNode.Accent.AccentType.UNDERBRACKET, accent.accentType)
+    }
+
+    @Test
+    fun should_parse_overbracket_with_nested_content() {
+        val result = parser.parse("\\overbracket{\\frac{a}{b}}")
+        val accent = result.children.first()
+        assertIs<LatexNode.Accent>(accent)
+        assertEquals(LatexNode.Accent.AccentType.OVERBRACKET, accent.accentType)
+    }
+
+    // ============ 可扩展箭头家族：\xRightarrow, \xLeftarrow, \xLeftrightarrow, \xmapsto ============
+
+    @Test
+    fun should_parse_xRightarrow() {
+        val doc = parser.parse("\\xRightarrow{f}")
+        val arrow = doc.children.first()
+        assertIs<LatexNode.ExtensibleArrow>(arrow)
+        assertEquals(LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE, arrow.direction)
+    }
+
+    @Test
+    fun should_parse_xLeftarrow() {
+        val doc = parser.parse("\\xLeftarrow{g}")
+        val arrow = doc.children.first()
+        assertIs<LatexNode.ExtensibleArrow>(arrow)
+        assertEquals(LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE, arrow.direction)
+    }
+
+    @Test
+    fun should_parse_xLeftrightarrow() {
+        val doc = parser.parse("\\xLeftrightarrow{}")
+        val arrow = doc.children.first()
+        assertIs<LatexNode.ExtensibleArrow>(arrow)
+        assertEquals(LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE, arrow.direction)
+    }
+
+    @Test
+    fun should_parse_xmapsto() {
+        val doc = parser.parse("\\xmapsto{f}")
+        val arrow = doc.children.first()
+        assertIs<LatexNode.ExtensibleArrow>(arrow)
+        assertEquals(LatexNode.ExtensibleArrow.Direction.MAPSTO, arrow.direction)
+    }
+
+    @Test
+    fun should_parse_xRightarrow_with_below() {
+        val doc = parser.parse("\\xRightarrow[below]{above}")
+        val arrow = doc.children.first()
+        assertIs<LatexNode.ExtensibleArrow>(arrow)
+        assertEquals(LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE, arrow.direction)
+        assertTrue(arrow.below != null, "应有下方文字")
+    }
+
+    @Test
+    fun should_parse_xmapsto_with_below() {
+        val doc = parser.parse("\\xmapsto[y]{x}")
+        val arrow = doc.children.first()
+        assertIs<LatexNode.ExtensibleArrow>(arrow)
+        assertEquals(LatexNode.ExtensibleArrow.Direction.MAPSTO, arrow.direction)
+        assertTrue(arrow.below != null)
+    }
 }

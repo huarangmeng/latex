@@ -417,7 +417,8 @@ sealed class LatexNode {
         enum class AccentType {
             HAT, TILDE, BAR, DOT, DDOT, DDDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE,
             WIDEHAT, OVERRIGHTARROW, OVERLEFTARROW, CANCEL, BCANCEL, XCANCEL,
-            GRAVE, ACUTE, CHECK, BREVE, RING
+            GRAVE, ACUTE, CHECK, BREVE, RING,
+            OVERBRACKET, UNDERBRACKET
         }
 
         override fun children() = listOf(content)
@@ -436,7 +437,8 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class Direction {
-            RIGHT, LEFT, BOTH, HOOK_RIGHT, HOOK_LEFT
+            RIGHT, LEFT, BOTH, HOOK_RIGHT, HOOK_LEFT,
+            RIGHT_DOUBLE, LEFT_DOUBLE, BOTH_DOUBLE, MAPSTO
         }
 
         override fun children() = listOfNotNull(content, below)
@@ -1090,5 +1092,39 @@ sealed class LatexNode {
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(recovered = newChildren)
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitError(this)
+    }
+
+    /**
+     * 超链接节点（\href{url}{text} 或 \url{url}）
+     * @param url 链接地址
+     * @param content 显示内容（\url 时为空，显示 url 本身）
+     */
+    data class Hyperlink(
+        val url: String,
+        val content: List<LatexNode>,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitHyperlink(this)
+    }
+
+    /**
+     * 背景色节点（\colorbox{color}{text} 或 \fcolorbox{borderColor}{bgColor}{text}）
+     * @param content 内容
+     * @param backgroundColor 背景颜色名
+     * @param borderColor 边框颜色名（null 表示 \colorbox，非 null 表示 \fcolorbox）
+     */
+    data class ColorBox(
+        val content: List<LatexNode>,
+        val backgroundColor: String,
+        val borderColor: String? = null,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitColorBox(this)
     }
 }

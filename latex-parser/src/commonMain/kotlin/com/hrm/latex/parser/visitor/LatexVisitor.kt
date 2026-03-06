@@ -86,6 +86,8 @@ interface LatexVisitor<T> {
     fun visitInlineMath(node: LatexNode.InlineMath): T
     fun visitDisplayMath(node: LatexNode.DisplayMath): T
     fun visitError(node: LatexNode.Error): T
+    fun visitHyperlink(node: LatexNode.Hyperlink): T
+    fun visitColorBox(node: LatexNode.ColorBox): T
 }
 
 /**
@@ -368,6 +370,16 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         return defaultVisit(node)
     }
 
+    override fun visitHyperlink(node: LatexNode.Hyperlink): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
+    override fun visitColorBox(node: LatexNode.ColorBox): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
     /**
      * 访问任意节点 — 通过双分派委托到 [LatexNode.accept]
      */
@@ -461,4 +473,6 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
     override fun visitInlineMath(node: LatexNode.InlineMath): T = visitChildren(node)
     override fun visitDisplayMath(node: LatexNode.DisplayMath): T = visitChildren(node)
     override fun visitError(node: LatexNode.Error): T = visitChildren(node)
+    override fun visitHyperlink(node: LatexNode.Hyperlink): T = visitChildren(node)
+    override fun visitColorBox(node: LatexNode.ColorBox): T = visitChildren(node)
 }

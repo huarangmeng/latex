@@ -210,6 +210,8 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Accent.AccentType.CHECK -> "<mover>$content<mo>ˇ</mo></mover>"
             LatexNode.Accent.AccentType.BREVE -> "<mover>$content<mo>˘</mo></mover>"
             LatexNode.Accent.AccentType.RING -> "<mover>$content<mo>˚</mo></mover>"
+            LatexNode.Accent.AccentType.OVERBRACKET -> "<mover>$content<mo>⎴</mo></mover>"
+            LatexNode.Accent.AccentType.UNDERBRACKET -> "<munder>$content<mo>⎵</mo></munder>"
         }
     }
 
@@ -220,6 +222,10 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.ExtensibleArrow.Direction.BOTH -> "↔"
             LatexNode.ExtensibleArrow.Direction.HOOK_RIGHT -> "↪"
             LatexNode.ExtensibleArrow.Direction.HOOK_LEFT -> "↩"
+            LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE -> "⇒"
+            LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE -> "⇐"
+            LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE -> "⇔"
+            LatexNode.ExtensibleArrow.Direction.MAPSTO -> "↦"
         }
         val arrow = "<mo stretchy=\"true\">$arrowChar</mo>"
         val above = visit(node.content)
@@ -440,6 +446,22 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         } else {
             "<merror><mtext>${escapeXml(node.message)}</mtext></merror>"
         }
+    }
+
+    override fun visitHyperlink(node: LatexNode.Hyperlink): String {
+        val content = if (node.content.isNotEmpty()) {
+            node.content.joinToString("") { visit(it) }
+        } else {
+            "<mtext>${escapeXml(node.url)}</mtext>"
+        }
+        return "<mrow href=\"${escapeXml(node.url)}\">$content</mrow>"
+    }
+
+    override fun visitColorBox(node: LatexNode.ColorBox): String {
+        val content = node.content.joinToString("") { visit(it) }
+        val bgStyle = "background-color:${escapeXml(node.backgroundColor)}"
+        val borderStyle = node.borderColor?.let { ";border:1px solid ${escapeXml(it)}" } ?: ""
+        return "<mstyle mathbackground=\"${escapeXml(node.backgroundColor)}\">$content</mstyle>"
     }
 
     override fun visitOperatorName(node: LatexNode.OperatorName): String {

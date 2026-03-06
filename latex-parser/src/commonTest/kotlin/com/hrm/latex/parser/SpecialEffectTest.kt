@@ -27,10 +27,11 @@ import com.hrm.latex.parser.model.LatexNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * 特殊效果测试（boxed, phantom）
+ * 特殊效果测试（boxed, phantom, hyperlink, colorbox）
  */
 class SpecialEffectTest {
 
@@ -199,5 +200,90 @@ class SpecialEffectTest {
         assertIs<LatexNode.Smash>(smash)
         assertEquals(LatexNode.Smash.SmashType.TOP, smash.smashType)
         assertTrue(smash.content.isNotEmpty())
+    }
+
+    // ============ \href / \url 超链接 ============
+
+    @Test
+    fun should_parse_href_with_url_and_text() {
+        val doc = parser.parse("\\href{https://example.com}{点击这里}")
+        val hyperlink = doc.children.first()
+        assertIs<LatexNode.Hyperlink>(hyperlink)
+        assertEquals("https://example.com", hyperlink.url)
+        assertTrue(hyperlink.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_url_without_display_text() {
+        val doc = parser.parse("\\url{https://example.com}")
+        val hyperlink = doc.children.first()
+        assertIs<LatexNode.Hyperlink>(hyperlink)
+        assertEquals("https://example.com", hyperlink.url)
+        assertTrue(hyperlink.content.isEmpty(), "\\url 没有显示内容")
+    }
+
+    @Test
+    fun should_parse_href_with_complex_content() {
+        val doc = parser.parse("\\href{https://example.com}{E = mc^2}")
+        val hyperlink = doc.children.first()
+        assertIs<LatexNode.Hyperlink>(hyperlink)
+        assertEquals("https://example.com", hyperlink.url)
+        assertTrue(hyperlink.content.size > 1)
+    }
+
+    @Test
+    fun should_handle_empty_href_url_gracefully() {
+        val doc = parser.parse("\\href{}{text}")
+        val hyperlink = doc.children.first()
+        assertIs<LatexNode.Hyperlink>(hyperlink)
+        assertEquals("", hyperlink.url)
+    }
+
+    // ============ \colorbox / \fcolorbox 背景色 ============
+
+    @Test
+    fun should_parse_colorbox() {
+        val doc = parser.parse("\\colorbox{yellow}{重要文字}")
+        val colorBox = doc.children.first()
+        assertIs<LatexNode.ColorBox>(colorBox)
+        assertEquals("yellow", colorBox.backgroundColor)
+        assertNull(colorBox.borderColor, "colorbox 没有边框色")
+        assertTrue(colorBox.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_fcolorbox_with_border_and_bg() {
+        val doc = parser.parse("\\fcolorbox{red}{yellow}{重要文字}")
+        val colorBox = doc.children.first()
+        assertIs<LatexNode.ColorBox>(colorBox)
+        assertEquals("yellow", colorBox.backgroundColor)
+        assertEquals("red", colorBox.borderColor)
+        assertTrue(colorBox.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_colorbox_with_hex_color() {
+        val doc = parser.parse("\\colorbox{#FF5733}{内容}")
+        val colorBox = doc.children.first()
+        assertIs<LatexNode.ColorBox>(colorBox)
+        assertEquals("#FF5733", colorBox.backgroundColor)
+    }
+
+    @Test
+    fun should_parse_fcolorbox_with_math_content() {
+        val doc = parser.parse("\\fcolorbox{blue}{yellow}{x^2 + y^2}")
+        val colorBox = doc.children.first()
+        assertIs<LatexNode.ColorBox>(colorBox)
+        assertEquals("blue", colorBox.borderColor)
+        assertEquals("yellow", colorBox.backgroundColor)
+        assertTrue(colorBox.content.size > 1)
+    }
+
+    @Test
+    fun should_handle_empty_colorbox_content_gracefully() {
+        val doc = parser.parse("\\colorbox{red}{}")
+        val colorBox = doc.children.first()
+        assertIs<LatexNode.ColorBox>(colorBox)
+        assertEquals("red", colorBox.backgroundColor)
     }
 }

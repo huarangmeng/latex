@@ -103,17 +103,25 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
         // 预构建箭头头部 Path (以 (0,0) 为原点)
         val arrowResult = buildArrowPaths(node.direction, arrowStartRelX, arrowEndRelX, arrowCenterRelY, arrowHeadSize)
 
+        // 双线箭头不画中间单线（strokePaths 中已包含双平行线）
+        val isDoubleLine = node.direction == LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE ||
+                node.direction == LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE ||
+                node.direction == LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE
+
         return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
             // 绘制上方文字
             aboveLayout.draw(this, x + aboveRelX, y + aboveRelY)
 
-            // 绘制箭头线条 (drawLine 使用绝对坐标，这是允许的简单算术)
-            drawLine(
-                color = color,
-                start = Offset(x + arrowStartRelX, y + arrowCenterRelY),
-                end = Offset(x + arrowEndRelX, y + arrowCenterRelY),
-                strokeWidth = strokeWidth
-            )
+            // 双线箭头不画中间单线
+            if (!isDoubleLine) {
+                // 绘制箭头线条 (drawLine 使用绝对坐标，这是允许的简单算术)
+                drawLine(
+                    color = color,
+                    start = Offset(x + arrowStartRelX, y + arrowCenterRelY),
+                    end = Offset(x + arrowEndRelX, y + arrowCenterRelY),
+                    strokeWidth = strokeWidth
+                )
+            }
 
             // 绘制预构建的箭头头部 Path
             if (arrowResult.filledPaths.isNotEmpty() || arrowResult.strokePaths.isNotEmpty()) {
@@ -218,6 +226,85 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
                         endX - hookRadius * 0.5f, centerY + hookRadius,
                         endX - hookRadius, centerY
                     )
+                })
+            }
+
+            LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE -> {
+                // 双线右箭头 ⇒
+                val gap = headSize * 0.25f
+                filledPaths.add(Path().apply {
+                    moveTo(endX, centerY)
+                    lineTo(endX - headSize, centerY - headSize / 2)
+                    lineTo(endX - headSize, centerY + headSize / 2)
+                    close()
+                })
+                // 双线通过两条平行线表示（在 draw 阶段绘制）
+                strokePaths.add(Path().apply {
+                    moveTo(startX, centerY - gap)
+                    lineTo(endX - headSize * 0.5f, centerY - gap)
+                })
+                strokePaths.add(Path().apply {
+                    moveTo(startX, centerY + gap)
+                    lineTo(endX - headSize * 0.5f, centerY + gap)
+                })
+            }
+
+            LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE -> {
+                // 双线左箭头 ⇐
+                val gap = headSize * 0.25f
+                filledPaths.add(Path().apply {
+                    moveTo(startX, centerY)
+                    lineTo(startX + headSize, centerY - headSize / 2)
+                    lineTo(startX + headSize, centerY + headSize / 2)
+                    close()
+                })
+                strokePaths.add(Path().apply {
+                    moveTo(startX + headSize * 0.5f, centerY - gap)
+                    lineTo(endX, centerY - gap)
+                })
+                strokePaths.add(Path().apply {
+                    moveTo(startX + headSize * 0.5f, centerY + gap)
+                    lineTo(endX, centerY + gap)
+                })
+            }
+
+            LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE -> {
+                // 双线双向箭头 ⇔
+                val gap = headSize * 0.25f
+                filledPaths.add(Path().apply {
+                    moveTo(endX, centerY)
+                    lineTo(endX - headSize, centerY - headSize / 2)
+                    lineTo(endX - headSize, centerY + headSize / 2)
+                    close()
+                })
+                filledPaths.add(Path().apply {
+                    moveTo(startX, centerY)
+                    lineTo(startX + headSize, centerY - headSize / 2)
+                    lineTo(startX + headSize, centerY + headSize / 2)
+                    close()
+                })
+                strokePaths.add(Path().apply {
+                    moveTo(startX + headSize * 0.5f, centerY - gap)
+                    lineTo(endX - headSize * 0.5f, centerY - gap)
+                })
+                strokePaths.add(Path().apply {
+                    moveTo(startX + headSize * 0.5f, centerY + gap)
+                    lineTo(endX - headSize * 0.5f, centerY + gap)
+                })
+            }
+
+            LatexNode.ExtensibleArrow.Direction.MAPSTO -> {
+                // mapsto: 左端竖线 + 右端箭头 ↦
+                filledPaths.add(Path().apply {
+                    moveTo(endX, centerY)
+                    lineTo(endX - headSize, centerY - headSize / 2)
+                    lineTo(endX - headSize, centerY + headSize / 2)
+                    close()
+                })
+                // 左端竖线
+                strokePaths.add(Path().apply {
+                    moveTo(startX, centerY - headSize / 2)
+                    lineTo(startX, centerY + headSize / 2)
                 })
             }
         }

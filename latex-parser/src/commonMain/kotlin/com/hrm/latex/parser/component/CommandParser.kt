@@ -55,6 +55,7 @@ internal class CommandParser(
             installSpaceHandlers()
             installColorHandlers()
             installSpecialEffectHandlers()
+            installHyperlinkHandlers()
             installMacroHandlers()
             installTableHandlers()
             installReferenceHandlers()

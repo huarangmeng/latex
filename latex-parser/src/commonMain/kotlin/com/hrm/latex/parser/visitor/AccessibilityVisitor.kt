@@ -168,6 +168,8 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             LatexNode.Accent.AccentType.CHECK -> "check"
             LatexNode.Accent.AccentType.BREVE -> "breve"
             LatexNode.Accent.AccentType.RING -> "ring"
+            LatexNode.Accent.AccentType.OVERBRACKET -> "overbracket"
+            LatexNode.Accent.AccentType.UNDERBRACKET -> "underbracket"
         }
         return "$content $accent"
     }
@@ -181,6 +183,10 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             LatexNode.ExtensibleArrow.Direction.BOTH -> "bidirectional arrow"
             LatexNode.ExtensibleArrow.Direction.HOOK_RIGHT -> "hook right arrow"
             LatexNode.ExtensibleArrow.Direction.HOOK_LEFT -> "hook left arrow"
+            LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE -> "double right arrow"
+            LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE -> "double left arrow"
+            LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE -> "double bidirectional arrow"
+            LatexNode.ExtensibleArrow.Direction.MAPSTO -> "maps to"
         }
         return buildString {
             append(dir)
@@ -347,6 +353,15 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
     override fun visitError(node: LatexNode.Error): String {
         val recovered = node.recovered.joinToString(" ") { visit(it) }.collapseSpaces()
         return if (recovered.isNotBlank()) "error: $recovered" else "error: ${node.message}"
+    }
+
+    override fun visitHyperlink(node: LatexNode.Hyperlink): String {
+        val text = node.content.joinToString(" ") { visit(it) }.collapseSpaces()
+        return if (text.isNotBlank()) "link: $text" else "link: ${node.url}"
+    }
+
+    override fun visitColorBox(node: LatexNode.ColorBox): String {
+        return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
     }
 
     // ========== 辅助方法 ==========

@@ -142,6 +142,30 @@ fun parseColor(color: String): Color? {
     val trimmed = color.trim().removePrefix("#").lowercase()
     if (trimmed.isEmpty()) return null
 
+    // 优先匹配颜色名称（避免 6 字符颜色名如 yellow/orange/purple 被误入十六进制分支）
+    val namedColor = when (trimmed) {
+        "red" -> Color.Red
+        "blue" -> Color.Blue
+        "green" -> Color.Green
+        "black" -> Color.Black
+        "white" -> Color.White
+        "gray", "grey" -> Color.Gray
+        "yellow" -> Color.Yellow
+        "cyan" -> Color.Cyan
+        "magenta" -> Color.Magenta
+        "orange" -> Color(0xFFFFA500.toInt())
+        "purple" -> Color(0xFF800080.toInt())
+        "brown" -> Color(0xFFA52A2A.toInt())
+        "pink" -> Color(0xFFFFC0CB.toInt())
+        "lime" -> Color(0xFF00FF00.toInt())
+        "navy" -> Color(0xFF000080.toInt())
+        "teal" -> Color(0xFF008080.toInt())
+        "violet" -> Color(0xFFEE82EE.toInt())
+        else -> null
+    }
+    if (namedColor != null) return namedColor
+
+    // 再尝试十六进制解析
     return try {
         when (trimmed.length) {
             6 -> {
@@ -160,28 +184,9 @@ fun parseColor(color: String): Color? {
                 Color(argb.toInt())
             }
 
-            else -> when (trimmed) {
-                "red" -> Color.Red
-                "blue" -> Color.Blue
-                "green" -> Color.Green
-                "black" -> Color.Black
-                "white" -> Color.White
-                "gray", "grey" -> Color.Gray
-                "yellow" -> Color.Yellow
-                "cyan" -> Color.Cyan
-                "magenta" -> Color.Magenta
-                "orange" -> Color(0xFFFFA500.toInt())
-                "purple" -> Color(0xFF800080.toInt())
-                "brown" -> Color(0xFFA52A2A.toInt())
-                "pink" -> Color(0xFFFFC0CB.toInt())
-                "lime" -> Color(0xFF00FF00.toInt())
-                "navy" -> Color(0xFF000080.toInt())
-                "teal" -> Color(0xFF008080.toInt())
-                "violet" -> Color(0xFFEE82EE.toInt())
-                else -> {
-                    HLog.e(TAG, "⚠️ Unknown color: '$color' (trimmed: '$trimmed')")
-                    null
-                }
+            else -> {
+                HLog.e(TAG, "⚠️ Unknown color: '$color' (trimmed: '$trimmed')")
+                null
             }
         }
     } catch (e: Exception) {

@@ -24,6 +24,7 @@
 package com.hrm.latex.renderer
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
@@ -35,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -46,6 +48,7 @@ import com.hrm.latex.parser.visitor.AccessibilityVisitor
 import com.hrm.latex.renderer.font.MathFontProviderFactory
 import com.hrm.latex.renderer.font.rememberResolvedMathFont
 import com.hrm.latex.renderer.layout.LatexRenderer
+import com.hrm.latex.renderer.layout.LayoutMap
 import com.hrm.latex.renderer.model.HighlightRange
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LineBreakingConfig
@@ -167,7 +170,10 @@ fun Latex(
         context = context,
         highlightRanges = config.highlight.ranges,
         backgroundColor = resolvedBackgroundColor,
-        contentDescription = accessibilityDescription
+        contentDescription = accessibilityDescription,
+        onNodeClick = config.onNodeClick,
+        onHyperlinkClick = config.onHyperlinkClick,
+        latex = latex
     )
 }
 
@@ -228,14 +234,23 @@ private fun LatexDocument(
     context: RenderContext,
     highlightRanges: List<HighlightRange> = emptyList(),
     backgroundColor: Color = Color.Transparent,
-    contentDescription: String? = null
+    contentDescription: String? = null,
+    onNodeClick: ((startOffset: Int, endOffset: Int, latex: String) -> Unit)? = null,
+    onHyperlinkClick: ((url: String) -> Unit)? = null,
+    latex: String = ""
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
+    // 当启用点击交互时，使用 LayoutMap 记录节点位置
+    val layoutMap = remember(onNodeClick, onHyperlinkClick) {
+        if (onNodeClick != null || onHyperlinkClick != null) LayoutMap() else null
+    }
+
     // 使用 LatexRenderer 共享逻辑进行测量（与导出路径共用同一份代码）
     val renderResult = remember(children, context, density, highlightRanges) {
-        LatexRenderer.measure(children, context, measurer, density, highlightRanges)
+        layoutMap?.clear()
+        LatexRenderer.measure(children, context, measurer, density, highlightRanges, layoutMap)
     }
 
     val widthDp = with(density) { renderResult.canvasWidth.toDp() }
@@ -247,6 +262,30 @@ private fun LatexDocument(
             .size(widthDp, heightDp)
     } else {
         modifier.size(widthDp, heightDp)
+    }.let { mod ->
+        if ((onNodeClick != null || onHyperlinkClick != null) && layoutMap != null) {
+            mod.pointerInput(layoutMap, latex, onHyperlinkClick) {
+                detectTapGestures { offset ->
+                    // 将点击坐标转换为内容区相对坐标
+                    val contentX = offset.x - renderResult.horizontalPadding
+                    val contentY = offset.y - renderResult.verticalPadding
+                    val hit = layoutMap.hitTest(contentX, contentY)
+                    if (hit != null) {
+                        // 超链接专用回调：命中 Hyperlink 节点时直接返回 URL
+                        if (onHyperlinkClick != null && hit.node is LatexNode.Hyperlink) {
+                            onHyperlinkClick((hit.node as LatexNode.Hyperlink).url)
+                        }
+                        // 通用节点点击回调
+                        if (onNodeClick != null) {
+                            val range = hit.node.sourceRange
+                            if (range != null) {
+                                onNodeClick(range.start, range.end, latex)
+                            }
+                        }
+                    }
+                }
+            }
+        } else mod
     }
 
     Canvas(modifier = canvasModifier) {

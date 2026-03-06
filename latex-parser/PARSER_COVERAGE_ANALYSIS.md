@@ -223,16 +223,22 @@
 - ✅ `\xrightarrow[下]{上}` 带上下标的箭头
 - ✅ `\xhookrightarrow{f}` 可扩展钩右箭头
 - ✅ `\xhookleftarrow{g}` 可扩展钩左箭头
+- ✅ `\xRightarrow{f}` 可扩展双线右箭头
+- ✅ `\xLeftarrow{g}` 可扩展双线左箭头
+- ✅ `\xLeftrightarrow{h}` 可扩展双线双向箭头
+- ✅ `\xmapsto{f}` 可扩展映射箭头
 - ✅ `\overset{上}{基础}` 上堆叠
 - ✅ `\underset{下}{基础}` 下堆叠
 - ✅ `\stackrel{上}{基础}` 上下堆叠（同 overset）
 - ✅ `\underbrace{x+y}_{text}` 下大括号带下方标注文本
 - ✅ `\overbrace{a+b}^{text}` 上大括号带上方标注文本
+- ✅ `\overbracket{x+y}` 上方括号标注
+- ✅ `\underbracket{a+b}` 下方括号标注
 
 ### ❌ 缺失
 - 无
 
-**覆盖率**: 31/31 (100%) ✅
+**覆盖率**: 35/35 (100%) ✅
 
 ---
 
@@ -358,6 +364,17 @@ x^{\sum_{i=1}^{n}}
 ## 12. 高级功能
 
 ### ✅ 已支持
+
+#### 超链接
+- ✅ `\href{url}{text}` 超链接（蓝色下划线渲染，支持点击回调）
+- ✅ `\url{url}` URL 链接（显示 URL 文本，蓝色下划线渲染）
+
+#### 背景色
+- ✅ `\colorbox{color}{text}` 背景色（给文本加背景色）
+- ✅ `\fcolorbox{borderColor}{bgColor}{text}` 带边框的背景色
+
+#### 交互式公式
+- ✅ `onNodeClick` 交互式子表达式回调（点击公式子部分触发回调，返回 SourceRange）
 
 #### 颜色支持
 - ✅ `\color{red}{文本}` 颜色命令
@@ -490,7 +507,7 @@ x \in \R
 - `\renewcommand` 语法与 `\newcommand` 相同，覆盖已有定义
 - `\def` 支持 TeX 原始语法 `\def\name#1#2{body}`
 
-**覆盖率**: 60/60 (100%) ✅
+**覆盖率**: 65/65 (100%) ✅
 
 ---
 
@@ -504,13 +521,14 @@ x \in \R
 | 大型运算符 | 28/28 | 0 | 100% |
 | 矩阵 | 8/8 | 0 | 100% |
 | 括号分隔符 | 11/11 | 0 | 100% |
-| 装饰 | 31/31 | 0 | 100% |
+| 装饰 | 35/35 | 0 | 100% |
+
 | 字体样式 | 17/17 | 0 | 100% |
 | 数学模式切换 | 6/6 | 0 | 100% |
 | 空格 | 8/8 | 0 | 100% |
 | 环境 | 21/21 | 0 | 100% |
-| 高级功能 | 60/60 | 0 | 100% |
-| **总体** | **333+/333+** | **0** | **100%** |
+| 高级功能 | 65/65 | 0 | 100% |
+| **总体** | **342+/342+** | **0** | **100%** |
 
 ---
 
@@ -525,10 +543,12 @@ x \in \R
 - ✅ 完整的字体样式（粗体、斜体、符号粗体、文本模式）
 - ✅ 完整的数学模式切换（displaystyle、textstyle、scriptstyle、scriptscriptstyle、`$...$`、`$$...$$`）
 - ✅ 完整的矩阵系统（6种矩阵类型 + 小矩阵 + 数组）
-- ✅ 完整的装饰符号（帽子、波浪线、箭头、括号、取消线变体、花括号标注、重音符/锐音符/抑扬符/短音符/圆圈/三点等31种）
+- ✅ 完整的装饰符号（帽子、波浪线、箭头、括号、取消线变体、花括号标注、方括号标注、重音符/锐音符/抑扬符/短音符/圆圈/三点等35种）
 - ✅ 完整的括号系统（自动伸缩、手动大小、不对称分隔符、`\lvert`/`\rvert`/`\lVert`/`\rVert`）
-- ✅ 可扩展箭头（`\xrightarrow`、`\xleftarrow`、`\xhookrightarrow`、`\xhookleftarrow`，支持上下文字）
+- ✅ 可扩展箭头（`\xrightarrow`、`\xleftarrow`、`\xhookrightarrow`、`\xhookleftarrow`、`\xRightarrow`、`\xLeftarrow`、`\xLeftrightarrow`、`\xmapsto`，支持上下文字）
 - ✅ 颜色支持（`\color`、`\textcolor`，支持16+种颜色和十六进制）
+- ✅ 背景色支持（`\colorbox`、`\fcolorbox`，支持颜色名和十六进制）
+- ✅ 超链接支持（`\href`、`\url`，蓝色下划线渲染 + 点击回调）
 - ✅ 完整环境支持（equation、align、gather、cases、dcases、rcases、split、multline、eqnarray、subequations、tabular、flalign、alignat，含 `*` 无编号变体）
 - ✅ 化学公式支持（`\ce{...}` 命令，支持分子、离子、化学反应）
 - ✅ 特殊效果（`\boxed`、`\phantom`、`\smash`、`\vphantom`、`\hphantom`）
@@ -552,6 +572,11 @@ x \in \R
 - ✅ 动画过渡（AnimatedLatex：crossfade / slide / fade+slide）
 - ✅ 图片导出（rememberLatexExporter()：PNG/JPEG/WEBP）
 - ✅ 预测量 API（rememberLatexMeasurer()：精确尺寸预计算，支持 InlineTextContent 行内数学公式）
+- ✅ 完整可扩展箭头家族（`\xRightarrow`、`\xLeftarrow`、`\xLeftrightarrow`、`\xmapsto`，含上下文字）
+- ✅ 超链接（`\href`、`\url`，蓝色下划线渲染 + 点击回调）
+- ✅ 背景色（`\colorbox`、`\fcolorbox`，支持颜色名和十六进制）
+- ✅ 方括号标注（`\overbracket`、`\underbracket`）
+- ✅ 交互式子表达式回调（`onNodeClick` 点击公式子部分，教育应用场景）
 - ✅ 所见即所得编辑器集成（cursor/input API，位于 `latex-renderer/editor/`）
 
 ### 适用场景
@@ -578,3 +603,86 @@ x \in \R
 ## 13. 功能扩展规划（Roadmap）
 
 以下为待实现的功能，按优先级排列。每项完成后应将状态标记为 ✅ 并移至对应章节。
+
+---
+
+### 🟡 P1 — 中等价值 / 较高难度
+
+#### ❌ `\prescript` 前置上下标
+- **命令**: `\prescript{A}{Z}{X}`
+- **场景**: 同位素标记（原子前方标注质量数和原子序数）
+- **实现方向**: Parser 新增 `Prescript` 节点 → 在 `SideSetTensorMeasurer` 基础上扩展
+
+#### ❌ `\mathclap` / `\mathllap` / `\mathrlap` 零宽叠加
+- **命令**: `\mathclap{内容}`, `\mathllap{内容}`, `\mathrlap{内容}`
+- **场景**: 精确对齐控制，让公式内容水平叠加不占空间
+- **实现方向**: 类似 `\phantom` 的逻辑但反向——绘制内容但宽度为 0
+
+#### ❌ 公式编号自动计算
+- **现状**: `\tag{1}` 支持手动标签，`\label`/`\ref`/`\eqref` 支持引用但渲染为键名
+- **实现方向**: 实现自动编号计数器（equation 环境内自增），`\ref` 渲染为实际编号
+
+#### ❌ `\newcommand` 可选参数默认值
+- **命令**: `\newcommand{\cmd}[2][default]{body}`
+- **现状**: `\newcommand` 已支持位置参数 `#1`~`#9`，但尚无默认值语法
+- **实现方向**: 扩展宏定义解析，支持 `[default]` 可选参数语法
+
+#### ❌ 诊断增强（结构化错误列表）
+- **现状**: `ParseDiagnostic` 已有基础，渲染层以 errorColor 标记
+- **实现方向**: 语法级别诊断（缺失 `}` 位置、不匹配的 `\begin`/`\end`）；暴露诊断面板 API（返回结构化错误列表 + 位置信息）
+
+#### ❌ `\boxed` 扩展装饰变体
+- **命令**: `\fbox{}`, `\doublebox{}`, 圆角边框等
+- **现状**: `\boxed` 已有基础支持
+- **实现方向**: 在 `BoxedPhantomMeasurer` 中扩展更多边框变体样式
+
+---
+
+### 🔵 P2 — 增值能力 / 工程级扩展
+
+#### ❌ LaTeX → SVG 矢量导出
+- **现状**: 已有 PNG/JPEG/WEBP 图片导出
+- **实现方向**: 将 NodeLayout 的 draw 指令转换为 SVG 元素，输出矢量格式
+- **价值**: Web 场景和高分辨率打印无损
+
+#### ❌ 自定义环境支持
+- **命令**: `\newenvironment{myenv}{...}{...}`
+- **实现方向**: 类似 `\newcommand` 的宏展开机制，但作用于 `\begin{myenv}...\end{myenv}`
+
+#### ❌ 多文档/章节结构命令
+- **命令**: `\section{}`, `\subsection{}`, `\paragraph{}` 等
+- **现状**: Parser 将未识别命令以 errorColor 渲染
+- **实现方向**: 解析文档结构命令，渲染为带样式的标题文本
+
+#### ❌ 性能优化：NodeLayout 缓存 & 增量测量
+- **方向**: NodeLayout 缓存（相同 AST 子树 + 相同 context → 复用 layout）；Path 缓存池（同尺寸根号 Path 复用）；增量测量（AST 部分变更时只重新测量受影响子树）
+
+#### ❌ TikZ/PGF 基础绘图（简化子集）
+- **场景**: 在公式中嵌入简单的坐标系、函数图像
+- **范围**: 仅支持 `\draw` 线段、`\node` 文本、坐标点等核心子集
+- **难度**: 需要新的 AST 节点和独立的 TikZ 解析器 + Canvas 绘制流水线
+
+#### ❌ RTL（从右到左）文本支持
+- **场景**: 阿拉伯语/希伯来语混排
+- **难度**: 需要 BiDi 算法和文本方向处理
+
+---
+
+### 📊 优先级矩阵总览
+
+| 优先级 | 能力 | 复杂度 | 用户价值 | 可复用现有基础 |
+|--------|------|--------|---------|--------------|
+| P0 ⭐⭐⭐ | `\href`/`\url` 超链接 | 低 | 高 | ✅ **已实现** |
+| P0 ⭐⭐⭐ | `\colorbox`/`\fcolorbox` | 低 | 高 | ✅ **已实现** |
+| P0 ⭐⭐⭐ | 交互式子表达式回调 | 中 | 高 | ✅ **已实现** |
+| P0 ⭐⭐ | 完整可扩展箭头家族 | 低 | 中 | ✅ **已实现** |
+| P0 ⭐⭐ | `\underbracket`/`\overbracket` | 低 | 中 | ✅ **已实现** |
+| P1 ⭐⭐ | 公式自动编号 | 中 | 高 | ✅ tag/label/ref 体系 |
+| P1 ⭐⭐ | 诊断增强 | 中 | 中 | ✅ ParseDiagnostic |
+| P1 ⭐⭐ | `\newcommand` 默认值 | 低 | 中 | ✅ 宏展开机制 |
+| P1 ⭐⭐ | `\prescript` 前置上下标 | 中 | 中 | ✅ SideSetTensorMeasurer |
+| P1 ⭐⭐ | `\mathclap`/`\mathllap`/`\mathrlap` | 低 | 中 | ✅ phantom 逻辑 |
+| P2 ⭐ | SVG 矢量导出 | 高 | 中 | ✅ NodeLayout draw 指令 |
+| P2 ⭐ | 自定义环境 | 中 | 中 | ✅ 宏展开 + 环境解析 |
+| P2 ⭐ | TikZ 子集 | 很高 | 高 | ❌ 需要全新解析器 |
+| P2 ⭐ | RTL 文本支持 | 很高 | 低 | ❌ 需要 BiDi 算法 |
