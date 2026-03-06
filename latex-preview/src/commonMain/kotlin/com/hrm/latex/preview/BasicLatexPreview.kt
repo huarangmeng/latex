@@ -454,8 +454,8 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "special_effects",
-        title = "11. 特殊效果",
-        description = "方框（boxed）、幻影（phantom）、取消线变体、否定修饰",
+        title = "11. 特殊效果与布局",
+        description = "方框（boxed/fbox）、幻影（phantom）、取消线变体、否定修饰、smash",
         items = listOf(
             PreviewItem("1", "简单方框", "\\boxed{E = mc^2}"),
             PreviewItem("2", "方框中的分数", "\\boxed{\\frac{a + b}{c}}"),
@@ -483,20 +483,72 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("20", "vphantom 垂直占位", "\\left(\\vphantom{\\frac{a}{b}} x\\right)"),
             PreviewItem("21", "hphantom 水平占位", "a + \\hphantom{bbb} + c"),
             PreviewItem("22", "substack 多行条件", "\\sum_{\\substack{i<n \\\\ j<m}} x_{ij}"),
-            PreviewItem("23", "公式编号 tag", "E = mc^2 \\tag{1}"),
-            PreviewItem("24", "公式编号 tag*", "F = ma \\tag*{Newton}"),
-            PreviewItem("25", "underbrace 标注", "\\underbrace{x+y+z}_{n}"),
-            PreviewItem("26", "overbrace 标注", "\\overbrace{a+b+c}^{3\\text{ terms}}"),
-            PreviewItem("27", "label+eqref", "\\label{eq:1} E = mc^2 \\eqref{eq:1}"),
-            PreviewItem("28", "ref 引用", "See \\ref{eq:1}"),
-            PreviewItem("29", "sideset 四角", "\\sideset{_a^b}{_c^d}{\\sum}"),
-            PreviewItem("30", "sideset 部分", "\\sideset{_1}{^n}{\\prod}"),
-            PreviewItem("31", "tensor 基础", "\\tensor{T}{^a_b}"),
-            PreviewItem("32", "tensor 多指标", "\\tensor{R}{^\\mu_{\\nu\\rho\\sigma}}"),
-            PreviewItem("33", "不断开空格 (~)", "Fig.~1 Eq.~2"),
-            PreviewItem("34", "注释处理 (%)", "x^2 + y^2 % comment\n= z^2"),
+            PreviewItem("23", "fbox 文本方框", "\\fbox{Important}"),
+            PreviewItem("24", "fbox 数学内容", "\\fbox{x^2 + y^2 = r^2}"),
+            PreviewItem("25", "fbox vs boxed", "\\fbox{a} \\quad \\boxed{a}"),
+            PreviewItem("26", "underbrace 标注", "\\underbrace{x+y+z}_{n}"),
+            PreviewItem("27", "overbrace 标注", "\\overbrace{a+b+c}^{3\\text{ terms}}"),
+        )
+    ),
+    PreviewGroup(
+        id = "labels_refs",
+        title = "12. 标签、引用与编号",
+        description = "公式编号（tag）、标签引用（label/ref/eqref）、equation 自动编号",
+        items = listOf(
+            PreviewItem("1", "公式编号 tag", "E = mc^2 \\tag{1}"),
+            PreviewItem("2", "公式编号 tag*", "F = ma \\tag*{Newton}"),
+            PreviewItem("3", "label+eqref", "\\label{eq:1} E = mc^2 \\eqref{eq:1}"),
+            PreviewItem("4", "ref 引用", "See \\ref{eq:1}"),
+            PreviewItem("5", "equation 自动编号", "\\begin{equation} E = mc^2 \\label{eq:einstein} \\end{equation}"),
+            PreviewItem("6", "多个自动编号", "\\begin{equation} a^2 + b^2 = c^2 \\label{eq:pyth} \\end{equation} \\begin{equation} e^{i\\pi} + 1 = 0 \\label{eq:euler} \\end{equation}"),
+            PreviewItem("7", "自动编号+引用", "\\begin{equation} F = ma \\label{eq:f} \\end{equation} See \\eqref{eq:f}"),
+            PreviewItem("8", "equation* 无编号", "\\begin{equation*} x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a} \\end{equation*}"),
+            PreviewItem("9", "编号+手动tag混合", "\\begin{equation} a = b \\label{eq:a} \\end{equation} \\begin{equation} c = d \\tag{★} \\end{equation} \\begin{equation} e = f \\label{eq:e} \\end{equation} See \\eqref{eq:a} and \\eqref{eq:e}"),
+        )
+    ),
+    PreviewGroup(
+        id = "advanced_annotations",
+        title = "13. 高级标注",
+        description = "sideset 四角标、tensor 张量、prescript 前置上下标、零宽叠放",
+        items = listOf(
+            PreviewItem("1", "sideset 四角", "\\sideset{_a^b}{_c^d}{\\sum}"),
+            PreviewItem("2", "sideset 部分", "\\sideset{_1}{^n}{\\prod}"),
+            PreviewItem("3", "tensor 基础", "\\tensor{T}{^a_b}"),
+            PreviewItem("4", "tensor 多指标", "\\tensor{R}{^\\mu_{\\nu\\rho\\sigma}}"),
+            PreviewItem("5", "prescript 基础", "\\prescript{A}{Z}{X}"),
+            PreviewItem("6", "prescript 同位素", "\\prescript{235}{92}{U}"),
+            PreviewItem("7", "prescript 部分", "\\prescript{14}{}{C}"),
+            PreviewItem("8", "mathclap 零宽居中", "\\sum_{\\mathclap{1 \\le i \\le n}} x_i"),
+            PreviewItem("9", "mathrlap 零宽右叠", "\\mathrlap{\\overbrace{\\phantom{abc}}}abc"),
+            PreviewItem("10", "mathllap 零宽左叠", "abc\\mathllap{\\underbrace{\\phantom{abc}}}"),
+        )
+    ),
+    PreviewGroup(
+        id = "hyperlinks_api",
+        title = "14. 超链接、高亮与诊断",
+        description = "超链接（href/url）、子表达式高亮、错误指示、注释、不断开空格",
+        items = listOf(
+            PreviewItem("1", "href 超链接", "\\href{https://example.com}{点击这里}"),
+            PreviewItem("2", "url 链接", "\\url{https://example.com}"),
+            PreviewItem("3", "href 数学内容", "\\href{https://wiki.org}{E = mc^2}"),
             PreviewItem(
-                "35", "高亮子表达式(pattern)", "E = mc^2",
+                "4", "href 超链接(带点击回调)", "\\href{https://example.com}{点击这里}",
+                content = {
+                    Latex(
+                        latex = "\\href{https://example.com}{点击这里}",
+                        config = LatexConfig(
+                            onHyperlinkClick = { url ->
+                                println("超链接被点击: $url")
+                            }
+                        ),
+                        isDarkTheme = false
+                    )
+                }
+            ),
+            PreviewItem("5", "不断开空格 (~)", "Fig.~1 Eq.~2"),
+            PreviewItem("6", "注释处理 (%)", "x^2 + y^2 % comment\n= z^2"),
+            PreviewItem(
+                "7", "高亮子表达式(pattern)", "E = mc^2",
                 content = {
                     Latex(
                         latex = "E = mc^2",
@@ -516,7 +568,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "36", "高亮子表达式(indices)", "\\frac{a+b}{c} + x^2",
+                "8", "高亮子表达式(indices)", "\\frac{a+b}{c} + x^2",
                 content = {
                     Latex(
                         latex = "\\frac{a+b}{c} + x^2",
@@ -536,7 +588,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "37", "多区域高亮", "a + b + c + d",
+                "9", "多区域高亮", "a + b + c + d",
                 content = {
                     Latex(
                         latex = "a + b + c + d",
@@ -558,39 +610,13 @@ val basicLatexPreviewGroups = listOf(
                     )
                 }
             ),
-            PreviewItem("38", "错误指示(未知命令)", "x + \\unknowncmd + y"),
-            PreviewItem("39", "错误指示(混合)", "\\frac{a}{b} + \\notacommand + \\sqrt{c}"),
-            PreviewItem("40", "href 超链接", "\\href{https://example.com}{点击这里}"),
-            PreviewItem("41", "url 链接", "\\url{https://example.com}"),
-            PreviewItem("42", "href 数学内容", "\\href{https://wiki.org}{E = mc^2}"),
-            PreviewItem(
-                "43", "href 超链接(带点击回调)", "\\href{https://example.com}{点击这里}",
-                content = {
-                    Latex(
-                        latex = "\\href{https://example.com}{点击这里}",
-                        config = LatexConfig(
-                            onHyperlinkClick = { url ->
-                                println("超链接被点击: $url")
-                            }
-                        ),
-                        isDarkTheme = false
-                    )
-                }
-            ),
-            PreviewItem("44", "prescript 基础", "\\prescript{A}{Z}{X}"),
-            PreviewItem("45", "prescript 同位素", "\\prescript{235}{92}{U}"),
-            PreviewItem("46", "prescript 部分", "\\prescript{14}{}{C}"),
-            PreviewItem("47", "fbox 文本方框", "\\fbox{Important}"),
-            PreviewItem("48", "fbox 数学内容", "\\fbox{x^2 + y^2 = r^2}"),
-            PreviewItem("49", "fbox vs boxed", "\\fbox{a} \\quad \\boxed{a}"),
-            PreviewItem("50", "mathclap 零宽居中", "\\sum_{\\mathclap{1 \\le i \\le n}} x_i"),
-            PreviewItem("51", "mathrlap 零宽右叠", "\\mathrlap{\\overbrace{\\phantom{abc}}}abc"),
-            PreviewItem("52", "mathllap 零宽左叠", "abc\\mathllap{\\underbrace{\\phantom{abc}}}"),
+            PreviewItem("10", "错误指示(未知命令)", "x + \\unknowncmd + y"),
+            PreviewItem("11", "错误指示(混合)", "\\frac{a}{b} + \\notacommand + \\sqrt{c}"),
         )
     ),
     PreviewGroup(
         id = "custom_commands",
-        title = "12. 自定义命令",
+        title = "15. 自定义命令",
         description = "newcommand 定义和使用",
         items = listOf(
             PreviewItem("1", "无参数命令", "\\newcommand{\\R}{\\mathbb{R}} x \\in \\R"),
@@ -661,7 +687,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "spaces",
-        title = "13. 间距专题",
+        title = "16. 间距专题",
         description = "负空格、自定义空格、水平间距",
         items = listOf(
             PreviewItem("1", "标准空格对比", "a \\, b \\: c \\; d \\quad e \\qquad f"),
@@ -674,7 +700,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "mathstyle",
-        title = "14. 数学模式切换",
+        title = "17. 数学模式切换",
         description = "displaystyle, textstyle, scriptstyle, scriptscriptstyle",
         items = listOf(
             PreviewItem(
@@ -711,7 +737,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "environments",
-        title = "15. 环境专题",
+        title = "18. 环境专题",
         description = "split、multline、eqnarray、subequations、cases 环境",
         items = listOf(
             PreviewItem("1", "split 基础", "\\begin{split} x &= a + b \\\\ &= c \\end{split}"),
@@ -837,7 +863,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "ams_relations",
-        title = "16. AMS 符号",
+        title = "19. AMS 符号",
         description = "AMS 符号",
         items = listOf(
             PreviewItem("1", "否定不等式", "a \\nleq b \\quad c \\ngeq d"),
@@ -891,7 +917,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "math_mode",
-        title = "17. 数学模式切换",
+        title = "20. 数学模式切换",
         description = "\$...\$ 行内数学 和 \$\$...\$\$ 展示数学",
         items = listOf(
             PreviewItem("1", "行内数学", "The formula \$E=mc^2\$ is famous"),
@@ -911,7 +937,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "animated",
-        title = "18. 动画过渡",
+        title = "21. 动画过渡",
         description = "AnimatedLatex 公式切换动画",
         items = listOf(
             PreviewItem(

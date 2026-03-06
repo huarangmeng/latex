@@ -86,7 +86,12 @@ internal object LatexRenderer {
         // 清除每次测量周期的缓存（字体/字号可能已变化）
         LayoutUtils.clearCache()
 
-        val layout = measureGroup(children, context, textMeasurer, density, layoutMap)
+        // 预计算公式编号：遍历 AST 建立 label → 编号映射
+        val labelToNumber = EquationNumbering.buildLabelMap(children)
+        val numberingState = EquationNumberingState(labelToNumber)
+        val numberedContext = context.copy(equationNumbering = numberingState)
+
+        val layout = measureGroup(children, numberedContext, textMeasurer, density, layoutMap)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val horizontalPadding = fontSizePx * MathConstants.CANVAS_HORIZONTAL_PADDING

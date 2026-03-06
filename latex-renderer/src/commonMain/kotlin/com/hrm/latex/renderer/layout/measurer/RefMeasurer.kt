@@ -61,8 +61,10 @@ internal class RefMeasurer : NodeMeasurer {
         context: RenderContext,
         measurer: TextMeasurer
     ): NodeLayout {
+        // 优先从编号映射中查找实际编号，找不到则降级为键名
+        val displayText = context.equationNumbering?.resolveLabel(node.key) ?: node.key
         val style = context.textStyle()
-        val result = measurer.measure(AnnotatedString(node.key), style)
+        val result = measurer.measure(AnnotatedString(displayText), style)
         val width = result.size.width.toFloat()
         val height = result.size.height.toFloat()
         val baseline = result.firstBaseline
@@ -77,8 +79,10 @@ internal class RefMeasurer : NodeMeasurer {
         context: RenderContext,
         measurer: TextMeasurer
     ): NodeLayout {
+        // 优先从编号映射中查找实际编号，找不到则降级为键名
+        val resolvedNumber = context.equationNumbering?.resolveLabel(node.key) ?: node.key
         val style = context.textStyle()
-        val displayText = "(${node.key})"
+        val displayText = "(${resolvedNumber})"
         val result = measurer.measure(AnnotatedString(displayText), style)
         val width = result.size.width.toFloat()
         val height = result.size.height.toFloat()

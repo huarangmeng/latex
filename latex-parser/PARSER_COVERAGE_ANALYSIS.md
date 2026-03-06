@@ -127,9 +127,16 @@
 - ✅ `\sup`, `\inf` 上确界/下确界
 - ✅ `\limsup`, `\liminf` 上极限/下极限
 - ✅ `\operatorname{名称}` 自定义运算符（正体渲染，支持 `\limits`/`\nolimits` 和上下标）
+- ✅ `\DeclareMathOperator{\Tr}{Tr}` 声明式运算符定义（前言中定义自定义运算符）
+- ✅ `\mathop{内容}` 将任意内容标记为大型运算符（可带上下限）
 
 #### 多行下标条件
 - ✅ `\substack{i<n \\ j<m}` 大型运算符上下限排列多行条件
+
+#### 取模运算符
+- ✅ `\bmod` 二元取模运算符（如 `a \bmod b`，渲染为 "a mod b"）
+- ✅ `\pmod{n}` 括号取模（如 `a \equiv b \pmod{n}`，渲染为 "(mod n)"）
+- ✅ `\mod` 取模运算符（如 `a \mod b`，渲染为 "mod b"，间距更宽）
 
 ### ❌ 缺失
 - 无
@@ -354,6 +361,12 @@ x^{\sum_{i=1}^{n}}
 - ✅ `flalign`, `flalign*` 全宽对齐环境
 - ✅ `alignat`, `alignat*` 指定列数对齐环境
 
+#### 公式自动编号
+- ✅ 自动编号计数器（equation/align/gather/multline/eqnarray 非星号变体自增）
+- ✅ `\ref`/`\eqref` 渲染为实际编号
+- ✅ 有 `\tag` 时跳过自动编号
+- ✅ 星号环境（`equation*` 等）不参与编号
+
 ### ❌ 缺失
 - 无
 
@@ -361,37 +374,30 @@ x^{\sum_{i=1}^{n}}
 
 ---
 
-## 12. 高级功能
+## 12. 颜色与背景色
 
 ### ✅ 已支持
 
-#### 超链接
-- ✅ `\href{url}{text}` 超链接（蓝色下划线渲染，支持点击回调）
-- ✅ `\url{url}` URL 链接（显示 URL 文本，蓝色下划线渲染）
-
-#### 背景色
-- ✅ `\colorbox{color}{text}` 背景色（给文本加背景色）
-- ✅ `\fcolorbox{borderColor}{bgColor}{text}` 带边框的背景色
-
-#### 交互式公式
-- ✅ `onNodeClick` 交互式子表达式回调（点击公式子部分触发回调，返回 SourceRange）
-
-#### 颜色支持
+#### 颜色命令
 - ✅ `\color{red}{文本}` 颜色命令
 - ✅ `\textcolor{red}{文本}` 文本颜色
 - ✅ 支持常见颜色名称: red, blue, green, yellow, orange, purple, cyan, magenta, pink, brown, lime, navy, teal, violet
 - ✅ 支持十六进制颜色: `\color{#FF5733}{文本}`
 
-#### 特殊箭头
-- ✅ `\cancel{x}` 取消线（斜线划掉）
-- ✅ `\xrightarrow{文字}` 可扩展右箭头
-- ✅ `\xleftarrow{文字}` 可扩展左箭头
-- ✅ `\xrightarrow[下]{上}` 可扩展箭头（带上下文字）
-- ✅ `\xleftrightarrow{文字}` 可扩展双向箭头
-- ✅ `\xhookrightarrow{文字}` 可扩展钩右箭头
-- ✅ `\xhookleftarrow{文字}` 可扩展钩左箭头
+#### 背景色
+- ✅ `\colorbox{color}{text}` 背景色（给文本加背景色）
+- ✅ `\fcolorbox{borderColor}{bgColor}{text}` 带边框的背景色
 
-#### 化学公式
+### ❌ 缺失
+- 无
+
+**覆盖率**: 6/6 (100%) ✅
+
+---
+
+## 13. 化学公式
+
+### ✅ 已支持
 - ✅ `\ce{H2O}` 化学式（基础分子）
 - ✅ `\ce{H2SO4}` 化学式（多原子）
 - ✅ `\ce{Na+}` 离子（正离子）
@@ -406,22 +412,36 @@ x^{\sum_{i=1}^{n}}
 - ✅ 上标和下标混合（如 `\ce{^{235}_{92}U}`）
 - ✅ 复杂配合物（如 `\ce{[Cu(NH3)4]^{2+}}`）
 
-#### 特殊效果
-- ✅ `\boxed{E = mc^2}` 方框（在公式周围绘制矩形边框）
-- ✅ `\fbox{text}` 文本模式方框（同 `\boxed` 但使用 FBOX 样式）
-- ✅ `\phantom{x}` 幻影空间（占据空间但不显示内容，用于对齐）
-- ✅ `\smash{x}` 高度压缩（绘制内容但不占据垂直空间）
-- ✅ `\vphantom{x}` 垂直幻影（只占据垂直空间，宽度为零）
-- ✅ `\hphantom{x}` 水平幻影（只占据水平空间，高度为零）
-- ✅ `\mathclap{内容}` 零宽居中叠加（绘制内容但宽度为0，内容居中对齐）
-- ✅ `\mathllap{内容}` 零宽左叠加（内容向左扩展）
-- ✅ `\mathrlap{内容}` 零宽右叠加（内容向右扩展）
+### ❌ 缺失
+- 无
+
+**覆盖率**: 13/13 (100%) ✅
+
+---
+
+## 14. 标签、引用与公式标签
+
+### ✅ 已支持
+
+#### 标签与引用
+- ✅ `\label{eq:1}` 标签定义（不参与渲染）
+- ✅ `\ref{eq:1}` 引用标签（渲染为实际编号）
+- ✅ `\eqref{eq:1}` 公式引用（渲染为带括号的实际编号）
 
 #### 公式标签
 - ✅ `\tag{1}` 公式编号标签（右侧显示 `(1)`）
 - ✅ `\tag*{A}` 无括号公式标签（右侧显示 `A`）
 
-#### 自定义命令
+### ❌ 缺失
+- 无
+
+**覆盖率**: 5/5 (100%) ✅
+
+---
+
+## 15. 自定义命令与宏定义
+
+### ✅ 已支持
 - ✅ `\newcommand{\R}{\mathbb{R}}` 自定义命令定义
 - ✅ `\newcommand{\diff}[1]{\frac{d}{d#1}}` 单参数命令
 - ✅ `\newcommand{\pdiff}[2]{\frac{\partial #1}{\partial #2}}` 多参数命令
@@ -430,92 +450,86 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\def\name{body}` TeX 原始宏定义
 - ✅ `\def\name#1#2{body}` 带参数的 TeX 宏定义
 
-#### 标签与引用
-- ✅ `\label{eq:1}` 标签定义（不参与渲染）
-- ✅ `\ref{eq:1}` 引用标签（渲染为标签键名）
-- ✅ `\eqref{eq:1}` 公式引用（渲染为带括号的标签键名）
+**特性说明：**
+- 支持 0-9 个参数，使用 `#1` ~ `#9` 表示
+- 支持嵌套和递归定义
+- `\renewcommand` 覆盖已有定义
+- `\def` 支持 TeX 原始语法
 
-#### 四角标注
+### ❌ 缺失
+- 无
+
+**覆盖率**: 7/7 (100%) ✅
+
+---
+
+## 16. 特殊效果与布局控制
+
+### ✅ 已支持
+
+#### 方框
+- ✅ `\boxed{E = mc^2}` 方框（在公式周围绘制矩形边框）
+- ✅ `\fbox{text}` 文本模式方框（同 `\boxed` 但使用 FBOX 样式）
+
+#### 幻影与间距控制
+- ✅ `\phantom{x}` 幻影空间（占据空间但不显示内容，用于对齐）
+- ✅ `\smash{x}` 高度压缩（绘制内容但不占据垂直空间）
+- ✅ `\vphantom{x}` 垂直幻影（只占据垂直空间，宽度为零）
+- ✅ `\hphantom{x}` 水平幻影（只占据水平空间，高度为零）
+
+#### 零宽叠加
+- ✅ `\mathclap{内容}` 零宽居中叠加（绘制内容但宽度为0，内容居中对齐）
+- ✅ `\mathllap{内容}` 零宽左叠加（内容向左扩展）
+- ✅ `\mathrlap{内容}` 零宽右叠加（内容向右扩展）
+
+### ❌ 缺失
+- 无
+
+**覆盖率**: 9/9 (100%) ✅
+
+---
+
+## 17. 高级标注
+
+### ✅ 已支持
+
+#### 超链接
+- ✅ `\href{url}{text}` 超链接（蓝色下划线渲染，支持点击回调）
+- ✅ `\url{url}` URL 链接（显示 URL 文本，蓝色下划线渲染）
+
+#### 四角标注与前置上下标
 - ✅ `\sideset{_a^b}{_c^d}{\sum}` 大型运算符四角上下标
-
-#### 前置上下标
 - ✅ `\prescript{A}{Z}{X}` 前置上下标（同位素标记，原子前方标注质量数和原子序数）
 
 #### 张量/指标
 - ✅ `\tensor{T}{^a_b^c}` 张量指标排列
 - ✅ `\indices{^a_b}` 独立指标（无基础符号）
 
-#### 可访问性
+### ❌ 缺失
+- 无
+
+**覆盖率**: 6/6 (100%) ✅
+
+---
+
+## 18. API 与工程能力
+
+### ✅ 已支持
+- ✅ `onNodeClick` 交互式子表达式回调（点击公式子部分触发回调，返回 SourceRange）
 - ✅ `contentDescription` AccessibilityVisitor：MathSpeak 风格的屏幕阅读器描述
-
-#### 公式高亮
 - ✅ `highlight API` HighlightConfig + HighlightRange 支持子表达式视觉高亮
-
-#### LaTeX → MathML
 - ✅ `conversion API` MathMLVisitor：Presentation MathML 输出
-
-#### 动画支持
 - ✅ `animation API` AnimatedLatex 组件：crossfade / slide / fade+slide 过渡
-
-#### 图片导出
 - ✅ `export API` rememberLatexExporter()：渲染结果导出为 PNG/JPEG/WEBP 图片格式
-
-#### 预测量 API（InlineTextContent 支持）
-- ✅ `measure API` rememberLatexMeasurer()：预测量公式精确渲染尺寸（width/height/baseline），用于 Compose `InlineTextContent` 行内数学公式嵌入
-
-#### 编辑器集成
+- ✅ `measure API` rememberLatexMeasurer()：预测量公式精确渲染尺寸，用于 Compose InlineTextContent 行内嵌入
 - ✅ `cursor/input API` 所见即所得编辑器支持（位于 `latex-renderer/editor/` 子包）
-
-#### 取模运算符
-- ✅ `\bmod` 二元取模运算符（如 `a \bmod b`，渲染为 "a mod b"）
-- ✅ `\pmod{n}` 括号取模（如 `a \equiv b \pmod{n}`，渲染为 "(mod n)"）
-- ✅ `\mod` 取模运算符（如 `a \mod b`，渲染为 "mod b"，间距更宽）
-
-#### 声明式运算符 & 运算符标记
-- ✅ `\DeclareMathOperator{\Tr}{Tr}` 声明式运算符定义（前言中定义自定义运算符）
-- ✅ `\mathop{内容}` 将任意内容标记为大型运算符（可带上下限）
-
-#### 错误处理
+- ✅ `diagnostics API` parseWithDiagnostics()：结构化诊断（8 种分类，按严重级别过滤）
 - ✅ 错误指示渲染：用 `errorColor` 标记无法识别的命令，而非静默降级
 
 ### ❌ 缺失
 - 无
 
-**使用示例：**
-```latex
-% 定义无参数命令
-\newcommand{\R}{\mathbb{R}}
-x \in \R
-
-% 定义单参数命令
-\newcommand{\diff}[1]{\frac{d}{d#1}}
-\diff{x} + \diff{y}
-
-% 定义多参数命令
-\newcommand{\pdiff}[2]{\frac{\partial #1}{\partial #2}}
-\pdiff{f}{x} + \pdiff{f}{y}
-
-% 组合其他命令
-\newcommand{\norm}[1]{\left\|#1\right\|}
-\norm{x} = \norm{\vec{v}}
-
-% 重定义已有命令
-\renewcommand{\R}{\mathbb{R}}
-
-% TeX 原始宏定义
-\def\myvar{\alpha}
-\def\myfunc#1#2{\frac{#1}{#2}}
-```
-
-**特性说明：**
-- 支持 0-9 个参数
-- 参数在定义中使用 `#1`, `#2`, ..., `#9` 表示
-- 自定义命令可以包含任何有效的 LaTeX 代码
-- 支持嵌套和递归定义
-- `\renewcommand` 语法与 `\newcommand` 相同，覆盖已有定义
-- `\def` 支持 TeX 原始语法 `\def\name#1#2{body}`
-
-**覆盖率**: 65/65 (100%) ✅
+**覆盖率**: 10/10 (100%) ✅
 
 ---
 
@@ -529,129 +543,42 @@ x \in \R
 | 大型运算符 | 28/28 | 0 | 100% |
 | 矩阵 | 8/8 | 0 | 100% |
 | 括号分隔符 | 11/11 | 0 | 100% |
-| 装饰 | 35/35 | 0 | 100% |
-
+| 装饰符号 | 35/35 | 0 | 100% |
 | 字体样式 | 17/17 | 0 | 100% |
 | 数学模式切换 | 6/6 | 0 | 100% |
-| 空格 | 8/8 | 0 | 100% |
+| 空格控制 | 8/8 | 0 | 100% |
 | 环境 | 21/21 | 0 | 100% |
-| 高级功能 | 71/72 | 1 | 99% |
-| **总体** | **348+/349+** | **1** | **99.7%** |
+| 颜色与背景色 | 6/6 | 0 | 100% |
+| 化学公式 | 13/13 | 0 | 100% |
+| 标签与引用 | 5/5 | 0 | 100% |
+| 自定义命令 | 7/7 | 0 | 100% |
+| 特殊效果与布局 | 9/9 | 0 | 100% |
+| 高级标注 | 6/6 | 0 | 100% |
+| API 与工程能力 | 10/10 | 0 | 100% |
+| **总体** | **349+/349+** | **0** | **100%** |
 
 ---
 
 ## 🎯 结论
 
-### 核心功能（100%覆盖）✅
-当前解析器在**数学公式核心功能**方面达到完全覆盖：
-- ✅ 所有常见数学符号（100+），已对齐 LaTeX 标准（epsilon/phi 等变体映射修正）
-- ✅ 完整的数学公式结构（分数、根号、二项式、上下标）
-- ✅ 完整的大型运算符（求和、积分、极限、最值、余积、大直和/张量积/方并/圆点积/多重并、`\operatorname` 自定义运算符、`\substack` 多行下标条件）
-- ✅ 智能大型运算符布局（displaystyle 上下方，textstyle/scriptstyle 右侧）
-- ✅ 完整的字体样式（粗体、斜体、符号粗体、文本模式）
-- ✅ 完整的数学模式切换（displaystyle、textstyle、scriptstyle、scriptscriptstyle、`$...$`、`$$...$$`）
-- ✅ 完整的矩阵系统（6种矩阵类型 + 小矩阵 + 数组）
-- ✅ 完整的装饰符号（帽子、波浪线、箭头、括号、取消线变体、花括号标注、方括号标注、重音符/锐音符/抑扬符/短音符/圆圈/三点等35种）
-- ✅ 完整的括号系统（自动伸缩、手动大小、不对称分隔符、`\lvert`/`\rvert`/`\lVert`/`\rVert`）
-- ✅ 可扩展箭头（`\xrightarrow`、`\xleftarrow`、`\xhookrightarrow`、`\xhookleftarrow`、`\xRightarrow`、`\xLeftarrow`、`\xLeftrightarrow`、`\xmapsto`，支持上下文字）
-- ✅ 颜色支持（`\color`、`\textcolor`，支持16+种颜色和十六进制）
-- ✅ 背景色支持（`\colorbox`、`\fcolorbox`，支持颜色名和十六进制）
-- ✅ 超链接支持（`\href`、`\url`，蓝色下划线渲染 + 点击回调）
-- ✅ 完整环境支持（equation、align、gather、cases、dcases、rcases、split、multline、eqnarray、subequations、tabular、flalign、alignat，含 `*` 无编号变体）
-- ✅ 化学公式支持（`\ce{...}` 命令，支持分子、离子、化学反应）
-- ✅ 特殊效果（`\boxed`、`\phantom`、`\smash`、`\vphantom`、`\hphantom`）
-- ✅ 公式标签（`\tag{1}`、`\tag*{A}`）
-- ✅ 否定修饰（`\not=`、`\not\in`、`\not\subset`）
-- ✅ 自适应省略号（`\dots` 根据上下文自动选择 `\ldots` 或 `\cdots`）
-- ✅ 取模运算符（`\bmod`、`\pmod{n}`、`\mod`）
-- ✅ 宏定义（`\newcommand`、`\renewcommand`、`\def`）
-- ✅ 标签引用（`\label`、`\ref`、`\eqref`）
-- ✅ 四角标注（`\sideset{_a^b}{_c^d}{\sum}`）
-- ✅ 前置上下标（`\prescript{A}{Z}{X}`，同位素标记）
-- ✅ 张量指标（`\tensor`、`\indices`）
-- ✅ AMS 否定关系符号（`\nleq`、`\ngeq`、`\nsubseteq`、`\nprec` 等 30+）
-- ✅ AMS 额外常用符号（`\checkmark`、`\complement`、`\eth`、`\mho`、双头箭头、几何符号等 80+）
-- ✅ 声明式运算符定义（`\DeclareMathOperator`）
-- ✅ 运算符标记（`\mathop{}`）
-- ✅ 错误指示渲染（`errorColor` 标记无法识别的命令）
-- ✅ Unicode 数学字体命令（`\symbf`、`\symit`、`\symsf`、`\symrm`）
-- ✅ 可访问性（AccessibilityVisitor：MathSpeak 风格屏幕阅读器描述）
-- ✅ 公式高亮（HighlightConfig + HighlightRange 子表达式视觉高亮）
-- ✅ LaTeX → MathML 转换（MathMLVisitor：Presentation MathML 输出）
-- ✅ 动画过渡（AnimatedLatex：crossfade / slide / fade+slide）
-- ✅ 图片导出（rememberLatexExporter()：PNG/JPEG/WEBP）
-- ✅ 预测量 API（rememberLatexMeasurer()：精确尺寸预计算，支持 InlineTextContent 行内数学公式）
-- ✅ 完整可扩展箭头家族（`\xRightarrow`、`\xLeftarrow`、`\xLeftrightarrow`、`\xmapsto`，含上下文字）
-- ✅ 超链接（`\href`、`\url`，蓝色下划线渲染 + 点击回调）
-- ✅ 背景色（`\colorbox`、`\fcolorbox`，支持颜色名和十六进制）
-- ✅ 方括号标注（`\overbracket`、`\underbracket`）
-- ✅ 交互式子表达式回调（`onNodeClick` 点击公式子部分，教育应用场景）
-- ✅ 所见即所得编辑器集成（cursor/input API，位于 `latex-renderer/editor/`）
-- ✅ 前置上下标（`\prescript{A}{Z}{X}`，同位素标记）
-- ✅ 零宽叠加（`\mathclap`、`\mathllap`、`\mathrlap`，精确对齐控制）
-- ✅ `\newcommand` 可选参数默认值（`\newcommand{\cmd}[2][default]{body}`）
-- ✅ 结构化诊断面板 API（`parseWithDiagnostics()` 返回 `ParseResult`，8 种诊断分类）
-- ✅ `\fbox` 文本模式方框（`\boxed` 扩展装饰变体）
-- ✅ 前置上下标（`\prescript{A}{Z}{X}`，同位素标记）
-- ✅ 零宽叠加（`\mathclap`、`\mathllap`、`\mathrlap`，精确对齐控制）
-- ✅ `\newcommand` 可选参数默认值（`\newcommand{\cmd}[2][default]{body}` 语法）
-- ✅ 结构化诊断面板 API（`parseWithDiagnostics()` 返回 `ParseResult`，支持分类过滤）
-- ✅ `\fbox` 文本模式方框（`\boxed` 扩展装饰变体）
+当前解析器在**数学公式核心功能**方面达到 **100% 覆盖**，涵盖 18 个功能类别、349+ 项已实现特性，无功能缺失。
 
-### 适用场景
-对于**数学论文、教科书和化学文档的常见场景**，当前解析器已经完全覆盖所有核心功能！
+**核心能力一览**：
+- 完整的数学排版基础（分数、根号、上下标、矩阵、括号、装饰符号）
+- 130+ 数学符号（希腊字母、运算符、关系符、箭头、AMS 扩展）
+- 28 种大型运算符（含智能 displaystyle/textstyle 布局适配）
+- 21 种环境（equation/align/gather/cases/multline 等，含星号变体和自动编号）
+- 化学公式（`\ce{...}`，支持分子、离子、反应箭头）
+- 自定义宏（`\newcommand`/`\renewcommand`/`\def`，支持可选参数默认值）
+- 丰富的 API（交互点击、可访问性、高亮、MathML 转换、动画、图片导出、编辑器集成、结构化诊断）
 
-**推荐用于**：
-- ✅ 数学教科书排版
-- ✅ 学术论文公式
-- ✅ 物理公式表达
-- ✅ 数学笔记和作业
-- ✅ 化学反应方程式
-- ✅ 化学分子式和离子
-- ✅ 带颜色强调的公式
-- ✅ 多行方程式和方程组
-- ✅ 需要精细控制数学模式的复杂公式
-- ✅ 需要方框突出显示或幻影对齐的场景
-- ✅ 自定义宏定义和命令复用
-- ✅ 无障碍屏幕阅读器支持
-- ✅ 公式子表达式高亮标注
-- ✅ 混合文本+数学的完整 LaTeX 文档（`$...$`/`$$...$$` 模式切换）
+**推荐用于**：数学教科书排版、学术论文公式、物理公式、化学方程式、数学笔记、多行方程组、无障碍场景、公式高亮标注。
 
 ---
 
-## 13. 功能扩展规划（Roadmap）
+## 19. 功能扩展规划（Roadmap）
 
-以下为待实现的功能，按优先级排列。每项完成后应将状态标记为 ✅ 并移至对应章节。
-
----
-
-### 🟡 P1 — 中等价值 / 较高难度
-
-#### ✅ `\prescript` 前置上下标
-- **命令**: `\prescript{A}{Z}{X}`
-- **场景**: 同位素标记（原子前方标注质量数和原子序数）
-- **实现**: Parser 新增 `Prescript` 节点 → `SideSetTensorMeasurer` 中扩展 `measurePrescript`
-
-#### ✅ `\mathclap` / `\mathllap` / `\mathrlap` 零宽叠加
-- **命令**: `\mathclap{内容}`, `\mathllap{内容}`, `\mathrlap{内容}`
-- **场景**: 精确对齐控制，让公式内容水平叠加不占空间
-- **实现**: 新增 `MathLap` 节点，在 `LatexMeasurer` 中内联处理，宽度为 0 但绘制内容
-
-#### ❌ 公式编号自动计算
-- **现状**: `\tag{1}` 支持手动标签，`\label`/`\ref`/`\eqref` 支持引用但渲染为键名
-- **实现方向**: 实现自动编号计数器（equation 环境内自增），`\ref` 渲染为实际编号
-
-#### ✅ `\newcommand` 可选参数默认值
-- **命令**: `\newcommand{\cmd}[2][default]{body}`
-- **实现**: 扩展宏定义解析，`CustomCommand` 新增 `defaultArg` 字段，调用时自动检查 `[value]` 可选参数
-
-#### ✅ 诊断增强（结构化错误列表）
-- **实现**: `ParseDiagnostic.Category` 枚举（8 种分类），`ParseResult` 数据类，`parseWithDiagnostics()` API
-- **能力**: 按严重级别和分类过滤诊断，支持诊断面板
-
-#### ✅ `\boxed` 扩展装饰变体
-- **命令**: `\fbox{}`
-- **实现**: `Boxed.BoxStyle` 枚举（NORMAL/FBOX），`BoxedPhantomMeasurer` 计划支持更多样式
+以下为待实现的功能。每项完成后应将状态标记为 ✅ 并移至对应章节。
 
 ---
 
@@ -682,24 +609,3 @@ x \in \R
 #### ❌ RTL（从右到左）文本支持
 - **场景**: 阿拉伯语/希伯来语混排
 - **难度**: 需要 BiDi 算法和文本方向处理
-
----
-
-### 📊 优先级矩阵总览
-
-| 优先级 | 能力 | 复杂度 | 用户价值 | 可复用现有基础 |
-|--------|------|--------|---------|--------------|
-| P0 ⭐⭐⭐ | `\href`/`\url` 超链接 | 低 | 高 | ✅ **已实现** |
-| P0 ⭐⭐⭐ | `\colorbox`/`\fcolorbox` | 低 | 高 | ✅ **已实现** |
-| P0 ⭐⭐⭐ | 交互式子表达式回调 | 中 | 高 | ✅ **已实现** |
-| P0 ⭐⭐ | 完整可扩展箭头家族 | 低 | 中 | ✅ **已实现** |
-| P0 ⭐⭐ | `\underbracket`/`\overbracket` | 低 | 中 | ✅ **已实现** |
-| P1 ⭐⭐ | 公式自动编号 | 中 | 高 | ✅ tag/label/ref 体系 |
-| P1 ⭐⭐ | 诊断增强 | 中 | 中 | ✅ **已实现** |
-| P1 ⭐⭐ | `\newcommand` 默认值 | 低 | 中 | ✅ **已实现** |
-| P1 ⭐⭐ | `\prescript` 前置上下标 | 中 | 中 | ✅ **已实现** |
-| P1 ⭐⭐ | `\mathclap`/`\mathllap`/`\mathrlap` | 低 | 中 | ✅ **已实现** |
-| P2 ⭐ | SVG 矢量导出 | 高 | 中 | ✅ NodeLayout draw 指令 |
-| P2 ⭐ | 自定义环境 | 中 | 中 | ✅ 宏展开 + 环境解析 |
-| P2 ⭐ | TikZ 子集 | 很高 | 高 | ❌ 需要全新解析器 |
-| P2 ⭐ | RTL 文本支持 | 很高 | 低 | ❌ 需要 BiDi 算法 |

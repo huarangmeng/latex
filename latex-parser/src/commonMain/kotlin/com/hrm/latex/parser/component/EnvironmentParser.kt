@@ -209,7 +209,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
      */
     private fun parseAligned(envName: String): LatexNode.Aligned {
         val rows = parseRowColumnStructure(envName)
-        return LatexNode.Aligned(rows)
+        return LatexNode.Aligned(rows, envName = envName)
     }
 
     /**
@@ -270,7 +270,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
             }
         }
 
-        return LatexNode.Multline(lines)
+        return LatexNode.Multline(lines, envName = envName)
     }
 
     /**
@@ -278,7 +278,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
      */
     private fun parseEqnarray(envName: String): LatexNode.Eqnarray {
         val rows = parseRowColumnStructure(envName)
-        return LatexNode.Eqnarray(rows)
+        return LatexNode.Eqnarray(rows, envName = envName)
     }
 
     /**

@@ -556,10 +556,13 @@ sealed class LatexNode {
 
     /**
      * 对齐环境
+     * @param envName 原始环境名（如 "align", "align*", "aligned", "gather" 等），
+     *   用于公式编号自动计算时区分星号和非星号变体
      */
     data class Aligned(
         val rows: List<List<LatexNode>>,
         val alignType: AlignType = AlignType.CENTER,
+        val envName: String? = null,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class AlignType { LEFT, CENTER, RIGHT }
@@ -615,9 +618,12 @@ sealed class LatexNode {
 
     /**
      * Multline 环境（多行单个方程）
+     * @param envName 原始环境名（如 "multline", "multline*"），
+     *   用于公式编号自动计算时区分星号和非星号变体
      */
     data class Multline(
         val lines: List<LatexNode>,
+        val envName: String? = null,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         override fun children() = lines
@@ -628,9 +634,12 @@ sealed class LatexNode {
 
     /**
      * Eqnarray 环境（旧式方程数组）
+     * @param envName 原始环境名（如 "eqnarray", "eqnarray*"），
+     *   用于公式编号自动计算时区分星号和非星号变体
      */
     data class Eqnarray(
         val rows: List<List<LatexNode>>,
+        val envName: String? = null,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         override fun children() = rows.flatten()

@@ -43,11 +43,15 @@ import com.hrm.latex.renderer.layout.measurer.SideSetTensorMeasurer
 import com.hrm.latex.renderer.layout.measurer.StackMeasurer
 import com.hrm.latex.renderer.layout.measurer.SubstackMeasurer
 import com.hrm.latex.renderer.layout.measurer.TagMeasurer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.drawText
 import com.hrm.latex.renderer.layout.measurer.TextContentMeasurer
 import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.applyMathStyle
 import com.hrm.latex.renderer.model.applyStyle
+import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.model.withColor
 import com.hrm.latex.renderer.utils.MathSpacing
 import com.hrm.latex.renderer.utils.lineSpacingPx
@@ -115,9 +119,11 @@ internal fun measureNode(
     // 1. 优先通过注册表分发（覆盖绝大多数节点类型）
     val registeredMeasurer = MeasurerRegistry.find(node)
     if (registeredMeasurer != null) {
-        return registeredMeasurer.measure(
+        val layout = registeredMeasurer.measure(
             node, context, measurer, density, measureNodeRef, measureGroupRef
         )
+        // 自动编号：为需要编号的环境追加编号标签
+        return maybeAttachEquationNumber(node, layout, context, measurer, density)
     }
 
     // 2. 轻量级节点：直接内联处理（无需独立 Measurer）
@@ -155,7 +161,10 @@ internal fun measureNode(
             node.content, context.applyMathStyle(node.mathStyleType), measurer, density
         )
 
-        is LatexNode.Environment -> measureGroup(node.content, context, measurer, density)
+        is LatexNode.Environment -> {
+            val envLayout = measureGroup(node.content, context, measurer, density)
+            maybeAttachEquationNumber(node, envLayout, context, measurer, density)
+        }
 
         is LatexNode.InlineMath -> measureGroup(
             node.children, context.copy(mathStyle = MathStyle.TEXT), measurer, density
@@ -352,4 +361,101 @@ private fun measureVerticalLines(
             line.draw(this, x, y + positions[i])
         }
     }
+}
+
+/**
+ * 检查节点是否为需要自动编号的环境，如果是则在布局右侧追加编号标签 (N)。
+ *
+ * 编号逻辑：
+ * - 仅在 [RenderContext.equationNumbering] 非 null 时生效
+ * - 判断节点是否为需要编号的环境（非星号变体、无手动 \tag）
+ * - 从共享计数器获取下一个编号，渲染为 "(N)" 追加到右侧
+ */
+private fun maybeAttachEquationNumber(
+    node: LatexNode,
+    contentLayout: NodeLayout,
+    context: RenderContext,
+    textMeasurer: TextMeasurer,
+    density: Density
+): NodeLayout {
+    val numbering = context.equationNumbering ?: return contentLayout
+    val envName = getNumberableEnvName(node) ?: return contentLayout
+
+    // 检查是否需要编号
+    if (!EquationNumbering.isNumberedEnvName(envName)) return contentLayout
+    if (hasManualTag(node)) return contentLayout
+
+    // 获取下一个编号
+    val number = numbering.nextNumber()
+
+    // 渲染编号标签 "(N)"
+    val style = context.textStyle()
+    val fontSizePx = with(density) { context.fontSize.toPx() }
+    val gap = fontSizePx * 1.5f // 与 TagMeasurer 保持一致的间距
+
+    val leftParen = textMeasurer.measure(AnnotatedString("("), style)
+    val numberResult = textMeasurer.measure(AnnotatedString(number), style)
+    val rightParen = textMeasurer.measure(AnnotatedString(")"), style)
+
+    val leftW = leftParen.size.width.toFloat()
+    val numberW = numberResult.size.width.toFloat()
+    val rightW = rightParen.size.width.toFloat()
+    val tagWidth = gap + leftW + numberW + rightW
+    val tagBaseline = numberResult.firstBaseline
+
+    val totalWidth = contentLayout.width + tagWidth
+    val totalHeight = contentLayout.height
+    val baseline = contentLayout.baseline
+
+    return NodeLayout(totalWidth, totalHeight, baseline) { x, y ->
+        // 绘制公式内容
+        contentLayout.draw(this, x, y)
+
+        // 绘制编号标签 — 垂直居中对齐到内容基线
+        val tagY = y + baseline - tagBaseline
+        val tagX = x + contentLayout.width + gap
+        drawText(leftParen, topLeft = Offset(tagX, tagY))
+        drawText(numberResult, topLeft = Offset(tagX + leftW, tagY))
+        drawText(rightParen, topLeft = Offset(tagX + leftW + numberW, tagY))
+    }
+}
+
+/**
+ * 获取节点的可编号环境名。
+ * 返回 null 表示该节点不是可编号的环境类型。
+ */
+private fun getNumberableEnvName(node: LatexNode): String? {
+    return when (node) {
+        is LatexNode.Environment -> node.name
+        is LatexNode.Aligned -> node.envName
+        is LatexNode.Multline -> node.envName
+        is LatexNode.Eqnarray -> node.envName
+        else -> null
+    }
+}
+
+/**
+ * 检查环境节点中是否包含手动 \tag 命令
+ */
+private fun hasManualTag(node: LatexNode): Boolean {
+    val children = when (node) {
+        is LatexNode.Environment -> node.content
+        is LatexNode.Aligned -> node.rows.flatten()
+        is LatexNode.Multline -> node.lines
+        is LatexNode.Eqnarray -> node.rows.flatten()
+        else -> return false
+    }
+    return containsTag(children)
+}
+
+/**
+ * 递归检查节点列表中是否包含 \tag 命令
+ */
+private fun containsTag(nodes: List<LatexNode>): Boolean {
+    for (node in nodes) {
+        if (node is LatexNode.Tag) return true
+        val children = node.children()
+        if (children.isNotEmpty() && containsTag(children)) return true
+    }
+    return false
 }

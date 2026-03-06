@@ -244,6 +244,8 @@ internal data class RenderContext(
     val layoutHints: LayoutHints = LayoutHints(),
     // ── 排版参数 ──
     val mathFontProvider: MathFontProvider? = null,
+    // ── 公式编号 ──
+    val equationNumbering: com.hrm.latex.renderer.layout.EquationNumberingState? = null,
 ) {
     /**
      * 缓存的 TextStyle，避免每次 textStyle() 调用都创建新对象。
