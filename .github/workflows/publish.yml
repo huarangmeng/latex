@@ -12,20 +12,13 @@
 # │    VERSION=1.2.4  →  VERSION=1.2.4-kt2.1.0                      │
 # │                                                                  │
 # │ 2. gradle/libs.versions.toml (降级依赖版本):                     │
-# │    kotlin = "2.3.10"  →  kotlin = "<TODO>"                       │
-# │    composeMultiplatform = "1.10.1"  →  composeMultiplatform = "<TODO>" │
-# │    composeMaterial3 = "1.9.0"  →  composeMaterial3 = "<TODO>"    │
+# │    kotlin = "2.3.10"  →  kotlin = "2.1.0"                        │
+# │    composeMultiplatform = "1.10.1"  →  composeMultiplatform = "1.9.3" │
+# │    composeMaterial3 = "1.9.0"  →  composeMaterial3 = "1.9.0"     │
 # │                                                                  │
-# │ 3. latex-parser/build.gradle.kts:                                │
-# │    api(projects.latexBase)                                       │
-# │    → api("io.github.huarangmeng:latex-base:1.2.4")              │
-# │                                                                  │
-# │ 4. latex-renderer/build.gradle.kts:                              │
-# │    api(projects.latexParser)                                     │
-# │    → api("io.github.huarangmeng:latex-parser:1.2.4")            │
-# │                                                                  │
-# │ 这样别名版本的 POM 中，模块间依赖指向正常版本的坐标，          │
-# │ 而非别名版本自身。                                               │
+# │ 模块间依赖保持本地项目引用 api(projects.latexXxx) 不变，         │
+# │ Gradle 会自动将 POM 中的依赖版本解析为当前 VERSION（别名版本），  │
+# │ 使别名版本的三个模块形成自洽的版本集合。                         │
 # └──────────────────────────────────────────────────────────────────┘
 #
 # 如何验证？
@@ -164,48 +157,6 @@ jobs:
           echo "│    composeMaterial3:     → ${ALIAS_COMPOSE_MATERIAL3_VERSION}"
           echo "└──────────────────────────────────────────────────────────┘"
 
-      # ---------- 修改 3: latex-parser 依赖 ----------
-      - name: "🔧 修改 latex-parser 依赖: projects.latexBase → Maven 坐标"
-        run: |
-          FILE="latex-parser/build.gradle.kts"
-
-          echo "┌─────────────────────────────────────────────┐"
-          echo "│ 修改 ${FILE}                                 │"
-          echo "├─────────────────────────────────────────────┤"
-          echo "│ [修改前] 依赖声明:"
-          grep -n 'api(' "$FILE" || true
-          echo "│"
-
-          sed -i '' "s|api(projects.latexBase)|api(\"io.github.huarangmeng:latex-base:${BASE_VERSION}\")|g" "$FILE"
-
-          echo "│ [修改后] 依赖声明:"
-          grep -n 'api(' "$FILE" || true
-          echo "│"
-          echo "│ ✅ latexBase 依赖已从本地项目引用改为 Maven 坐标"
-          echo "│    指向: io.github.huarangmeng:latex-base:${BASE_VERSION}"
-          echo "└─────────────────────────────────────────────┘"
-
-      # ---------- 修改 4: latex-renderer 依赖 ----------
-      - name: "🔧 修改 latex-renderer 依赖: projects.latexParser → Maven 坐标"
-        run: |
-          FILE="latex-renderer/build.gradle.kts"
-
-          echo "┌─────────────────────────────────────────────┐"
-          echo "│ 修改 ${FILE}                                 │"
-          echo "├─────────────────────────────────────────────┤"
-          echo "│ [修改前] 依赖声明:"
-          grep -n 'api(' "$FILE" || true
-          echo "│"
-
-          sed -i '' "s|api(projects.latexParser)|api(\"io.github.huarangmeng:latex-parser:${BASE_VERSION}\")|g" "$FILE"
-
-          echo "│ [修改后] 依赖声明:"
-          grep -n 'api(' "$FILE" || true
-          echo "│"
-          echo "│ ✅ latexParser 依赖已从本地项目引用改为 Maven 坐标"
-          echo "│    指向: io.github.huarangmeng:latex-parser:${BASE_VERSION}"
-          echo "└─────────────────────────────────────────────┘"
-
       # ---------- 汇总验证 ----------
       - name: "🔍 验证: 所有修改汇总"
         run: |
@@ -226,20 +177,14 @@ jobs:
           echo "║     composeMultiplatform = ${ALIAS_COMPOSE_MULTIPLATFORM_VERSION}"
           echo "║     composeMaterial3     = ${ALIAS_COMPOSE_MATERIAL3_VERSION}"
           echo "║"
-          echo "║  ③ latex-parser/build.gradle.kts:"
-          PARSER_DEP=$(grep 'api(' latex-parser/build.gradle.kts | head -1 | xargs)
-          echo "║     ${PARSER_DEP}"
-          echo "║"
-          echo "║  ④ latex-renderer/build.gradle.kts:"
-          RENDERER_DEP=$(grep 'api(' latex-renderer/build.gradle.kts | grep -v 'implementation\|compose\|kotlinx\|coroutines' | head -1 | xargs)
-          echo "║     ${RENDERER_DEP}"
+          echo "║  ③ 模块间依赖: 保持本地项目引用 (Gradle 自动解析为别名版本)"
           echo "║"
           echo "║  将发布到 Maven Central:"
           echo "║    io.github.huarangmeng:latex-base:${ALIAS_VERSION}"
           echo "║    io.github.huarangmeng:latex-parser:${ALIAS_VERSION}"
-          echo "║      └─ POM 依赖 → latex-base:${BASE_VERSION}"
+          echo "║      └─ POM 依赖 → latex-base:${ALIAS_VERSION}"
           echo "║    io.github.huarangmeng:latex-renderer:${ALIAS_VERSION}"
-          echo "║      └─ POM 依赖 → latex-parser:${BASE_VERSION}"
+          echo "║      └─ POM 依赖 → latex-parser:${ALIAS_VERSION}"
           echo "║"
           echo "╚══════════════════════════════════════════════════════════════╝"
           echo ""
@@ -282,7 +227,7 @@ jobs:
           echo "  发布结果:"
           echo "    io.github.huarangmeng:latex-base:${ALIAS_VERSION}"
           echo "    io.github.huarangmeng:latex-parser:${ALIAS_VERSION}"
-          echo "      → 依赖 latex-base:${BASE_VERSION}"
+          echo "      → 依赖 latex-base:${ALIAS_VERSION}"
           echo "    io.github.huarangmeng:latex-renderer:${ALIAS_VERSION}"
-          echo "      → 依赖 latex-parser:${BASE_VERSION}"
+          echo "      → 依赖 latex-parser:${ALIAS_VERSION}"
           echo "=========================================="
