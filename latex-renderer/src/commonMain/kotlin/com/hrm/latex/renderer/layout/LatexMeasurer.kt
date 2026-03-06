@@ -142,6 +142,14 @@ internal fun measureNode(
             width = 0f, height = 0f, baseline = 0f
         ) { _, _ -> /* NewCommand 不渲染 */ }
 
+        is LatexNode.NewEnvironment -> NodeLayout(
+            width = 0f, height = 0f, baseline = 0f
+        ) { _, _ -> /* NewEnvironment 不渲染 */ }
+
+        is LatexNode.SectionHeading -> {
+            measureSectionHeading(node, context, measurer, density)
+        }
+
         is LatexNode.NewLine -> NodeLayout(
             0f, lineSpacingPx(context, density), 0f
         ) { _, _ -> }
@@ -458,4 +466,42 @@ private fun containsTag(nodes: List<LatexNode>): Boolean {
         if (children.isNotEmpty() && containsTag(children)) return true
     }
     return false
+}
+
+/**
+ * 测量章节标题节点
+ *
+ * 根据标题层级应用不同的字号缩放和粗体样式：
+ * - section: 1.4x 粗体
+ * - subsection: 1.2x 粗体
+ * - subsubsection: 1.1x 粗体
+ * - paragraph: 1.0x 粗体
+ * - subparagraph: 1.0x 正常
+ */
+private fun measureSectionHeading(
+    node: LatexNode.SectionHeading,
+    context: RenderContext,
+    measurer: TextMeasurer,
+    density: Density
+): NodeLayout {
+    val (scaleFactor, useBold) = when (node.level) {
+        LatexNode.SectionHeading.HeadingLevel.SECTION -> 1.4f to true
+        LatexNode.SectionHeading.HeadingLevel.SUBSECTION -> 1.2f to true
+        LatexNode.SectionHeading.HeadingLevel.SUBSUBSECTION -> 1.1f to true
+        LatexNode.SectionHeading.HeadingLevel.PARAGRAPH -> 1.0f to true
+        LatexNode.SectionHeading.HeadingLevel.SUBPARAGRAPH -> 1.0f to false
+    }
+
+    val newFontSize = context.fontSize * scaleFactor
+    val headingContext = if (useBold) {
+        context.copy(
+            fontSize = newFontSize,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            fontStyle = androidx.compose.ui.text.font.FontStyle.Normal
+        )
+    } else {
+        context.copy(fontSize = newFontSize)
+    }
+
+    return measureGroup(node.content, headingContext, measurer, density)
 }

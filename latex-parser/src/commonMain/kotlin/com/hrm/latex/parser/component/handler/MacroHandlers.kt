@@ -24,6 +24,7 @@ package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.component.CustomCommand
+import com.hrm.latex.parser.component.CustomEnvironment
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
@@ -125,4 +126,57 @@ internal fun CommandRegistry.installMacroHandlers() {
         HLog.d(TAG) { "注册运算符: \\$commandName → operatorname{$operatorName}" }
         LatexNode.NewCommand(commandName, 0, definition)
     }
+
+    // \newenvironment, \renewenvironment
+    val newEnvHandler = CommandHandler { _, ctx, stream ->
+        val nameArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
+        val envName = ParseUtils.extractText(
+            when (nameArg) {
+                is LatexNode.Group -> nameArg.children
+                else -> listOf(nameArg)
+            }
+        ).trim()
+
+        // 可选参数 [numArgs]
+        var numArgs = 0
+        var defaultArg: String? = null
+        if (stream.peek() is LatexToken.LeftBracket) {
+            stream.advance() // [
+            val numNodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
+            if (!stream.isEOF()) {
+                stream.expect("]")
+            }
+            numArgs = ParseUtils.extractText(numNodes).toIntOrNull() ?: 0
+
+            // 可选默认值 [defaultArg]
+            if (stream.peek() is LatexToken.LeftBracket) {
+                stream.advance() // [
+                val defaultNodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
+                if (!stream.isEOF()) {
+                    stream.expect("]")
+                }
+                defaultArg = ParseUtils.extractText(defaultNodes)
+            }
+        }
+
+        // {begin-def}
+        val beginArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
+        val beginDef = when (beginArg) {
+            is LatexNode.Group -> beginArg.children
+            else -> listOf(beginArg)
+        }
+
+        // {end-def}
+        val endArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
+        val endDef = when (endArg) {
+            is LatexNode.Group -> endArg.children
+            else -> listOf(endArg)
+        }
+
+        ctx.customEnvironments[envName] = CustomEnvironment(envName, numArgs, beginDef, endDef, defaultArg)
+        HLog.d(TAG) { "注册自定义环境: $envName[$numArgs]" }
+        LatexNode.NewEnvironment(envName, numArgs, beginDef, endDef, defaultArg)
+    }
+
+    register("newenvironment", "renewenvironment", handler = newEnvHandler)
 }

@@ -61,6 +61,7 @@ internal class CommandParser(
             installReferenceHandlers()
             installAdvancedHandlers()
             installOperatorHandlers()
+            installSectionHandlers()
         }
     }
 

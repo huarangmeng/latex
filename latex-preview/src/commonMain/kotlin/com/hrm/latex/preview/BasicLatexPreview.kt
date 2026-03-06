@@ -683,6 +683,16 @@ val basicLatexPreviewGroups = listOf(
                 "双参数+默认值",
                 "\\newcommand{\\pair}[2][x]{#1+#2} \\pair{y} \\quad \\pair[a]{b}"
             ),
+            PreviewItem(
+                "17",
+                "newenvironment 基础",
+                "\\newenvironment{mybox}{[}{]} \\begin{mybox}hello\\end{mybox}"
+            ),
+            PreviewItem(
+                "18",
+                "newenvironment 带参数",
+                "\\newenvironment{titled}[1]{\\textbf{#1:}~}{} \\begin{titled}{Theorem}P \\implies Q\\end{titled}"
+            ),
         )
     ),
     PreviewGroup(
@@ -1056,6 +1066,20 @@ val basicLatexPreviewGroups = listOf(
                     }
                 }
             ),
+        )
+    ),
+    PreviewGroup(
+        id = "section_headings",
+        title = "22. 章节标题",
+        description = "section, subsection, subsubsection, paragraph, subparagraph",
+        items = listOf(
+            PreviewItem("1", "section", "\\section{Introduction}"),
+            PreviewItem("2", "subsection", "\\subsection{Background}"),
+            PreviewItem("3", "subsubsection", "\\subsubsection{Details}"),
+            PreviewItem("4", "paragraph", "\\paragraph{Note}"),
+            PreviewItem("5", "subparagraph", "\\subparagraph{Remark}"),
+            PreviewItem("6", "section 星号变体", "\\section*{No Numbering}"),
+            PreviewItem("7", "混合标题层级", "\\section{Title} \\subsection{Subtitle}"),
         )
     ),
 )

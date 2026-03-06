@@ -246,6 +246,24 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         indent--
         return ""
     }
+
+    override fun visitNewEnvironment(node: LatexNode.NewEnvironment): String {
+        output.append("NewEnvironment(${node.envName}[${node.numArgs}])")
+        return ""
+    }
+
+    override fun visitSectionHeading(node: LatexNode.SectionHeading): String {
+        output.append("SectionHeading(${node.level}${if (node.starred) "*" else ""})\n")
+        indent++
+        printIndent()
+        output.append("content: ")
+        node.content.forEachIndexed { i, child ->
+            if (i > 0) output.append(", ")
+            visit(child)
+        }
+        indent--
+        return ""
+    }
     
     fun print(node: LatexNode): String {
         output.clear()

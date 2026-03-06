@@ -476,6 +476,13 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         return "<mpadded width=\"0\">$content</mpadded>"
     }
 
+    override fun visitNewEnvironment(node: LatexNode.NewEnvironment): String = ""
+
+    override fun visitSectionHeading(node: LatexNode.SectionHeading): String {
+        val content = node.content.joinToString("") { visit(it) }
+        return "<mtext>${escapeXml(content)}</mtext>"
+    }
+
     override fun visitOperatorName(node: LatexNode.OperatorName): String {
         return "<mo>${escapeXml(node.name)}</mo>"
     }

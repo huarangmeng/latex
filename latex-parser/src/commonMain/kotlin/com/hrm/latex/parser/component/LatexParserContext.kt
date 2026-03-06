@@ -41,16 +41,35 @@ data class CustomCommand(
 )
 
 /**
+ * 自定义环境定义
+ * @param name 环境名
+ * @param numArgs 参数个数（0-9）
+ * @param beginDef 环境开始时插入的内容（AST 节点列表）
+ * @param endDef 环境结束时插入的内容（AST 节点列表）
+ * @param defaultArg 第一个参数的默认值（可选）
+ */
+data class CustomEnvironment(
+    val name: String,
+    val numArgs: Int,
+    val beginDef: List<LatexNode>,
+    val endDef: List<LatexNode>,
+    val defaultArg: String? = null
+)
+
+/**
  * 解析器上下文接口，用于解决循环依赖和提供通用解析能力。
  *
  * [customCommands] 暴露为 MutableMap 以便 MacroHandlers 注册新命令，
  * 但只有 MacroHandlers 应该写入，其余 handler 仅读取。
+ *
+ * [customEnvironments] 暴露为 MutableMap 以便 MacroHandlers 注册新环境。
  *
  * [diagnostics] 收集解析过程中的非致命诊断信息。
  */
 internal interface LatexParserContext {
     val tokenStream: LatexTokenStream
     val customCommands: MutableMap<String, CustomCommand>
+    val customEnvironments: MutableMap<String, CustomEnvironment>
     val diagnostics: MutableList<ParseDiagnostic>
 
     fun parseExpression(): LatexNode?

@@ -376,6 +376,20 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
     }
 
+    override fun visitNewEnvironment(node: LatexNode.NewEnvironment): String = ""
+
+    override fun visitSectionHeading(node: LatexNode.SectionHeading): String {
+        val content = node.content.joinToString(" ") { visit(it) }.collapseSpaces()
+        val level = when (node.level) {
+            LatexNode.SectionHeading.HeadingLevel.SECTION -> "section"
+            LatexNode.SectionHeading.HeadingLevel.SUBSECTION -> "subsection"
+            LatexNode.SectionHeading.HeadingLevel.SUBSUBSECTION -> "subsubsection"
+            LatexNode.SectionHeading.HeadingLevel.PARAGRAPH -> "paragraph"
+            LatexNode.SectionHeading.HeadingLevel.SUBPARAGRAPH -> "subparagraph"
+        }
+        return "$level: $content"
+    }
+
     // ========== 辅助方法 ==========
 
     private fun symbolName(symbol: String, unicode: String): String {

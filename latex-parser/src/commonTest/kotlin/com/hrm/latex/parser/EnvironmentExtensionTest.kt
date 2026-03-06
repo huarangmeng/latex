@@ -547,4 +547,90 @@ class EnvironmentExtensionTest {
         assertIs<LatexNode.Tabular>(tabular)
         assertTrue(tabular.rows.size >= 4, "Should have multiple rows including hlines and clines")
     }
+
+    // ========== 自定义环境 \newenvironment 测试 ==========
+
+    @Test
+    fun testNewEnvironmentBasic() {
+        val doc = parser.parse(
+            """
+            \newenvironment{mybox}{\fbox\bgroup}{\egroup}
+            \begin{mybox}hello\end{mybox}
+        """.trimIndent()
+        )
+        // newenvironment 定义节点不渲染
+        val defNode = doc.children[0]
+        assertIs<LatexNode.NewEnvironment>(defNode)
+        assertEquals("mybox", defNode.envName)
+        assertEquals(0, defNode.numArgs)
+    }
+
+    @Test
+    fun testNewEnvironmentWithArgs() {
+        val doc = parser.parse(
+            """
+            \newenvironment{titled}[1]{\textbf{#1:}}{}
+            \begin{titled}{Theorem}content\end{titled}
+        """.trimIndent()
+        )
+        val defNode = doc.children[0]
+        assertIs<LatexNode.NewEnvironment>(defNode)
+        assertEquals("titled", defNode.envName)
+        assertEquals(1, defNode.numArgs)
+    }
+
+    @Test
+    fun testNewEnvironmentExpansion() {
+        // 验证自定义环境展开后内容存在
+        val doc = parser.parse(
+            """
+            \newenvironment{emphasis}{\textbf\bgroup}{\egroup}
+            \begin{emphasis}important\end{emphasis}
+        """.trimIndent()
+        )
+        assertTrue(doc.children.size >= 2, "Should have definition + expanded content")
+        // 展开后的环境应变为 Group 节点
+        val expanded = doc.children.drop(1).firstOrNull { it !is LatexNode.Space && it !is LatexNode.NewLine }
+        assertIs<LatexNode.Group>(expanded)
+    }
+
+    @Test
+    fun testNewEnvironmentWithDefaultArg() {
+        val doc = parser.parse(
+            """
+            \newenvironment{note}[1][Note]{\textbf{#1:} }{}
+            \begin{note}text\end{note}
+        """.trimIndent()
+        )
+        val defNode = doc.children[0]
+        assertIs<LatexNode.NewEnvironment>(defNode)
+        assertEquals("Note", defNode.defaultArg)
+    }
+
+    @Test
+    fun testRenewEnvironment() {
+        val doc = parser.parse(
+            """
+            \renewenvironment{myenv}{\textbf\bgroup}{\egroup}
+            \begin{myenv}text\end{myenv}
+        """.trimIndent()
+        )
+        val defNode = doc.children[0]
+        assertIs<LatexNode.NewEnvironment>(defNode)
+        assertEquals("myenv", defNode.envName)
+    }
+
+    @Test
+    fun testNewEnvironmentNoArgs_contentPreserved() {
+        // 验证环境体内容在展开后得到保留
+        val doc = parser.parse(
+            """
+            \newenvironment{simple}{}{}
+            \begin{simple}x+y\end{simple}
+        """.trimIndent()
+        )
+        // 展开后的 Group 应包含 body 内容
+        val expanded = doc.children.filterIsInstance<LatexNode.Group>()
+        assertTrue(expanded.isNotEmpty(), "Expanded environment should be a Group")
+    }
 }

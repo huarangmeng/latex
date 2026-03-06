@@ -1190,4 +1190,55 @@ sealed class LatexNode {
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitColorBox(this)
     }
+
+    /**
+     * 自定义环境定义节点（\newenvironment）
+     * 该节点不参与渲染，仅用于记录环境定义
+     * @param envName 环境名
+     * @param numArgs 参数个数（0-9）
+     * @param beginDef 环境开始定义（AST 节点列表）
+     * @param endDef 环境结束定义（AST 节点列表）
+     * @param defaultArg 可选参数的默认值
+     */
+    data class NewEnvironment(
+        val envName: String,
+        val numArgs: Int,
+        val beginDef: List<LatexNode>,
+        val endDef: List<LatexNode>,
+        val defaultArg: String? = null,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        override fun children() = beginDef + endDef
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val beginSize = beginDef.size
+            return copy(
+                beginDef = newChildren.subList(0, beginSize),
+                endDef = newChildren.subList(beginSize, newChildren.size)
+            )
+        }
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitNewEnvironment(this)
+    }
+
+    /**
+     * 章节标题节点（\section, \subsection, \subsubsection, \paragraph, \subparagraph）
+     * @param content 标题内容
+     * @param level 标题层级
+     * @param starred 是否为星号变体（不编号）
+     */
+    data class SectionHeading(
+        val content: List<LatexNode>,
+        val level: HeadingLevel,
+        val starred: Boolean = false,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        enum class HeadingLevel {
+            SECTION, SUBSECTION, SUBSUBSECTION, PARAGRAPH, SUBPARAGRAPH
+        }
+
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitSectionHeading(this)
+    }
 }

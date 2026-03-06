@@ -27,6 +27,7 @@ import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.component.ChemicalParser
 import com.hrm.latex.parser.component.CommandParser
 import com.hrm.latex.parser.component.CustomCommand
+import com.hrm.latex.parser.component.CustomEnvironment
 import com.hrm.latex.parser.component.EnvironmentParser
 import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
@@ -100,6 +101,7 @@ internal class ParseSession(
 
     override val tokenStream = LatexTokenStream(tokens)
     override val customCommands: MutableMap<String, CustomCommand> = mutableMapOf()
+    override val customEnvironments: MutableMap<String, CustomEnvironment> = mutableMapOf()
     override val diagnostics: MutableList<ParseDiagnostic> = mutableListOf()
 
     private val environmentParser = EnvironmentParser(this)

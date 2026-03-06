@@ -69,8 +69,14 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
             }
 
             else -> {
-                val content = parseEnvironmentContent(envName)
-                LatexNode.Environment(envName, content)
+                // 检查是否为自定义环境
+                val customEnv = context.customEnvironments[envName]
+                if (customEnv != null) {
+                    parseCustomEnvironment(envName, customEnv)
+                } else {
+                    val content = parseEnvironmentContent(envName)
+                    LatexNode.Environment(envName, content)
+                }
             }
         }
 
@@ -393,5 +399,108 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
         }
 
         return content
+    }
+
+    /**
+     * 解析自定义环境
+     *
+     * 将 \begin{myenv}...\end{myenv} 展开为 beginDef + content + endDef。
+     * 参数替换逻辑与 \newcommand 一致：从 \begin{myenv} 后解析参数，
+     * 替换 beginDef/endDef 中的 #1, #2, ...。
+     */
+    private fun parseCustomEnvironment(envName: String, customEnv: CustomEnvironment): LatexNode {
+        // 收集参数
+        val args = mutableListOf<LatexNode>()
+
+        if (customEnv.defaultArg != null && customEnv.numArgs > 0) {
+            // 第一个参数为可选参数
+            val firstArg = if (tokenStream.peek() is LatexToken.LeftBracket) {
+                tokenStream.advance() // consume [
+                val nodes = mutableListOf<LatexNode>()
+                while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
+                    val node = context.parseExpression()
+                    if (node != null) nodes.add(node)
+                }
+                if (!tokenStream.isEOF()) {
+                    tokenStream.advance() // consume ]
+                }
+                if (nodes.size == 1) nodes[0] else LatexNode.Group(nodes)
+            } else {
+                LatexNode.Text(customEnv.defaultArg)
+            }
+            args.add(firstArg)
+            for (i in 1 until customEnv.numArgs) {
+                val arg = context.parseArgument() ?: LatexNode.Text("")
+                args.add(arg)
+            }
+        } else {
+            for (i in 0 until customEnv.numArgs) {
+                val arg = context.parseArgument() ?: LatexNode.Text("")
+                args.add(arg)
+            }
+        }
+
+        // 解析环境体内容
+        val bodyContent = parseEnvironmentContent(envName)
+
+        // 替换 beginDef 和 endDef 中的参数占位符
+        val expandedBegin = replaceParameters(customEnv.beginDef, args)
+        val expandedEnd = replaceParameters(customEnv.endDef, args)
+
+        // 组装：beginDef + body + endDef
+        val allContent = expandedBegin + bodyContent + expandedEnd
+        return LatexNode.Group(allContent)
+    }
+
+    /**
+     * 递归替换参数占位符 #1, #2, ...
+     */
+    private fun replaceParameters(nodes: List<LatexNode>, args: List<LatexNode>): List<LatexNode> {
+        return nodes.flatMap { node ->
+            when (node) {
+                is LatexNode.Text -> {
+                    val text = node.content
+                    if (text.contains("#")) {
+                        val result = mutableListOf<LatexNode>()
+                        var i = 0
+                        while (i < text.length) {
+                            if (text[i] == '#' && i + 1 < text.length && text[i + 1].isDigit()) {
+                                val paramNum = text[i + 1].toString().toInt()
+                                if (paramNum > 0 && paramNum <= args.size) {
+                                    result.add(args[paramNum - 1])
+                                } else {
+                                    result.add(LatexNode.Text("#${text[i + 1]}"))
+                                }
+                                i += 2
+                            } else if (text[i] == '#') {
+                                result.add(LatexNode.Text("#"))
+                                i++
+                            } else {
+                                val start = i
+                                while (i < text.length && text[i] != '#') i++
+                                if (i > start) {
+                                    result.add(LatexNode.Text(text.substring(start, i)))
+                                }
+                            }
+                        }
+                        result
+                    } else {
+                        listOf(node)
+                    }
+                }
+                else -> {
+                    val children = node.children()
+                    if (children.isEmpty()) {
+                        listOf(node)
+                    } else {
+                        val newChildren = children.map { child ->
+                            val replaced = replaceParameters(listOf(child), args)
+                            if (replaced.size == 1) replaced[0] else LatexNode.Group(replaced)
+                        }
+                        listOf(node.withChildren(newChildren))
+                    }
+                }
+            }
+        }
     }
 }
