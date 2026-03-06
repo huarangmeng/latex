@@ -1,15 +1,62 @@
 # .github/workflows/publish.yml
+#
+# 发布工作流 — 一次 Release 自动触发两次发布:
+#
+#   Job 1 (publish):       发布正常版本 (如 1.2.4)
+#   Job 2 (publish-alias): 发布别名版本 (如 1.2.4-kt2.1.0)
+#
+# ┌──────────────────────────────────────────────────────────────────┐
+# │ 别名发布的关键修改（全部在 CI 运行时临时修改，不提交到仓库）：  │
+# │                                                                  │
+# │ 1. gradle.properties:                                            │
+# │    VERSION=1.2.4  →  VERSION=1.2.4-kt2.1.0                      │
+# │                                                                  │
+# │ 2. gradle/libs.versions.toml (降级依赖版本):                     │
+# │    kotlin = "2.3.10"  →  kotlin = "<TODO>"                       │
+# │    composeMultiplatform = "1.10.1"  →  composeMultiplatform = "<TODO>" │
+# │    composeMaterial3 = "1.9.0"  →  composeMaterial3 = "<TODO>"    │
+# │                                                                  │
+# │ 3. latex-parser/build.gradle.kts:                                │
+# │    api(projects.latexBase)                                       │
+# │    → api("io.github.huarangmeng:latex-base:1.2.4")              │
+# │                                                                  │
+# │ 4. latex-renderer/build.gradle.kts:                              │
+# │    api(projects.latexParser)                                     │
+# │    → api("io.github.huarangmeng:latex-parser:1.2.4")            │
+# │                                                                  │
+# │ 这样别名版本的 POM 中，模块间依赖指向正常版本的坐标，          │
+# │ 而非别名版本自身。                                               │
+# └──────────────────────────────────────────────────────────────────┘
+#
+# 如何验证？
+#   在 GitHub Actions 的 publish-alias Job 日志中，每个修改步骤
+#   都会打印 [修改前] 和 [修改后] 的 diff，可直接查看。
 
 name: Publish
 on:
   release:
     types: [released, prereleased]
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
+
+# ═══════════════════════════════════════════════════════════
+# 别名版本的依赖版本配置（按需修改此处）
+# ═══════════════════════════════════════════════════════════
+env:
+  # ┌─────────────────────────────────────────────────────┐
+  # │ TODO: 请在此处填写别名版本对应的依赖版本号          │
+  # │ 这些版本会在别名发布时替换 libs.versions.toml 中的值 │
+  # └─────────────────────────────────────────────────────┘
+  ALIAS_KOTLIN_VERSION: "2.1.0"               # 当前正式版: 2.3.10
+  ALIAS_COMPOSE_MULTIPLATFORM_VERSION: "1.9.3" # 当前正式版: 1.10.1
+  ALIAS_COMPOSE_MATERIAL3_VERSION: "1.9.0"     # 当前正式版: 1.9.0
 
 jobs:
+  # ==================== Job 1: 正常发布 ====================
   publish:
-    name: Release build and publish
+    name: "📦 Publish normal version"
     runs-on: macOS-latest
+    outputs:
+      base_version: ${{ steps.get_version.outputs.version }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -21,6 +68,23 @@ jobs:
           java-version: 21
           cache: 'gradle'
 
+      - name: Get VERSION from gradle.properties
+        id: get_version
+        run: |
+          VERSION=$(grep '^VERSION=' gradle.properties | cut -d'=' -f2)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo ""
+          echo "╔══════════════════════════════════════╗"
+          echo "║  📦 正常发布                          ║"
+          echo "╠══════════════════════════════════════╣"
+          echo "║  VERSION = $VERSION"
+          echo "║"
+          echo "║  将发布:"
+          echo "║    io.github.huarangmeng:latex-base:$VERSION"
+          echo "║    io.github.huarangmeng:latex-parser:$VERSION"
+          echo "║    io.github.huarangmeng:latex-renderer:$VERSION"
+          echo "╚══════════════════════════════════════╝"
+
       - name: Publish to MavenCentral
         run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-configuration-cache
         env:
@@ -29,3 +93,196 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+
+  # ==================== Job 2: 别名发布 (kt2.1.0) ====================
+  publish-alias:
+    name: "📦 Publish alias version (kt2.1.0)"
+    runs-on: macOS-latest
+    needs: publish
+    env:
+      BASE_VERSION: ${{ needs.publish.outputs.base_version }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+          cache: 'gradle'
+
+      # ---------- 修改 1: gradle.properties VERSION ----------
+      - name: "🔧 修改 VERSION: ${{ env.BASE_VERSION }} → ${{ env.BASE_VERSION }}-kt2.1.0"
+        run: |
+          ALIAS_VERSION="${BASE_VERSION}-kt2.1.0"
+
+          echo "┌─────────────────────────────────────────────┐"
+          echo "│ 修改 gradle.properties                       │"
+          echo "├─────────────────────────────────────────────┤"
+          echo "│ [修改前]"
+          grep '^VERSION=' gradle.properties
+          echo "│"
+
+          sed -i '' "s/^VERSION=.*/VERSION=${ALIAS_VERSION}/" gradle.properties
+
+          echo "│ [修改后]"
+          grep '^VERSION=' gradle.properties
+          echo "│"
+          echo "│ ✅ VERSION 已修改为 ${ALIAS_VERSION}"
+          echo "└─────────────────────────────────────────────┘"
+
+      # ---------- 修改 2: libs.versions.toml 降级依赖版本 ----------
+      - name: "🔧 修改 libs.versions.toml: 降级 Kotlin / Compose 版本"
+        run: |
+          FILE="gradle/libs.versions.toml"
+
+          echo "┌──────────────────────────────────────────────────────────┐"
+          echo "│ 修改 ${FILE}                                             │"
+          echo "├──────────────────────────────────────────────────────────┤"
+          echo "│ [修改前]"
+          grep -E '^(kotlin |composeMultiplatform |composeMaterial3 )' "$FILE" || \
+          grep -E '^(kotlin=|composeMultiplatform=|composeMaterial3=)' "$FILE" || \
+          grep -E '^kotlin |^composeMultiplatform |^composeMaterial3 ' "$FILE"
+          echo "│"
+
+          # Kotlin 版本
+          sed -i '' "s/^kotlin = \".*\"/kotlin = \"${ALIAS_KOTLIN_VERSION}\"/" "$FILE"
+          # Compose Multiplatform 版本
+          sed -i '' "s/^composeMultiplatform = \".*\"/composeMultiplatform = \"${ALIAS_COMPOSE_MULTIPLATFORM_VERSION}\"/" "$FILE"
+          # Compose Material3 版本
+          sed -i '' "s/^composeMaterial3 = \".*\"/composeMaterial3 = \"${ALIAS_COMPOSE_MATERIAL3_VERSION}\"/" "$FILE"
+
+          echo "│ [修改后]"
+          grep -E '^(kotlin |composeMultiplatform |composeMaterial3 )' "$FILE" || \
+          grep -E '^kotlin=|^composeMultiplatform=|^composeMaterial3=' "$FILE" || \
+          grep -E '^kotlin |^composeMultiplatform |^composeMaterial3 ' "$FILE"
+          echo "│"
+          echo "│ ✅ 依赖版本已降级:"
+          echo "│    kotlin:              → ${ALIAS_KOTLIN_VERSION}"
+          echo "│    composeMultiplatform: → ${ALIAS_COMPOSE_MULTIPLATFORM_VERSION}"
+          echo "│    composeMaterial3:     → ${ALIAS_COMPOSE_MATERIAL3_VERSION}"
+          echo "└──────────────────────────────────────────────────────────┘"
+
+      # ---------- 修改 3: latex-parser 依赖 ----------
+      - name: "🔧 修改 latex-parser 依赖: projects.latexBase → Maven 坐标"
+        run: |
+          FILE="latex-parser/build.gradle.kts"
+
+          echo "┌─────────────────────────────────────────────┐"
+          echo "│ 修改 ${FILE}                                 │"
+          echo "├─────────────────────────────────────────────┤"
+          echo "│ [修改前] 依赖声明:"
+          grep -n 'api(' "$FILE" || true
+          echo "│"
+
+          sed -i '' "s|api(projects.latexBase)|api(\"io.github.huarangmeng:latex-base:${BASE_VERSION}\")|g" "$FILE"
+
+          echo "│ [修改后] 依赖声明:"
+          grep -n 'api(' "$FILE" || true
+          echo "│"
+          echo "│ ✅ latexBase 依赖已从本地项目引用改为 Maven 坐标"
+          echo "│    指向: io.github.huarangmeng:latex-base:${BASE_VERSION}"
+          echo "└─────────────────────────────────────────────┘"
+
+      # ---------- 修改 4: latex-renderer 依赖 ----------
+      - name: "🔧 修改 latex-renderer 依赖: projects.latexParser → Maven 坐标"
+        run: |
+          FILE="latex-renderer/build.gradle.kts"
+
+          echo "┌─────────────────────────────────────────────┐"
+          echo "│ 修改 ${FILE}                                 │"
+          echo "├─────────────────────────────────────────────┤"
+          echo "│ [修改前] 依赖声明:"
+          grep -n 'api(' "$FILE" || true
+          echo "│"
+
+          sed -i '' "s|api(projects.latexParser)|api(\"io.github.huarangmeng:latex-parser:${BASE_VERSION}\")|g" "$FILE"
+
+          echo "│ [修改后] 依赖声明:"
+          grep -n 'api(' "$FILE" || true
+          echo "│"
+          echo "│ ✅ latexParser 依赖已从本地项目引用改为 Maven 坐标"
+          echo "│    指向: io.github.huarangmeng:latex-parser:${BASE_VERSION}"
+          echo "└─────────────────────────────────────────────┘"
+
+      # ---------- 汇总验证 ----------
+      - name: "🔍 验证: 所有修改汇总"
+        run: |
+          ALIAS_VERSION="${BASE_VERSION}-kt2.1.0"
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  📋 别名发布修改汇总                                         ║"
+          echo "╠══════════════════════════════════════════════════════════════╣"
+          echo "║"
+          echo "║  基础版本: ${BASE_VERSION}"
+          echo "║  别名版本: ${ALIAS_VERSION}"
+          echo "║"
+          echo "║  ① gradle.properties:"
+          echo "║     VERSION=${ALIAS_VERSION}"
+          echo "║"
+          echo "║  ② gradle/libs.versions.toml (降级后):"
+          echo "║     kotlin              = ${ALIAS_KOTLIN_VERSION}"
+          echo "║     composeMultiplatform = ${ALIAS_COMPOSE_MULTIPLATFORM_VERSION}"
+          echo "║     composeMaterial3     = ${ALIAS_COMPOSE_MATERIAL3_VERSION}"
+          echo "║"
+          echo "║  ③ latex-parser/build.gradle.kts:"
+          PARSER_DEP=$(grep 'api(' latex-parser/build.gradle.kts | head -1 | xargs)
+          echo "║     ${PARSER_DEP}"
+          echo "║"
+          echo "║  ④ latex-renderer/build.gradle.kts:"
+          RENDERER_DEP=$(grep 'api(' latex-renderer/build.gradle.kts | grep -v 'implementation\|compose\|kotlinx\|coroutines' | head -1 | xargs)
+          echo "║     ${RENDERER_DEP}"
+          echo "║"
+          echo "║  将发布到 Maven Central:"
+          echo "║    io.github.huarangmeng:latex-base:${ALIAS_VERSION}"
+          echo "║    io.github.huarangmeng:latex-parser:${ALIAS_VERSION}"
+          echo "║      └─ POM 依赖 → latex-base:${BASE_VERSION}"
+          echo "║    io.github.huarangmeng:latex-renderer:${ALIAS_VERSION}"
+          echo "║      └─ POM 依赖 → latex-parser:${BASE_VERSION}"
+          echo "║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+
+      # ---------- 发布 ----------
+      - name: Publish alias version to MavenCentral
+        run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-configuration-cache
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+
+      # ---------- 打 Tag ----------
+      - name: Create alias Git Tag
+        run: |
+          ALIAS_VERSION="${BASE_VERSION}-kt2.1.0"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${ALIAS_VERSION}" -m "Alias release ${ALIAS_VERSION} (based on ${BASE_VERSION})"
+          git push origin "v${ALIAS_VERSION}"
+
+      # ---------- 发布完成 ----------
+      - name: "✅ 发布完成"
+        run: |
+          ALIAS_VERSION="${BASE_VERSION}-kt2.1.0"
+          echo ""
+          echo "🎉 别名版本发布完成！"
+          echo ""
+          echo "  正常版本: ${BASE_VERSION}"
+          echo "  别名版本: ${ALIAS_VERSION}"
+          echo "  Git Tag:  v${ALIAS_VERSION}"
+          echo ""
+          echo "  依赖版本:"
+          echo "    kotlin:              ${ALIAS_KOTLIN_VERSION}"
+          echo "    composeMultiplatform: ${ALIAS_COMPOSE_MULTIPLATFORM_VERSION}"
+          echo "    composeMaterial3:     ${ALIAS_COMPOSE_MATERIAL3_VERSION}"
+          echo ""
+          echo "  发布结果:"
+          echo "    io.github.huarangmeng:latex-base:${ALIAS_VERSION}"
+          echo "    io.github.huarangmeng:latex-parser:${ALIAS_VERSION}"
+          echo "      → 依赖 latex-base:${BASE_VERSION}"
+          echo "    io.github.huarangmeng:latex-renderer:${ALIAS_VERSION}"
+          echo "      → 依赖 latex-parser:${BASE_VERSION}"
+          echo "=========================================="
