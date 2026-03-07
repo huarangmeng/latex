@@ -414,6 +414,10 @@ For a detailed list of supported features, please refer to: [PARSER_COVERAGE_ANA
 
 - [KaTeX](https://github.com/KaTeX/KaTeX) — This project uses font files from KaTeX for mathematical formula rendering. KaTeX is licensed under the [MIT License](https://github.com/KaTeX/KaTeX/blob/main/LICENSE).
 
+## 💡 Recommended
+
+- [Markdown](https://github.com/huarangmeng/Markdown) — A Kotlin Multiplatform Markdown parsing and rendering library by the same author. If you need both LaTeX and Markdown rendering in your project, check it out!
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

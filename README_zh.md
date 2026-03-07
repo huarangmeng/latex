@@ -414,6 +414,10 @@ dependencies {
 
 - [KaTeX](https://github.com/KaTeX/KaTeX) — 本项目使用了 KaTeX 的字体文件用于数学公式渲染。KaTeX 基于 [MIT License](https://github.com/KaTeX/KaTeX/blob/main/LICENSE) 开源。
 
+## 💡 推荐项目
+
+- [Markdown](https://github.com/huarangmeng/Markdown) — 同作者开发的 Kotlin Multiplatform Markdown 解析与渲染库。如果你的项目同时需要 LaTeX 和 Markdown 渲染能力，推荐一起使用！
+
 ## 📄 开源协议
 
 本项目采用 MIT License 开源协议 - 详见 [LICENSE](LICENSE) 文件。
