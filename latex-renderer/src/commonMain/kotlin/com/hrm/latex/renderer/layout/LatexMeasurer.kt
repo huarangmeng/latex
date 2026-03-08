@@ -105,16 +105,23 @@ private object MeasurerRegistry {
 
 /**
  * 测量节点尺寸与布局
+ *
+ * @param cache 可选的布局缓存。当非 null 时，相同 AST 节点 + 相同 RenderContext
+ *   的测量结果会被缓存，避免重复测量。由 [LatexRenderer.measure] 传入。
  */
 internal fun measureNode(
-    node: LatexNode, context: RenderContext, measurer: TextMeasurer, density: Density
+    node: LatexNode, context: RenderContext, measurer: TextMeasurer, density: Density,
+    cache: LayoutCache? = null
 ): NodeLayout {
+    // 查询缓存
+    cache?.getNode(node, context)?.let { return it }
+
     // 递归函数引用
     val measureNodeRef = { n: LatexNode, s: RenderContext ->
-        measureNode(n, s, measurer, density)
+        measureNode(n, s, measurer, density, cache)
     }
     val measureGroupRef = { nodes: List<LatexNode>, s: RenderContext ->
-        measureGroup(nodes, s, measurer, density)
+        measureGroup(nodes, s, measurer, density, cache = cache)
     }
 
     // 1. 优先通过注册表分发（覆盖绝大多数节点类型）
@@ -124,11 +131,13 @@ internal fun measureNode(
             node, context, measurer, density, measureNodeRef, measureGroupRef
         )
         // 自动编号：为需要编号的环境追加编号标签
-        return maybeAttachEquationNumber(node, layout, context, measurer, density)
+        val result = maybeAttachEquationNumber(node, layout, context, measurer, density)
+        cache?.putNode(node, context, result)
+        return result
     }
 
     // 2. 轻量级节点：直接内联处理（无需独立 Measurer）
-    return when (node) {
+    val result = when (node) {
         is LatexNode.Label -> NodeLayout(
             width = 0f, height = 0f, baseline = 0f
         ) { _, _ -> /* Label 不渲染 */ }
@@ -137,7 +146,7 @@ internal fun measureNode(
             width = 0f, height = 0f, baseline = 0f
         ) { _, _ -> /* HLine/CLine 由 MatrixMeasurer 处理 */ }
 
-        is LatexNode.Multicolumn -> measureGroup(node.content, context, measurer, density)
+        is LatexNode.Multicolumn -> measureGroup(node.content, context, measurer, density, cache = cache)
 
         is LatexNode.NewCommand -> NodeLayout(
             width = 0f, height = 0f, baseline = 0f
@@ -148,44 +157,44 @@ internal fun measureNode(
         ) { _, _ -> /* NewEnvironment 不渲染 */ }
 
         is LatexNode.SectionHeading -> {
-            measureSectionHeading(node, context, measurer, density)
+            measureSectionHeading(node, context, measurer, density, cache)
         }
 
         is LatexNode.NewLine -> NodeLayout(
             0f, lineSpacingPx(context, density), 0f
         ) { _, _ -> }
 
-        is LatexNode.Group -> measureGroup(node.children, context, measurer, density)
-        is LatexNode.Document -> measureGroup(node.children, context, measurer, density)
+        is LatexNode.Group -> measureGroup(node.children, context, measurer, density, cache = cache)
+        is LatexNode.Document -> measureGroup(node.children, context, measurer, density, cache = cache)
 
         is LatexNode.Style -> measureGroup(
-            node.content, context.applyStyle(node.styleType), measurer, density
+            node.content, context.applyStyle(node.styleType), measurer, density, cache = cache
         )
 
         is LatexNode.Color -> measureGroup(
-            node.content, context.withColor(node.color), measurer, density
+            node.content, context.withColor(node.color), measurer, density, cache = cache
         )
 
         is LatexNode.MathStyle -> measureGroup(
-            node.content, context.applyMathStyle(node.mathStyleType), measurer, density
+            node.content, context.applyMathStyle(node.mathStyleType), measurer, density, cache = cache
         )
 
         is LatexNode.Environment -> {
-            val envLayout = measureGroup(node.content, context, measurer, density)
+            val envLayout = measureGroup(node.content, context, measurer, density, cache = cache)
             maybeAttachEquationNumber(node, envLayout, context, measurer, density)
         }
 
         is LatexNode.InlineMath -> measureGroup(
-            node.children, context.copy(mathStyle = MathStyle.TEXT), measurer, density
+            node.children, context.copy(mathStyle = MathStyle.TEXT), measurer, density, cache = cache
         )
 
         is LatexNode.DisplayMath -> measureGroup(
-            node.children, context.copy(mathStyle = MathStyle.DISPLAY), measurer, density
+            node.children, context.copy(mathStyle = MathStyle.DISPLAY), measurer, density, cache = cache
         )
 
         // MathLap: 绘制内容但宽度为零（或部分为零）
         is LatexNode.MathLap -> {
-            val contentLayout = measureGroup(node.content, context, measurer, density)
+            val contentLayout = measureGroup(node.content, context, measurer, density, cache = cache)
             when (node.lapType) {
                 // clap: 居中对齐，宽度为零
                 LatexNode.MathLap.LapType.CLAP -> NodeLayout(0f, contentLayout.height, contentLayout.baseline) { x, y ->
@@ -209,11 +218,13 @@ internal fun measureNode(
                 LatexNode.TextDirection.Direction.LTR -> TextDirection.LTR
             }
             val dirContext = context.copy(textDirection = dir)
-            measureGroup(node.content, dirContext, measurer, density)
+            measureGroup(node.content, dirContext, measurer, density, cache = cache)
         }
 
         else -> NodeLayout(0f, 0f, 0f) { _, _ -> }
     }
+    cache?.putNode(node, context, result)
+    return result
 }
 
 /**
@@ -222,15 +233,16 @@ internal fun measureNode(
  * @param layoutMap 可选的布局映射表。当非 null 时，测量过程中会将每个子节点的
  *   相对位置记录到 layoutMap 中，为编辑器 hit-testing 和光标定位提供数据。
  *   当为 null 时（默认），无额外开销。
+ * @param cache 可选的布局缓存。传播至子节点测量调用。
  */
 internal fun measureGroup(
     nodes: List<LatexNode>, context: RenderContext, measurer: TextMeasurer, density: Density,
-    layoutMap: LayoutMap? = null
+    layoutMap: LayoutMap? = null, cache: LayoutCache? = null
 ): NodeLayout {
     // 简单处理多行逻辑：按 NewLine 分割，测量各行，垂直堆叠
     val lines = splitLines(nodes)
     if (lines.size > 1) {
-        return measureVerticalLines(lines, context, measurer, density)
+        return measureVerticalLines(lines, context, measurer, density, cache)
     }
 
     // automatic line breaking when enabled and maxWidth is set
@@ -238,7 +250,7 @@ internal fun measureGroup(
     var precomputedLayouts: List<NodeLayout>? = null
 
     if (context.layoutHints.lineBreakingEnabled && maxWidth != null && nodes.isNotEmpty()) {
-        val layouts = nodes.map { measureNode(it, context, measurer, density) }
+        val layouts = nodes.map { measureNode(it, context, measurer, density, cache) }
         val widths = FloatArray(layouts.size) { layouts[it].width }
 
         var totalWidth = 0f
@@ -256,7 +268,8 @@ internal fun measureGroup(
                     lineNodeLists,
                     context.copy(layoutHints = context.layoutHints.copy(lineBreakingEnabled = false)),
                     measurer,
-                    density
+                    density,
+                    cache
                 )
             }
         }
@@ -278,18 +291,18 @@ internal fun measureGroup(
             if (node is LatexNode.BigOperator && node.operator.contains("int")) {
                 null // 延迟测量
             } else {
-                measureNode(node, context, measurer, density)
+                measureNode(node, context, measurer, density, cache)
             }
         }
     } else {
         initialLayouts = precomputedLayouts?.map { it }
-            ?: nodes.map { measureNode(it, context, measurer, density) }
+            ?: nodes.map { measureNode(it, context, measurer, density, cache) }
     }
 
     // 填充延迟的积分节点（使用右侧邻居高度作为 heightHint）
     val finalMeasuredNodes = if (initialLayouts.any { it == null }) {
         GroupLayoutPostProcessor.fillDeferredIntegrals(
-            nodes, initialLayouts, context, measurer, density
+            nodes, initialLayouts, context, measurer, density, cache
         )
     } else {
         @Suppress("UNCHECKED_CAST")
@@ -370,9 +383,10 @@ internal fun measureGroup(
 }
 
 private fun measureVerticalLines(
-    lines: List<List<LatexNode>>, context: RenderContext, measurer: TextMeasurer, density: Density
+    lines: List<List<LatexNode>>, context: RenderContext, measurer: TextMeasurer, density: Density,
+    cache: LayoutCache? = null
 ): NodeLayout {
-    val measuredLines = lines.map { measureGroup(it, context, measurer, density) }
+    val measuredLines = lines.map { measureGroup(it, context, measurer, density, cache = cache) }
     val maxWidth = measuredLines.maxOfOrNull { it.width } ?: 0f
     val spacing = lineSpacingPx(context, density)
 
@@ -506,7 +520,8 @@ private fun measureSectionHeading(
     node: LatexNode.SectionHeading,
     context: RenderContext,
     measurer: TextMeasurer,
-    density: Density
+    density: Density,
+    cache: LayoutCache? = null
 ): NodeLayout {
     val (scaleFactor, useBold) = when (node.level) {
         LatexNode.SectionHeading.HeadingLevel.SECTION -> 1.4f to true
@@ -527,5 +542,5 @@ private fun measureSectionHeading(
         context.copy(fontSize = newFontSize)
     }
 
-    return measureGroup(node.content, headingContext, measurer, density)
+    return measureGroup(node.content, headingContext, measurer, density, cache = cache)
 }

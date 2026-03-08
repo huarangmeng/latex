@@ -134,6 +134,20 @@ data class LatexConfig(
      * ```
      */
     val onHyperlinkClick: ((url: String) -> Unit)? = null,
+    /**
+     * 是否启用 NodeLayout 缓存。
+     *
+     * 启用后，相同 AST 子树 + 相同 RenderContext 的测量结果会被缓存复用，
+     * 避免重复测量，适用于长公式、编辑器实时预览等频繁重绘场景。
+     *
+     * 默认关闭。建议在 WYSIWYG 编辑器或增量输入场景中开启。
+     *
+     * 使用示例：
+     * ```kotlin
+     * LatexConfig(enableLayoutCache = true)
+     * ```
+     */
+    val enableLayoutCache: Boolean = false,
 )
 
 /**

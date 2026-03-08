@@ -56,7 +56,8 @@ internal object GroupLayoutPostProcessor {
         layouts: List<NodeLayout?>,
         context: RenderContext,
         measurer: TextMeasurer,
-        density: Density
+        density: Density,
+        cache: LayoutCache? = null
     ): List<NodeLayout> {
         return nodes.mapIndexed { index, node ->
             layouts[index] ?: run {
@@ -69,7 +70,7 @@ internal object GroupLayoutPostProcessor {
                 } else {
                     context
                 }
-                measureNode(node, hintedContext, measurer, density)
+                measureNode(node, hintedContext, measurer, density, cache)
             }
         }
     }

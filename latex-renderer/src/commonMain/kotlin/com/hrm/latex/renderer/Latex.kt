@@ -48,6 +48,7 @@ import com.hrm.latex.parser.visitor.AccessibilityVisitor
 import com.hrm.latex.renderer.font.MathFontProviderFactory
 import com.hrm.latex.renderer.font.rememberResolvedMathFont
 import com.hrm.latex.renderer.layout.LatexRenderer
+import com.hrm.latex.renderer.layout.LayoutCache
 import com.hrm.latex.renderer.layout.LayoutMap
 import com.hrm.latex.renderer.model.HighlightRange
 import com.hrm.latex.renderer.model.LatexConfig
@@ -173,6 +174,7 @@ fun Latex(
         contentDescription = accessibilityDescription,
         onNodeClick = config.onNodeClick,
         onHyperlinkClick = config.onHyperlinkClick,
+        enableLayoutCache = config.enableLayoutCache,
         latex = latex
     )
 }
@@ -237,6 +239,7 @@ private fun LatexDocument(
     contentDescription: String? = null,
     onNodeClick: ((startOffset: Int, endOffset: Int, latex: String) -> Unit)? = null,
     onHyperlinkClick: ((url: String) -> Unit)? = null,
+    enableLayoutCache: Boolean = false,
     latex: String = ""
 ) {
     val measurer = rememberTextMeasurer()
@@ -247,10 +250,15 @@ private fun LatexDocument(
         if (onNodeClick != null || onHyperlinkClick != null) LayoutMap() else null
     }
 
+    // NodeLayout 缓存：仅在 config 启用时创建，跨渲染周期复用相同 AST 子树+上下文的测量结果
+    val layoutCache = remember(enableLayoutCache) {
+        if (enableLayoutCache) LayoutCache() else null
+    }
+
     // 使用 LatexRenderer 共享逻辑进行测量（与导出路径共用同一份代码）
     val renderResult = remember(children, context, density, highlightRanges) {
         layoutMap?.clear()
-        LatexRenderer.measure(children, context, measurer, density, highlightRanges, layoutMap)
+        LatexRenderer.measure(children, context, measurer, density, highlightRanges, layoutMap, layoutCache)
     }
 
     val widthDp = with(density) { renderResult.canvasWidth.toDp() }

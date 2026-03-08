@@ -81,7 +81,8 @@ internal object LatexRenderer {
         textMeasurer: TextMeasurer,
         density: Density,
         highlightRanges: List<HighlightRange> = emptyList(),
-        layoutMap: LayoutMap? = null
+        layoutMap: LayoutMap? = null,
+        cache: LayoutCache? = null
     ): LatexRenderResult {
         // 清除每次测量周期的缓存（字体/字号可能已变化）
         LayoutUtils.clearCache()
@@ -91,7 +92,7 @@ internal object LatexRenderer {
         val numberingState = EquationNumberingState(labelToNumber)
         val numberedContext = context.copy(equationNumbering = numberingState)
 
-        val layout = measureGroup(children, numberedContext, textMeasurer, density, layoutMap)
+        val layout = measureGroup(children, numberedContext, textMeasurer, density, layoutMap, cache)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val horizontalPadding = fontSizePx * MathConstants.CANVAS_HORIZONTAL_PADDING
@@ -104,7 +105,7 @@ internal object LatexRenderer {
             emptyList()
         } else {
             HighlightCalculator.computeHighlightRects(
-                children, highlightRanges, context, textMeasurer, density, layout
+                children, highlightRanges, context, textMeasurer, density, layout, cache
             )
         }
 

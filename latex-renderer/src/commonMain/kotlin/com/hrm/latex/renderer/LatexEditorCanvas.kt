@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.renderer.layout.LayoutCache
 import com.hrm.latex.renderer.layout.LayoutMap
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.model.LatexConfig
@@ -99,10 +100,15 @@ fun LatexEditorCanvas(
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
+    // NodeLayout 缓存：仅在 config 启用时创建，跨渲染周期复用相同 AST 子树+上下文的测量结果
+    val layoutCache = remember(config.enableLayoutCache) {
+        if (config.enableLayoutCache) LayoutCache() else null
+    }
+
     // 测量，同时填充 layoutMap
     val renderResult = remember(children, context, density) {
         layoutMap?.clear()
-        LatexRenderer.measure(children, context, measurer, density, layoutMap = layoutMap)
+        LatexRenderer.measure(children, context, measurer, density, layoutMap = layoutMap, cache = layoutCache)
     }
 
     // 通知渲染信息变化

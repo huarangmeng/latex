@@ -65,12 +65,14 @@ internal object HighlightCalculator {
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        groupLayout: NodeLayout
+        groupLayout: NodeLayout,
+        cache: LayoutCache? = null
     ): List<Pair<HighlightRect, HighlightRange>> {
         if (children.isEmpty()) return emptyList()
 
         // 预测量每个子节点的尺寸，用于计算 x 偏移
-        val childLayouts = children.map { measureNode(it, context, measurer, density) }
+        // 如果存在 cache，这些节点在主测量阶段已被缓存，此处直接命中
+        val childLayouts = children.map { measureNode(it, context, measurer, density, cache) }
         val fontSizePx = with(density) { context.fontSize.toPx() }
 
         // 计算基线对齐参数
