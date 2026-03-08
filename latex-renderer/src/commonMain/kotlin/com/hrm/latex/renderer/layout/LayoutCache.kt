@@ -85,26 +85,9 @@ internal class LayoutCache(
         }
     }
 
-    // 使用 LinkedHashMap(accessOrder=true) 实现 LRU
-    private val nodeCache = object : LinkedHashMap<CacheKey, NodeLayout>(
-        /* initialCapacity = */ 64,
-        /* loadFactor = */ 0.75f,
-        /* accessOrder = */ true
-    ) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<CacheKey, NodeLayout>?): Boolean {
-            return size > maxSize
-        }
-    }
-
-    private val groupCache = object : LinkedHashMap<GroupCacheKey, NodeLayout>(
-        /* initialCapacity = */ 32,
-        /* loadFactor = */ 0.75f,
-        /* accessOrder = */ true
-    ) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<GroupCacheKey, NodeLayout>?): Boolean {
-            return size > maxSize / 4 // group 缓存容量为节点缓存的 1/4
-        }
-    }
+    // 跨平台 LRU 缓存（LinkedHashMap 的 accessOrder 和 removeEldestEntry 是 JVM 特有 API）
+    private val nodeCache = LruCache<CacheKey, NodeLayout>(maxSize)
+    private val groupCache = LruCache<GroupCacheKey, NodeLayout>(maxSize / 4)
 
     // ── 统计信息（调试用）──
     var hits: Int = 0
@@ -173,5 +156,40 @@ internal class LayoutCache(
     companion object {
         /** 默认最大缓存条目数 */
         const val DEFAULT_MAX_SIZE = 2048
+    }
+}
+
+/**
+ * 跨平台 LRU 缓存实现。
+ *
+ * 使用 [LinkedHashMap] 的插入顺序（Kotlin 跨平台默认行为）+
+ * 手动 access-order 提升（get 时 remove+put）实现 LRU 语义。
+ * 容量超限时淘汰最早插入/最久未访问的条目。
+ */
+private class LruCache<K, V>(private val maxSize: Int) {
+    private val map = LinkedHashMap<K, V>()
+
+    val size: Int get() = map.size
+
+    operator fun get(key: K): V? {
+        val value = map[key] ?: return null
+        // 提升访问顺序：移除后重新插入到末尾
+        map.remove(key)
+        map[key] = value
+        return value
+    }
+
+    operator fun set(key: K, value: V) {
+        map.remove(key) // 确保新插入到末尾
+        map[key] = value
+        // 超容量时淘汰最老条目（迭代器第一个元素）
+        if (map.size > maxSize) {
+            val eldest = map.keys.iterator().next()
+            map.remove(eldest)
+        }
+    }
+
+    fun clear() {
+        map.clear()
     }
 }
