@@ -13,9 +13,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
-    plugins {
-        kotlin("jvm") version "2.2.0"
-    }
 }
 
 dependencyResolutionManagement {
@@ -55,3 +52,6 @@ include(":latex-renderer")
 
 // Preview 模块（仅用于本地预览，不参与sdk打包）
 include(":latex-preview")
+
+// Benchmark 模块（仅用于性能基准测试，不参与sdk打包）
+include(":latex-benchmark")

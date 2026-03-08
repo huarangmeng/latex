@@ -10,13 +10,14 @@ androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.10.0"
 androidx-testExt = "1.3.0"
 composeHotReload = "1.0.0"
-composeMultiplatform = "1.9.3"
+composeMultiplatform = "1.10.2"
 composeMaterial3 = "1.9.0"
-composePreview = "1.10.1"
+composePreview = "1.10.2"
 junit = "4.13.2"
-kotlin = "2.1.0"
+kotlin = "2.3.10"
+kotlinx-benchmark = "0.4.16"
 kotlinx-coroutines = "1.10.2"
-latex = "1.2.3"
+latex = "1.3.0"
 androidx-navigationevent = "1.0.1"
 mp_stools = "1.6.3"
 
@@ -48,6 +49,8 @@ compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.r
 
 mp_stools = { module = "net.sergeych:mp_stools", version.ref = "mp_stools" }
 
+kotlinx-benchmark-runtime = { module = "org.jetbrains.kotlinx:kotlinx-benchmark-runtime", version.ref = "kotlinx-benchmark" }
+
 [bundles]
 latex = ["latex-base", "latex-parser", "latex-renderer"]
 
@@ -60,3 +63,6 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version = "0.35.0" }
+kotlinxBenchmark = { id = "org.jetbrains.kotlinx.benchmark", version.ref = "kotlinx-benchmark" }
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+allopen = { id = "org.jetbrains.kotlin.plugin.allopen", version.ref = "kotlin" }

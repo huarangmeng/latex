@@ -90,18 +90,22 @@ class IncrementalLatexParser {
     }
 
     /**
-     * 追加新的 LaTeX 内容
+     * 追加新的 LaTeX 内容（快速路径）
+     *
+     * 使用 TextEdit.fromAppend() 直接构造编辑描述，跳过 O(n) 的 diff 比较。
+     * 文本拼接直接在 IncrementalTokenizer 的 StringBuilder 上完成，避免 O(n) 字符串拷贝。
+     *
      * @param text 新增的文本内容
      */
     fun append(text: String) {
-        val oldText = tokenizer.getCurrentText()
-        // 使用 StringBuilder 避免 O(n) 字符串拷贝
-        val newText = buildString(oldText.length + text.length) {
-            append(oldText)
-            append(text)
-        }
-        HLog.d(TAG) { "追加内容: '$text', 新长度: ${newText.length}" }
-        applyEdit(oldText, newText)
+        if (text.isEmpty()) return
+        val oldLength = tokenizer.getTextLength()
+        // 直接在 tokenizer 的 StringBuilder 上追加，避免 toString() + 拼接
+        val newLength = tokenizer.appendText(text)
+        val newText = tokenizer.getCurrentText()
+        val edit = TextEdit.fromAppend(oldLength, newLength)
+        HLog.d(TAG) { "追加内容: '$text', 新长度: $newLength" }
+        applyEdit(oldLength, newText, edit)
     }
 
     /**
@@ -112,30 +116,30 @@ class IncrementalLatexParser {
         val oldText = tokenizer.getCurrentText()
         if (oldText == newText) return
         HLog.d(TAG) { "替换内容, 新长度: ${newText.length}" }
-        applyEdit(oldText, newText)
+        val edit = TextEdit.diff(oldText, newText)
+        applyEdit(oldText.length, newText, edit)
     }
 
     /**
      * 应用编辑操作（核心增量解析入口）
      *
-     * @param oldText 编辑前的完整文本
+     * @param oldTextLength 编辑前的文本长度
      * @param newText 编辑后的完整文本
+     * @param edit 预计算的编辑差异（由调用方提供，避免重复 diff）
      */
-    private fun applyEdit(oldText: String, newText: String) {
+    private fun applyEdit(oldTextLength: Int, newText: String, edit: TextEdit) {
         if (newText.isEmpty()) {
             clear()
             return
         }
 
-        // 计算编辑差异
-        val edit = TextEdit.diff(oldText, newText)
         HLog.d(TAG) {
             "编辑差异: start=${edit.startOffset}, " +
                     "oldEnd=${edit.oldEndOffset}, newEnd=${edit.newEndOffset}, delta=${edit.delta}"
         }
 
         // 第 1 层：增量分词（总是执行，即使后续走全量解析也需要更新 token 缓存）
-        val isFirstParse = oldText.isEmpty()
+        val isFirstParse = oldTextLength == 0
         if (isFirstParse) {
             tokenizer.tokenize(newText)
         } else {
@@ -143,18 +147,32 @@ class IncrementalLatexParser {
         }
 
         // 第 2 层：决策 — 增量解析 vs 全量解析
-        //
-        // 纯追加（isInsertion）不走增量 AST 解析路径，因为追加的文本可能与前一个
-        // token 合并（如 "\fr" + "a" → "\fra"），导致 AST 前缀节点失效。
-        // 增量分词（IncrementalTokenizer）已正确处理 token 合并，但 AST 级别的
-        // TreeReuser 无法感知这种合并。纯追加仍通过全量解析 + token 缓存复用加速。
         val oldDoc = cachedDocument
+
+        // 追加场景快速路径：上次解析成功 + 纯追加 → 尾部增量 AST 构建
+        val canAppendIncremental = !isFirstParse
+                && oldDoc != null
+                && oldDoc.children.isNotEmpty()
+                && lastSuccessfulPosition == oldTextLength  // 上次完整解析成功
+                && edit.isInsertion                          // 纯追加/插入
+                && edit.startOffset == oldTextLength         // 追加在末尾（非中间插入）
+
+        // 中间替换/删除场景：使用 TreeReuser 三段划分
         val canIncrementalParse = !isFirstParse
                 && oldDoc != null
                 && oldDoc.children.isNotEmpty()
-                && lastSuccessfulPosition == oldText.length  // 上次完整解析成功
+                && lastSuccessfulPosition == oldTextLength  // 上次完整解析成功
                 && edit.startOffset > 0                       // 编辑不在最开头
                 && !edit.isInsertion                          // 非纯插入（中间替换/删除场景）
+
+        if (canAppendIncremental) {
+            val result = appendIncrementalParse(newText, oldDoc)
+            if (result != null) {
+                cachedDocument = result
+                return
+            }
+            // 追加增量失败（结构不完整等），走普通分支
+        }
 
         if (canIncrementalParse) {
             cachedDocument = incrementalParse(newText, oldDoc, edit)
@@ -180,6 +198,133 @@ class IncrementalLatexParser {
                 cachedDocument = truncatedParse(newText)
             }
         }
+    }
+
+    /**
+     * 追加场景的增量 AST 构建
+     *
+     * 核心思路：旧 AST 的前缀节点完全保留，只重新解析最后一个受影响的节点
+     * + 新追加的部分。对于逐字输入场景，前缀可能是整个旧 AST 除最后一个节点。
+     *
+     * 追加的文本可能与前一个 token 合并（如 "\fr" + "a" → "\fra"），
+     * 因此需要找到最后一个 sourceRange 触及追加点的旧节点，从该节点开始
+     * 的文本区域 + 新追加文本一起重新解析。
+     *
+     * @return 成功则返回新 Document，失败（结构不完整等）返回 null
+     */
+    private fun appendIncrementalParse(
+        newText: String,
+        oldDoc: LatexNode.Document
+    ): LatexNode.Document? {
+        val oldChildren = oldDoc.children
+
+        // 找到最后一个需要重新解析的节点索引
+        // 追加点 = lastSuccessfulPosition（旧文本末尾）
+        val appendPoint = lastSuccessfulPosition
+        var reparseFromIdx = oldChildren.size  // 默认：无节点需要重解析
+
+        for (i in oldChildren.indices.reversed()) {
+            val range = oldChildren[i].sourceRange
+            if (range != null && range.end >= appendPoint) {
+                // 该节点触及或超过追加点，需要重新解析
+                reparseFromIdx = i
+            } else {
+                // 该节点完全在追加点之前，安全
+                break
+            }
+        }
+
+        // 前缀节点：完全在追加点之前的节点
+        val prefixNodes = if (reparseFromIdx > 0) {
+            oldChildren.subList(0, reparseFromIdx)
+        } else {
+            emptyList()
+        }
+
+        // 确定需要重新解析的文本范围
+        val reparseStart = if (reparseFromIdx < oldChildren.size) {
+            oldChildren[reparseFromIdx].sourceRange?.start ?: appendPoint
+        } else {
+            appendPoint
+        }
+
+        val reparseText = if (reparseStart < newText.length) {
+            newText.substring(reparseStart, newText.length)
+        } else {
+            return null // 没有需要解析的文本
+        }
+
+        // 检查需要重解析的部分是否结构完整
+        if (!isTextStructurallyComplete(reparseText)) {
+            // 结构不完整 → 保留旧缓存（返回 null 让调用方决策）
+            HLog.d(TAG) { "追加增量: 尾部结构不完整, 保留旧缓存" }
+            return null
+        }
+
+        // 解析尾部文本
+        val tailDoc = tryParse(reparseText)
+        if (tailDoc == null) {
+            HLog.d(TAG) { "追加增量: 尾部解析失败" }
+            return null
+        }
+
+        // 调整 sourceRange 到全局坐标
+        val tailChildren = if (reparseStart > 0) {
+            adjustSourceRanges(tailDoc.children, reparseStart)
+        } else {
+            tailDoc.children
+        }
+
+        // 拼接前缀 + 新尾部
+        val newChildren = ArrayList<LatexNode>(prefixNodes.size + tailChildren.size).apply {
+            addAll(prefixNodes)
+            addAll(tailChildren)
+        }
+
+        lastSuccessfulPosition = newText.length
+        HLog.d(TAG) {
+            "追加增量成功: 复用 ${prefixNodes.size} 个前缀节点, " +
+                    "重解析 ${tailChildren.size} 个尾部节点 (从位置 $reparseStart)"
+        }
+        return LatexNode.Document(
+            newChildren,
+            sourceRange = SourceRange(0, newText.length)
+        )
+    }
+
+    /**
+     * 检查文本片段是否结构完整（不依赖 tokenizer 缓存）
+     * 用于追加增量解析中对尾部片段的快速检查
+     */
+    private fun isTextStructurallyComplete(text: String): Boolean {
+        if (text.isEmpty()) return true
+        var braceDepth = 0
+        var mathMode = false
+        var displayMath = false
+        var i = 0
+        while (i < text.length) {
+            val ch = text[i]
+            when {
+                ch == '\\' -> { i += 2; continue }
+                ch == '{' -> braceDepth++
+                ch == '}' -> braceDepth = maxOf(0, braceDepth - 1)
+                ch == '$' -> {
+                    if (i + 1 < text.length && text[i + 1] == '$') {
+                        displayMath = !displayMath
+                        i += 2; continue
+                    } else {
+                        mathMode = !mathMode
+                    }
+                }
+            }
+            i++
+        }
+        if (braceDepth > 0 || mathMode || displayMath) return false
+        // 检查是否以反斜杠结尾
+        var j = text.length - 1
+        while (j >= 0 && text[j].isWhitespace()) j--
+        if (j >= 0 && text[j] == '\\') return false
+        return true
     }
 
     /**

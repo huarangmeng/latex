@@ -49,14 +49,18 @@ class IncrementalTokenizer {
     /** 缓存的完整 token 列表（不含 EOF） */
     private var cachedTokens: MutableList<LatexToken> = mutableListOf()
 
-    /** 当前文本内容 */
-    private var currentText: String = ""
+    /** 当前文本内容（使用 StringBuilder 避免 append 场景 O(n²) 拷贝） */
+    private val textBuffer: StringBuilder = StringBuilder()
+
+    /** 缓存的不可变 token 列表（含 EOF），在 token 变更时失效 */
+    private var cachedResult: List<LatexToken>? = null
 
     /**
      * 首次全量分词
      */
     fun tokenize(text: String): List<LatexToken> {
-        currentText = text
+        textBuffer.clear()
+        textBuffer.append(text)
         val tokenizer = LatexTokenizer(text)
         val allTokens = tokenizer.tokenize()
         // 移除末尾的 EOF token，我们自行管理
@@ -66,6 +70,7 @@ class IncrementalTokenizer {
                 if (token !is LatexToken.EOF) list.add(token)
             }
         }
+        invalidateResultCache()
         return allTokens
     }
 
@@ -81,12 +86,13 @@ class IncrementalTokenizer {
 
         // 空编辑（无变化）
         if (edit.delta == 0 && edit.oldLength == 0) {
-            currentText = newText
+            textBuffer.clear()
+            textBuffer.append(newText)
             return buildResult(newText.length)
         }
 
         // 旧 token 为空或完全重写 → 全量分词
-        if (oldTokens.isEmpty() || edit.startOffset == 0 && edit.oldEndOffset >= currentText.length) {
+        if (oldTokens.isEmpty() || edit.startOffset == 0 && edit.oldEndOffset >= textBuffer.length) {
             return tokenize(newText)
         }
 
@@ -148,7 +154,9 @@ class IncrementalTokenizer {
             addAll(newMiddleTokens)
             addAll(adjustedSuffixTokens)
         }
-        currentText = newText
+        textBuffer.clear()
+        textBuffer.append(newText)
+        invalidateResultCache()
 
         return buildResult(newText.length)
     }
@@ -156,12 +164,31 @@ class IncrementalTokenizer {
     /**
      * 获取当前文本
      */
-    fun getCurrentText(): String = currentText
+    fun getCurrentText(): String = textBuffer.toString()
 
     /**
-     * 获取当前 token 列表（含 EOF）
+     * 直接在 StringBuilder 上追加文本，避免 toString() + 拼接的 O(n) 拷贝。
+     * 返回追加后的完整文本长度。
      */
-    fun getCurrentTokens(): List<LatexToken> = buildResult(currentText.length)
+    fun appendText(text: String): Int {
+        textBuffer.append(text)
+        return textBuffer.length
+    }
+
+    /**
+     * 获取当前文本长度（避免 toString() 分配）
+     */
+    fun getTextLength(): Int = textBuffer.length
+
+    /**
+     * 获取当前 token 列表（含 EOF），使用缓存避免重复创建
+     */
+    fun getCurrentTokens(): List<LatexToken> {
+        cachedResult?.let { return it }
+        val result = buildResult(textBuffer.length)
+        cachedResult = result
+        return result
+    }
 
     /**
      * 查找第一个被编辑影响的 token 索引
@@ -313,5 +340,12 @@ class IncrementalTokenizer {
         result.addAll(cachedTokens)
         result.add(LatexToken.EOF(SourceRange(textLength, textLength)))
         return result
+    }
+
+    /**
+     * 失效结果缓存（在 token 列表或文本变更时调用）
+     */
+    private fun invalidateResultCache() {
+        cachedResult = null
     }
 }
