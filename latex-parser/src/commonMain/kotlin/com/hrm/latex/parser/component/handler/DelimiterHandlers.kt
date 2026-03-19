@@ -42,6 +42,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
                 "lceil" -> "⌈"
                 "lvert" -> "|"
                 "lVert" -> "‖"
+                "lbrace" -> "{"
                 "{" -> "{"
                 "." -> ""
                 else -> leftToken.name
@@ -76,6 +77,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
                 "rceil" -> "⌉"
                 "rvert" -> "|"
                 "rVert" -> "‖"
+                "rbrace" -> "}"
                 "}" -> "}"
                 "." -> ""
                 else -> rightToken.name
@@ -110,6 +112,8 @@ internal fun CommandRegistry.installDelimiterHandlers() {
                 "rceil" -> "⌉"
                 "lvert", "rvert" -> "|"
                 "lVert", "rVert" -> "‖"
+                "lbrace" -> "{"
+                "rbrace" -> "}"
                 "|" -> "|"
                 "\\" -> "\\"
                 "{" -> "{"

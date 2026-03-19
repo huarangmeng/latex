@@ -363,6 +363,7 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("16", "lvert/rvert 定界符", "\\left\\lvert x \\right\\rvert"),
             PreviewItem("17", "lVert/rVert 定界符", "\\left\\lVert v \\right\\rVert"),
             PreviewItem("18", "Big lvert", "\\Big\\lvert x \\Big\\rvert"),
+            PreviewItem("19", "lbrace 花括号写法", "\\left{123\\right} \\left\\lbrace12345\\right\\rbrace"),
         )
     ),
     PreviewGroup(

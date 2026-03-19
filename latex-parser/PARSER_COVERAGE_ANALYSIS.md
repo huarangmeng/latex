@@ -178,6 +178,7 @@
 - ✅ `\left\lceil ... \right\rceil` 上取整 ⌈⌉
 - ✅ `\left\lvert ... \right\rvert` 单竖线（同 `|`）
 - ✅ `\left\lVert ... \right\rVert` 双竖线（同 `‖`）
+- ✅ `\left\lbrace ... \right\rbrace` 花括号别名（同 `\left\{ ... \right\}`）
 
 #### 不对称分隔符
 - ✅ `\left. ... \right|` 不对称分隔符（求值符号）

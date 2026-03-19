@@ -414,4 +414,48 @@ class DelimiterTest {
         assertEquals("|", delimiteds[0].left)
         assertEquals("‖", delimiteds[1].left)
     }
+
+    // ========== lbrace/rbrace 定界符测试 (Issue #22) ==========
+
+    @Test
+    fun should_parse_left_lbrace_right_rbrace() {
+        // \left\lbrace ... \right\rbrace 应该渲染为花括号
+        val doc = parser.parse("\\left\\lbrace 12345 \\right\\rbrace")
+        val delim = doc.children[0] as LatexNode.Delimited
+        assertEquals("{", delim.left, "\\lbrace 应映射为 {")
+        assertEquals("}", delim.right, "\\rbrace 应映射为 }")
+    }
+
+    @Test
+    fun should_parse_left_brace_right_brace() {
+        // \left{ ... \right} 应该渲染为花括号（不带反斜杠的写法）
+        val doc = parser.parse("\\left{ 123 \\right}")
+        val delim = doc.children[0] as LatexNode.Delimited
+        assertEquals("{", delim.left)
+        assertEquals("}", delim.right)
+    }
+
+    @Test
+    fun should_parse_lbrace_in_big_delimiter() {
+        // \big\lbrace ... \big\rbrace 手动大小花括号
+        val doc = parser.parse("\\big\\lbrace x \\big\\rbrace")
+        val delimiters = doc.children.filterIsInstance<LatexNode.ManualSizedDelimiter>()
+        assertTrue(delimiters.size >= 2, "应该有至少两个手动大小分隔符")
+        assertEquals("{", delimiters[0].delimiter, "\\lbrace 应映射为 {")
+        assertEquals("}", delimiters[1].delimiter, "\\rbrace 应映射为 }")
+    }
+
+    @Test
+    fun should_parse_mixed_brace_notations() {
+        // 混合写法：\left{ ... \right\rbrace 和 \left\lbrace ... \right}
+        val doc1 = parser.parse("\\left\\lbrace x \\right\\}")
+        val delim1 = doc1.children[0] as LatexNode.Delimited
+        assertEquals("{", delim1.left)
+        assertEquals("}", delim1.right)
+
+        val doc2 = parser.parse("\\left\\{ x \\right\\rbrace")
+        val delim2 = doc2.children[0] as LatexNode.Delimited
+        assertEquals("{", delim2.left)
+        assertEquals("}", delim2.right)
+    }
 }
