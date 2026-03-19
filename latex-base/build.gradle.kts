@@ -83,7 +83,7 @@ mavenPublishing {
         }
         developers {
             developer {
-                id.set("huaranmeng")
+                id.set("huarangmeng")
                 name.set("Kotlin Multiplatform Specialist")
                 url.set("https://github.com/huarangmeng/")
             }
