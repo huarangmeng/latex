@@ -207,6 +207,16 @@ class IncrementalTokenizerTest {
         assertTokensEquivalent(fullTokens, tokenizer.getCurrentTokens())
     }
 
+    @Test
+    fun tokenize_operatorBoundaryExpression_matchesFullTokenizerWithoutRecursion() {
+        val tokenizer = IncrementalTokenizer()
+        val tokens = tokenizer.tokenize("-x^2-2ax")
+
+        val textContents = tokens.filterIsInstance<LatexToken.Text>().map { it.content }
+        assertEquals(listOf("-", "x", "2", "-", "2ax"), textContents)
+        assertTrue(tokens.any { it is LatexToken.Superscript })
+    }
+
     // ========== 边界情况 ==========
 
     @Test

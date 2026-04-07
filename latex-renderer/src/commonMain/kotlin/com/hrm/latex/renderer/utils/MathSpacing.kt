@@ -174,6 +174,30 @@ object MathSpacing {
         }
     }
 
+    fun effectiveAtomType(nodes: List<LatexNode>, index: Int): AtomType {
+        val type = classifyNode(nodes[index])
+        if (type != AtomType.BIN) return type
+
+        val prevType = previousNonSpaceAtomType(nodes, index)
+        val nextType = nextNonSpaceAtomType(nodes, index)
+
+        if (prevType == null || prevType in setOf(
+                AtomType.BIN, AtomType.OP, AtomType.REL, AtomType.OPEN, AtomType.PUNCT
+            )
+        ) {
+            return AtomType.ORD
+        }
+
+        if (nextType == null || nextType in setOf(
+                AtomType.BIN, AtomType.REL, AtomType.CLOSE, AtomType.PUNCT
+            )
+        ) {
+            return AtomType.ORD
+        }
+
+        return AtomType.BIN
+    }
+
     /**
      * 已知的二元运算符符号名
      */
@@ -284,5 +308,23 @@ object MathSpacing {
             delimiter in CLOSE_DELIMITERS || delimiter.length == 1 && delimiter[0] in ")]}" -> AtomType.CLOSE
             else -> AtomType.ORD
         }
+    }
+
+    private fun previousNonSpaceAtomType(nodes: List<LatexNode>, index: Int): AtomType? {
+        for (i in index - 1 downTo 0) {
+            val node = nodes[i]
+            if (node is LatexNode.Space || node is LatexNode.HSpace) continue
+            return classifyNode(node)
+        }
+        return null
+    }
+
+    private fun nextNonSpaceAtomType(nodes: List<LatexNode>, index: Int): AtomType? {
+        for (i in index + 1 until nodes.size) {
+            val node = nodes[i]
+            if (node is LatexNode.Space || node is LatexNode.HSpace) continue
+            return classifyNode(node)
+        }
+        return null
     }
 }

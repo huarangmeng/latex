@@ -809,6 +809,11 @@ val basicLatexPreviewGroups = listOf(
                 "\\begin{rcases} x^2 & x > 0 \\\\ -x^2 & x < 0 \\end{rcases} = |x| \\cdot x"
             ),
             PreviewItem(
+                "11c",
+                "单侧花括号分段",
+                "f(x)=\\left\\{\\begin{array}{l}-x^2-2ax-a, x<0\\\\\\epsilon^x+\\ln(x+1), x\\ge 0\\end{array}\\right."
+            ),
+            PreviewItem(
                 "12",
                 "tabular 基础",
                 "\\begin{tabular}{cc} a & b \\\\ c & d \\end{tabular}"

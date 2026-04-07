@@ -458,4 +458,16 @@ class DelimiterTest {
         assertEquals("{", delim2.left)
         assertEquals("}", delim2.right)
     }
+
+    @Test
+    fun should_parse_single_sided_brace_as_empty_right_delimiter() {
+        val doc = parser.parse(
+            "f(x)=\\left\\{\\begin{array}{l}-x^2-2ax-a,x<0\\\\e^x+\\ln(x+1),x\\ge 0\\end{array}\\right."
+        )
+
+        val delim = doc.children.filterIsInstance<LatexNode.Delimited>().first()
+        assertEquals("{", delim.left)
+        assertEquals("", delim.right)
+        assertTrue(delim.content.isNotEmpty())
+    }
 }

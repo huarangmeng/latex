@@ -82,13 +82,17 @@ internal class MatrixMeasurer : NodeMeasurer {
     ): NodeLayout {
         return when (node) {
             is LatexNode.Matrix -> measureMatrix(node, context, measurer, density, measureNode)
-            is LatexNode.Array -> measureMatrixLike(
-                node.rows,
-                context,
-                measurer,
-                density,
-                measureNode
-            )
+            is LatexNode.Array -> {
+                val (alignments, _) = parseAlignments(node.alignment)
+                measureMatrixLike(
+                    node.rows,
+                    context,
+                    measurer,
+                    density,
+                    measureNode,
+                    alignments = alignments
+                )
+            }
 
             is LatexNode.Tabular -> measureTabular(node, context, measurer, density, measureNode)
             is LatexNode.Cases -> measureCases(node, context, measurer, density, measureNode)

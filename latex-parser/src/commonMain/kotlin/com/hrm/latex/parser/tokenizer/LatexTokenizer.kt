@@ -49,7 +49,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
             for (ch in charArrayOf(
                 '\\', '{', '}', '[', ']', '^', '_', '&',
                 '\n', '\r', '(', ')', '|', '~', '%', '$',
-                ' ', '\t'
+                ' ', '\t', '+', '-', '=', '<', '>', ',', ';', ':'
             )) {
                 this[ch.code] = true
             }
@@ -129,6 +129,11 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                 }
                 
                 '$' -> handleMathShift()
+                '+', '-', '=', '<', '>', ',', ';', ':' -> {
+                    val start = position
+                    tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
+                    advance()
+                }
                 '(', ')', '|' -> {
                     val start = position
                     tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
@@ -408,6 +413,11 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                 tokens.add(LatexToken.Ampersand(SourceRange(start, position)))
             }
             '$' -> handleMathShift()
+            '+', '-', '=', '<', '>', ',', ';', ':' -> {
+                val start = position
+                tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
+                advance()
+            }
             '(', ')', '|' -> {
                 val start = position
                 tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))

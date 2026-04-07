@@ -181,6 +181,16 @@ class TokenizerTest {
         assertTrue(tokens.last() is LatexToken.EOF)
     }
 
+    @Test
+    fun testOperatorsWithoutSpacesAreTokenizedSeparately() {
+        val tokenizer = LatexTokenizer("-x^2-2ax-a,x<0")
+        val tokens = tokenizer.tokenize()
+        val contents = tokens.filterIsInstance<LatexToken.Text>().map { it.content }
+
+        assertEquals(listOf("-", "x", "2", "-", "2ax", "-", "a", ",", "x", "<", "0"), contents)
+        assertTrue(tokens.any { it is LatexToken.Superscript })
+    }
+
     // ========== 不断开空格 (~) ==========
 
     @Test

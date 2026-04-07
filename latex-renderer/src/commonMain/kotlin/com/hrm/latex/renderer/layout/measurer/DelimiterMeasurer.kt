@@ -105,11 +105,11 @@ internal class DelimiterMeasurer : NodeMeasurer {
             with(density) { (context.fontSize * MathConstants.DELIMITER_PADDING).toPx() }
         val delimiterHeight = contentLayout.height + delimiterPadding * 2
 
-        val leftLayout = if (leftStr != ".") {
+        val leftLayout = if (leftStr.isNotEmpty()) {
             DelimiterRenderer.measureScaled(leftStr, context, measurer, delimiterHeight, density)
         } else null
 
-        val rightLayout = if (rightStr != ".") {
+        val rightLayout = if (rightStr.isNotEmpty()) {
             DelimiterRenderer.measureScaled(rightStr, context, measurer, delimiterHeight, density)
         } else null
 

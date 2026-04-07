@@ -208,6 +208,24 @@ class SimpleFormulaTest {
         assertTrue(doc.children.isNotEmpty())
     }
     
+    @Test
+    fun testSuperscriptShouldNotSwallowFollowingMinusTerm() {
+        val doc = parser.parse("-x^2-2ax")
+        // Expect tree: "-", Superscript(x,2), "-", "2ax"
+        assertTrue(doc.children[0] is LatexNode.Text)
+        assertEquals("-", (doc.children[0] as LatexNode.Text).content)
+        assertTrue(doc.children[1] is LatexNode.Superscript)
+        val sup = doc.children[1] as LatexNode.Superscript
+        assertTrue(sup.base is LatexNode.Text)
+        assertEquals("x", (sup.base as LatexNode.Text).content)
+        assertTrue(sup.exponent is LatexNode.Text)
+        assertEquals("2", (sup.exponent as LatexNode.Text).content)
+        assertTrue(doc.children[2] is LatexNode.Text)
+        assertEquals("-", (doc.children[2] as LatexNode.Text).content)
+        assertTrue(doc.children[3] is LatexNode.Text)
+        assertEquals("2ax", (doc.children[3] as LatexNode.Text).content)
+    }
+    
     // ========== 括号测试 ==========
     
     @Test

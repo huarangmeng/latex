@@ -325,8 +325,8 @@ internal fun measureGroup(
         ) {
             continue
         }
-        val leftType = MathSpacing.classifyNode(leftNode)
-        val rightType = MathSpacing.classifyNode(rightNode)
+        val leftType = MathSpacing.effectiveAtomType(nodes, i)
+        val rightType = MathSpacing.effectiveAtomType(nodes, i + 1)
         val spacingFactor = MathSpacing.spaceBetween(leftType, rightType, isScript)
         spacings[i] = spacingFactor * fontSizePx
     }

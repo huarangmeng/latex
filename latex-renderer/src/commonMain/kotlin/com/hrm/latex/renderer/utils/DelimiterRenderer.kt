@@ -97,6 +97,9 @@ internal object DelimiterRenderer {
         targetHeight: Float,
         density: Density? = null
     ): NodeLayout {
+        if (delimiter.isEmpty()) {
+            return NodeLayout.EMPTY
+        }
         val glyph = FontResolver.resolveDelimiterGlyph(delimiter, context.fontFamilies)
 
         if (targetHeight <= 0f) {
