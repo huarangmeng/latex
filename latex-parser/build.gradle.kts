@@ -13,6 +13,7 @@ kotlin {
     androidLibrary {
         namespace = "com.hrm.latex.parser"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
 
         withJava()
         withHostTestBuilder {}.configure {}

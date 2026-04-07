@@ -13,6 +13,7 @@ kotlin {
     androidLibrary {
         namespace = "com.hrm.latex.preview"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
         androidResources.enable = true
 
         withJava()
