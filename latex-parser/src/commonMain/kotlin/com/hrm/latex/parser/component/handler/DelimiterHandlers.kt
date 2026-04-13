@@ -42,6 +42,10 @@ internal fun CommandRegistry.installDelimiterHandlers() {
                 "lceil" -> "⌈"
                 "lvert" -> "|"
                 "lVert" -> "‖"
+                // \left\vert and \left\Vert are common in set-builder / absolute-value notation.
+                // Without this mapping they would be treated as literal text "vert"/"Vert".
+                "vert" -> "|"
+                "Vert" -> "‖"
                 "lbrace" -> "{"
                 "{" -> "{"
                 "." -> ""
@@ -77,6 +81,8 @@ internal fun CommandRegistry.installDelimiterHandlers() {
                 "rceil" -> "⌉"
                 "rvert" -> "|"
                 "rVert" -> "‖"
+                "vert" -> "|"
+                "Vert" -> "‖"
                 "rbrace" -> "}"
                 "}" -> "}"
                 "." -> ""
@@ -112,6 +118,8 @@ internal fun CommandRegistry.installDelimiterHandlers() {
                 "rceil" -> "⌉"
                 "lvert", "rvert" -> "|"
                 "lVert", "rVert" -> "‖"
+                "vert" -> "|"
+                "Vert" -> "‖"
                 "lbrace" -> "{"
                 "rbrace" -> "}"
                 "|" -> "|"

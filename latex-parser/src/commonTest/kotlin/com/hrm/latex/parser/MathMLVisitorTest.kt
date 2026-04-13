@@ -136,6 +136,15 @@ class MathMLVisitorTest {
     }
 
     @Test
+    fun testDelimitedWithMid() {
+        val doc = parser.parse("A=\\left\\{x\\mid -5<x^3<5\\right\\}")
+        val result = MathMLVisitor.convert(doc)
+        assertTrue(result.contains("<mo stretchy=\"true\">{</mo>"))
+        assertTrue(result.contains("∣"))
+        assertTrue(result.contains("<mo stretchy=\"true\">}</mo>"))
+    }
+
+    @Test
     fun testAccent() {
         val doc = parser.parse("\\hat{x}")
         val result = MathMLVisitor.convert(doc)

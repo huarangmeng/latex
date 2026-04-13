@@ -373,6 +373,15 @@ class DelimiterTest {
     }
 
     @Test
+    fun testVertVert() {
+        val doc = parser.parse("\\left\\vert x \\right\\vert")
+        assertEquals(1, doc.children.size)
+        val delimited = doc.children[0] as LatexNode.Delimited
+        assertEquals("|", delimited.left)
+        assertEquals("|", delimited.right)
+    }
+
+    @Test
     fun testLVertRVert() {
         val doc = parser.parse("\\left\\lVert v \\right\\rVert")
         assertEquals(1, doc.children.size)
@@ -384,6 +393,14 @@ class DelimiterTest {
     @Test
     fun testLvertInBigDelimiter() {
         val doc = parser.parse("\\big\\lvert x \\big\\rvert")
+        assertTrue(doc.children.isNotEmpty())
+        val first = doc.children[0] as LatexNode.ManualSizedDelimiter
+        assertEquals("|", first.delimiter)
+    }
+
+    @Test
+    fun testVertInBigDelimiter() {
+        val doc = parser.parse("\\big\\vert x \\big\\vert")
         assertTrue(doc.children.isNotEmpty())
         val first = doc.children[0] as LatexNode.ManualSizedDelimiter
         assertEquals("|", first.delimiter)
@@ -469,5 +486,32 @@ class DelimiterTest {
         assertEquals("{", delim.left)
         assertEquals("", delim.right)
         assertTrue(delim.content.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_issue_26_set_builder_with_vert_after_right_dot() {
+        val doc = parser.parse("A=\\left\\lbrace x\\right.\\left\\vert-5<x^3\\right.<5}")
+
+        val delimiters = doc.children.filterIsInstance<LatexNode.Delimited>()
+        assertEquals(2, delimiters.size, "应解析为两个分隔符片段")
+
+        assertEquals("{", delimiters[0].left)
+        assertEquals("", delimiters[0].right)
+        assertEquals("|", delimiters[1].left)
+        assertEquals("", delimiters[1].right)
+    }
+
+    @Test
+    fun should_support_mid_inside_delimiters() {
+        val doc = parser.parse("A=\\left\\lbrace x \\mid -5<x^3<5 \\right\\rbrace")
+
+        val delimited = doc.children.filterIsInstance<LatexNode.Delimited>().firstOrNull()
+        assertNotNull(delimited, "应解析出单个 Delimited 节点")
+        assertEquals("{", delimited.left)
+        assertEquals("}", delimited.right)
+
+        val mid = delimited.content.filterIsInstance<LatexNode.Symbol>().firstOrNull { it.symbol == "mid" }
+        assertNotNull(mid, "应保留中间条件分隔符 \\mid")
+        assertEquals("∣", mid.unicode)
     }
 }

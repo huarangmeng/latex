@@ -159,6 +159,15 @@ class AccessibilityVisitorTest {
     }
 
     @Test
+    fun testDelimitedWithMid() {
+        val doc = parser.parse("A=\\left\\{x\\mid -5<x^3<5\\right\\}")
+        val desc = AccessibilityVisitor.describe(doc)
+        // mid 在 SymbolMap 中的可读名是 "divides"
+        assertTrue(desc.contains("brace") || desc.contains("open brace"))
+        assertTrue(desc.contains("divides"))
+    }
+
+    @Test
     fun testExtensibleArrow() {
         val doc = parser.parse("\\xrightarrow{f}")
         val desc = AccessibilityVisitor.describe(doc)
