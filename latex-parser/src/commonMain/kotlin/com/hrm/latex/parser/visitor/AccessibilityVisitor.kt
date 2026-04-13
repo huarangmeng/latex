@@ -86,7 +86,13 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
     override fun visitFraction(node: LatexNode.Fraction): String {
         val num = visit(node.numerator)
         val den = visit(node.denominator)
-        return "fraction: $num over $den"
+        val prefix = when (node.style) {
+            LatexNode.Fraction.FractionStyle.DISPLAY -> "display fraction"
+            LatexNode.Fraction.FractionStyle.TEXT -> "text fraction"
+            LatexNode.Fraction.FractionStyle.CONTINUED -> "continued fraction"
+            LatexNode.Fraction.FractionStyle.NORMAL -> "fraction"
+        }
+        return "$prefix: $num over $den"
     }
 
     override fun visitRoot(node: LatexNode.Root): String {

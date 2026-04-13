@@ -223,8 +223,13 @@ sealed class LatexNode {
     data class Fraction(
         val numerator: LatexNode,
         val denominator: LatexNode,
+        val style: FractionStyle = FractionStyle.NORMAL,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
+        enum class FractionStyle {
+            NORMAL, DISPLAY, TEXT, CONTINUED
+        }
+
         override fun children() = listOf(numerator, denominator)
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) =

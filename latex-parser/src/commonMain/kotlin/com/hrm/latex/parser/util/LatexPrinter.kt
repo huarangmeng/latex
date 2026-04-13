@@ -60,7 +60,11 @@ class LatexPrinter : BaseLatexVisitor<String>() {
     }
     
     override fun visitFraction(node: LatexNode.Fraction): String {
-        output.append("Fraction\n")
+        output.append("Fraction")
+        if (node.style != LatexNode.Fraction.FractionStyle.NORMAL) {
+            output.append("(style=${node.style})")
+        }
+        output.append("\n")
         indent++
         printIndent()
         output.append("numerator: ")

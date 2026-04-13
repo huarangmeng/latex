@@ -145,6 +145,20 @@ class MathMLVisitorTest {
     }
 
     @Test
+    fun testDfracUsesDisplayStyle() {
+        val doc = parser.parse("\\dfrac{1}{2}")
+        val result = MathMLVisitor.convert(doc, displayMode = false)
+        assertTrue(result.contains("<mstyle displaystyle=\"true\"><mfrac>"))
+    }
+
+    @Test
+    fun testTfracUsesTextStyle() {
+        val doc = parser.parse("\\tfrac{1}{2}")
+        val result = MathMLVisitor.convert(doc)
+        assertTrue(result.contains("<mstyle displaystyle=\"false\"><mfrac>"))
+    }
+
+    @Test
     fun testAccent() {
         val doc = parser.parse("\\hat{x}")
         val result = MathMLVisitor.convert(doc)

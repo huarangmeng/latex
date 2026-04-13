@@ -49,6 +49,13 @@ class AccessibilityVisitorTest {
     }
 
     @Test
+    fun testContinuedFraction() {
+        val doc = parser.parse("\\cfrac{1}{2}")
+        val desc = AccessibilityVisitor.describe(doc)
+        assertTrue(desc.contains("continued fraction"))
+    }
+
+    @Test
     fun testSuperscriptSquared() {
         val doc = parser.parse("x^2")
         val desc = AccessibilityVisitor.describe(doc)

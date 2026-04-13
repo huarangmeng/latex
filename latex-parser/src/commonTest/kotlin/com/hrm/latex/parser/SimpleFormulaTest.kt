@@ -62,18 +62,24 @@ class SimpleFormulaTest {
     fun testDfrac() {
         val doc = parser.parse("\\dfrac{1}{2}")
         assertTrue(doc.children[0] is LatexNode.Fraction)
+        val frac = doc.children[0] as LatexNode.Fraction
+        assertEquals(LatexNode.Fraction.FractionStyle.DISPLAY, frac.style)
     }
     
     @Test
     fun testTfrac() {
         val doc = parser.parse("\\tfrac{1}{2}")
         assertTrue(doc.children[0] is LatexNode.Fraction)
+        val frac = doc.children[0] as LatexNode.Fraction
+        assertEquals(LatexNode.Fraction.FractionStyle.TEXT, frac.style)
     }
     
     @Test
     fun testCfrac() {
         val doc = parser.parse("\\cfrac{1}{2}")
         assertTrue(doc.children[0] is LatexNode.Fraction)
+        val frac = doc.children[0] as LatexNode.Fraction
+        assertEquals(LatexNode.Fraction.FractionStyle.CONTINUED, frac.style)
     }
     
     @Test

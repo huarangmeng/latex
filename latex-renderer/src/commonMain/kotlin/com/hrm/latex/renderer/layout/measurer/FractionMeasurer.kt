@@ -27,6 +27,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
+import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.toFractionChildStyle
 import com.hrm.latex.renderer.utils.LayoutUtils
@@ -67,12 +68,26 @@ internal class FractionMeasurer : NodeMeasurer {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         node as LatexNode.Fraction
-        val childStyle = context.toFractionChildStyle()
+        // \dfrac/\tfrac/\cfrac should override the effective style of this fraction only.
+        // In TeX, \dfrac forces displaystyle fraction in inline math; \tfrac forces textstyle.
+        val effectiveContext = when (node.style) {
+            LatexNode.Fraction.FractionStyle.DISPLAY,
+            LatexNode.Fraction.FractionStyle.CONTINUED ->
+                context.copy(mathStyle = MathStyle.DISPLAY)
+
+            LatexNode.Fraction.FractionStyle.TEXT ->
+                context.copy(mathStyle = MathStyle.TEXT)
+
+            LatexNode.Fraction.FractionStyle.NORMAL ->
+                context
+        }
+
+        val childStyle = effectiveContext.toFractionChildStyle()
         val numeratorLayout = measureGroup(listOf(node.numerator), childStyle)
         val denominatorLayout = measureGroup(listOf(node.denominator), childStyle)
 
-        val fontSizePx = with(density) { context.fontSize.toPx() }
-        val provider = context.mathFontProvider
+        val fontSizePx = with(density) { effectiveContext.fontSize.toPx() }
+        val provider = effectiveContext.mathFontProvider
         val ruleThickness = provider?.fractionRuleThickness(fontSizePx)
             ?: (fontSizePx * MathConstants.FRACTION_RULE_THICKNESS)
         val gap = provider?.fractionNumeratorGap(fontSizePx)
@@ -93,7 +108,7 @@ internal class FractionMeasurer : NodeMeasurer {
             numeratorLayout.draw(this, numeratorX, y + numeratorTop)
 
             drawLine(
-                color = context.color,
+                color = effectiveContext.color,
                 start = Offset(x + inset, y + lineY + ruleThickness / 2),
                 end = Offset(x + width - inset, y + lineY + ruleThickness / 2),
                 strokeWidth = ruleThickness

@@ -725,29 +725,44 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem(
                 "2",
+                "frac dfrac tfrac 对比",
+                "\\textstyle{\\frac{1}{1+x}} \\quad \\dfrac{1}{1+x} \\quad \\tfrac{1}{1+x}"
+            ),
+            PreviewItem(
+                "3",
+                "frac",
+                "\\frac{1}{1+\\frac{1}{1+\\frac{1}{1+\\frac{1}{1+\\frac{1}{\\cdots}}}}}"
+            ),
+            PreviewItem(
+                "4",
+                "dfrac 连分数",
+                "\\dfrac{1}{1+\\dfrac{1}{1+\\dfrac{1}{1+\\dfrac{1}{1+\\dfrac{1}{\\cdots}}}}}"
+            ),
+            PreviewItem(
+                "5",
                 "displaystyle 求和",
                 "\\sum_{i=1}^{n} \\quad \\displaystyle{\\sum_{i=1}^{n}}"
             ),
             PreviewItem(
-                "3",
+                "6",
                 "scriptstyle 求和",
                 "x\\sum_{i=1}^{n} \\quad x\\scriptstyle{\\sum_{i=1}^{n}}"
             ),
             PreviewItem(
-                "4",
+                "7",
                 "求和作为上标",
                 "x^{\\sum_{i=1}^{n}} \\quad x^{\\scriptstyle{\\sum_{i=1}^{n}}}"
             ),
-            PreviewItem("5", "scriptscriptstyle", "\\scriptscriptstyle{x + y + z}"),
+            PreviewItem("8", "scriptscriptstyle", "\\scriptscriptstyle{x + y + z}"),
             PreviewItem(
-                "6",
+                "9",
                 "分数中的模式",
                 "\\frac{\\displaystyle{\\sum_{i=1}^{n}}}{\\textstyle{n}}"
             ),
-            PreviewItem("7", "嵌套模式", "\\displaystyle{\\frac{\\sum}{n}}"),
-            PreviewItem("8", "symbf 粗体", "\\symbf{x} + \\symbf{\\alpha}"),
-            PreviewItem("9", "symsf 无衬线", "\\symsf{ABC}"),
-            PreviewItem("10", "symrm 罗马体", "\\symrm{dx}"),
+            PreviewItem("10", "嵌套模式", "\\displaystyle{\\frac{\\sum}{n}}"),
+            PreviewItem("11", "symbf 粗体", "\\symbf{x} + \\symbf{\\alpha}"),
+            PreviewItem("12", "symsf 无衬线", "\\symsf{ABC}"),
+            PreviewItem("13", "symrm 罗马体", "\\symrm{dx}"),
         )
     ),
     PreviewGroup(

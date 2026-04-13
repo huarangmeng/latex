@@ -29,10 +29,44 @@ import com.hrm.latex.parser.model.LatexNode
  */
 internal fun CommandRegistry.installFractionHandlers() {
     // 分数
-    register("frac", "dfrac", "tfrac", "cfrac") { _, ctx, _ ->
+    register("frac") { _, ctx, _ ->
         val numerator = ctx.parseArgument() ?: LatexNode.Text("")
         val denominator = ctx.parseArgument() ?: LatexNode.Text("")
-        LatexNode.Fraction(numerator, denominator)
+        LatexNode.Fraction(
+            numerator = numerator,
+            denominator = denominator,
+            style = LatexNode.Fraction.FractionStyle.NORMAL
+        )
+    }
+
+    register("dfrac") { _, ctx, _ ->
+        val numerator = ctx.parseArgument() ?: LatexNode.Text("")
+        val denominator = ctx.parseArgument() ?: LatexNode.Text("")
+        LatexNode.Fraction(
+            numerator = numerator,
+            denominator = denominator,
+            style = LatexNode.Fraction.FractionStyle.DISPLAY
+        )
+    }
+
+    register("tfrac") { _, ctx, _ ->
+        val numerator = ctx.parseArgument() ?: LatexNode.Text("")
+        val denominator = ctx.parseArgument() ?: LatexNode.Text("")
+        LatexNode.Fraction(
+            numerator = numerator,
+            denominator = denominator,
+            style = LatexNode.Fraction.FractionStyle.TEXT
+        )
+    }
+
+    register("cfrac") { _, ctx, _ ->
+        val numerator = ctx.parseArgument() ?: LatexNode.Text("")
+        val denominator = ctx.parseArgument() ?: LatexNode.Text("")
+        LatexNode.Fraction(
+            numerator = numerator,
+            denominator = denominator,
+            style = LatexNode.Fraction.FractionStyle.CONTINUED
+        )
     }
 
     // 二项式系数

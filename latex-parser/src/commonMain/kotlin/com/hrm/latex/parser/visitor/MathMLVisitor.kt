@@ -108,7 +108,18 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitFraction(node: LatexNode.Fraction): String {
-        return "<mfrac>${visit(node.numerator)}${visit(node.denominator)}</mfrac>"
+        val frac = "<mfrac>${visit(node.numerator)}${visit(node.denominator)}</mfrac>"
+        return when (node.style) {
+            LatexNode.Fraction.FractionStyle.DISPLAY,
+            LatexNode.Fraction.FractionStyle.CONTINUED ->
+                "<mstyle displaystyle=\"true\">$frac</mstyle>"
+
+            LatexNode.Fraction.FractionStyle.TEXT ->
+                "<mstyle displaystyle=\"false\">$frac</mstyle>"
+
+            LatexNode.Fraction.FractionStyle.NORMAL ->
+                frac
+        }
     }
 
     override fun visitRoot(node: LatexNode.Root): String {
