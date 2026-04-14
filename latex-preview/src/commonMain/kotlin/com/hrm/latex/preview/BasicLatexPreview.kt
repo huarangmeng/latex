@@ -953,21 +953,26 @@ val basicLatexPreviewGroups = listOf(
     PreviewGroup(
         id = "math_mode",
         title = "20. 数学模式切换",
-        description = "\$...\$ 行内数学 和 \$\$...\$\$ 展示数学",
+        description = "\$...\$ 行内数学，\$\$...\$\$ 和 \\[...\\] 展示数学",
         items = listOf(
             PreviewItem("1", "行内数学", "The formula \$E=mc^2\$ is famous"),
             PreviewItem("2", "展示数学", "\$\$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\$\$"),
             PreviewItem(
                 "3",
+                "方括号展示数学",
+                "\\[\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\\]"
+            ),
+            PreviewItem(
+                "4",
                 "混合文本+数学",
                 "Given \$a > 0\$ and \$b > 0\$, we have \$\$a + b \\geq 2\\sqrt{ab}\$\$"
             ),
             PreviewItem(
-                "4",
+                "5",
                 "多个行内公式",
                 "Let \$x \\in \\mathbb{R}\$, then \$x^2 \\geq 0\$ for all \$x\$"
             ),
-            PreviewItem("5", "转义美元符号", "Price is \\\$10 and \$x = 5\$"),
+            PreviewItem("6", "转义美元符号", "Price is \\\$10 and \$x = 5\$"),
         )
     ),
     PreviewGroup(

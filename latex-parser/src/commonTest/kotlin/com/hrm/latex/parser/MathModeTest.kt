@@ -71,8 +71,26 @@ class MathModeTest {
     }
 
     @Test
+    fun should_parse_display_math_bracket_delimiters() {
+        val result = parser.parse("\\[\\frac{a}{b}\\]")
+        assertEquals(1, result.children.size)
+        val display = assertIs<LatexNode.DisplayMath>(result.children[0])
+        val frac = display.children.first()
+        assertIs<LatexNode.Fraction>(frac)
+    }
+
+    @Test
     fun should_parse_display_math_with_surrounding_text() {
         val result = parser.parse("Consider \$\$\\sum_{i=1}^{n} i\$\$ as shown")
+        val displayNodes = result.children.filterIsInstance<LatexNode.DisplayMath>()
+        assertEquals(1, displayNodes.size)
+        val textNodes = result.children.filterIsInstance<LatexNode.Text>()
+        assertTrue(textNodes.isNotEmpty())
+    }
+
+    @Test
+    fun should_parse_display_math_brackets_with_surrounding_text() {
+        val result = parser.parse("Consider \\[\\sum_{i=1}^{n} i\\] as shown")
         val displayNodes = result.children.filterIsInstance<LatexNode.DisplayMath>()
         assertEquals(1, displayNodes.size)
         val textNodes = result.children.filterIsInstance<LatexNode.Text>()

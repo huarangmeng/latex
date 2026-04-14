@@ -48,7 +48,7 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  *
  * ### 第 3 层：容错解析
  * 对于不完整输入（如流式打字场景），使用智能截断而非暴力回退：
- * 在完整解析失败时，按结构边界（`{}`、`$`、`\begin..\end`）截断到最近的安全点。
+ * 在完整解析失败时，按结构边界（`{}`、`$`、`\[...\]`、`\begin..\end`）截断到最近的安全点。
  *
  * ### 使用场景
  * - 实时输入 / 打字效果
@@ -553,7 +553,7 @@ class IncrementalLatexParser {
     /**
      * 检查输入的结构是否完整（利用已缓存的 token 列表，避免逐字符扫描）
      *
-     * 遍历 token 列表，检查花括号、数学模式（$/$$$）、环境是否都已正确闭合。
+     * 遍历 token 列表，检查花括号、数学模式（`$`/`$$`/`\[...\]`）、环境是否都已正确闭合。
      * 如果存在未闭合的结构，说明输入不完整（如流式输入的中间状态），
      * 此时不应更新 AST，避免显示异常的中间态。
      *
@@ -624,7 +624,15 @@ class IncrementalLatexParser {
             val ch = text[i]
             when {
                 ch == '\\' -> {
-                    // 跳过转义字符
+                    if (i + 1 < text.length && (text[i + 1] == '[' || text[i + 1] == ']')) {
+                        displayMath = !displayMath
+                        i += 2
+                        if (!displayMath && braceDepth == 0 && !mathMode) {
+                            lastSafePos = i
+                        }
+                        continue
+                    }
+                    // 跳过普通转义字符
                     i += 2
                     continue
                 }

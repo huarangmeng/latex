@@ -158,6 +158,14 @@ class IncrementalLatexParserTest {
     }
 
     @Test
+    fun append_incompleteBracketDisplayMath_doesNotCrash() {
+        val parser = IncrementalLatexParser()
+        parser.append("\\[x+y")
+        val doc = parser.getCurrentDocument()
+        assertNotNull(doc)
+    }
+
+    @Test
     fun append_incompleteEnvironment_doesNotCrash() {
         val parser = IncrementalLatexParser()
         parser.append("\\begin{equation}x+y")

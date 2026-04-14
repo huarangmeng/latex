@@ -141,6 +141,16 @@ class TokenizerTest {
         assertTrue(tokens[6] is LatexToken.RightBrace)
         assertTrue(tokens[7] is LatexToken.EOF)
     }
+
+    @Test
+    fun testDisplayMathBracketsAreTokenizedAsMathShift() {
+        val tokenizer = LatexTokenizer("\\[x+y\\]")
+        val tokens = tokenizer.tokenize()
+
+        val mathShifts = tokens.filterIsInstance<LatexToken.MathShift>()
+        assertEquals(2, mathShifts.size)
+        assertTrue(mathShifts.all { it.count == 2 })
+    }
     
     @Test
     fun testMultipleCommands() {
