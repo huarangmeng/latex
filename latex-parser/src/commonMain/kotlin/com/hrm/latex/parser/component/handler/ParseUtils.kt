@@ -100,25 +100,50 @@ internal object ParseUtils {
         var superscript: LatexNode? = null
         var limitsMode = LatexNode.BigOperator.LimitsMode.AUTO
 
+        fun shouldContinueAfterWhitespace(token: LatexToken?): Boolean {
+            return when {
+                token is LatexToken.Command && (token.name == "limits" || token.name == "nolimits") -> true
+                token is LatexToken.Subscript -> subscript == null
+                token is LatexToken.Superscript -> superscript == null
+                else -> false
+            }
+        }
+
         while (!stream.isEOF()) {
             val token = stream.peek()
-            when {
-                token is LatexToken.Command && token.name == "limits" -> {
+            when (token) {
+                is LatexToken.Whitespace -> {
+                    val nextToken = stream.peekSkipping {
+                        it is LatexToken.Whitespace
+                    }
+                    if (!shouldContinueAfterWhitespace(nextToken)) {
+                        break
+                    }
+                    while (stream.peek() is LatexToken.Whitespace) {
+                        stream.advance()
+                    }
+                }
+
+                is LatexToken.Command if token.name == "limits" -> {
                     stream.advance()
                     limitsMode = LatexNode.BigOperator.LimitsMode.LIMITS
                 }
-                token is LatexToken.Command && token.name == "nolimits" -> {
+
+                is LatexToken.Command if token.name == "nolimits" -> {
                     stream.advance()
                     limitsMode = LatexNode.BigOperator.LimitsMode.NOLIMITS
                 }
-                token is LatexToken.Subscript && subscript == null -> {
+
+                is LatexToken.Subscript if subscript == null -> {
                     stream.advance()
                     subscript = parseScriptContent(ctx, stream)
                 }
-                token is LatexToken.Superscript && superscript == null -> {
+
+                is LatexToken.Superscript if superscript == null -> {
                     stream.advance()
                     superscript = parseScriptContent(ctx, stream)
                 }
+
                 else -> break
             }
         }
