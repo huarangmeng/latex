@@ -103,6 +103,9 @@ internal object ParseUtils {
         while (!stream.isEOF()) {
             val token = stream.peek()
             when {
+                token is LatexToken.Whitespace || token is LatexToken.NewLine -> {
+                    stream.advance()
+                }
                 token is LatexToken.Command && token.name == "limits" -> {
                     stream.advance()
                     limitsMode = LatexNode.BigOperator.LimitsMode.LIMITS

@@ -149,6 +149,7 @@ val basicLatexPreviewGroups = listOf(
                 "\\operatorname{argmax}_{x \\in \\mathbb{R}} f(x)"
             ),
             PreviewItem("10", "operatorname + limits", "\\operatorname{Res}\\limits_{z=0} f(z)"),
+            PreviewItem("11", "mathop + limits", "\\[\\int_0^\\infty  {1 - \\mathop \\prod \\limits_{i = 1}^n \\left( {1 - {e^{ - {p_i}t}}} \\right){\\text{d}}t} \\]"),
         )
     ),
     PreviewGroup(
