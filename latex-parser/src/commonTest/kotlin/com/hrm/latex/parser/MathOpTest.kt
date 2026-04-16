@@ -112,6 +112,18 @@ class MathOpTest {
     }
 
     @Test
+    fun should_preserve_space_after_big_operator_without_scripts() {
+        val result = parser.parse("\\sum x")
+        val children = result.children
+
+        assertEquals(3, children.size)
+        assertIs<LatexNode.BigOperator>(children[0])
+        assertIs<LatexNode.Space>(children[1])
+        assertIs<LatexNode.Text>(children[2])
+        assertEquals("x", (children[2] as LatexNode.Text).content)
+    }
+
+    @Test
     fun should_parse_mathop_wrapping_existing_big_operator() {
         val result = parser.parse("\\mathop \\prod \\limits_{i = 1}^n")
         val children = result.children
@@ -123,5 +135,44 @@ class MathOpTest {
         assertEquals(LatexNode.BigOperator.LimitsMode.LIMITS, node.limitsMode)
         assertNotNull(node.subscript)
         assertNotNull(node.superscript)
+    }
+
+    @Test
+    fun should_parse_big_operator_with_newline_before_limits() {
+        val result = parser.parse("\\prod\n\\limits_{i = 1}^n")
+        val children = result.children
+
+        assertEquals(1, children.size)
+        val node = children[0]
+        assertIs<LatexNode.BigOperator>(node)
+        assertEquals("prod", node.operator)
+        assertEquals(LatexNode.BigOperator.LimitsMode.LIMITS, node.limitsMode)
+        assertNotNull(node.subscript)
+        assertNotNull(node.superscript)
+    }
+
+    @Test
+    fun should_parse_mathop_braced_existing_big_operator_with_limits() {
+        val result = parser.parse("\\mathop{\\prod}\\limits_{i = 1}^n")
+        val children = result.children
+
+        assertEquals(1, children.size)
+        val node = children[0]
+        assertIs<LatexNode.BigOperator>(node)
+        assertEquals("prod", node.operator)
+        assertEquals(LatexNode.BigOperator.LimitsMode.LIMITS, node.limitsMode)
+        assertNotNull(node.subscript)
+        assertNotNull(node.superscript)
+    }
+
+    @Test
+    fun should_parse_mathop_symbol_using_unicode_operator() {
+        val result = parser.parse("\\mathop \\times")
+        val children = result.children
+
+        assertEquals(1, children.size)
+        val node = children[0]
+        assertIs<LatexNode.BigOperator>(node)
+        assertEquals("×", node.operator)
     }
 }

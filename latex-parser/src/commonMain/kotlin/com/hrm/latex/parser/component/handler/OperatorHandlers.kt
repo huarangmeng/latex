@@ -29,6 +29,13 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  * 数学算子 & 运算符名称命令：\sin, \cos, \operatorname, \mathop, \bmod, \pmod, \mod, \dots
  */
 internal fun CommandRegistry.installOperatorHandlers() {
+    fun normalizeMathOpArgument(node: LatexNode): LatexNode {
+        return if (node is LatexNode.Group && node.children.size == 1) {
+            normalizeMathOpArgument(node.children[0])
+        } else {
+            node
+        }
+    }
 
     // \dots 判断用的常量集合 — 提取为文件级避免每次调用 \dots 时重新创建
     val dotsTextChars = setOf('+', '-', '*', '=', '<', '>')
@@ -71,7 +78,8 @@ internal fun CommandRegistry.installOperatorHandlers() {
 
     // \mathop{content}
     register("mathop") { _, ctx, stream ->
-        val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\mathop")
+        val rawArg = ctx.parseArgument() ?: return@register LatexNode.Text("\\mathop")
+        val arg = normalizeMathOpArgument(rawArg)
         when (arg) {
             is LatexNode.BigOperator -> {
                 val (sub, sup, limitsMode) = ParseUtils.parseScriptsAndLimits(ctx, stream)
@@ -93,8 +101,9 @@ internal fun CommandRegistry.installOperatorHandlers() {
                     is LatexNode.Group -> ParseUtils.extractText(arg.children)
                     is LatexNode.OperatorName -> arg.name
                     is LatexNode.Operator -> arg.op
-                    is LatexNode.Symbol -> arg.symbol
+                    is LatexNode.Symbol -> arg.unicode
                     is LatexNode.Command -> arg.name
+                    is LatexNode.BigOperator -> arg.operator
                     else -> ""
                 }
                 if (content.isEmpty()) return@register LatexNode.Text("\\mathop")

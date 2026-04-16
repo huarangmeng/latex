@@ -100,10 +100,25 @@ internal object ParseUtils {
         var superscript: LatexNode? = null
         var limitsMode = LatexNode.BigOperator.LimitsMode.AUTO
 
+        fun shouldContinueAfterWhitespace(token: LatexToken?): Boolean {
+            return when {
+                token is LatexToken.Command && (token.name == "limits" || token.name == "nolimits") -> true
+                token is LatexToken.Subscript -> subscript == null
+                token is LatexToken.Superscript -> superscript == null
+                else -> false
+            }
+        }
+
         while (!stream.isEOF()) {
             val token = stream.peek()
             when {
                 token is LatexToken.Whitespace || token is LatexToken.NewLine -> {
+                    val nextToken = stream.peekSkipping {
+                        it is LatexToken.Whitespace || it is LatexToken.NewLine
+                    }
+                    if (!shouldContinueAfterWhitespace(nextToken)) {
+                        break
+                    }
                     stream.advance()
                 }
                 token is LatexToken.Command && token.name == "limits" -> {
