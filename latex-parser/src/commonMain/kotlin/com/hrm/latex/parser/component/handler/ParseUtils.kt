@@ -122,7 +122,6 @@ internal object ParseUtils {
                     while (stream.peek() is LatexToken.Whitespace) {
                         stream.advance()
                     }
-                    stream.advance()
                 }
 
                 is LatexToken.Command if token.name == "limits" -> {
