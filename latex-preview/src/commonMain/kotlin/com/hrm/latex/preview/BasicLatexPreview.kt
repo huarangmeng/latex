@@ -239,6 +239,7 @@ val basicLatexPreviewGroups = listOf(
                 "终极复杂表达式",
                 "\\sum_{n=0}^{\\infty} \\frac{1}{n!} \\int_{-\\infty}^{\\infty} \\left(\\frac{d}{dx}\\right)^n \\left[\\frac{\\sqrt{\\pi}}{\\sqrt{1+x^2}} \\cdot e^{-\\frac{x^2}{2\\sigma^2}} \\cdot \\prod_{k=1}^{n} \\left(1 + \\frac{x^k}{k!}\\right)\\right] dx"
             ),
+            PreviewItem("11", "pod", "\\dfrac{1}{r^2}\\dfrac{\\partial }{\\partial r}\\left (r^2\\dfrac{\\partial }{\\partial r} \\right )  R(r)+\\left[\\dfrac{2\\mu}{\\hbar^2}(E-V(r)) -\\dfrac{\\alpha}{r^2} \\right ]R(r)=0")
         )
     ),
     PreviewGroup(

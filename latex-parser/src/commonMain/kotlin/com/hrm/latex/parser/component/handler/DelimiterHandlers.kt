@@ -22,6 +22,7 @@
 
 package com.hrm.latex.parser.component.handler
 
+import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
@@ -29,9 +30,16 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  * 定界符命令：\left...\right, \big, \Big, \bigg, \Bigg 等
  */
 internal fun CommandRegistry.installDelimiterHandlers() {
+    fun LatexTokenStream.consumeDelimiterToken(): LatexToken? {
+        while (peek() is LatexToken.Whitespace) {
+            advance()
+        }
+        return if (!isEOF()) advance() else null
+    }
+
     // \left...\right 自动伸缩
     register("left") { _, ctx, stream ->
-        val leftToken = stream.advance()
+        val leftToken = stream.consumeDelimiterToken()
         val left = when (leftToken) {
             is LatexToken.Text -> if (leftToken.content == ".") "" else leftToken.content
             is LatexToken.LeftBrace -> "{"
@@ -69,7 +77,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
             stream.advance()
         }
 
-        val rightToken = if (!stream.isEOF()) stream.advance() else null
+        val rightToken = stream.consumeDelimiterToken()
         val right = when (rightToken) {
             null -> ")"
             is LatexToken.Text -> if (rightToken.content == ".") "" else rightToken.content
@@ -102,7 +110,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
             else -> cmdName
         }
 
-        val delimiterToken = if (!stream.isEOF()) stream.advance() else null
+        val delimiterToken = stream.consumeDelimiterToken()
         val delimiter = when (delimiterToken) {
             is LatexToken.Text -> delimiterToken.content
             is LatexToken.LeftBrace -> "{"

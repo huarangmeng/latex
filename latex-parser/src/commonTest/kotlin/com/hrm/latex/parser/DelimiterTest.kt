@@ -59,6 +59,19 @@ class DelimiterTest {
         assertEquals("[", delim.left)
         assertEquals("]", delim.right)
     }
+
+    @Test
+    fun testDelimitersIgnoreWhitespaceAfterCommands() {
+        val parenDoc = parser.parse("\\left ( x \\right )")
+        val parenDelim = parenDoc.children[0] as LatexNode.Delimited
+        assertEquals("(", parenDelim.left)
+        assertEquals(")", parenDelim.right)
+
+        val bracketDoc = parser.parse("\\left [ x \\right ]")
+        val bracketDelim = bracketDoc.children[0] as LatexNode.Delimited
+        assertEquals("[", bracketDelim.left)
+        assertEquals("]", bracketDelim.right)
+    }
     
     @Test
     fun testCurlyBraces() {
@@ -255,6 +268,16 @@ class DelimiterTest {
         val leftDelim = delimiters[0]
         assertEquals("(", leftDelim.delimiter)
         assertEquals(1.2f, leftDelim.size)
+    }
+
+    @Test
+    fun testManualDelimitersIgnoreWhitespaceAfterCommands() {
+        val doc = parser.parse("\\big ( x \\big )")
+
+        val delimiters = doc.children.filterIsInstance<LatexNode.ManualSizedDelimiter>()
+        assertTrue(delimiters.size >= 2, "带空格的手动定界符也应该被解析")
+        assertEquals("(", delimiters[0].delimiter)
+        assertEquals(")", delimiters[1].delimiter)
     }
     
     @Test
