@@ -175,4 +175,32 @@ class MathOpTest {
         assertIs<LatexNode.BigOperator>(node)
         assertEquals("×", node.operator)
     }
+
+    @Test
+    fun should_parse_mathop_nolimits_with_existing_big_operator() {
+        val result = parser.parse("\\mathop \\prod \\nolimits_{i = 1}^n")
+        val children = result.children
+
+        assertEquals(1, children.size)
+        val node = children[0]
+        assertIs<LatexNode.BigOperator>(node)
+        assertEquals("prod", node.operator)
+        assertEquals(LatexNode.BigOperator.LimitsMode.NOLIMITS, node.limitsMode)
+        assertNotNull(node.subscript)
+        assertNotNull(node.superscript)
+    }
+
+    @Test
+    fun should_parse_mathop_braced_big_operator_with_spaces() {
+        val result = parser.parse("\\mathop{ \\prod }\\limits_{i = 1}^n")
+        val children = result.children
+
+        assertEquals(1, children.size)
+        val node = children[0]
+        assertIs<LatexNode.BigOperator>(node)
+        assertEquals("prod", node.operator)
+        assertEquals(LatexNode.BigOperator.LimitsMode.LIMITS, node.limitsMode)
+        assertNotNull(node.subscript)
+        assertNotNull(node.superscript)
+    }
 }

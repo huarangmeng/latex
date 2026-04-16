@@ -30,11 +30,15 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  */
 internal fun CommandRegistry.installOperatorHandlers() {
     fun normalizeMathOpArgument(node: LatexNode): LatexNode {
-        return if (node is LatexNode.Group && node.children.size == 1) {
-            normalizeMathOpArgument(node.children[0])
-        } else {
-            node
+        if (node is LatexNode.Group) {
+            val significant = node.children.filter {
+                it !is LatexNode.Space && it !is LatexNode.NewLine
+            }
+            if (significant.size == 1) {
+                return normalizeMathOpArgument(significant[0])
+            }
         }
+        return node
     }
 
     // \dots 判断用的常量集合 — 提取为文件级避免每次调用 \dots 时重新创建

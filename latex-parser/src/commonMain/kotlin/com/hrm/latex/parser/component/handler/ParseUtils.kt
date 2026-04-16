@@ -100,15 +100,6 @@ internal object ParseUtils {
         var superscript: LatexNode? = null
         var limitsMode = LatexNode.BigOperator.LimitsMode.AUTO
 
-        fun shouldContinueAfterWhitespace(token: LatexToken?): Boolean {
-            return when {
-                token is LatexToken.Command && (token.name == "limits" || token.name == "nolimits") -> true
-                token is LatexToken.Subscript -> subscript == null
-                token is LatexToken.Superscript -> superscript == null
-                else -> false
-            }
-        }
-
         while (!stream.isEOF()) {
             val token = stream.peek()
             when (token) {
@@ -116,7 +107,13 @@ internal object ParseUtils {
                     val nextToken = stream.peekSkipping {
                         it is LatexToken.Whitespace
                     }
-                    if (!shouldContinueAfterWhitespace(nextToken)) {
+                    val shouldContinue = when {
+                        nextToken is LatexToken.Command && (nextToken.name == "limits" || nextToken.name == "nolimits") -> true
+                        nextToken is LatexToken.Subscript && subscript == null -> true
+                        nextToken is LatexToken.Superscript && superscript == null -> true
+                        else -> false
+                    }
+                    if (!shouldContinue) {
                         break
                     }
                     while (stream.peek() is LatexToken.Whitespace) {
