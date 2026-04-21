@@ -48,6 +48,12 @@ internal fun CommandRegistry.installStyleHandlers() {
         "texttt" to LatexNode.Style.StyleType.MONOSPACE,
         "tt" to LatexNode.Style.StyleType.MONOSPACE,
         "mathbb" to LatexNode.Style.StyleType.BLACKBOARD_BOLD,
+        // AMSFonts legacy alias: \Bbb{R} / \Bbb R
+        "Bbb" to LatexNode.Style.StyleType.BLACKBOARD_BOLD,
+        // Legacy font switches (common in older LaTeX documents)
+        "cal" to LatexNode.Style.StyleType.CALLIGRAPHIC,
+        "frak" to LatexNode.Style.StyleType.FRAKTUR,
+        "scr" to LatexNode.Style.StyleType.SCRIPT,
         "mathfrak" to LatexNode.Style.StyleType.FRAKTUR,
         "mathscr" to LatexNode.Style.StyleType.SCRIPT,
         "mathcal" to LatexNode.Style.StyleType.CALLIGRAPHIC,

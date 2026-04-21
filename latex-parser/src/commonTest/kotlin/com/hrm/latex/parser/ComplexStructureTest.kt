@@ -366,6 +366,41 @@ class ComplexStructureTest {
         val style = doc.children[0] as LatexNode.Style
         assertEquals(LatexNode.Style.StyleType.BLACKBOARD_BOLD, style.styleType)
     }
+
+    @Test
+    fun testBbbAliasWithGroup() {
+        val doc = parser.parse("\\Bbb{R}")
+        val style = doc.children[0] as LatexNode.Style
+        assertEquals(LatexNode.Style.StyleType.BLACKBOARD_BOLD, style.styleType)
+    }
+
+    @Test
+    fun testBbbAliasWithSingleToken() {
+        val doc = parser.parse("\\Bbb R")
+        val style = doc.children[0] as LatexNode.Style
+        assertEquals(LatexNode.Style.StyleType.BLACKBOARD_BOLD, style.styleType)
+    }
+
+    @Test
+    fun testCalAlias() {
+        val doc = parser.parse("\\cal A")
+        val style = doc.children[0] as LatexNode.Style
+        assertEquals(LatexNode.Style.StyleType.CALLIGRAPHIC, style.styleType)
+    }
+
+    @Test
+    fun testFrakAlias() {
+        val doc = parser.parse("\\frak g")
+        val style = doc.children[0] as LatexNode.Style
+        assertEquals(LatexNode.Style.StyleType.FRAKTUR, style.styleType)
+    }
+
+    @Test
+    fun testScrAlias() {
+        val doc = parser.parse("\\scr F")
+        val style = doc.children[0] as LatexNode.Style
+        assertEquals(LatexNode.Style.StyleType.SCRIPT, style.styleType)
+    }
     
     @Test
     fun testMathCal() {

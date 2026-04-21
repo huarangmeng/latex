@@ -150,6 +150,8 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem("10", "operatorname + limits", "\\operatorname{Res}\\limits_{z=0} f(z)"),
             PreviewItem("11", "mathop + limits", "\\[\\int_0^\\infty  {1 - \\mathop \\prod \\limits_{i = 1}^n \\left( {1 - {e^{ - {p_i}t}}} \\right){\\text{d}}t} \\]"),
+            PreviewItem("12", "Bbb (mathbb 别名)", "\\Bbb{R} \\quad \\mathbb{R} \\quad \\Bbb R"),
+            PreviewItem("13", "cal/frak/scr (legacy)", "\\cal A \\quad \\frak g \\quad \\scr F"),
         )
     ),
     PreviewGroup(
