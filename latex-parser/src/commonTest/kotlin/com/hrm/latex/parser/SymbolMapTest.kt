@@ -131,6 +131,7 @@ class SymbolMapTest {
         assertEquals("∼", SymbolMap.getSymbol("sim"))
         assertEquals("≃", SymbolMap.getSymbol("simeq"))
         assertEquals("∝", SymbolMap.getSymbol("propto"))
+        assertEquals("∝", SymbolMap.getSymbol("varpropto"))
     }
 
     @Test
@@ -188,6 +189,8 @@ class SymbolMapTest {
         assertEquals("↽", SymbolMap.getSymbol("leftharpoondown"))
         assertEquals("⇀", SymbolMap.getSymbol("rightharpoonup"))
         assertEquals("⇁", SymbolMap.getSymbol("rightharpoondown"))
+        assertEquals("⇌", SymbolMap.getSymbol("rightleftharpoons"))
+        assertEquals("⇋", SymbolMap.getSymbol("leftrightharpoons"))
     }
 
     // ========== 集合符号测试 ==========
@@ -347,5 +350,120 @@ class SymbolMapTest {
         commonSymbols.forEach { symbol ->
             assertNotNull(SymbolMap.getSymbol(symbol), "Missing common symbol: $symbol")
         }
+    }
+
+    // ========== AMS 希腊字母变体测试 ==========
+
+    @Test
+    fun testAmsGreekVariants() {
+        assertEquals("ϝ", SymbolMap.getSymbol("digamma"))
+        assertEquals("ϰ", SymbolMap.getSymbol("varkappa"))
+    }
+
+    // ========== AMS 二元运算符测试 ==========
+
+    @Test
+    fun testAmsBinaryOperators() {
+        assertEquals("∔", SymbolMap.getSymbol("dotplus"))
+        assertEquals("∖", SymbolMap.getSymbol("smallsetminus"))
+        assertEquals("⌅", SymbolMap.getSymbol("barwedge"))
+        assertEquals("⌆", SymbolMap.getSymbol("veebar"))
+        assertEquals("⩞", SymbolMap.getSymbol("doublebarwedge"))
+        assertEquals("⊟", SymbolMap.getSymbol("boxminus"))
+        assertEquals("⊞", SymbolMap.getSymbol("boxplus"))
+        assertEquals("⊠", SymbolMap.getSymbol("boxtimes"))
+        assertEquals("⊡", SymbolMap.getSymbol("boxdot"))
+        assertEquals("⋋", SymbolMap.getSymbol("leftthreetimes"))
+        assertEquals("⋌", SymbolMap.getSymbol("rightthreetimes"))
+        assertEquals("⋏", SymbolMap.getSymbol("curlywedge"))
+        assertEquals("⋎", SymbolMap.getSymbol("curlyvee"))
+        assertEquals("⊝", SymbolMap.getSymbol("circleddash"))
+        assertEquals("⊛", SymbolMap.getSymbol("circledast"))
+        assertEquals("⊚", SymbolMap.getSymbol("circledcirc"))
+        assertEquals("·", SymbolMap.getSymbol("centerdot"))
+        assertEquals("⊺", SymbolMap.getSymbol("intercal"))
+        assertEquals("⋇", SymbolMap.getSymbol("divideontimes"))
+        assertEquals("⋊", SymbolMap.getSymbol("rtimes"))
+        assertEquals("⋉", SymbolMap.getSymbol("ltimes"))
+    }
+
+    // ========== AMS 额外关系符号测试 ==========
+
+    @Test
+    fun testAmsExtraRelations() {
+        assertEquals("⪕", SymbolMap.getSymbol("eqslantless"))
+        assertEquals("⪖", SymbolMap.getSymbol("eqslantgtr"))
+        assertEquals("⪅", SymbolMap.getSymbol("lessapprox"))
+        assertEquals("⪆", SymbolMap.getSymbol("gtrapprox"))
+        assertEquals("≾", SymbolMap.getSymbol("precsim"))
+        assertEquals("≿", SymbolMap.getSymbol("succsim"))
+        assertEquals("⪷", SymbolMap.getSymbol("precapprox"))
+        assertEquals("⪸", SymbolMap.getSymbol("succapprox"))
+    }
+
+    // ========== AMS 否定关系符号扩展测试 ==========
+
+    @Test
+    fun testAmsExtraNegatedRelations() {
+        assertEquals("⊊", SymbolMap.getSymbol("varsubsetneq"))
+        assertEquals("⊋", SymbolMap.getSymbol("varsupsetneq"))
+        assertEquals("⫋", SymbolMap.getSymbol("subsetneqq"))
+        assertEquals("⫌", SymbolMap.getSymbol("supsetneqq"))
+        assertEquals("⫋", SymbolMap.getSymbol("varsubsetneqq"))
+        assertEquals("⫌", SymbolMap.getSymbol("varsupsetneqq"))
+        assertEquals("⊄", SymbolMap.getSymbol("nsubset"))
+        assertEquals("⊅", SymbolMap.getSymbol("nsupset"))
+        assertEquals("⊈", SymbolMap.getSymbol("nsubseteqq"))
+        assertEquals("⊉", SymbolMap.getSymbol("nsupseteqq"))
+    }
+
+    // ========== AMS 否定箭头测试 ==========
+
+    @Test
+    fun testAmsNegatedArrows() {
+        assertEquals("↚", SymbolMap.getSymbol("nleftarrow"))
+        assertEquals("↛", SymbolMap.getSymbol("nrightarrow"))
+        assertEquals("⇍", SymbolMap.getSymbol("nLeftarrow"))
+        assertEquals("⇏", SymbolMap.getSymbol("nRightarrow"))
+        assertEquals("⇎", SymbolMap.getSymbol("nLeftrightarrow"))
+        assertEquals("↮", SymbolMap.getSymbol("nleftrightarrow"))
+    }
+
+    // ========== AMS 额外箭头测试 ==========
+
+    @Test
+    fun testAmsExtraArrows() {
+        assertEquals("⇛", SymbolMap.getSymbol("Rrightarrow"))
+        assertEquals("⇚", SymbolMap.getSymbol("Lleftarrow"))
+        assertEquals("⤳", SymbolMap.getSymbol("twoheadrightarrowtail"))
+    }
+
+    // ========== 大型运算符扩展测试 ==========
+
+    @Test
+    fun testExtraBigOperators() {
+        assertEquals("△", SymbolMap.getSymbol("bigtriangleup"))
+        assertEquals("▽", SymbolMap.getSymbol("bigtriangledown"))
+        assertEquals("⨌", SymbolMap.getSymbol("iiiint"))
+        assertEquals("∬", SymbolMap.getSymbol("oiint"))
+        assertEquals("∭", SymbolMap.getSymbol("oiiint"))
+    }
+
+    // ========== 额外定界符测试 ==========
+
+    @Test
+    fun testExtraDelimiters() {
+        assertEquals("⟮", SymbolMap.getSymbol("lgroup"))
+        assertEquals("⟯", SymbolMap.getSymbol("rgroup"))
+        assertEquals("⎰", SymbolMap.getSymbol("lmoustache"))
+        assertEquals("⎱", SymbolMap.getSymbol("rmoustache"))
+    }
+
+    // ========== AMS 杂项符号扩展测试 ==========
+
+    @Test
+    fun testAmsExtraMiscSymbols() {
+        assertEquals("⧫", SymbolMap.getSymbol("blacklozenge"))
+        assertEquals("𝕜", SymbolMap.getSymbol("Bbbk"))
     }
 }

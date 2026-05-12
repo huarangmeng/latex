@@ -215,7 +215,7 @@ private val CENTERED_SYMBOLS = setOf(
     "subset", "supset", "subseteq", "supseteq",
     "prec", "succ", "preceq", "succeq",
     "in", "ni", "notin",
-    "propto", "perp", "parallel",
+    "propto", "varpropto", "perp", "parallel",
     "vdash", "dashv",
     // 二元运算符
     "plus", "minus", "times", "div", "cdot",

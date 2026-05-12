@@ -952,6 +952,83 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem("18", "希伯来字母", "\\aleph \\quad \\beth \\quad \\gimel \\quad \\daleth"),
             PreviewItem("19", "角度符号", "\\angle \\quad \\measuredangle \\quad \\sphericalangle"),
+            PreviewItem("20", "正比符号", "a \\propto b \\quad c \\varpropto d"),
+            PreviewItem("21", "AMS 希腊变体", "\\digamma \\quad \\varkappa"),
+            PreviewItem(
+                "22",
+                "AMS 二元运算符 (1)",
+                "\\dotplus \\quad \\smallsetminus \\quad \\barwedge \\quad \\veebar \\quad \\doublebarwedge"
+            ),
+            PreviewItem(
+                "23",
+                "AMS 二元运算符 (2)",
+                "\\boxminus \\quad \\boxplus \\quad \\boxtimes \\quad \\boxdot"
+            ),
+            PreviewItem(
+                "24",
+                "AMS 二元运算符 (3)",
+                "\\leftthreetimes \\quad \\rightthreetimes \\quad \\curlywedge \\quad \\curlyvee"
+            ),
+            PreviewItem(
+                "25",
+                "AMS 二元运算符 (4)",
+                "\\circleddash \\quad \\circledast \\quad \\circledcirc \\quad \\centerdot \\quad \\intercal"
+            ),
+            PreviewItem(
+                "26",
+                "AMS 二元运算符 (5)",
+                "\\divideontimes \\quad \\rtimes \\quad \\ltimes"
+            ),
+            PreviewItem(
+                "27",
+                "AMS 额外关系 (eqslant/approx)",
+                "\\eqslantless \\quad \\eqslantgtr \\quad \\lessapprox \\quad \\gtrapprox"
+            ),
+            PreviewItem(
+                "28",
+                "AMS 额外关系 (prec/succ)",
+                "\\precsim \\quad \\succsim \\quad \\precapprox \\quad \\succapprox"
+            ),
+            PreviewItem(
+                "29",
+                "AMS 否定集合 (var/subsetneqq)",
+                "\\varsubsetneq \\quad \\varsupsetneq \\quad \\subsetneqq \\quad \\supsetneqq"
+            ),
+            PreviewItem(
+                "30",
+                "AMS 否定集合 (nsubset)",
+                "\\nsubset \\quad \\nsupset \\quad \\nsubseteqq \\quad \\nsupseteqq"
+            ),
+            PreviewItem(
+                "31",
+                "AMS 否定箭头",
+                "\\nleftarrow \\quad \\nrightarrow \\quad \\nLeftarrow \\quad \\nRightarrow \\quad \\nLeftrightarrow \\quad \\nleftrightarrow"
+            ),
+            PreviewItem(
+                "32",
+                "AMS 额外箭头",
+                "\\Rrightarrow \\quad \\Lleftarrow \\quad \\twoheadrightarrowtail"
+            ),
+            PreviewItem(
+                "33",
+                "平衡箭头",
+                "\\rightleftharpoons \\quad \\leftrightharpoons"
+            ),
+            PreviewItem(
+                "34",
+                "大型运算符扩展",
+                "\\bigtriangleup \\quad \\bigtriangledown \\quad \\iiiint \\quad \\oiint \\quad \\oiiint"
+            ),
+            PreviewItem(
+                "35",
+                "额外定界符",
+                "\\left\\langle x \\right\\rangle \\quad \\left\\lgroup a \\right\\rgroup \\quad \\left\\lmoustache b \\right\\rmoustache"
+            ),
+            PreviewItem(
+                "36",
+                "AMS 杂项扩展",
+                "\\blacklozenge \\quad \\Bbbk"
+            ),
         )
     ),
     PreviewGroup(

@@ -211,7 +211,7 @@ internal class LineBreaker(private val maxWidth: Float) {
         "⊂", "⊃", "⊆", "⊇", "∈", "∋", "≺", "≻", "∝",
         "eq", "ne", "neq", "approx", "equiv", "sim", "le", "leq", "ge", "geq",
         "ll", "gg", "subset", "supset", "subseteq", "supseteq", "in", "ni",
-        "prec", "succ", "propto" -> PENALTY_RELATION
+        "prec", "succ", "propto", "varpropto" -> PENALTY_RELATION
 
         "+", "-", "−", "±", "∓",
         "pm", "mp", "plus", "minus" -> PENALTY_ADDITIVE

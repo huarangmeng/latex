@@ -60,7 +60,6 @@ kotlin {
             implementation(libs.androidx.navigationevent)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.ui.tooling.preview)
-            implementation(libs.mp.stools)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

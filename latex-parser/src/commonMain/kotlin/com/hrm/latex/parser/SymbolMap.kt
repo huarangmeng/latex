@@ -59,6 +59,10 @@ object SymbolMap {
         "psi" to "ψ",
         "omega" to "ω",
 
+        // AMS 希腊字母变体
+        "digamma" to "ϝ",
+        "varkappa" to "ϰ",
+
         // 希腊字母（大写）
         "Gamma" to "Γ",
         "Delta" to "Δ",
@@ -97,6 +101,29 @@ object SymbolMap {
         "wr" to "≀",
         "amalg" to "∐",
 
+        // AMS 二元运算符
+        "dotplus" to "∔",
+        "smallsetminus" to "∖",
+        "barwedge" to "⌅",
+        "veebar" to "⌆",
+        "doublebarwedge" to "⩞",
+        "boxminus" to "⊟",
+        "boxplus" to "⊞",
+        "boxtimes" to "⊠",
+        "boxdot" to "⊡",
+        "leftthreetimes" to "⋋",
+        "rightthreetimes" to "⋌",
+        "curlywedge" to "⋏",
+        "curlyvee" to "⋎",
+        "circleddash" to "⊝",
+        "circledast" to "⊛",
+        "circledcirc" to "⊚",
+        "centerdot" to "·",
+        "intercal" to "⊺",
+        "divideontimes" to "⋇",
+        "rtimes" to "⋊",
+        "ltimes" to "⋉",
+
         // 关系符号
         "leq" to "≤",
         "le" to "≤",
@@ -110,6 +137,7 @@ object SymbolMap {
         "sim" to "∼",
         "simeq" to "≃",
         "propto" to "∝",
+        "varpropto" to "∝",
         "ll" to "≪",
         "gg" to "≫",
         "subset" to "⊂",
@@ -165,6 +193,8 @@ object SymbolMap {
         "leftharpoondown" to "↽",
         "rightharpoonup" to "⇀",
         "rightharpoondown" to "⇁",
+        "rightleftharpoons" to "⇌",
+        "leftrightharpoons" to "⇋",
 
         // 集合符号
         "emptyset" to "∅",
@@ -246,6 +276,12 @@ object SymbolMap {
         "lbrace" to "{",
         "rbrace" to "}",
 
+        // 额外定界符
+        "lgroup" to "⟮",
+        "rgroup" to "⟯",
+        "lmoustache" to "⎰",
+        "rmoustache" to "⎱",
+
         // 其他
         "sum" to "∑",
         "prod" to "∏",
@@ -259,6 +295,12 @@ object SymbolMap {
         "bigsqcup" to "⨆",
         "bigodot" to "⨀",
         "biguplus" to "⨄",
+        "bigtriangleup" to "△",
+        "bigtriangledown" to "▽",
+        "iiiint" to "⨌",
+        "idotsint" to "∫⋯∫",
+        "oiint" to "∬",
+        "oiiint" to "∭",
         "triangleright" to "▷",
         "triangleleft" to "◁",
 
@@ -300,14 +342,40 @@ object SymbolMap {
         "succnsim" to "⋩",
         "subsetneq" to "⊊",
         "supsetneq" to "⊋",
+        "varsubsetneq" to "⊊",
+        "varsupsetneq" to "⊋",
+        "subsetneqq" to "⫋",
+        "supsetneqq" to "⫌",
+        "varsubsetneqq" to "⫋",
+        "varsupsetneqq" to "⫌",
+        "nsubset" to "⊄",
+        "nsupset" to "⊅",
+        "nsubseteqq" to "⊈",
+        "nsupseteqq" to "⊉",
+
+        // AMS 否定箭头
+        "nleftarrow" to "↚",
+        "nrightarrow" to "↛",
+        "nLeftarrow" to "⇍",
+        "nRightarrow" to "⇏",
+        "nLeftrightarrow" to "⇎",
+        "nleftrightarrow" to "↮",
 
         // AMS 额外关系符号
         "leqslant" to "⩽",
         "geqslant" to "⩾",
+        "eqslantless" to "⪕",
+        "eqslantgtr" to "⪖",
         "lessgtr" to "≶",
         "gtrless" to "≷",
         "lesssim" to "≲",
         "gtrsim" to "≳",
+        "lessapprox" to "⪅",
+        "gtrapprox" to "⪆",
+        "precsim" to "≾",
+        "succsim" to "≿",
+        "precapprox" to "⪷",
+        "succapprox" to "⪸",
         "trianglelefteq" to "⊴",
         "trianglerighteq" to "⊵",
         "vDash" to "⊨",
@@ -345,6 +413,10 @@ object SymbolMap {
         "multimap" to "⊸",
         "leftrightsquigarrow" to "↭",
         "rightsquigarrow" to "⇝",
+        "Rrightarrow" to "⇛",
+        "Lleftarrow" to "⇚",
+        "rightarrowback" to "⇠",
+        "twoheadrightarrowtail" to "⤳",
         "Subset" to "⋐",
         "Supset" to "⋑",
         "Cap" to "⋒",
@@ -390,7 +462,9 @@ object SymbolMap {
         "beth" to "ℶ",
         "gimel" to "ℷ",
         "daleth" to "ℸ",
-        "hslash" to "ℏ"
+        "hslash" to "ℏ",
+        "blacklozenge" to "⧫",
+        "Bbbk" to "𝕜"
     )
 
     /**
@@ -437,7 +511,7 @@ object SymbolMap {
         "neq" to "not equal to", "ne" to "not equal to",
         "approx" to "approximately", "equiv" to "equivalent to",
         "sim" to "similar to", "simeq" to "similar or equal to",
-        "cong" to "congruent to", "propto" to "proportional to",
+        "cong" to "congruent to", "propto" to "proportional to", "varpropto" to "varies as",
         "ll" to "much less than", "gg" to "much greater than",
         "prec" to "precedes", "succ" to "succeeds",
         "perp" to "perpendicular", "parallel" to "parallel to",

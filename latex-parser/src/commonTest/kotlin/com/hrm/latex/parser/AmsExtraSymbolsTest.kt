@@ -166,4 +166,202 @@ class AmsExtraSymbolsTest {
         assertEquals("✓", symbols[0].unicode)
         assertEquals("∁", symbols[1].unicode)
     }
+
+    // === AMS 希腊字母变体 ===
+
+    @Test
+    fun should_parse_digamma() = parseSymbol("digamma", "ϝ")
+
+    @Test
+    fun should_parse_varkappa() = parseSymbol("varkappa", "ϰ")
+
+    // === AMS 二元运算符 ===
+
+    @Test
+    fun should_parse_dotplus() = parseSymbol("dotplus", "∔")
+
+    @Test
+    fun should_parse_smallsetminus() = parseSymbol("smallsetminus", "∖")
+
+    @Test
+    fun should_parse_barwedge() = parseSymbol("barwedge", "⌅")
+
+    @Test
+    fun should_parse_veebar() = parseSymbol("veebar", "⌆")
+
+    @Test
+    fun should_parse_doublebarwedge() = parseSymbol("doublebarwedge", "⩞")
+
+    @Test
+    fun should_parse_boxminus() = parseSymbol("boxminus", "⊟")
+
+    @Test
+    fun should_parse_boxplus() = parseSymbol("boxplus", "⊞")
+
+    @Test
+    fun should_parse_boxtimes() = parseSymbol("boxtimes", "⊠")
+
+    @Test
+    fun should_parse_boxdot() = parseSymbol("boxdot", "⊡")
+
+    @Test
+    fun should_parse_leftthreetimes() = parseSymbol("leftthreetimes", "⋋")
+
+    @Test
+    fun should_parse_rightthreetimes() = parseSymbol("rightthreetimes", "⋌")
+
+    @Test
+    fun should_parse_curlywedge() = parseSymbol("curlywedge", "⋏")
+
+    @Test
+    fun should_parse_curlyvee() = parseSymbol("curlyvee", "⋎")
+
+    @Test
+    fun should_parse_circleddash() = parseSymbol("circleddash", "⊝")
+
+    @Test
+    fun should_parse_circledast() = parseSymbol("circledast", "⊛")
+
+    @Test
+    fun should_parse_circledcirc() = parseSymbol("circledcirc", "⊚")
+
+    @Test
+    fun should_parse_centerdot() = parseSymbol("centerdot", "·")
+
+    @Test
+    fun should_parse_intercal() = parseSymbol("intercal", "⊺")
+
+    @Test
+    fun should_parse_divideontimes() = parseSymbol("divideontimes", "⋇")
+
+    @Test
+    fun should_parse_rtimes() = parseSymbol("rtimes", "⋊")
+
+    @Test
+    fun should_parse_ltimes() = parseSymbol("ltimes", "⋉")
+
+    // === AMS 额外关系符号 ===
+
+    @Test
+    fun should_parse_eqslantless() = parseSymbol("eqslantless", "⪕")
+
+    @Test
+    fun should_parse_eqslantgtr() = parseSymbol("eqslantgtr", "⪖")
+
+    @Test
+    fun should_parse_lessapprox() = parseSymbol("lessapprox", "⪅")
+
+    @Test
+    fun should_parse_gtrapprox() = parseSymbol("gtrapprox", "⪆")
+
+    @Test
+    fun should_parse_precsim() = parseSymbol("precsim", "≾")
+
+    @Test
+    fun should_parse_succsim() = parseSymbol("succsim", "≿")
+
+    @Test
+    fun should_parse_precapprox() = parseSymbol("precapprox", "⪷")
+
+    @Test
+    fun should_parse_succapprox() = parseSymbol("succapprox", "⪸")
+
+    // === AMS 否定集合关系 ===
+
+    @Test
+    fun should_parse_varsubsetneq() = parseSymbol("varsubsetneq", "⊊")
+
+    @Test
+    fun should_parse_varsupsetneq() = parseSymbol("varsupsetneq", "⊋")
+
+    @Test
+    fun should_parse_subsetneqq() = parseSymbol("subsetneqq", "⫋")
+
+    @Test
+    fun should_parse_supsetneqq() = parseSymbol("supsetneqq", "⫌")
+
+    @Test
+    fun should_parse_nsubset() = parseSymbol("nsubset", "⊄")
+
+    @Test
+    fun should_parse_nsupset() = parseSymbol("nsupset", "⊅")
+
+    @Test
+    fun should_parse_nsubseteqq() = parseSymbol("nsubseteqq", "⊈")
+
+    @Test
+    fun should_parse_nsupseteqq() = parseSymbol("nsupseteqq", "⊉")
+
+    // === AMS 否定箭头 ===
+
+    @Test
+    fun should_parse_nleftarrow() = parseSymbol("nleftarrow", "↚")
+
+    @Test
+    fun should_parse_nrightarrow() = parseSymbol("nrightarrow", "↛")
+
+    @Test
+    fun should_parse_nLeftarrow() = parseSymbol("nLeftarrow", "⇍")
+
+    @Test
+    fun should_parse_nRightarrow() = parseSymbol("nRightarrow", "⇏")
+
+    @Test
+    fun should_parse_nLeftrightarrow() = parseSymbol("nLeftrightarrow", "⇎")
+
+    @Test
+    fun should_parse_nleftrightarrow() = parseSymbol("nleftrightarrow", "↮")
+
+    // === AMS 额外箭头 ===
+
+    @Test
+    fun should_parse_Rrightarrow() = parseSymbol("Rrightarrow", "⇛")
+
+    @Test
+    fun should_parse_Lleftarrow() = parseSymbol("Lleftarrow", "⇚")
+
+    @Test
+    fun should_parse_twoheadrightarrowtail() = parseSymbol("twoheadrightarrowtail", "⤳")
+
+    @Test
+    fun should_parse_leftrightharpoons() = parseSymbol("leftrightharpoons", "⇋")
+
+    // === 大型运算符扩展 ===
+
+    @Test
+    fun should_parse_bigtriangleup() = parseSymbol("bigtriangleup", "△")
+
+    @Test
+    fun should_parse_bigtriangledown() = parseSymbol("bigtriangledown", "▽")
+
+    @Test
+    fun should_parse_iiiint() = parseSymbol("iiiint", "⨌")
+
+    @Test
+    fun should_parse_oiint() = parseSymbol("oiint", "∬")
+
+    @Test
+    fun should_parse_oiiint() = parseSymbol("oiiint", "∭")
+
+    // === 额外定界符 ===
+
+    @Test
+    fun should_parse_lgroup() = parseSymbol("lgroup", "⟮")
+
+    @Test
+    fun should_parse_rgroup() = parseSymbol("rgroup", "⟯")
+
+    @Test
+    fun should_parse_lmoustache() = parseSymbol("lmoustache", "⎰")
+
+    @Test
+    fun should_parse_rmoustache() = parseSymbol("rmoustache", "⎱")
+
+    // === AMS 杂项扩展 ===
+
+    @Test
+    fun should_parse_blacklozenge() = parseSymbol("blacklozenge", "⧫")
+
+    @Test
+    fun should_parse_Bbbk() = parseSymbol("Bbbk", "𝕜")
 }

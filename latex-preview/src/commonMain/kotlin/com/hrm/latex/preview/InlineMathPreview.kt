@@ -45,7 +45,9 @@ import androidx.compose.ui.unit.sp
 import com.hrm.latex.renderer.Latex
 import com.hrm.latex.renderer.measure.rememberLatexMeasurer
 import com.hrm.latex.renderer.model.LatexConfig
-import net.sergeych.sprintf.format
+import kotlin.math.round
+
+private fun Float.toFixed1(): String = (round(this * 10) / 10).toString()
 
 /**
  * 行内数学公式预览分组
@@ -251,9 +253,7 @@ fun InlineMathCard(
 
             if (dims != null) {
                 Text(
-                    text = "尺寸: %.1f × %.1f px, 基线: %.1f px".format(
-                        dims.widthPx, dims.heightPx, dims.baselinePx
-                    ),
+                    text = "尺寸: ${dims.widthPx.toFixed1()} × ${dims.heightPx.toFixed1()} px, 基线: ${dims.baselinePx.toFixed1()} px",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -373,9 +373,7 @@ fun BatchMeasureCard() {
                     Latex(latex = latex, config = config)
                     if (dims != null) {
                         Text(
-                            text = "→ %.1f × %.1f px (baseline: %.1f px)".format(
-                                dims.widthPx, dims.heightPx, dims.baselinePx
-                            ),
+                            text = "→ ${dims.widthPx.toFixed1()} × ${dims.heightPx.toFixed1()} px (baseline: ${dims.baselinePx.toFixed1()} px)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )

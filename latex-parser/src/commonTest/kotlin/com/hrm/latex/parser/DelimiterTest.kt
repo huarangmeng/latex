@@ -112,6 +112,22 @@ class DelimiterTest {
         assertEquals("⌈", delim.left)
         assertEquals("⌉", delim.right)
     }
+
+    @Test
+    fun testGroupDelimiters() {
+        val doc = parser.parse("\\left\\lgroup x \\right\\rgroup")
+        val delim = doc.children[0] as LatexNode.Delimited
+        assertEquals("⟮", delim.left)
+        assertEquals("⟯", delim.right)
+    }
+
+    @Test
+    fun testMoustacheDelimiters() {
+        val doc = parser.parse("\\left\\lmoustache x \\right\\rmoustache")
+        val delim = doc.children[0] as LatexNode.Delimited
+        assertEquals("⎰", delim.left)
+        assertEquals("⎱", delim.right)
+    }
     
     @Test
     fun testDelimitersWithFraction() {
@@ -290,6 +306,27 @@ class DelimiterTest {
         val leftDelim = delimiters[0]
         assertEquals("⟨", leftDelim.delimiter)
         assertEquals(1.2f, leftDelim.size)
+    }
+
+    @Test
+    fun testManualSizeWithGroupDelimiters() {
+        val doc = parser.parse("\\big\\lgroup x \\big\\rgroup")
+
+        val delimiters = doc.children.filterIsInstance<LatexNode.ManualSizedDelimiter>()
+        assertTrue(delimiters.size >= 2)
+        assertEquals("⟮", delimiters[0].delimiter)
+        assertEquals("⟯", delimiters[1].delimiter)
+    }
+
+    @Test
+    fun testManualSizeWithMoustacheDelimiters() {
+        val doc = parser.parse("\\Big\\lmoustache x \\Big\\rmoustache")
+
+        val delimiters = doc.children.filterIsInstance<LatexNode.ManualSizedDelimiter>()
+        assertTrue(delimiters.size >= 2)
+        assertEquals("⎰", delimiters[0].delimiter)
+        assertEquals("⎱", delimiters[1].delimiter)
+        assertEquals(1.8f, delimiters[0].size)
     }
     
     @Test

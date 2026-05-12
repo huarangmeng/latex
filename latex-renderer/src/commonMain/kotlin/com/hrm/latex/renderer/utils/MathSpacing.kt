@@ -222,7 +222,7 @@ object MathSpacing {
         "Longleftarrow", "Longrightarrow", "Longleftrightarrow",
         "implies", "iff",
         "mapsto", "to", "longmapsto",
-        "propto", "perp", "parallel", "mid",
+        "propto", "varpropto", "perp", "parallel", "mid",
         "prec", "succ", "preceq", "succeq",
         "vdash", "dashv"
     )
