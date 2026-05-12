@@ -46,8 +46,6 @@ jobs:
   publish:
     name: "📦 Publish normal version"
     runs-on: macOS-latest
-    outputs:
-      base_version: ${{ steps.get_version.outputs.version }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -60,10 +58,8 @@ jobs:
           cache: 'gradle'
 
       - name: Get VERSION from gradle.properties
-        id: get_version
         run: |
           VERSION=$(grep '^VERSION=' gradle.properties | cut -d'=' -f2)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo ""
           echo "╔══════════════════════════════════════╗"
           echo "║  📦 正常发布                          ║"
@@ -89,9 +85,6 @@ jobs:
   publish-alias:
     name: "📦 Publish alias version (kt2.1.0)"
     runs-on: macOS-latest
-    needs: publish
-    env:
-      BASE_VERSION: ${{ needs.publish.outputs.base_version }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -102,6 +95,17 @@ jobs:
           distribution: 'zulu'
           java-version: 21
           cache: 'gradle'
+
+      - name: Get VERSION from gradle.properties
+        run: |
+          VERSION=$(grep '^VERSION=' gradle.properties | cut -d'=' -f2)
+          echo "BASE_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo ""
+          echo "╔══════════════════════════════════════╗"
+          echo "║  📦 别名发布基础版本                  ║"
+          echo "╠══════════════════════════════════════╣"
+          echo "║  BASE_VERSION = $VERSION"
+          echo "╚══════════════════════════════════════╝"
 
       # ---------- 修改 1: gradle.properties VERSION ----------
       - name: "🔧 修改 VERSION: ${{ env.BASE_VERSION }} → ${{ env.BASE_VERSION }}-kt2.1.0"
