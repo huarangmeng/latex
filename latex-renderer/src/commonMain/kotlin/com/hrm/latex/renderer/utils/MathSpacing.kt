@@ -251,6 +251,7 @@ object MathSpacing {
      */
     fun classifyNode(node: LatexNode): AtomType {
         return when (node) {
+            is LatexNode.MathClass -> mapMathClass(node.atomClass)
             is LatexNode.Text -> classifyText(node.content)
             is LatexNode.Symbol -> classifySymbol(node.symbol, node.unicode)
             is LatexNode.Operator -> classifyOperatorText()
@@ -303,6 +304,17 @@ object MathSpacing {
     private fun classifyOperatorText(): AtomType {
         // Operator node 通常是命名运算符如 sin, cos, lim 等
         return AtomType.OP
+    }
+
+    private fun mapMathClass(atomClass: LatexNode.MathClass.AtomClass): AtomType = when (atomClass) {
+        LatexNode.MathClass.AtomClass.ORD -> AtomType.ORD
+        LatexNode.MathClass.AtomClass.OP -> AtomType.OP
+        LatexNode.MathClass.AtomClass.BIN -> AtomType.BIN
+        LatexNode.MathClass.AtomClass.REL -> AtomType.REL
+        LatexNode.MathClass.AtomClass.OPEN -> AtomType.OPEN
+        LatexNode.MathClass.AtomClass.CLOSE -> AtomType.CLOSE
+        LatexNode.MathClass.AtomClass.PUNCT -> AtomType.PUNCT
+        LatexNode.MathClass.AtomClass.INNER -> AtomType.INNER
     }
 
     private fun classifyDelimiterString(delimiter: String): AtomType {

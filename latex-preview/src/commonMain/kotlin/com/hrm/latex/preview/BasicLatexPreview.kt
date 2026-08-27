@@ -1317,6 +1317,22 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("10", "对易与向量", "\\comm{A}{B} + \\anticomm{A}{B} \\quad \\vb{v}, \\va{a}"),
         )
     ),
+    PreviewGroup(
+        id = "mathclass",
+        title = "数学类代码",
+        description = "\\mathord, \\mathbin, \\mathrel, \\mathopen, \\mathclose, \\mathpunct, \\mathinner 控制原子间距",
+        items = listOf(
+            PreviewItem("1", "普通符号强制为二元运算", "a \\mathbin{R} b"),
+            PreviewItem("2", "普通符号强制为关系", "a \\mathrel{R} b"),
+            PreviewItem("3", "斜杠作为二元运算", "a \\mathbin{/} b"),
+            PreviewItem("4", "对比：默认 vs mathbin", "a / b \\quad a \\mathbin{/} b"),
+            PreviewItem("5", "自定义开闭定界", "\\mathopen{[} x \\mathclose{]}"),
+            PreviewItem("6", "标点类间距", "a \\mathpunct{;} b"),
+            PreviewItem("7", "内部原子间距", "a + \\mathinner{x} + b"),
+            PreviewItem("8", "普通符号去除运算间距", "a \\mathord{+} b"),
+            PreviewItem("9", "组合示例", "f \\mathrel{:=} \\mathopen{\\langle} x, y \\mathclose{\\rangle}"),
+        )
+    ),
 )
 
 @Preview

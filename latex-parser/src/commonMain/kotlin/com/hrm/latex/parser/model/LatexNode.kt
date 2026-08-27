@@ -514,6 +514,31 @@ sealed class LatexNode {
     }
 
     /**
+     * 数学类代码节点
+     *
+     * 对应 TeX 的类改变控制序列 \mathord, \mathop, \mathbin, \mathrel,
+     * \mathopen, \mathclose, \mathpunct, \mathinner。它将内容子公式强制
+     * 归类为指定的原子类，从而影响与相邻原子之间的数学间距。
+     *
+     * @property content 子公式内容
+     * @property atomClass 指定的原子类
+     */
+    data class MathClass(
+        val content: List<LatexNode>,
+        val atomClass: AtomClass,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        enum class AtomClass {
+            ORD, OP, BIN, REL, OPEN, CLOSE, PUNCT, INNER
+        }
+
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitMathClass(this)
+    }
+
+    /**
      * 颜色节点
      */
     data class Color(

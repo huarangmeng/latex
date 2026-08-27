@@ -171,6 +171,10 @@ internal fun measureNode(
             node.content, context.applyStyle(node.styleType), measurer, density, cache = cache
         )
 
+        is LatexNode.MathClass -> measureGroup(
+            node.content, context, measurer, density, cache = cache
+        )
+
         is LatexNode.Color -> measureGroup(
             node.content, context.withColor(node.color), measurer, density, cache = cache
         )

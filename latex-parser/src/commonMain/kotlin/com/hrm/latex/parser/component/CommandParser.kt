@@ -52,6 +52,7 @@ internal class CommandParser(
             installBigOperatorHandlers()
             installDelimiterHandlers()
             installStyleHandlers()
+            installMathClassHandlers()
             installAccentHandlers()
             installArrowAndStackHandlers()
             installSpaceHandlers()

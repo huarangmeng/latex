@@ -52,6 +52,7 @@ interface LatexVisitor<T> {
     fun visitExtensibleArrow(node: LatexNode.ExtensibleArrow): T
     fun visitStack(node: LatexNode.Stack): T
     fun visitStyle(node: LatexNode.Style): T
+    fun visitMathClass(node: LatexNode.MathClass): T
     fun visitColor(node: LatexNode.Color): T
     fun visitMathStyle(node: LatexNode.MathStyle): T
     fun visitFontSize(node: LatexNode.FontSize): T
@@ -206,6 +207,11 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
     }
     
     override fun visitStyle(node: LatexNode.Style): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+    
+    override fun visitMathClass(node: LatexNode.MathClass): T {
         node.content.forEach { visit(it) }
         return defaultVisit(node)
     }
@@ -488,6 +494,7 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
     override fun visitExtensibleArrow(node: LatexNode.ExtensibleArrow): T = visitChildren(node)
     override fun visitStack(node: LatexNode.Stack): T = visitChildren(node)
     override fun visitStyle(node: LatexNode.Style): T = visitChildren(node)
+    override fun visitMathClass(node: LatexNode.MathClass): T = visitChildren(node)
     override fun visitColor(node: LatexNode.Color): T = visitChildren(node)
     override fun visitMathStyle(node: LatexNode.MathStyle): T = visitChildren(node)
     override fun visitFontSize(node: LatexNode.FontSize): T = visitChildren(node)

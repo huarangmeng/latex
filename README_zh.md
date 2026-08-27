@@ -55,6 +55,7 @@
 - **自定义运算符**：`\operatorname{名称}`, `\operatorname*{名称}`, `\DeclareMathOperator{\Tr}{Tr}`, `\mathop{内容}`
 - **多行下标**：`\substack{条件1 \\ 条件2}`
 - **取模运算**：`\bmod`（二元取模）, `\pmod{n}`（括号取模）, `\mod`（宽间距取模）
+- **数学类代码**：`\mathord`, `\mathbin`, `\mathrel`, `\mathopen`, `\mathclose`, `\mathpunct`, `\mathinner` 控制 TeX 原子类与原子间距
 </details>
 
 <details>

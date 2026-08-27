@@ -304,6 +304,13 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         return "<mstyle$attr>$content</mstyle>"
     }
 
+    override fun visitMathClass(node: LatexNode.MathClass): String {
+        val content = node.content.joinToString("") { visit(it) }
+        // TeX 类改变命令主要影响原子间距。MathML 中通过 <mrow> 分组保持结构，
+        // 类语义交由使用间距表的渲染器处理（见 MathSpacing）。
+        return mrow(content)
+    }
+
     override fun visitColor(node: LatexNode.Color): String {
         val content = node.content.joinToString("") { visit(it) }
         return "<mstyle mathcolor=\"${escapeXml(node.color)}\">$content</mstyle>"

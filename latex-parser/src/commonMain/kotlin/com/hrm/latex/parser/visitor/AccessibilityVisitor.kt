@@ -224,6 +224,10 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
     }
 
+    override fun visitMathClass(node: LatexNode.MathClass): String {
+        return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
+    }
+
     override fun visitColor(node: LatexNode.Color): String {
         return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
     }

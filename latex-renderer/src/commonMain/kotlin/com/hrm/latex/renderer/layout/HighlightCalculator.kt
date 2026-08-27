@@ -175,6 +175,7 @@ internal object HighlightCalculator {
             )
 
             is LatexNode.Style -> node.content.any { nodeContainsText(it, pattern) }
+            is LatexNode.MathClass -> node.content.any { nodeContainsText(it, pattern) }
             is LatexNode.Color -> node.content.any { nodeContainsText(it, pattern) }
             is LatexNode.FontSize -> node.content.any { nodeContainsText(it, pattern) }
             else -> false

@@ -118,6 +118,21 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         return ""
     }
     
+    override fun visitMathClass(node: LatexNode.MathClass): String {
+        output.append("MathClass(${node.atomClass})")
+        if (node.content.isNotEmpty()) {
+            output.append("\n")
+            indent++
+            node.content.forEach {
+                printIndent()
+                visit(it)
+                output.append("\n")
+            }
+            indent--
+        }
+        return ""
+    }
+    
     override fun visitBigOperator(node: LatexNode.BigOperator): String {
         output.append("BigOperator(${node.operator})")
         if (node.subscript != null || node.superscript != null) {

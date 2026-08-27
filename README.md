@@ -55,6 +55,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 - **Custom operators**: `\operatorname{name}`, `\operatorname*{name}`, `\DeclareMathOperator{\Tr}{Tr}`, `\mathop{content}`
 - **Multi-line subscripts**: `\substack{cond1 \\ cond2}`
 - **Modular arithmetic**: `\bmod` (binary), `\pmod{n}` (parenthesized), `\mod` (wide spacing)
+- **Math class codes**: `\mathord`, `\mathbin`, `\mathrel`, `\mathopen`, `\mathclose`, `\mathpunct`, `\mathinner` control TeX atom class and inter-atom spacing
 </details>
 
 <details>

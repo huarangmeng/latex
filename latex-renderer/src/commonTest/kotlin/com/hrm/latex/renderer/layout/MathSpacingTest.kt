@@ -29,4 +29,27 @@ class MathSpacingTest {
 
         assertEquals(AtomType.BIN, MathSpacing.effectiveAtomType(nodes, 1))
     }
+
+    @Test
+    fun should_honor_explicit_math_class() {
+        val bin = LatexNode.MathClass(listOf(LatexNode.Text("x")), LatexNode.MathClass.AtomClass.BIN)
+        val rel = LatexNode.MathClass(listOf(LatexNode.Text("R")), LatexNode.MathClass.AtomClass.REL)
+        val open = LatexNode.MathClass(listOf(LatexNode.Text("[")), LatexNode.MathClass.AtomClass.OPEN)
+
+        assertEquals(AtomType.BIN, MathSpacing.classifyNode(bin))
+        assertEquals(AtomType.REL, MathSpacing.classifyNode(rel))
+        assertEquals(AtomType.OPEN, MathSpacing.classifyNode(open))
+    }
+
+    @Test
+    fun explicit_bin_class_between_operands_stays_binary() {
+        val nodes = listOf(
+            LatexNode.Text("a"),
+            LatexNode.MathClass(listOf(LatexNode.Text("R")), LatexNode.MathClass.AtomClass.BIN),
+            LatexNode.Text("b")
+        )
+
+        // 显式 \mathbin 在两个普通原子之间应保持二元运算符间距
+        assertEquals(AtomType.BIN, MathSpacing.effectiveAtomType(nodes, 1))
+    }
 }
