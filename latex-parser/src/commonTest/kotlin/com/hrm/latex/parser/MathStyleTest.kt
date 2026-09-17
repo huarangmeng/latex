@@ -37,6 +37,37 @@ class MathStyleTest {
     private val parser = LatexParser()
 
     @Test
+    fun testCrampedMacroKeepsCurrentStyleAndScopesContent() {
+        val doc = parser.parse("\\cramped{x^2} + y^2")
+        val cramped = doc.children.first() as LatexNode.MathStyle
+        assertEquals(LatexNode.MathStyle.MathStyleType.CRAMPED, cramped.mathStyleType)
+        assertTrue(cramped.content.isNotEmpty())
+        assertTrue(doc.children.size > 1)
+    }
+
+    @Test
+    fun testCrampedMacroOptionalStyle() {
+        val doc = parser.parse("\\cramped[\\scriptstyle]{x^2}")
+        val cramped = doc.children.first() as LatexNode.MathStyle
+        assertEquals(LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT, cramped.mathStyleType)
+    }
+
+    @Test
+    fun testLuaTexCrampedStyleDeclarations() {
+        val commands = listOf(
+            "crampeddisplaystyle" to LatexNode.MathStyle.MathStyleType.CRAMPED_DISPLAY,
+            "crampedtextstyle" to LatexNode.MathStyle.MathStyleType.CRAMPED_TEXT,
+            "crampedscriptstyle" to LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT,
+            "crampedscriptscriptstyle" to LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT_SCRIPT,
+        )
+        for ((command, expected) in commands) {
+            val doc = parser.parse("{\\$command x^2}")
+            val group = doc.children.first() as LatexNode.Group
+            assertEquals(expected, (group.children.first() as LatexNode.MathStyle).mathStyleType)
+        }
+    }
+
+    @Test
     fun testDisplayStyle() {
         val doc = parser.parse("\\displaystyle x + y")
         val mathStyle = doc.children[0] as LatexNode.MathStyle

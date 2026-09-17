@@ -98,7 +98,7 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 <details>
 <summary><b>Math Mode Switching</b></summary>
 
-`\displaystyle`, `\textstyle`, `\scriptstyle`, `\scriptscriptstyle`, `$...$` (inline), `$$...$$` (display)
+`\displaystyle`, `\textstyle`, `\scriptstyle`, `\scriptscriptstyle`, `$...$` (inline), `$$...$$` (display). Denominators, radicals, and subscripts use cramped style automatically. Manual controls include `\cramped{...}`, `\cramped[\scriptstyle]{...}`, and LuaTeX's four `\cramped...style` commands.
 </details>
 
 <details>

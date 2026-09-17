@@ -58,7 +58,7 @@ internal class BinomialMeasurer : NodeMeasurer {
         node as LatexNode.Binomial
         val childStyle = context.toFractionChildStyle()
         val numLayout = measureGroup(listOf(node.top), childStyle)
-        val denLayout = measureGroup(listOf(node.bottom), childStyle)
+        val denLayout = measureGroup(listOf(node.bottom), context.toFractionChildStyle(isDenominator = true))
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val provider = context.mathFontProvider

@@ -58,7 +58,7 @@ internal class RootMeasurer : NodeMeasurer {
                 (MathStyle.SCRIPT_SCRIPT.scaleFactor() / context.mathStyle.scaleFactor()),
             mathStyle = MathStyle.SCRIPT_SCRIPT
         )
-        val content = measureGroup(listOf(node.content), context)
+        val content = measureGroup(listOf(node.content), context.copy(isCramped = true))
         val index = node.index?.let { measureGroup(listOf(it), indexStyle) }
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val provider = context.mathFontProvider

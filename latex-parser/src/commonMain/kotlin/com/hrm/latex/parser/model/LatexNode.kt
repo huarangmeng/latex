@@ -564,7 +564,10 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class MathStyleType {
-            DISPLAY, TEXT, SCRIPT, SCRIPT_SCRIPT
+            DISPLAY, TEXT, SCRIPT, SCRIPT_SCRIPT,
+            /** Keep the current size while forcing its cramped variant (mathtools \cramped). */
+            CRAMPED,
+            CRAMPED_DISPLAY, CRAMPED_TEXT, CRAMPED_SCRIPT, CRAMPED_SCRIPT_SCRIPT
         }
 
         override fun children() = content

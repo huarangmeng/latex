@@ -66,7 +66,7 @@ internal class AccentMeasurer : NodeMeasurer {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         node as LatexNode.Accent
-        val contentLayout = measureGroup(listOf(node.content), context)
+        val contentLayout = measureGroup(listOf(node.content), context.copy(isCramped = true))
 
         // 判断是否是宽装饰（需要横向拉伸）
         val isWideAccent = when (node.accentType) {

@@ -59,8 +59,8 @@ internal class TtfFontSetProvider(
         displayStyle: Boolean,
         crampedStyle: Boolean
     ) = fontSizePx * when {
-        displayStyle -> 0.413f
         crampedStyle -> 0.289f
+        displayStyle -> 0.413f
         else -> 0.363f
     }
 

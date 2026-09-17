@@ -98,7 +98,7 @@
 <details>
 <summary><b>数学模式切换</b></summary>
 
-`\displaystyle`, `\textstyle`, `\scriptstyle`, `\scriptscriptstyle`, `$...$`（行内）, `$$...$$`（展示）
+`\displaystyle`, `\textstyle`, `\scriptstyle`, `\scriptscriptstyle`, `$...$`（行内）, `$$...$$`（展示）。分母、根式、下标等位置会自动使用 cramped 样式；也支持 `\cramped{...}`、`\cramped[\scriptstyle]{...}` 和 LuaTeX 的四个 `\cramped...style` 命令。
 </details>
 
 <details>

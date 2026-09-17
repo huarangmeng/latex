@@ -85,7 +85,9 @@ internal class FractionMeasurer : NodeMeasurer {
 
         val childStyle = effectiveContext.toFractionChildStyle()
         val numeratorLayout = measureGroup(listOf(node.numerator), childStyle)
-        val denominatorLayout = measureGroup(listOf(node.denominator), childStyle)
+        val denominatorLayout = measureGroup(
+            listOf(node.denominator), effectiveContext.toFractionChildStyle(isDenominator = true)
+        )
 
         val fontSizePx = with(density) { effectiveContext.fontSize.toPx() }
         val provider = effectiveContext.mathFontProvider
