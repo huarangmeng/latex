@@ -23,6 +23,7 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.tokenizer.LatexToken
 
 /**
  * 字体样式 & 数学模式切换命令
@@ -94,12 +95,35 @@ internal fun CommandRegistry.installStyleHandlers() {
         "textstyle" to LatexNode.MathStyle.MathStyleType.TEXT,
         "scriptstyle" to LatexNode.MathStyle.MathStyleType.SCRIPT,
         "scriptscriptstyle" to LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT,
+        "crampeddisplaystyle" to LatexNode.MathStyle.MathStyleType.CRAMPED_DISPLAY,
+        "crampedtextstyle" to LatexNode.MathStyle.MathStyleType.CRAMPED_TEXT,
+        "crampedscriptstyle" to LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT,
+        "crampedscriptscriptstyle" to LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT_SCRIPT,
     )
 
     for ((cmd, mathStyleType) in mathStyleMapping) {
         register(cmd) { _, _, _ ->
             LatexNode.MathStyle(emptyList(), mathStyleType)
         }
+    }
+
+    register("cramped") { _, ctx, stream ->
+        val style = if (stream.peek() is LatexToken.LeftBracket) {
+            stream.advance()
+            val option = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
+            if (stream.peek() is LatexToken.RightBracket) stream.advance()
+            when ((option.singleOrNull() as? LatexNode.MathStyle)?.mathStyleType) {
+                LatexNode.MathStyle.MathStyleType.DISPLAY -> LatexNode.MathStyle.MathStyleType.CRAMPED_DISPLAY
+                LatexNode.MathStyle.MathStyleType.TEXT -> LatexNode.MathStyle.MathStyleType.CRAMPED_TEXT
+                LatexNode.MathStyle.MathStyleType.SCRIPT -> LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT
+                LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT -> LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT_SCRIPT
+                else -> LatexNode.MathStyle.MathStyleType.CRAMPED
+            }
+        } else {
+            LatexNode.MathStyle.MathStyleType.CRAMPED
+        }
+        val content = ctx.parseArgument()
+        LatexNode.MathStyle(if (content != null) listOf(content) else emptyList(), style)
     }
 
     val fontSizeMapping = mapOf(

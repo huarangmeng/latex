@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
+import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.shrink
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
@@ -68,9 +69,9 @@ internal class SideSetTensorMeasurer : NodeMeasurer {
         val baseLayout = measureNode(node.base, context)
         val scriptContext = context.shrink(MathConstants.SCRIPT_SCALE)
 
-        val leftSubLayout = node.leftSub?.let { measureNode(it, scriptContext) }
+        val leftSubLayout = node.leftSub?.let { measureNode(it, scriptContext.copy(isCramped = true)) }
         val leftSupLayout = node.leftSup?.let { measureNode(it, scriptContext) }
-        val rightSubLayout = node.rightSub?.let { measureNode(it, scriptContext) }
+        val rightSubLayout = node.rightSub?.let { measureNode(it, scriptContext.copy(isCramped = true)) }
         val rightSupLayout = node.rightSup?.let { measureNode(it, scriptContext) }
 
         val leftWidth = max(leftSubLayout?.width ?: 0f, leftSupLayout?.width ?: 0f)
@@ -83,8 +84,9 @@ internal class SideSetTensorMeasurer : NodeMeasurer {
 
         // 优先使用 MathFontProvider 的精确参数，回退到 MathConstants
         val provider = context.mathFontProvider
-        val supShift = provider?.superscriptShiftUp(fontSizePx)
-            ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+        val supShift = provider?.superscriptShiftUp(
+            fontSizePx, context.mathStyle == MathStyle.DISPLAY, context.isCramped
+        ) ?: (fontSizePx * if (context.isCramped) MathConstants.CRAMPED_SUPERSCRIPT_SHIFT else MathConstants.SUPERSCRIPT_SHIFT)
         val subShift = provider?.subscriptShiftDown(fontSizePx)
             ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
 
@@ -150,8 +152,9 @@ internal class SideSetTensorMeasurer : NodeMeasurer {
         val fontSizePx = with(density) { context.fontSize.toPx() }
         // 优先使用 MathFontProvider 的精确参数，回退到 MathConstants
         val provider = context.mathFontProvider
-        val superscriptShift = provider?.superscriptShiftUp(fontSizePx)
-            ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+        val superscriptShift = provider?.superscriptShiftUp(
+            fontSizePx, context.mathStyle == MathStyle.DISPLAY, context.isCramped
+        ) ?: (fontSizePx * if (context.isCramped) MathConstants.CRAMPED_SUPERSCRIPT_SHIFT else MathConstants.SUPERSCRIPT_SHIFT)
         val subscriptShift = provider?.subscriptShiftDown(fontSizePx)
             ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
         val scriptKern = with(density) { MathConstants.SCRIPT_KERN_DP.dp.toPx() }
@@ -164,7 +167,7 @@ internal class SideSetTensorMeasurer : NodeMeasurer {
         val columns = mutableListOf<IndexColumn>()
         var i = 0
         val indexLayouts = node.indices.map { (isUpper, indexNode) ->
-            Pair(isUpper, measureNode(indexNode, scriptStyle))
+            Pair(isUpper, measureNode(indexNode, if (isUpper) scriptStyle else scriptStyle.copy(isCramped = true)))
         }
 
         while (i < indexLayouts.size) {
@@ -258,7 +261,7 @@ internal class SideSetTensorMeasurer : NodeMeasurer {
         val scriptContext = context.shrink(MathConstants.SCRIPT_SCALE)
 
         val preSupLayout = node.preSuperscript?.let { measureNode(it, scriptContext) }
-        val preSubLayout = node.preSubscript?.let { measureNode(it, scriptContext) }
+        val preSubLayout = node.preSubscript?.let { measureNode(it, scriptContext.copy(isCramped = true)) }
 
         val preWidth = max(preSupLayout?.width ?: 0f, preSubLayout?.width ?: 0f)
 
@@ -269,8 +272,9 @@ internal class SideSetTensorMeasurer : NodeMeasurer {
 
         // 使用 MathFontProvider 的精确参数，回退到 MathConstants
         val provider = context.mathFontProvider
-        val supShift = provider?.superscriptShiftUp(fontSizePx)
-            ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+        val supShift = provider?.superscriptShiftUp(
+            fontSizePx, context.mathStyle == MathStyle.DISPLAY, context.isCramped
+        ) ?: (fontSizePx * if (context.isCramped) MathConstants.CRAMPED_SUPERSCRIPT_SHIFT else MathConstants.SUPERSCRIPT_SHIFT)
         val subShift = provider?.subscriptShiftDown(fontSizePx)
             ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
 

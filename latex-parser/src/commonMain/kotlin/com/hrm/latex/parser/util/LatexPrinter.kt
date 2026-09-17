@@ -73,6 +73,21 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         }
         return ""
     }
+
+    override fun visitMathStyle(node: LatexNode.MathStyle): String {
+        output.append("MathStyle(${node.mathStyleType})")
+        if (node.content.isNotEmpty()) {
+            output.append("\n")
+            indent++
+            node.content.forEach {
+                printIndent()
+                visit(it)
+                output.append("\n")
+            }
+            indent--
+        }
+        return ""
+    }
     
     override fun visitFraction(node: LatexNode.Fraction): String {
         output.append("Fraction")

@@ -82,7 +82,8 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         val renderSymbol = symbol
 
         val useSideMode = resolveLimitsMode(node, context)
-        val limitStyle = context.toLimitStyle()
+        val upperLimitStyle = context.toLimitStyle()
+        val lowerLimitStyle = context.toLimitStyle(isLowerLimit = true)
 
         val provider = context.mathFontProvider
         val useKaTeXSizeFont = !isNamedOperator
@@ -219,8 +220,8 @@ internal class BigOperatorMeasurer : NodeMeasurer {
             }
         }
 
-        val superLayout = node.superscript?.let { measureGroup(listOf(it), limitStyle) }
-        val subLayout = node.subscript?.let { measureGroup(listOf(it), limitStyle) }
+        val superLayout = node.superscript?.let { measureGroup(listOf(it), upperLimitStyle) }
+        val subLayout = node.subscript?.let { measureGroup(listOf(it), lowerLimitStyle) }
 
         return if (useSideMode) {
             layoutSideMode(
@@ -230,8 +231,8 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         } else {
             layoutDisplayMode(
                 context, density, opLayout, superLayout, subLayout,
-                subOverflow = computeLapOverflow(node.subscript, limitStyle, measureGroup),
-                superOverflow = computeLapOverflow(node.superscript, limitStyle, measureGroup)
+                subOverflow = computeLapOverflow(node.subscript, lowerLimitStyle, measureGroup),
+                superOverflow = computeLapOverflow(node.superscript, upperLimitStyle, measureGroup)
             )
         }
     }
@@ -329,8 +330,8 @@ internal class BigOperatorMeasurer : NodeMeasurer {
             val minimum = provider?.superscriptShiftUp(
                 fontSizePx,
                 displayStyle = context.mathStyle == MathStyle.DISPLAY,
-                crampedStyle = false
-            ) ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+                crampedStyle = context.isCramped
+            ) ?: (fontSizePx * if (context.isCramped) MathConstants.CRAMPED_SUPERSCRIPT_SHIFT else MathConstants.SUPERSCRIPT_SHIFT)
             val superDepth = superLayout.height - superLayout.baseline
             superShift = maxOf(superShift, minimum, superDepth + 0.25f * xHeight)
         }

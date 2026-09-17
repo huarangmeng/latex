@@ -14,8 +14,8 @@
 ## 运行
 
 ```bash
-# 运行桌面预览应用
-./gradlew :latex-preview:run
+# 运行桌面预览应用（composeApp 加载 latex-preview 的所有分组）
+./gradlew :composeApp:run
 ```
 
 ## 注意事项
@@ -25,6 +25,7 @@
 - 可以在这里测试各种 LaTeX 表达式的渲染效果
 - `BasicLatexPreview` 中包含独立的主题示例分组，可直接验证 `LatexTheme` 新 API 的表现
 - `数学模式切换` 分组包含 KaTeX 字体路由、Rule 15/18、积分上下限、重音符号和定界符数学轴回归样例
+- `基础 LaTeX → 18. 数学模式切换` 的 23–28 号样例对照普通与 cramped 上标、分母、根式、重音、上下限和手动命令
 - `physics / siunitx 常用子集` 分组覆盖导数、狄拉克符号、对易子、向量和现代 SI 单位排版
 - `数学类代码` 分组演示 `\mathord/\mathbin/\mathrel/\mathopen/\mathclose/\mathpunct/\mathinner` 对原子间距的影响
 - `SVG 矢量导出` 分组可比较可移植 PATH 模式与可选择 TEXT 模式的尺寸和文件体积

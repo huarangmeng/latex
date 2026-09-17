@@ -138,7 +138,7 @@ internal class ScriptMeasurer : NodeMeasurer {
         val braceLayout = measureNode(accentNode, context)
 
         // 标注文本使用较小字号
-        val scriptStyle = context.toScriptStyle()
+        val scriptStyle = context.toScriptStyle(isSubscript = isUnder)
         val annotationLayout = measureNode(annotationNode, scriptStyle)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
@@ -187,19 +187,20 @@ internal class ScriptMeasurer : NodeMeasurer {
             Pair(superNode.base, superNode.exponent)
         }
 
-        val scriptStyle = context.toScriptStyle()
+        val superStyle = context.toScriptStyle()
+        val subStyle = context.toScriptStyle(isSubscript = true)
         val realBaseLayout = measureNode(realBase, context)
-        val currentScriptLayout = measureNode(scriptNode, scriptStyle)
-        val otherScriptLayout = measureNode(otherScriptNode, scriptStyle)
+        val currentScriptLayout = measureNode(scriptNode, if (isSuper) superStyle else subStyle)
+        val otherScriptLayout = measureNode(otherScriptNode, if (isSuper) subStyle else superStyle)
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
-        val scriptFontSizePx = with(density) { scriptStyle.fontSize.toPx() }
+        val scriptFontSizePx = with(density) { superStyle.fontSize.toPx() }
         val provider = context.mathFontProvider
         val minSuperscriptShift = provider?.superscriptShiftUp(
             fontSizePx,
             displayStyle = context.mathStyle == com.hrm.latex.renderer.model.MathStyle.DISPLAY,
-            crampedStyle = false
-        ) ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+            crampedStyle = context.isCramped
+        ) ?: (fontSizePx * if (context.isCramped) MathConstants.CRAMPED_SUPERSCRIPT_SHIFT else MathConstants.SUPERSCRIPT_SHIFT)
         val minSubscriptShift = provider?.subscriptShiftDown(fontSizePx, hasSuperscript = true)
             ?: (fontSizePx * MathConstants.SUBSCRIPT_SHIFT)
 
@@ -273,7 +274,7 @@ internal class ScriptMeasurer : NodeMeasurer {
         density: Density,
         measureNode: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
-        val scriptStyle = context.toScriptStyle()
+        val scriptStyle = context.toScriptStyle(isSubscript = !isSuper)
         val baseLayout = measureNode(baseNode, context)
         val scriptLayout = measureNode(scriptNode, scriptStyle)
 
@@ -290,8 +291,8 @@ internal class ScriptMeasurer : NodeMeasurer {
             val minimum = provider?.superscriptShiftUp(
                 fontSizePx,
                 displayStyle = context.mathStyle == com.hrm.latex.renderer.model.MathStyle.DISPLAY,
-                crampedStyle = false
-            ) ?: (fontSizePx * MathConstants.SUPERSCRIPT_SHIFT)
+                crampedStyle = context.isCramped
+            ) ?: (fontSizePx * if (context.isCramped) MathConstants.CRAMPED_SUPERSCRIPT_SHIFT else MathConstants.SUPERSCRIPT_SHIFT)
             maxOf(initial, minimum, scriptDepth + 0.25f * xHeight)
         } else {
             val initial = if (characterBox) 0f else {

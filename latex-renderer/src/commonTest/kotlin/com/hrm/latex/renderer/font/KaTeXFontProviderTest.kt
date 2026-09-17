@@ -48,6 +48,8 @@ class KaTeXFontProviderTest {
         assertEquals(68.6f, provider.fractionDenominatorShiftDown(em, true), 0.0001f)
         assertEquals(41.3f, provider.superscriptShiftUp(em, true, false), 0.0001f)
         assertEquals(36.3f, provider.superscriptShiftUp(em, false, false), 0.0001f)
+        assertEquals(28.9f, provider.superscriptShiftUp(em, false, true), 0.0001f)
+        assertEquals(28.9f, provider.superscriptShiftUp(em, true, true), 0.0001f)
         assertEquals(24.7f, provider.subscriptShiftDown(em, true), 0.0001f)
         assertEquals(43.1f, provider.xHeight(em), 0.0001f)
         assertEquals(14.775f, provider.radicalDisplayVerticalGap(em), 0.0001f)

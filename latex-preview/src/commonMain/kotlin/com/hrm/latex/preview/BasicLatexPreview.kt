@@ -763,7 +763,7 @@ val basicLatexPreviewGroups = listOf(
     PreviewGroup(
         id = "mathstyle",
         title = "18. 数学模式切换",
-        description = "displaystyle, textstyle, scriptstyle, scriptscriptstyle",
+        description = "四档数学样式、cramped 样式与上下标排版",
         items = listOf(
             PreviewItem(
                 "1",
@@ -819,6 +819,12 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("20", "积分上下限", "\\int_{-\\infty}^{\\infty} f(t)e^{-i\\omega t}\\,dt"),
             PreviewItem("21", "向量重音锚点", "\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\vec r,t)=V(\\vec r,t)\\Psi(\\vec r,t)"),
             PreviewItem("22", "重音墨迹边界", "\\hat{x} \\quad \\tilde{y} \\quad \\bar{z} \\quad \\dot{x}"),
+            PreviewItem("23", "普通与 cramped 上标", "x^2 \\quad \\cramped{x^2}"),
+            PreviewItem("24", "分子与分母", "\\frac{x^2}{x^2}"),
+            PreviewItem("25", "根式与重音", "x^2 \\quad \\sqrt{x^2} \\quad \\hat{x^2} \\quad \\overline{x^2}"),
+            PreviewItem("26", "上标与下标子式", "x_{a^2}^{a^2} \\quad \\sum_{a^2}^{a^2}"),
+            PreviewItem("27", "手动 cramped 四档", "\\crampeddisplaystyle x^2 \\quad \\crampedtextstyle x^2 \\quad \\crampedscriptstyle x^2 \\quad \\crampedscriptscriptstyle x^2"),
+            PreviewItem("28", "mathtools 可选样式", "\\cramped{x^2} \\quad \\cramped[\\scriptstyle]{x^2}"),
         )
     ),
     PreviewGroup(

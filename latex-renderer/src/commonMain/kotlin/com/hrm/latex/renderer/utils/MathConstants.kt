@@ -79,6 +79,7 @@ internal object MathConstants {
 
     /** 上标向上偏移 / fontSize (σ₁₃, superscript shift-up) */
     const val SUPERSCRIPT_SHIFT = 0.363f
+    const val CRAMPED_SUPERSCRIPT_SHIFT = 0.289f
 
     /** 下标向下偏移 / fontSize (σ₁₆, subscript shift-down) */
     const val SUBSCRIPT_SHIFT = 0.15f

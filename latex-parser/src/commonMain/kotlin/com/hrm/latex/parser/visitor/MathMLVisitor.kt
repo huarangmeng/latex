@@ -319,17 +319,24 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     override fun visitMathStyle(node: LatexNode.MathStyle): String {
         val content = node.content.joinToString("") { visit(it) }
         val size = when (node.mathStyleType) {
-            LatexNode.MathStyle.MathStyleType.DISPLAY -> "normal"
-            LatexNode.MathStyle.MathStyleType.TEXT -> "normal"
-            LatexNode.MathStyle.MathStyleType.SCRIPT -> "scriptlevel=\"1\""
-            LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT -> "scriptlevel=\"2\""
+            LatexNode.MathStyle.MathStyleType.DISPLAY,
+            LatexNode.MathStyle.MathStyleType.TEXT,
+            LatexNode.MathStyle.MathStyleType.CRAMPED,
+            LatexNode.MathStyle.MathStyleType.CRAMPED_DISPLAY,
+            LatexNode.MathStyle.MathStyleType.CRAMPED_TEXT -> ""
+            LatexNode.MathStyle.MathStyleType.SCRIPT,
+            LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT -> " scriptlevel=\"1\""
+            LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT,
+            LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT_SCRIPT -> " scriptlevel=\"2\""
         }
         val display = when (node.mathStyleType) {
-            LatexNode.MathStyle.MathStyleType.DISPLAY -> " displaystyle=\"true\""
-            LatexNode.MathStyle.MathStyleType.TEXT -> " displaystyle=\"false\""
+            LatexNode.MathStyle.MathStyleType.DISPLAY,
+            LatexNode.MathStyle.MathStyleType.CRAMPED_DISPLAY -> " displaystyle=\"true\""
+            LatexNode.MathStyle.MathStyleType.TEXT,
+            LatexNode.MathStyle.MathStyleType.CRAMPED_TEXT -> " displaystyle=\"false\""
             else -> ""
         }
-        return "<mstyle$display>$content</mstyle>"
+        return "<mstyle$display$size>$content</mstyle>"
     }
 
     override fun visitFontSize(node: LatexNode.FontSize): String {

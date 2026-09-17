@@ -330,6 +330,7 @@ internal data class RenderContext(
     val color: Color,
     val errorColor: Color = Color(0xFFCC0000),
     val mathStyle: MathStyle = MathStyle.DISPLAY,
+    val isCramped: Boolean = false,
     // ── 字体状态 ──
     val fontWeight: FontWeight? = null,
     val fontStyle: FontStyle? = null,
@@ -414,33 +415,36 @@ internal fun RenderContext.textStyle(): TextStyle = cachedTextStyle
 /**
  * 进入上下标时的样式转换：使用 MathStyle 状态机自动决定字号
  */
-internal fun RenderContext.toScriptStyle(): RenderContext {
+internal fun RenderContext.toScriptStyle(isSubscript: Boolean = false): RenderContext {
     val newStyle = mathStyle.toScript()
     return copy(
         fontSize = fontSize * (newStyle.scaleFactor() / mathStyle.scaleFactor()),
-        mathStyle = newStyle
+        mathStyle = newStyle,
+        isCramped = isCramped || isSubscript
     )
 }
 
 /**
  * 进入分数子式时的样式转换
  */
-internal fun RenderContext.toFractionChildStyle(): RenderContext {
+internal fun RenderContext.toFractionChildStyle(isDenominator: Boolean = false): RenderContext {
     val newStyle = mathStyle.toFractionChild()
     return copy(
         fontSize = fontSize * (newStyle.scaleFactor() / mathStyle.scaleFactor()),
-        mathStyle = newStyle
+        mathStyle = newStyle,
+        isCramped = isCramped || isDenominator
     )
 }
 
 /**
  * 进入大型运算符上下限时的样式转换
  */
-internal fun RenderContext.toLimitStyle(): RenderContext {
+internal fun RenderContext.toLimitStyle(isLowerLimit: Boolean = false): RenderContext {
     val newStyle = mathStyle.toLimit()
     return copy(
         fontSize = fontSize * (newStyle.scaleFactor() / mathStyle.scaleFactor()),
-        mathStyle = newStyle
+        mathStyle = newStyle,
+        isCramped = isCramped || isLowerLimit
     )
 }
 
@@ -534,18 +538,33 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
  * 应用数学模式（内部命令触发）
  */
 internal fun RenderContext.applyMathStyle(mathStyleType: LatexNode.MathStyle.MathStyleType): RenderContext {
+    if (mathStyleType == LatexNode.MathStyle.MathStyleType.CRAMPED) {
+        return copy(isCramped = true)
+    }
     val newMode = when (mathStyleType) {
-        LatexNode.MathStyle.MathStyleType.DISPLAY -> MathStyle.DISPLAY
-        LatexNode.MathStyle.MathStyleType.TEXT -> MathStyle.TEXT
-        LatexNode.MathStyle.MathStyleType.SCRIPT -> MathStyle.SCRIPT
-        LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT -> MathStyle.SCRIPT_SCRIPT
+        LatexNode.MathStyle.MathStyleType.DISPLAY,
+        LatexNode.MathStyle.MathStyleType.CRAMPED_DISPLAY -> MathStyle.DISPLAY
+        LatexNode.MathStyle.MathStyleType.TEXT,
+        LatexNode.MathStyle.MathStyleType.CRAMPED_TEXT -> MathStyle.TEXT
+        LatexNode.MathStyle.MathStyleType.SCRIPT,
+        LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT -> MathStyle.SCRIPT
+        LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT,
+        LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT_SCRIPT -> MathStyle.SCRIPT_SCRIPT
+        LatexNode.MathStyle.MathStyleType.CRAMPED -> mathStyle
     }
 
     val scaleFactor = newMode.scaleFactor() / mathStyle.scaleFactor()
 
     return copy(
         fontSize = fontSize * scaleFactor,
-        mathStyle = newMode
+        mathStyle = newMode,
+        isCramped = when (mathStyleType) {
+            LatexNode.MathStyle.MathStyleType.CRAMPED_DISPLAY,
+            LatexNode.MathStyle.MathStyleType.CRAMPED_TEXT,
+            LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT,
+            LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT_SCRIPT -> true
+            else -> false
+        }
     )
 }
 

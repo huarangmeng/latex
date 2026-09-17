@@ -309,6 +309,7 @@
 - ✅ `\textstyle` 文本模式（正常大小）
 - ✅ `\scriptstyle` 脚本模式（上下标大小）
 - ✅ `\scriptscriptstyle` 小脚本模式（二级上下标大小）
+- ✅ `\cramped{...}`、`\cramped[\scriptstyle]{...}`（mathtools），以及四种 LuaTeX `\cramped...style` 声明
 - ✅ `$...$` 行内数学模式（嵌入文本中的公式，使用 textstyle）
 - ✅ `$$...$$` 展示数学模式（独立行公式，使用 displaystyle）
 
