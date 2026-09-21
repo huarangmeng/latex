@@ -35,9 +35,28 @@ internal class CommandParser(
     private val context: LatexParserContext,
     private val chemicalParser: ChemicalParser
 ) {
-    private val tokenStream get() = context.tokenStream
+    private var expansionStream: LatexTokenStream? = null
+    private val tokenStream get() = expansionStream ?: context.tokenStream
+    private var expandedTokenCount = 0
+    private var expansionCount = 0
+
+    fun isBuiltin(name: String): Boolean = registry.hasHandler(name) ||
+        SymbolMap.getSymbol(name) != null || name in expansionCommands || name == "ce" || name == "cf"
+
+    fun isDefined(name: String): Boolean {
+        val macro = context.customCommands[name] ?: return isBuiltin(name)
+        if (!macro.isAlias) return true
+        val original = macro.tokens.singleOrNull()
+        return original !is LatexToken.Command || isBuiltin(original.name)
+    }
+
+
 
     companion object {
+        private val expansionCommands = setOf(
+        "expandafter", "noexpand", "csname", "endcsname", "ifdefined", "ifx", "else", "fi", "mathpalette"
+    )
+
         private const val TAG = "CommandParser"
 
         /**
@@ -60,6 +79,7 @@ internal class CommandParser(
             installSpecialEffectHandlers()
             installHyperlinkHandlers()
             installMacroHandlers()
+            installGroupHandlers()
             installTableHandlers()
             installReferenceHandlers()
             installAdvancedHandlers()
@@ -75,12 +95,6 @@ internal class CommandParser(
      */
     fun parseCommand(cmdName: String): LatexNode? {
         HLog.d(TAG) { "解析命令: \\$cmdName" }
-
-        // 1. 优先检查自定义命令
-        val customCmd = context.customCommands[cmdName]
-        if (customCmd != null) {
-            return expandCustomCommand(customCmd)
-        }
 
         // 2. 委托给注册表分发
         val registryResult = registry.dispatch(cmdName, context, tokenStream)
@@ -129,142 +143,302 @@ internal class CommandParser(
         return LatexNode.Command(cmdName, arguments)
     }
 
-    /**
-     * 展开自定义命令
-     * 将 #1, #2, ... 替换为实际参数
-     *
-     * 支持可选参数默认值：当 customCmd.defaultArg 非空时，
-     * 第一个参数为可选参数。如果调用时提供了 [value] 则使用 value，否则使用默认值。
-     */
-    private fun expandCustomCommand(customCmd: CustomCommand): LatexNode {
-        val args = mutableListOf<LatexNode>()
 
-        if (customCmd.acceptsDelimiterModifier) {
-            while (tokenStream.peek() is LatexToken.Whitespace) tokenStream.advance()
-            val star = tokenStream.peek() as? LatexToken.Text
-            if (star?.content == "*") tokenStream.advance()
-            if (tokenStream.peek() is LatexToken.LeftBracket) {
-                tokenStream.advance()
-                while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
-                    tokenStream.advance()
-                }
-                if (tokenStream.peek() is LatexToken.RightBracket) tokenStream.advance()
-            }
+    /** Invoked by the existing stream before its current token is observed. */
+    private var expansionDepth = 0
+    fun expandNext(): Boolean {
+        if (expansionDepth >= 256) {
+            val token = tokenStream.advance() ?: return false
+            macroError(token.range, "Macro expansion nesting limit exceeded")
+            return true
         }
-
-        if (customCmd.defaultArg != null && customCmd.numArgs > 0) {
-            // 第一个参数是可选参数：检查是否提供了 [value]
-            val firstArg = if (tokenStream.peek() is LatexToken.LeftBracket) {
-                tokenStream.advance() // consume [
-                val nodes = mutableListOf<LatexNode>()
-                while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
-                    val node = context.parseExpression()
-                    if (node != null) nodes.add(node)
-                }
-                if (!tokenStream.isEOF()) {
-                    tokenStream.advance() // consume ]
-                }
-                if (nodes.size == 1) nodes[0] else LatexNode.Group(nodes)
-            } else {
-                // 使用默认值
-                LatexNode.Text(customCmd.defaultArg)
-            }
-            args.add(firstArg)
-
-            // 收集剩余的必选参数
-            for (i in 1 until customCmd.numArgs) {
-                val arg = context.parseArgument() ?: LatexNode.Text("")
-                args.add(arg)
-            }
-        } else {
-            // 所有参数都是必选参数
-            for (i in 0 until customCmd.numArgs) {
-                val arg = context.parseArgument() ?: LatexNode.Text("")
-                args.add(arg)
-            }
-        }
-
-        // 替换定义中的参数占位符
-        val expanded = replaceParameters(customCmd.definition, args)
-
-        // 返回 Group 包装展开的内容
-        return LatexNode.Group(expanded)
+        expansionDepth++
+        return try { expandCurrent() } finally { expansionDepth-- }
     }
 
-    /**
-     * 递归替换参数占位符 #1, #2, ...
-     * 利用 LatexNode 的自描述方法 children()/withChildren() 实现通用递归
-     */
-    private fun replaceParameters(nodes: List<LatexNode>, args: List<LatexNode>): List<LatexNode> {
-        return nodes.flatMap { node ->
-            when (node) {
-                is LatexNode.Text -> {
-                    // 替换 #1, #2, ... 为实际参数
-                    val text = node.content
-                    if (text.contains("#")) {
-                        val result = mutableListOf<LatexNode>()
-                        var i = 0
-                        while (i < text.length) {
-                            if (text[i] == '#' && i + 1 < text.length && text[i + 1].isDigit()) {
-                                val paramNum = text[i + 1].toString().toInt()
-                                if (paramNum > 0 && paramNum <= args.size) {
-                                    result.add(args[paramNum - 1])
-                                } else {
-                                    result.add(LatexNode.Text("#${text[i + 1]}"))
-                                }
-                                i += 2
-                            } else if (text[i] == '#') {
-                                // lone # or # not followed by digit - treat as literal
-                                result.add(LatexNode.Text("#"))
-                                i++
-                            } else {
-                                val start = i
-                                while (i < text.length && text[i] != '#') i++
-                                if (i > start) {
-                                    result.add(LatexNode.Text(text.substring(start, i)))
-                                }
-                            }
+    private fun expandCurrent(): Boolean {
+        val stream = tokenStream
+        var token = stream.peek() ?: return false // callback runs in raw mode
+        if (token is LatexToken.BeginEnvironment) {
+            val environment = context.customEnvironments[token.name] ?: return false
+            stream.advance()
+            if (rejectNestedExpansion(token.range)) return true
+            val args = readArguments(environment.numArgs, environment.defaultTokens)
+            val body = mutableListOf<LatexToken>()
+            var depth = 1
+            while (!stream.isEOF()) {
+                val next = stream.advance() ?: break
+                if (next is LatexToken.BeginEnvironment && next.name == token.name) depth++
+                if (next is LatexToken.EndEnvironment && next.name == token.name) depth--
+                if (depth == 0) break
+                body.add(next)
+            }
+            if (depth != 0) macroError(token.range, "Missing \\end{${token.name}}")
+            emit(listOf(LatexToken.LeftBrace(token.range)) +
+                substitute(environment.beginTokens, args, token.range) + body +
+                substitute(environment.endTokens, args, token.range) +
+                LatexToken.RightBrace(stream.peek(-1)?.range ?: token.range), token.range)
+            return true
+        }
+        if (token !is LatexToken.Command || !token.expandable) return false
+        var macro = if (token.builtin) null else context.customCommands[token.name]
+        if (macro?.isAlias == true) {
+            val original = macro.tokens.singleOrNull() as? LatexToken.Command
+            if (original != null && original.name in expansionCommands) {
+                token = original.copy(range = token.range)
+                macro = null
+            }
+        }
+        if (macro != null) {
+            stream.advance()
+            if (rejectNestedExpansion(token.range)) return true
+            if (macro.acceptsDelimiterModifier) {
+                stream.skipWhitespace()
+                if ((stream.peek() as? LatexToken.Text)?.content?.startsWith("*") == true) stream.readAtom()
+                stream.readOptionalTokens()
+            }
+            val args = if (macro.parameterText.isEmpty()) readArguments(macro.numArgs, macro.defaultTokens)
+                else readDelimitedArguments(macro.parameterText, macro.numArgs, token.range)
+            emit(substitute(macro.tokens, args, stream.rangeFrom(token.range.start)), token.range)
+            return true
+        }
+        when (token.name) {
+            "noexpand" -> {
+                stream.advance()
+                val next = stream.readAtom()
+                if (next != null) {
+                    val frozen = if (next is LatexToken.Command) {
+                        if (expansionStream == null && (!isBuiltin(next.name) ||
+                            (!next.builtin && context.customCommands.containsKey(next.name)) || next.name in expansionCommands))
+                            LatexToken.Command("relax", next.range, builtin = true)
+                        else next.copy(expandable = false)
+                    } else next
+                    emit(listOf(frozen), token.range)
+                }
+            }
+            "expandafter" -> {
+                stream.advance()
+                val first = stream.readAtom() ?: return true
+                expandNext()
+                emit(listOf(first), token.range)
+            }
+            "csname" -> {
+                stream.advance()
+                val name = StringBuilder()
+                var closed = false
+                while (!stream.isEOF()) {
+                    while ((stream.peek() as? LatexToken.Command)?.name != "endcsname" && expandNext()) { }
+                    val next = stream.advance() ?: break
+                    if (next is LatexToken.Command && next.name == "endcsname") { closed = true; break }
+                    when (next) {
+                        is LatexToken.Text -> name.append(next.content)
+                        is LatexToken.Whitespace -> Unit
+                        else -> macroError(next.range, "Expected character in \\csname")
+                    }
+                }
+                if (!closed) macroError(token.range, "Missing \\endcsname")
+                val commandName = name.toString()
+                if (!context.isCommandDefined(commandName)) {
+                    context.defineCommand(CustomCommand(commandName, 0, listOf(LatexToken.Command("relax", builtin = true)), isAlias = true))
+                }
+                emit(listOf(LatexToken.Command(commandName, stream.rangeFrom(token.range.start))), token.range)
+            }
+            "ifdefined", "ifx" -> {
+                stream.advance()
+                stream.skipWhitespace()
+                val first = stream.readAtom()
+                val condition = if (token.name == "ifdefined") {
+                    first != null && (first !is LatexToken.Command || context.isCommandDefined(first.name))
+                } else sameMeaning(first, stream.readAtom())
+                val selected = mutableListOf<LatexToken>()
+                var depth = 0
+                var inTrueBranch = true
+                var closed = false
+                while (!stream.isEOF()) {
+                    val next = stream.advance() ?: break
+                    if (next is LatexToken.Command) {
+                        if (next.name == "ifdefined" || next.name == "ifx") depth++
+                        if (next.name == "fi") {
+                            if (depth == 0) { closed = true; break }
+                            depth--
                         }
-                        result
-                    } else {
-                        listOf(node)
+                        if (next.name == "else" && depth == 0) { inTrueBranch = false; continue }
                     }
+                    if (condition == inTrueBranch) selected.add(next)
                 }
-                is LatexNode.Command -> {
-                    // 检查是否是另一个自定义命令需要展开
-                    val nestedCmd = context.customCommands[node.name]
-                    if (nestedCmd != null) {
-                        val nestedArgs = node.arguments.map { replaceParametersInNode(it, args) }
-                        replaceParameters(nestedCmd.definition, nestedArgs)
-                    } else {
-                        val expandedArgs = node.arguments.map { replaceParametersInNode(it, args) }
-                        listOf(LatexNode.Command(node.name, expandedArgs))
-                    }
-                }
-                else -> {
-                    // 通用递归：利用节点自描述的 children()/withChildren()
-                    val children = node.children()
-                    if (children.isEmpty()) {
-                        listOf(node)
-                    } else {
-                        val newChildren = children.map { replaceParametersInNode(it, args) }
-                        listOf(node.withChildren(newChildren))
-                    }
-                }
+                if (!closed) macroError(token.range, "Missing \\fi")
+                emit(selected, token.range)
             }
+            "mathpalette" -> {
+                stream.advance()
+                val function = stream.readArgumentTokens()
+                val argument = stream.readArgumentTokens()
+                val result = mutableListOf<LatexToken>(LatexToken.Command("mathchoice", token.range))
+                for (style in listOf("displaystyle", "textstyle", "scriptstyle", "scriptscriptstyle")) {
+                    result.add(LatexToken.LeftBrace(token.range))
+                    result.addAll(function)
+                    result.add(LatexToken.Command(style, token.range))
+                    result.add(LatexToken.LeftBrace(token.range))
+                    result.addAll(argument)
+                    result.add(LatexToken.RightBrace(token.range))
+                    result.add(LatexToken.RightBrace(token.range))
+                }
+                emit(result, token.range)
+            }
+            "else", "fi", "endcsname" -> {
+                stream.advance()
+                macroError(token.range, "Unexpected \\${token.name}")
+            }
+            else -> return false
         }
+        return true
     }
 
-    /**
-     * 替换单个节点中的参数
-     */
-    private fun replaceParametersInNode(node: LatexNode, args: List<LatexNode>): LatexNode {
-        return when (node) {
-            is LatexNode.Group -> LatexNode.Group(replaceParameters(node.children, args))
-            else -> {
-                val replaced = replaceParameters(listOf(node), args)
-                if (replaced.size == 1) replaced[0] else LatexNode.Group(replaced)
+    private fun rejectNestedExpansion(range: SourceRange): Boolean {
+        if (context.scopeDepth < 128) return false
+        macroError(range, "Macro expansion group nesting limit exceeded")
+        return true
+    }
+
+    private fun emit(tokens: List<LatexToken>, range: SourceRange) {
+        expansionCount++
+        expandedTokenCount += tokens.size
+        if (expansionCount > 10_000 || expandedTokenCount > 100_000) {
+            macroError(range, "Macro expansion limit exceeded")
+            // Drop only this replacement; definitions and following source remain intact.
+            return
+        }
+        tokenStream.insert(tokens)
+    }
+
+    private fun macroError(range: SourceRange, message: String) {
+        context.diagnostics.add(ParseDiagnostic(range, message, ParseDiagnostic.Severity.ERROR, ParseDiagnostic.Category.MACRO_ERROR))
+    }
+
+    private fun readArguments(count: Int, default: List<LatexToken>?): List<List<LatexToken>> =
+        (0 until count).map { index ->
+            if (index == 0 && default != null) tokenStream.readOptionalTokens() ?: default
+            else tokenStream.readArgumentTokens()
+        }
+
+    private fun readDelimitedArguments(pattern: List<LatexToken>, count: Int, range: SourceRange): List<List<LatexToken>> {
+        val args = MutableList(count) { emptyList<LatexToken>() }
+        var index = 0
+        while (index < pattern.size) {
+            if ((pattern[index] as? LatexToken.Text)?.content != "#") {
+                if (!sameToken(pattern[index], tokenStream.readAtom())) macroError(range, "Macro parameter prefix mismatch")
+                index++
+                continue
+            }
+            val number = (pattern.getOrNull(index + 1) as? LatexToken.Text)?.content?.toIntOrNull()
+            if (number == null || number !in 1..count) { macroError(range, "Invalid macro parameter"); break }
+            index += 2
+            val delimiter = pattern.drop(index).takeWhile { (it as? LatexToken.Text)?.content != "#" }
+            index += delimiter.size
+            if (delimiter.isEmpty()) {
+                args[number - 1] = tokenStream.readArgumentTokens()
+            } else {
+                val argument = mutableListOf<LatexToken>()
+                var depth = 0
+                var found = false
+                while (!tokenStream.isEOF() && !found) {
+                    val token = tokenStream.advance() ?: break
+                    val text = (token as? LatexToken.Text)?.takeUnless { it.literal }?.content
+                    var offset = 0
+                    do {
+                        val next = if (text != null) {
+                            val end = offset + if (text[offset].isHighSurrogate() &&
+                                offset + 1 < text.length && text[offset + 1].isLowSurrogate()) 2 else 1
+                            LatexToken.Text(text.substring(offset, end), token.range).also { offset = end }
+                        } else token
+                        argument.add(next)
+                        if (next is LatexToken.LeftBrace) depth++
+                        if (next is LatexToken.RightBrace) depth--
+                        if (depth == 0 && argument.size >= delimiter.size &&
+                            delimiter.indices.all { sameToken(argument[argument.size - delimiter.size + it], delimiter[it]) }) {
+                            repeat(delimiter.size) { argument.removeAt(argument.lastIndex) }
+                            if (text != null && offset < text.length) {
+                                tokenStream.insert(listOf(LatexToken.Text(text.substring(offset), token.range)))
+                            }
+                            found = true
+                        }
+                    } while (!found && text != null && offset < text.length)
+                }
+                if (!found) macroError(range, "Missing macro argument delimiter")
+                args[number - 1] = if (argument.firstOrNull() is LatexToken.LeftBrace &&
+                    argument.lastOrNull() is LatexToken.RightBrace && balancedOuterGroup(argument)) argument.drop(1).dropLast(1) else argument
             }
         }
+        return args
+    }
+
+    private fun balancedOuterGroup(tokens: List<LatexToken>): Boolean {
+        var depth = 0
+        tokens.forEachIndexed { index, token ->
+            if (token is LatexToken.LeftBrace) depth++
+            if (token is LatexToken.RightBrace) depth--
+            if (depth == 0 && index != tokens.lastIndex) return false
+        }
+        return depth == 0
+    }
+
+    internal fun substitute(tokens: List<LatexToken>, args: List<List<LatexToken>>, range: SourceRange): List<LatexToken> {
+        val result = mutableListOf<LatexToken>()
+        var index = 0
+        while (index < tokens.size) {
+            val token = tokens[index++]
+            if (token is LatexToken.Text && token.content == "#") {
+                val next = tokens.getOrNull(index) as? LatexToken.Text
+                if (next?.content == "#") { result.add(token.withRange(range)); index++; continue }
+                val number = next?.content?.toIntOrNull()
+                if (number != null && number in 1..args.size) {
+                    result.addAll(args[number - 1].map { it.withRange(range) }); index++; continue
+                }
+            }
+            result.add(token.withRange(range))
+        }
+        return result
+    }
+
+    internal fun expandTokens(tokens: List<LatexToken>): List<LatexToken> {
+        val previous = expansionStream
+        val stream = LatexTokenStream(tokens + LatexToken.EOF())
+        expansionStream = stream
+        stream.commandParser = this
+        return try {
+            buildList {
+                while (!stream.isEOF()) {
+                    val token = stream.advance() ?: break
+                    add(if (token is LatexToken.Command) token.copy(expandable = true) else token)
+                }
+            }
+        } finally { expansionStream = previous }
+    }
+
+    private fun sameToken(a: LatexToken?, b: LatexToken?): Boolean = when (a) {
+        is LatexToken.Text -> b is LatexToken.Text && a.content == b.content && a.literal == b.literal
+        is LatexToken.Command -> b is LatexToken.Command && a.name == b.name &&
+            a.expandable == b.expandable && a.builtin == b.builtin
+        else -> a?.withRange(SourceRange.EMPTY) == b?.withRange(SourceRange.EMPTY)
+    }
+
+    private fun sameMeaning(a: LatexToken?, b: LatexToken?): Boolean {
+        fun meaning(token: LatexToken?): Any? {
+            if (token !is LatexToken.Command) return token?.withRange(SourceRange.EMPTY)
+            val macro = context.customCommands[token.name]
+            if (macro?.isAlias == true) {
+                val original = macro.tokens.single()
+                return if (original is LatexToken.Command) {
+                    if (isBuiltin(original.name)) original.copy(range = SourceRange.EMPTY, expandable = true, builtin = false) else null
+                } else original.withRange(SourceRange.EMPTY)
+            }
+            if (macro != null) return macro.copy(
+                name = "", tokens = macro.tokens.map { it.withRange(SourceRange.EMPTY) },
+                defaultTokens = macro.defaultTokens?.map { it.withRange(SourceRange.EMPTY) },
+                parameterText = macro.parameterText.map { it.withRange(SourceRange.EMPTY) }
+            )
+            return if (isBuiltin(token.name)) token.copy(range = SourceRange.EMPTY, expandable = true, builtin = false) else null
+        }
+        return meaning(a) == meaning(b)
     }
 }

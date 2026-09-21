@@ -67,6 +67,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
          */
         fun convert(node: LatexNode, displayMode: Boolean = true): String {
             val visitor = MathMLVisitor()
+            visitor.currentMathStyle = if (displayMode) 0 else 1
             val body = visitor.visit(node)
             val display = if (displayMode) "block" else "inline"
             return "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"$display\">$body</math>"
@@ -99,6 +100,9 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             }
         }.joinToString("")
     }
+
+    override fun visitInlineMath(node: LatexNode.InlineMath): String = mrow(node.children.joinToString("") { visit(it) })
+    override fun visitDisplayMath(node: LatexNode.DisplayMath): String = mrow(node.children.joinToString("") { visit(it) })
 
     override fun visitGroup(node: LatexNode.Group): String {
         return mrow(node.children.joinToString("") { visit(it) })
@@ -150,7 +154,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Matrix.MatrixType.DOUBLE_VBAR -> "‖" to "‖"
             LatexNode.Matrix.MatrixType.PLAIN -> "" to ""
         }
-        val table = buildTable(node.rows)
+        val table = buildTable(node.rows, node.rowStretch, node.columnSep)
         return if (open.isNotEmpty()) {
             mrow("<mo>$open</mo>$table<mo>$close</mo>")
         } else {
@@ -159,7 +163,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitArray(node: LatexNode.Array): String {
-        return buildTable(node.rows)
+        return buildTable(node.rows, node.rowStretch, node.columnSep)
     }
 
     override fun visitSymbol(node: LatexNode.Symbol): String {
@@ -316,6 +320,8 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         return "<mstyle mathcolor=\"${escapeXml(node.color)}\">$content</mstyle>"
     }
 
+    override fun visitMathChoice(node: LatexNode.MathChoice): String = visit(node.branch(currentMathStyle))
+
     override fun visitMathStyle(node: LatexNode.MathStyle): String {
         val content = node.content.joinToString("") { visit(it) }
         val size = when (node.mathStyleType) {
@@ -417,7 +423,8 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitTextMode(node: LatexNode.TextMode): String {
-        return "<mtext>${escapeXml(node.text)}</mtext>"
+        return if (node.content.isEmpty()) "<mtext>${escapeXml(node.text)}</mtext>"
+            else mrow(node.content.joinToString("") { visit(it) })
     }
 
     override fun visitNegation(node: LatexNode.Negation): String {
@@ -502,7 +509,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitTabular(node: LatexNode.Tabular): String {
-        return buildTable(node.rows)
+        return buildTable(node.rows, node.rowStretch, node.columnSep)
     }
 
     override fun visitHLine(node: LatexNode.HLine): String = ""
@@ -647,19 +654,38 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         return "<mpadded$paddingAttributes$styleAttribute>$content</mpadded>"
     }
 
-    private fun buildTable(rows: List<List<LatexNode>>): String {
-        val sb = StringBuilder("<mtable>")
+    private fun buildTable(rows: List<List<LatexNode>>, stretch: Float = 1f, columnSep: String? = null): String {
+        val data = mutableListOf<List<LatexNode>>()
+        val rules = mutableMapOf<Int, String>()
         for (row in rows) {
-            sb.append("<mtr>")
-            for (cell in row) {
-                sb.append("<mtd>")
-                sb.append(visit(cell))
-                sb.append("</mtd>")
-            }
-            sb.append("</mtr>")
+            val rule = row.singleOrNull() as? LatexNode.HLine
+            if (rule != null) rules[data.size] = if (rule.dashed) "dashed" else "solid"
+            else data.add(row)
         }
-        sb.append("</mtable>")
-        return sb.toString()
+        val attributes = buildString {
+            if (stretch != 1f) append(" rowspacing=\"${0.5f * stretch}em\"")
+            if (columnSep != null) {
+                val match = Regex("([+-]?[0-9.]+)([a-zA-Z]+)").matchEntire(columnSep)
+                if (match != null) append(" columnspacing=\"${match.groupValues[1].toDouble() * 2}${escapeXml(match.groupValues[2])}\"")
+            }
+            if (rules.isNotEmpty()) {
+                val lines = (1 until data.size).joinToString(" ") { rules[it] ?: "none" }
+                if (lines.isNotEmpty()) append(" rowlines=\"$lines\"")
+                (rules[0] ?: rules[data.size])?.let { append(" frame=\"$it\"") }
+            }
+        }
+        return buildString {
+            append("<mtable$attributes>")
+            for (row in data) {
+                append("<mtr>")
+                for (cell in row) {
+                    if (cell is LatexNode.Multicolumn) append(visit(cell))
+                    else { append("<mtd>"); append(visit(cell)); append("</mtd>") }
+                }
+                append("</mtr>")
+            }
+            append("</mtable>")
+        }
     }
 
     private fun escapeXml(text: String): String {

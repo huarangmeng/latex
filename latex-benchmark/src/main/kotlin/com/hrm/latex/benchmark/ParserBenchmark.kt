@@ -9,6 +9,14 @@ import kotlinx.benchmark.*
 open class ParserBenchmark {
 
     private lateinit var parser: LatexParser
+    private val macroInput = "\\newcommand{\\square}[1]{#1^2}" + "\\square{x}+".repeat(100) + "0"
+    private val largeMacroInput = "\\newcommand{\\square}[1]{#1^2}" + "\\square{x}+".repeat(1000) + "0"
+
+    @Benchmark
+    fun parseMacros(bh: Blackhole) = bh.consume(parser.parse(macroInput))
+
+    @Benchmark
+    fun parseMacrosLarge(bh: Blackhole) = bh.consume(parser.parse(largeMacroInput))
 
     @Setup
     fun setup() {

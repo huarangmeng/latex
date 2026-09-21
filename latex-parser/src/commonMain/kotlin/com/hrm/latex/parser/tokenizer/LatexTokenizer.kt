@@ -220,6 +220,21 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
         }
 
         // 检查是否是环境开始或结束
+        if (commandName == "verb") {
+            val starred = position < input.length && input[position] == '*'
+            if (starred) advance()
+            if (position < input.length) {
+                val delimiter = input[position]
+                advance()
+                val contentStart = position
+                while (position < input.length && input[position] != delimiter && input[position] != '\n') advance()
+                val text = input.substring(contentStart, position)
+                if (position < input.length && input[position] == delimiter) advance()
+                tokens.add(LatexToken.Text(if (starred) text.replace(" ", "␣") else text, SourceRange(start, position), literal = true))
+            }
+            return
+        }
+
         when (commandName) {
             "begin" -> {
                 val envName = readEnvironmentName()

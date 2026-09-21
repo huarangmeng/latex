@@ -740,6 +740,29 @@ val basicLatexPreviewGroups = listOf(
                 "DeclarePairedDelimiter",
                 "\\DeclarePairedDelimiter{\\set}{\\lbrace}{\\rbrace} \\set{x \\in A}"
             ),
+            PreviewItem(
+                "20",
+                "Issue #46：显式分组与样式恢复",
+                "a+\\begingroup\\bf x+{\\it y}+z\\endgroup+w"
+            ),
+            PreviewItem(
+                "21",
+                "局部宏重定义与恢复",
+                "\\def\\value{a}\\value+\\begingroup\\def\\value{b}\\value\\endgroup+\\value"
+            ),
+            PreviewItem(
+                "22",
+                "宏体内的显式分组",
+                "\\newcommand{\\bold}[1]{\\begingroup\\bf #1\\endgroup}\\bold{x+y}+z"
+            ),
+            PreviewItem("23", "延迟展开与含义快照", "\\def\\a{\\b}\\def\\b{x}\\let\\saved\\b\\def\\b{y}\\a+\\saved"),
+            PreviewItem("24", "展开控制与条件分支", "\\def\\name{result}\\expandafter\\def\\csname\\name\\endcsname{42}\\ifdefined\\result\\result\\else 0\\fi"),
+            PreviewItem("25", "分隔参数宏", "\\def\\pair#1,#2;{\\frac{#1}{#2}}\\pair a+b,c+d;"),
+            PreviewItem("26", "跨环境起止体分组", "\\newenvironment{boldgroup}{\\begingroup\\bf}{\\endgroup}\\begin{boldgroup}x+y\\end{boldgroup}+z"),
+            PreviewItem("27", "数学样式分支", "\\def\\pick{\\mathchoice{D}{T}{S}{Q}}\\pick+x^{\\pick^{\\pick}}"),
+            PreviewItem("28", "命名颜色与声明作用域", "\\definecolor{accent}{HTML}{3A7BD5}{\\color{accent}a+b}+\\textcolor[RGB]{220,50,70}{c}"),
+            PreviewItem("29", "结构化文本与逐字文本", "\\text{normal \\textbf{bold} and \$x^2\$}+\\verb|a%{b}|"),
+            PreviewItem("30", "数组间距与虚线", "\\def\\arraystretch{1.5}\\setlength{\\arraycolsep}{8pt}\\begin{array}{cc}a&b\\\\\\hdashline c&d\\end{array}"),
         )
     ),
     PreviewGroup(

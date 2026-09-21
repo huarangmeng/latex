@@ -54,6 +54,7 @@ interface LatexVisitor<T> {
     fun visitStyle(node: LatexNode.Style): T
     fun visitMathClass(node: LatexNode.MathClass): T
     fun visitColor(node: LatexNode.Color): T
+    fun visitMathChoice(node: LatexNode.MathChoice): T
     fun visitMathStyle(node: LatexNode.MathStyle): T
     fun visitFontSize(node: LatexNode.FontSize): T
     fun visitBigOperator(node: LatexNode.BigOperator): T
@@ -221,6 +222,11 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         return defaultVisit(node)
     }
     
+    override fun visitMathChoice(node: LatexNode.MathChoice): T {
+        node.children().forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
     override fun visitMathStyle(node: LatexNode.MathStyle): T {
         node.content.forEach { visit(it) }
         return defaultVisit(node)
@@ -282,7 +288,10 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
         return defaultVisit(node)
     }
     
-    override fun visitTextMode(node: LatexNode.TextMode): T = defaultVisit(node)
+    override fun visitTextMode(node: LatexNode.TextMode): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
 
     override fun visitBoxed(node: LatexNode.Boxed): T {
         node.content.forEach { visit(it) }
@@ -438,7 +447,39 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
     /**
      * 访问任意节点 — 通过双分派委托到 [LatexNode.accept]
      */
-    fun visit(node: LatexNode): T = node.accept(this)
+    // Four TeX sizes: display, text, script, scriptscript. Cramping preserves size.
+    protected var currentMathStyle: Int = 0
+    private var parentNode: LatexNode? = null
+
+    fun visit(node: LatexNode): T {
+        val parent = parentNode
+        val previous = currentMathStyle
+        fun scriptStyle() = (previous + 1).coerceIn(2, 3)
+        currentMathStyle = when (parent) {
+            is LatexNode.MathStyle -> when (parent.mathStyleType) {
+                LatexNode.MathStyle.MathStyleType.DISPLAY, LatexNode.MathStyle.MathStyleType.CRAMPED_DISPLAY -> 0
+                LatexNode.MathStyle.MathStyleType.TEXT, LatexNode.MathStyle.MathStyleType.CRAMPED_TEXT -> 1
+                LatexNode.MathStyle.MathStyleType.SCRIPT, LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT -> 2
+                LatexNode.MathStyle.MathStyleType.SCRIPT_SCRIPT, LatexNode.MathStyle.MathStyleType.CRAMPED_SCRIPT_SCRIPT -> 3
+                LatexNode.MathStyle.MathStyleType.CRAMPED -> previous
+            }
+            is LatexNode.Superscript -> if (node === parent.exponent) scriptStyle() else previous
+            is LatexNode.Subscript -> if (node === parent.index) scriptStyle() else previous
+            is LatexNode.BigOperator -> scriptStyle()
+            is LatexNode.Fraction -> when (parent.style) {
+                LatexNode.Fraction.FractionStyle.DISPLAY, LatexNode.Fraction.FractionStyle.CONTINUED -> 1
+                LatexNode.Fraction.FractionStyle.TEXT -> 2
+                else -> (previous + 1).coerceAtMost(3)
+            }
+            is LatexNode.Root -> if (node === parent.index) 3 else previous
+            is LatexNode.InlineMath -> 1
+            is LatexNode.DisplayMath -> 0
+            is LatexNode.Matrix -> if (parent.isSmall) 2 else 1
+            else -> previous
+        }
+        parentNode = node
+        return try { node.accept(this) } finally { parentNode = parent; currentMathStyle = previous }
+    }
 }
 
 /**
@@ -496,6 +537,7 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
     override fun visitStyle(node: LatexNode.Style): T = visitChildren(node)
     override fun visitMathClass(node: LatexNode.MathClass): T = visitChildren(node)
     override fun visitColor(node: LatexNode.Color): T = visitChildren(node)
+    override fun visitMathChoice(node: LatexNode.MathChoice): T = visitChildren(node)
     override fun visitMathStyle(node: LatexNode.MathStyle): T = visitChildren(node)
     override fun visitFontSize(node: LatexNode.FontSize): T = visitChildren(node)
     override fun visitBigOperator(node: LatexNode.BigOperator): T = visitChildren(node)

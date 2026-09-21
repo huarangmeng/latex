@@ -28,7 +28,24 @@ import com.hrm.latex.parser.model.LatexNode
  * 表格相关命令：\hline, \cline, \multicolumn
  */
 internal fun CommandRegistry.installTableHandlers() {
-    register("hline") { _, _, _ -> LatexNode.HLine() }
+    register("hline", "hdashline") { command, _, _ -> LatexNode.HLine(dashed = command == "hdashline") }
+    register("arraycolsep") { _, ctx, stream ->
+        stream.skipWhitespace()
+        if ((stream.peek() as? com.hrm.latex.parser.tokenizer.LatexToken.Text)?.content == "=") stream.advance()
+        ctx.defineLength("arraycolsep", ParseUtils.parseDimension(ctx, stream))
+        LatexNode.Text("")
+    }
+    register("setlength") { _, ctx, stream ->
+        val name = stream.readArgumentTokens().text().removePrefix("\\")
+        val value = ParseUtils.parseDimension(ctx, stream)
+        if (name == "arraycolsep") ctx.defineLength(name, value)
+        else ctx.diagnostics.add(com.hrm.latex.parser.ParseDiagnostic(
+            stream.peek(-1)?.range ?: com.hrm.latex.parser.model.SourceRange.EMPTY,
+            "Unsupported length register: $name", com.hrm.latex.parser.ParseDiagnostic.Severity.ERROR,
+            com.hrm.latex.parser.ParseDiagnostic.Category.INVALID_ARGUMENT
+        ))
+        LatexNode.Text("")
+    }
 
     register("cline") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\cline")

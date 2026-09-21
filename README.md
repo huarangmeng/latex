@@ -166,6 +166,8 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 <summary><b>Custom Commands & Macros (9)</b></summary>
 
 `\newcommand`, `\renewcommand`, `\def` (0–9 parameters, optional argument defaults), `\newenvironment`, `\renewenvironment`, `\DeclarePairedDelimiter`
+
+TeX extensions include scoped groups (`{...}`, `\begingroup/\endgroup`, `\bgroup/\egroup`), token-based macro expansion, local/global definitions, `\providecommand`, `\let`, `\edef/\xdef`, expansion control and conditionals. Math style choices, named colors, structured/verbatim text, and array spacing/dashed rules are also supported. See [implementation scope and definition-node API changes](latex-parser/PARSER_COVERAGE_ANALYSIS.md#15-自定义命令与宏定义).
 </details>
 
 <details>

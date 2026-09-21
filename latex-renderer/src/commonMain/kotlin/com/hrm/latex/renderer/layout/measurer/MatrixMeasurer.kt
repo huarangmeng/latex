@@ -29,6 +29,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.renderer.utils.parseDimension
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.applyMathStyle
@@ -82,17 +83,11 @@ internal class MatrixMeasurer : NodeMeasurer {
     ): NodeLayout {
         return when (node) {
             is LatexNode.Matrix -> measureMatrix(node, context, measurer, density, measureNode)
-            is LatexNode.Array -> {
-                val (alignments, _) = parseAlignments(node.alignment)
-                measureMatrixLike(
-                    node.rows,
-                    context,
-                    measurer,
-                    density,
-                    measureNode,
-                    alignments = alignments
-                )
-            }
+            is LatexNode.Array -> measureTabular(
+                LatexNode.Tabular(node.rows, node.alignment, rowGaps = node.rowGaps,
+                    rowStretch = node.rowStretch, columnSep = node.columnSep),
+                context, measurer, density, measureNode
+            )
 
             is LatexNode.Tabular -> measureTabular(node, context, measurer, density, measureNode)
             is LatexNode.Cases -> measureCases(node, context, measurer, density, measureNode)
@@ -144,7 +139,9 @@ internal class MatrixMeasurer : NodeMeasurer {
             } else parsed
         }
         val contentLayout = measureMatrixLike(
-            node.rows, context, measurer, density, measureNode, alignments = alignments
+            node.rows, context.applyMathStyle(if (node.isSmall) LatexNode.MathStyle.MathStyleType.SCRIPT
+                else LatexNode.MathStyle.MathStyleType.TEXT), measurer, density, measureNode, alignments = alignments,
+            rowStretch = node.rowStretch, columnSep = node.columnSep, rowGaps = node.rowGaps
         )
         val bracketType = node.type
         if (bracketType == LatexNode.Matrix.MatrixType.PLAIN) return contentLayout
@@ -216,7 +213,10 @@ internal class MatrixMeasurer : NodeMeasurer {
         alignments: List<ColumnAlignment>? = null,
         colSpacingRatio: Float = MathConstants.MATRIX_COLUMN_SPACING,
         rowSpacingRatio: Float = MathConstants.MATRIX_ROW_SPACING,
-        isBaselineFirstRow: Boolean = false
+        isBaselineFirstRow: Boolean = false,
+        rowStretch: Float = 1f,
+        columnSep: String? = null,
+        rowGaps: List<LatexNode.RowGap?> = emptyList()
     ): NodeLayout {
         val measuredRows = rows.map { row -> row.map { measureNode(it, context) } }
         val colCount = measuredRows.maxOfOrNull { it.size } ?: 0
@@ -242,11 +242,20 @@ internal class MatrixMeasurer : NodeMeasurer {
             rowBaselines[r] = maxAscent
         }
 
-        val colSpacing = with(density) { (context.fontSize * colSpacingRatio).toPx() }
+        val colSpacing = columnSep?.let { 2 * parseDimension(it, context, density) }
+            ?: with(density) { (context.fontSize * colSpacingRatio).toPx() }
         val rowSpacing = with(density) { (context.fontSize * rowSpacingRatio).toPx() }
 
+        val extraGaps = if (rowGaps.any { it != null }) FloatArray(rowCount) { index ->
+            rowGaps.getOrNull(index)?.let { parseDimension("${it.number}${it.unit}", context, density) } ?: 0f
+        } else null
+        for (r in 0 until rowCount) {
+            val extra = (rowHeights[r] * (rowStretch - 1)).coerceAtLeast(-rowSpacing)
+            rowHeights[r] += extra
+            rowBaselines[r] += extra / 2
+        }
         val totalWidth = colWidths.sum() + colSpacing * max(0, colCount - 1)
-        val totalHeight = rowHeights.sum() + rowSpacing * max(0, rowCount - 1)
+        val totalHeight = rowHeights.sum() + rowSpacing * max(0, rowCount - 1) + (extraGaps?.let { gaps -> (0 until rowCount - 1).sumOf { gaps[it].toDouble() }.toFloat() } ?: 0f)
 
         val baseline = if (isBaselineFirstRow) {
             rowBaselines[0]
@@ -271,7 +280,7 @@ internal class MatrixMeasurer : NodeMeasurer {
                     cell.draw(this, cellX, rowBaseY - cell.baseline)
                     currentX += colWidths[c] + colSpacing
                 }
-                currentY += rowHeights[r] + rowSpacing
+                currentY += rowHeights[r] + rowSpacing + (extraGaps?.get(r) ?: 0f)
             }
         }
     }
@@ -375,7 +384,7 @@ internal class MatrixMeasurer : NodeMeasurer {
         val (alignments, vLinePositions) = parseAlignments(node.alignment)
 
         // 分离数据行和 hline/cline 标记
-        data class HLineInfo(val rowIndex: Int, val startCol: Int, val endCol: Int)
+        data class HLineInfo(val rowIndex: Int, val startCol: Int, val endCol: Int, val dashed: Boolean = false)
 
         val dataRows = mutableListOf<List<LatexNode>>()
         val hLines = mutableListOf<HLineInfo>()
@@ -385,7 +394,7 @@ internal class MatrixMeasurer : NodeMeasurer {
                 val singleNode = row[0]
                 when (singleNode) {
                     is LatexNode.HLine -> {
-                        hLines.add(HLineInfo(dataRows.size, 1, Int.MAX_VALUE))
+                        hLines.add(HLineInfo(dataRows.size, 1, Int.MAX_VALUE, singleNode.dashed))
                         continue
                     }
                     is LatexNode.CLine -> {
@@ -400,7 +409,8 @@ internal class MatrixMeasurer : NodeMeasurer {
 
         if (dataRows.isEmpty()) return NodeLayout(0f, 0f, 0f) { _, _ -> }
 
-        val colSpacing = with(density) { (context.fontSize * MathConstants.MATRIX_COLUMN_SPACING).toPx() }
+        val colSpacing = node.columnSep?.let { 2 * parseDimension(it, context, density) }
+            ?: with(density) { (context.fontSize * MathConstants.MATRIX_COLUMN_SPACING).toPx() }
         val rowSpacing = with(density) { (context.fontSize * MathConstants.MATRIX_ROW_SPACING).toPx() }
         val lineStrokeWidth = with(density) { 1f.dp.toPx() }
         val vLinePadding = with(density) { 2f.dp.toPx() }
@@ -509,8 +519,10 @@ internal class MatrixMeasurer : NodeMeasurer {
                 maxAscent = max(maxAscent, cell.layout.baseline)
                 maxDescent = max(maxDescent, cell.layout.height - cell.layout.baseline)
             }
-            rowHeights[r] = maxAscent + maxDescent
-            rowBaselines[r] = maxAscent
+            val naturalHeight = maxAscent + maxDescent
+            val extra = (naturalHeight * (node.rowStretch - 1)).coerceAtLeast(-rowSpacing)
+            rowHeights[r] = naturalHeight + extra
+            rowBaselines[r] = maxAscent + extra / 2
         }
 
         // 计算列的 x 偏移量（考虑竖线占用的额外空间）
@@ -543,7 +555,9 @@ internal class MatrixMeasurer : NodeMeasurer {
             rowYOffsets[r] = yAcc
             yAcc += rowHeights[r]
             if (r < rowCount - 1) {
-                yAcc += rowSpacing
+                yAcc += rowSpacing + (node.rowGaps.getOrNull(r)?.let {
+                    parseDimension("${it.number}${it.unit}", context, density)
+                } ?: 0f)
                 val hlinesAtNextRow = hLines.count { it.rowIndex == r + 1 }
                 if (hlinesAtNextRow > 0) {
                     yAcc += lineStrokeWidth + rowSpacing * 0.5f
@@ -637,12 +651,17 @@ internal class MatrixMeasurer : NodeMeasurer {
                 val isFullWidth = hl.startCol == 1 && hl.endCol == Int.MAX_VALUE
                 if (isFullWidth) {
                     // \hline: 覆盖完整表宽（包括竖线 padding 区域）
-                    drawLine(
-                        color = context.color,
-                        start = Offset(x, hy),
-                        end = Offset(x + totalWidth, hy),
-                        strokeWidth = lineStrokeWidth
-                    )
+                    if (hl.dashed) {
+                        val dash = lineStrokeWidth * 4
+                        var offset = 0f
+                        while (offset < totalWidth) {
+                            drawLine(context.color, Offset(x + offset, hy),
+                                Offset(x + min(offset + dash, totalWidth), hy), strokeWidth = lineStrokeWidth)
+                            offset += dash * 1.6f
+                        }
+                    } else {
+                        drawLine(context.color, Offset(x, hy), Offset(x + totalWidth, hy), strokeWidth = lineStrokeWidth)
+                    }
                 } else {
                     // \cline: 仅覆盖指定列范围
                     val startCol = max(hl.startCol - 1, 0)

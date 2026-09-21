@@ -23,14 +23,35 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.ParseDiagnostic
+import com.hrm.latex.parser.component.LatexParserContext
+import com.hrm.latex.parser.model.SourceRange
+import kotlin.math.roundToInt
 
 /**
  * 颜色命令：\color, \textcolor
  */
 internal fun CommandRegistry.installColorHandlers() {
+    register("definecolor") { _, ctx, _ ->
+        val name = ParseUtils.extractText(listOfNotNull(ctx.parseArgument())).trim()
+        val model = ParseUtils.extractText(listOfNotNull(ctx.parseArgument())).trim()
+        val value = ParseUtils.extractText(listOfNotNull(ctx.parseArgument())).trim()
+        val resolved = resolveColor(ctx, model, value)
+        if (resolved != null) ctx.defineColor(name, resolved)
+        LatexNode.Text("")
+    }
+    register("colorlet") { _, ctx, _ ->
+        val name = ParseUtils.extractText(listOfNotNull(ctx.parseArgument())).trim()
+        val value = ParseUtils.extractText(listOfNotNull(ctx.parseArgument())).trim()
+        ctx.defineColor(name, ctx.colors[value] ?: value)
+        LatexNode.Text("")
+    }
+    register("color") { _, ctx, _ ->
+        val color = readColor(ctx) ?: return@register LatexNode.Text("")
+        LatexNode.Color(emptyList(), color, isDeclaration = true)
+    }
     val colorHandler = CommandHandler { _, ctx, _ ->
-        val colorArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
-        val colorName = ParseUtils.extractColorName(colorArg)
+        val colorName = readColor(ctx)
 
         val contentArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
         val content = when (contentArg) {
@@ -38,15 +59,15 @@ internal fun CommandRegistry.installColorHandlers() {
             else -> listOf(contentArg)
         }
 
-        LatexNode.Color(content, colorName)
+        if (colorName != null) LatexNode.Color(content, colorName) else LatexNode.Group(content)
     }
 
-    register("color", "textcolor", handler = colorHandler)
+    register("textcolor", handler = colorHandler)
 
     // \colorbox{color}{text}
     register("colorbox") { _, ctx, _ ->
         val colorArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
-        val colorName = ParseUtils.extractColorName(colorArg)
+        val colorName = ParseUtils.extractColorName(colorArg).let { ctx.colors[it] ?: it }
 
         val contentArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
         val content = when (contentArg) {
@@ -60,10 +81,10 @@ internal fun CommandRegistry.installColorHandlers() {
     // \fcolorbox{borderColor}{bgColor}{text}
     register("fcolorbox") { _, ctx, _ ->
         val borderColorArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
-        val borderColor = ParseUtils.extractColorName(borderColorArg)
+        val borderColor = ParseUtils.extractColorName(borderColorArg).let { ctx.colors[it] ?: it }
 
         val bgColorArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
-        val bgColor = ParseUtils.extractColorName(bgColorArg)
+        val bgColor = ParseUtils.extractColorName(bgColorArg).let { ctx.colors[it] ?: it }
 
         val contentArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
         val content = when (contentArg) {
@@ -73,4 +94,26 @@ internal fun CommandRegistry.installColorHandlers() {
 
         LatexNode.ColorBox(content, bgColor, borderColor)
     }
+}
+
+private fun readColor(ctx: LatexParserContext): String? {
+    val model = ctx.tokenStream.readOptionalTokens()?.text()?.trim()
+    val value = ParseUtils.extractText(listOfNotNull(ctx.parseArgument())).trim()
+    return resolveColor(ctx, model, value)
+}
+
+private fun resolveColor(ctx: LatexParserContext, model: String?, value: String): String? {
+    if (model == null || model.isEmpty() || model == "named") return ctx.colors[value] ?: value
+    if (model == "HTML" && value.matches(Regex("[0-9a-fA-F]{6}"))) return "#$value"
+    val components = value.split(',').map { it.trim().toDoubleOrNull() }
+    val rgb = when {
+        model == "RGB" && components.size == 3 && components.all { it != null && it in 0.0..255.0 } -> components.map { it!! / 255.0 }
+        model == "rgb" && components.size == 3 && components.all { it != null && it in 0.0..1.0 } -> components.map { it!! }
+        model == "gray" && components.size == 1 && components[0]?.let { it in 0.0..1.0 } == true -> List(3) { components[0]!! }
+        else -> null
+    }
+    if (rgb != null) return "#" + rgb.joinToString("") { (it * 255).roundToInt().toString(16).padStart(2, '0') }
+    ctx.diagnostics.add(ParseDiagnostic(ctx.tokenStream.peek(-1)?.range ?: SourceRange.EMPTY,
+        "Invalid color specification: [$model]{$value}", ParseDiagnostic.Severity.ERROR, ParseDiagnostic.Category.INVALID_ARGUMENT))
+    return null
 }

@@ -484,7 +484,7 @@ AMS 否定关系符号测试，验证否定关系运算符。
 
 #### 12. NewCommandTest.kt (20 个测试) ⭐⭐⭐ 复杂
 
-自定义命令测试，验证 `\newcommand`、`\renewcommand`、`\def` 解析。
+自定义命令测试，验证 `\newcommand`、`\renewcommand`、`\def` 解析。`GroupCommandTest` 和 `TexCompatibilityTest` 补充分组、局部与全局作用域、延迟展开、条件执行、递归限制及增量编辑一致性验证。
 
 - ✅ `should_parse_newcommand_without_arguments` - 无参数定义
 - ✅ `should_parse_newcommand_with_one_argument` - 单参数定义
@@ -1217,6 +1217,18 @@ MathML 输出测试，验证 LaTeX 到 MathML 的转换。
 # 生成测试报告
 ./gradlew :latex-parser:jvmTest --tests "*" --info
 ```
+
+性能基准使用现有 `latex-benchmark` 模块，覆盖解析、宏调用、增量编辑、布局与缓存。下面以解析器为例；可替换 JMH 筛选表达式选择其他基准类。
+
+```bash
+./gradlew :latex-benchmark:mainBenchmarkJar
+java -cp 'latex-benchmark/build/benchmarks/main/jars/*:latex-benchmark/build/classes/kotlin/main:latex-parser/build/libs/*:latex-renderer/build/libs/*:latex-base/build/libs/*' \
+  org.openjdk.jmh.Main 'ParserBenchmark' \
+  -wi 3 -i 5 -w 1s -r 1s -f 2 -prof gc -rf json -rff result.json
+```
+
+对比时使用同一运行环境、输入与参数，串行运行基线和修改版本，同时检查耗时、分配量与测量误差。JVM 结果不能直接外推到 Android、Native 或 JS/Wasm。
+
 
 ---
 

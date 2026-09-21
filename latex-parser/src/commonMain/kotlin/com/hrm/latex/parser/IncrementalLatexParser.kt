@@ -139,6 +139,7 @@ class IncrementalLatexParser {
         }
 
         // 第 1 层：增量分词（总是执行，即使后续走全量解析也需要更新 token 缓存）
+        val hadContextDependencies = tokenizer.hasContextDependencies
         val isFirstParse = oldTextLength == 0
         if (isFirstParse) {
             tokenizer.tokenize(newText)
@@ -148,9 +149,12 @@ class IncrementalLatexParser {
 
         // 第 2 层：决策 — 增量解析 vs 全量解析
         val oldDoc = cachedDocument
+        // A definition can affect every later expansion. Reuse tokens, but invalidate
+        // isolated AST fragments whenever either side of the edit has such dependencies.
+        val canReuseContext = !hadContextDependencies && !tokenizer.hasContextDependencies
 
         // 追加场景快速路径：上次解析成功 + 纯追加 → 尾部增量 AST 构建
-        val canAppendIncremental = !isFirstParse
+        val canAppendIncremental = canReuseContext && !isFirstParse
                 && oldDoc != null
                 && oldDoc.children.isNotEmpty()
                 && lastSuccessfulPosition == oldTextLength  // 上次完整解析成功
@@ -158,7 +162,7 @@ class IncrementalLatexParser {
                 && edit.startOffset == oldTextLength         // 追加在末尾（非中间插入）
 
         // 中间替换/删除场景：使用 TreeReuser 三段划分
-        val canIncrementalParse = !isFirstParse
+        val canIncrementalParse = canReuseContext && !isFirstParse
                 && oldDoc != null
                 && oldDoc.children.isNotEmpty()
                 && lastSuccessfulPosition == oldTextLength  // 上次完整解析成功

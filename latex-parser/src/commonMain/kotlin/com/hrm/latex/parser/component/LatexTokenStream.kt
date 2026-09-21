@@ -24,20 +24,140 @@
 package com.hrm.latex.parser.component
 
 import com.hrm.latex.parser.model.SourceRange
+import com.hrm.latex.parser.ParseDiagnostic
 import com.hrm.latex.parser.tokenizer.LatexToken
 
 /**
  * 封装 Token 流的操作，如 peek, advance, expect
  */
 class LatexTokenStream(private val initialTokens: List<LatexToken>) {
-    private var mutableTokens: MutableList<LatexToken>? = null
-    private val tokens: List<LatexToken>
-        get() = mutableTokens ?: initialTokens
     private var position = 0
+    private var head: LatexToken? = initialTokens.firstOrNull()
+    private var pending: ArrayDeque<LatexToken>? = null
+    private var consumed: MutableList<LatexToken>? = null
+    private var previous: LatexToken? = null
+    private var headNormalized = head !is LatexToken.Command && head !is LatexToken.BeginEnvironment
+    internal var diagnostics: MutableList<ParseDiagnostic>? = null
+    internal var commandParser: CommandParser? = null
+    private var readingRaw = false
 
-    fun peek(offset: Int = 0): LatexToken? {
-        val pos = position + offset
-        return if (pos in tokens.indices) tokens[pos] else null
+    internal fun <T> raw(block: () -> T): T {
+        val previous = readingRaw
+        readingRaw = true
+        return try { block() } finally { readingRaw = previous }
+    }
+
+    /** Prepend a replacement in O(replacement size), without moving the remaining source. */
+    internal fun insert(tokens: List<LatexToken>) {
+        if (tokens.isEmpty()) return
+        val queue = pending ?: ArrayDeque<LatexToken>().also { pending = it }
+        if (consumed == null) consumed = initialTokens.take(position).toMutableList()
+        for (index in tokens.indices.reversed()) queue.addFirst(tokens[index])
+        head = queue.first()
+        headNormalized = head !is LatexToken.Command && head !is LatexToken.BeginEnvironment
+    }
+
+    internal fun skipWhitespace() {
+        while (peek() is LatexToken.Whitespace) advance()
+    }
+
+    /** Read one unexpanded TeX token, splitting the tokenizer's coalesced text. */
+    internal fun readAtom(): LatexToken? = raw {
+        if (isEOF()) null
+        else if (peek() is LatexToken.Text && !(peek() as LatexToken.Text).literal) consumeTextAtom()
+        else advance()
+    }
+
+    /** Balanced, unexpanded argument. Delimiters are consumed, not returned. */
+    internal fun readArgumentTokens(): List<LatexToken> = raw {
+        skipWhitespace()
+        if (peek() !is LatexToken.LeftBrace) {
+            if (isEOF() || peek() is LatexToken.RightBrace) {
+                reportMissing("Missing macro argument", ParseDiagnostic.Category.INVALID_ARGUMENT)
+                return@raw emptyList()
+            }
+            return@raw listOfNotNull(readAtom())
+        }
+        advance()
+        val result = mutableListOf<LatexToken>()
+        var depth = 1
+        while (!isEOF()) {
+            val token = advance() ?: break
+            if (token is LatexToken.LeftBrace) depth++
+            if (token is LatexToken.RightBrace) depth--
+            if (depth == 0) break
+            appendReplacementToken(result, token)
+        }
+        if (depth != 0) reportMissing("Missing } in macro argument", ParseDiagnostic.Category.MISSING_BRACE)
+        result
+    }
+
+    internal fun readOptionalTokens(): List<LatexToken>? = raw {
+        skipWhitespace()
+        if (peek() !is LatexToken.LeftBracket) return@raw null
+        advance()
+        val result = mutableListOf<LatexToken>()
+        var depth = 0
+        var closed = false
+        while (!isEOF()) {
+            val token = advance() ?: break
+            if (token is LatexToken.RightBracket && depth == 0) { closed = true; break }
+            if (token is LatexToken.LeftBrace) depth++
+            if (token is LatexToken.RightBrace) depth--
+            appendReplacementToken(result, token)
+        }
+        if (!closed) reportMissing("Missing ] in macro argument", ParseDiagnostic.Category.MISSING_BRACKET)
+        result
+    }
+
+    private fun appendReplacementToken(result: MutableList<LatexToken>, token: LatexToken) {
+        if (token !is LatexToken.Text || token.literal || '#' !in token.content) {
+            result.add(token)
+            return
+        }
+        var index = 0
+        while (index < token.content.length) {
+            val length = if (token.content[index].isHighSurrogate() &&
+                index + 1 < token.content.length && token.content[index + 1].isLowSurrogate()) 2 else 1
+            result.add(LatexToken.Text(token.content.substring(index, index + length), token.range))
+            index += length
+        }
+    }
+
+    private fun reportMissing(message: String, category: ParseDiagnostic.Category) {
+        diagnostics?.add(ParseDiagnostic(peek()?.range ?: peek(-1)?.range ?: SourceRange.EMPTY,
+            message, ParseDiagnostic.Severity.ERROR, category))
+    }
+
+    fun peek(): LatexToken? {
+        if (!headNormalized && !readingRaw) normalizeHead()
+        return head
+    }
+
+    fun peek(offset: Int): LatexToken? {
+        if (offset < 0) return lookBehind(offset)
+        val current = peek()
+        return if (offset == 0) current else rawPeek(offset)
+    }
+
+    private fun rawPeek(offset: Int): LatexToken? {
+        val queue = pending ?: return initialTokens.getOrNull(position + offset)
+        return if (offset < queue.size) queue[offset] else initialTokens.getOrNull(position + offset - queue.size)
+    }
+
+    private fun lookBehind(offset: Int): LatexToken? {
+        if (offset == -1) return previous
+        val history = consumed
+        return if (history != null) history.getOrNull(history.size + offset)
+            else initialTokens.getOrNull(position + offset)
+    }
+
+    private fun normalizeHead() {
+        readingRaw = true
+        try {
+            while ((head is LatexToken.Command || head is LatexToken.BeginEnvironment) && commandParser?.expandNext() == true) { /* expansion updates head */ }
+            headNormalized = true
+        } finally { readingRaw = false }
     }
 
     /**
@@ -56,7 +176,12 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
 
     fun advance(): LatexToken? {
         val token = peek()
-        position++
+        val queue = pending
+        if (queue != null && queue.isNotEmpty()) queue.removeFirst() else position++
+        head = queue?.firstOrNull() ?: initialTokens.getOrNull(position)
+        if (token != null) consumed?.add(token)
+        previous = token
+        headNormalized = head !is LatexToken.Command && head !is LatexToken.BeginEnvironment
         return token
     }
 
@@ -77,24 +202,18 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         } else {
             1
         }
-        val atomEnd = token.range.start + atomLength
+        val atomEnd = (token.range.start + atomLength).coerceAtMost(token.range.end)
         val atom = LatexToken.Text(
             token.content.substring(0, atomLength),
             SourceRange(token.range.start, atomEnd)
         )
 
-        if (atomLength < token.content.length) {
-            val editableTokens = mutableTokens ?: initialTokens.toMutableList().also { mutableTokens = it }
-            editableTokens[position] = atom
-            editableTokens.add(
-                position + 1,
-                LatexToken.Text(
-                    token.content.substring(atomLength),
-                    SourceRange(atomEnd, token.range.end)
-                )
-            )
-        }
         advance()
+        if (atomLength < token.content.length) {
+            insert(listOf(LatexToken.Text(token.content.substring(atomLength), SourceRange(atomEnd, token.range.end))))
+        }
+        previous = atom
+        consumed?.let { if (it.isNotEmpty()) it[it.lastIndex] = atom }
         return atom
     }
 
@@ -124,11 +243,7 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
      * 获取上一个已消费 token 的结束偏移
      * 用于 Parser 记录节点的 sourceRange.end
      */
-    fun previousEndOffset(): Int {
-        if (position <= 0) return 0
-        val prevPos = position - 1
-        return if (prevPos < tokens.size) tokens[prevPos].range.end else 0
-    }
+    fun previousEndOffset(): Int = previous?.range?.end ?: 0
 
     /**
      * 构建从 start 到当前已消费位置的 SourceRange
@@ -139,5 +254,9 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
     
     fun reset() {
         position = 0
+        pending = null
+        consumed = null
+        previous = null
+        headNormalized = head !is LatexToken.Command && head !is LatexToken.BeginEnvironment
     }
 }
