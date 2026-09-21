@@ -4,7 +4,9 @@
 
 ### ✅ 已支持
 - ✅ 文本内容
-- ✅ 分组 `{...}`
+- ✅ 分组 `{...}`、`\begingroup...\endgroup`、`\bgroup/\egroup`（含嵌套、源码范围与配对诊断）
+- ✅ 分组内样式声明及自定义命令/环境定义的局部作用域，退出后恢复外层定义
+- 范围：复用数学 `Group` 节点；不承诺完整 TeX 的参数扫描、透明数学组或跨宏体 token 展开语义
 - ✅ 上标 `^`
 - ✅ 下标 `_`
 - ✅ 空格和换行
@@ -173,6 +175,7 @@
 - ✅ `array` 数组环境（更通用的表格）
 - ✅ `matrix*`, `pmatrix*`, `bmatrix*`, `Bmatrix*`, `vmatrix*`, `Vmatrix*` 及 `[l|c|r]` 对齐
 - ✅ `smallmatrix*`, `subarray` 紧凑矩阵环境
+- ✅ `\arraystretch`、`\arraycolsep`、`\setlength{\arraycolsep}{...}` 控制行列间距，`\hdashline` 绘制虚线；同步布局与导出。长度赋值仅覆盖 arraycolsep。
 
 ### ❌ 缺失
 - 无
@@ -287,6 +290,7 @@
 - ✅ `\bm{α}` 粗体符号简写
 - ✅ `\text{普通文本}` 文本模式
 - ✅ `\mbox{文本}` mbox模式
+- ✅ `\text` / `\mbox` 保留嵌套样式与行内数学；`\verb` / `\verb*` 保留逐字内容。
 - ✅ `\symbf{x}` Unicode 数学粗体符号（同 `\boldsymbol`）
 - ✅ `\symit{x}` Unicode 数学斜体
 - ✅ `\symsf{x}` Unicode 数学无衬线体
@@ -307,6 +311,7 @@
 ### ✅ 已支持
 - ✅ `\displaystyle` 显示模式（最大，用于独立公式）
 - ✅ `\textstyle` 文本模式（正常大小）
+- ✅ `\mathchoice{D}{T}{S}{SS}` / `\mathpalette` 按实际数学样式选择内容，覆盖渲染、MathML 和无障碍输出。
 - ✅ `\scriptstyle` 脚本模式（上下标大小）
 - ✅ `\scriptscriptstyle` 小脚本模式（二级上下标大小）
 - ✅ `\cramped{...}`、`\cramped[\scriptstyle]{...}`（mathtools），以及四种 LuaTeX `\cramped...style` 声明
@@ -420,7 +425,8 @@ x^{\sum_{i=1}^{n}}
 ### ✅ 已支持
 
 #### 颜色命令
-- ✅ `\color{red}{文本}` 颜色命令
+- ✅ `\color{red} a+b` 声明颜色，作用到当前组结束；`\textcolor` 只作用于参数。
+- ✅ `\definecolor` / `\colorlet` 定义与复制局部命名颜色，支持 HTML/RGB/rgb/gray 模型及 `\color[model]{...}`。
 - ✅ `\textcolor{red}{文本}` 文本颜色
 - ✅ 支持常见颜色名称: red, blue, green, yellow, orange, purple, cyan, magenta, pink, brown, lime, navy, teal, violet
 - ✅ 支持十六进制颜色: `\color{#FF5733}{文本}`
@@ -430,9 +436,7 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\fcolorbox{borderColor}{bgColor}{text}` 带边框的背景色
 
 ### ❌ 缺失
-- 无
-
-**覆盖率**: 6/6 (100%) ✅
+- 完整 xcolor 混色语言。
 
 ---
 
@@ -497,16 +501,29 @@ x^{\sum_{i=1}^{n}}
 - ✅ `\renewenvironment{name}{begin-def}{end-def}` 重定义环境
 - ✅ `\DeclarePairedDelimiter` 配对定界符定义，支持 `*` 与 `[size]` 调用形式
 
-**特性说明：**
-- 支持 0-9 个参数，使用 `#1` ~ `#9` 表示
-- 支持嵌套和递归定义
-- `\renewcommand` 覆盖已有定义
-- `\def` 支持 TeX 原始语法
+**展开与作用域：**
+- 宏体保存原始 token，调用时展开；支持前向引用、分隔参数、局部与全局定义。
+- 支持 `\providecommand`、定义星号形式、`\let`、`\relax`、`\gdef/\edef/\xdef`、`\global`。
+- 支持 `\expandafter`、`\noexpand`、`\csname`、`\ifdefined`、`\ifx`，以及跨宏体分组配对。
+- 支持 `\DeclareMathOperator*` 的 display 上下限，自定义环境的星号定义及起止体跨宏分组。
 
-### ❌ 缺失
-- 无
+### 定义节点 API 与支持边界
 
-**覆盖率**: 9/9 (100%) ✅
+`LatexNode.NewCommand.definition` 和 `NewEnvironment.beginDef/endDef` 现在保存 `List<LatexToken>`，不再是 `List<LatexNode>`。声明没有可渲染子节点；需要检查定义内容的调用方应读取 token。`CustomCommand` / `CustomEnvironment` 同样改为保存 token 定义。这里没有保留双份数据或兼容转换。
+
+星号宏定义可识别，但本库没有 TeX 的段落 token/long 参数模型。颜色不覆盖完整 xcolor 混色语言，长度赋值仅覆盖 arraycolsep；不支持 catcode、寄存器运算、文件输入或完整 TeX 条件指令集。不能用命令数量宣称完整 TeX 兼容率。
+
+### 展开机制与资源边界
+
+沿用 `Tokenizer → Parser → AST → Visitors / Renderer`，在现有 token stream 中按需展开，不引入独立 Expander 或第二条解析链路。
+
+- 定义体只保存 token，不提前生成 AST，也不保留旧 AST 替换实现。
+- 普通公式不创建展开队列；缓存当前 token，展开结果前置到双端队列，不搬移剩余输入。
+- 定义表首次写入时创建；分组记录实际修改项，不复制整张定义表。分隔参数顺序扫描文本，数学样式分支直接取字段。
+- 增量分词沿现有 token 合并循环跟踪定义依赖。涉及定义、条件或状态声明的编辑复用 token，但使独立 AST 片段失效并重新解析；普通输入保留局部 AST 复用。
+- 展开上限为 10,000 次、100,000 个输出 token；递归展开控制深度为 256，宏展开时分组深度为 128。超限报告 `MACRO_ERROR`，不会切换到另一种解释方式。
+
+基准运行方式见 [测试覆盖报告](TEST_COVERAGE.md)。语义对照参考 [KaTeX 支持功能](https://katex.org/docs/supported)及 [TeX by Topic](https://ctan.math.illinois.edu/info/texbytopic/TeXbyTopic.pdf)。
 
 ---
 

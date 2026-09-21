@@ -166,6 +166,8 @@
 <summary><b>自定义命令与宏定义（9）</b></summary>
 
 `\newcommand`, `\renewcommand`, `\def`（0–9 个参数，支持可选参数默认值）, `\newenvironment`, `\renewenvironment`, `\DeclarePairedDelimiter`
+
+分组与 TeX 扩展：支持 `{...}`、`\begingroup/\endgroup`、`\bgroup/\egroup`，包括局部/全局定义及跨宏体配对。宏按 token 延迟展开，支持 `\providecommand`、`\let`、`\edef/\xdef`、展开控制与条件分支；补齐 `\mathchoice/\mathpalette`、命名颜色、结构化/逐字文本以及数组间距/虚线。功能边界及定义节点 API 变化见 [实现说明](latex-parser/PARSER_COVERAGE_ANALYSIS.md#15-自定义命令与宏定义)。
 </details>
 
 <details>

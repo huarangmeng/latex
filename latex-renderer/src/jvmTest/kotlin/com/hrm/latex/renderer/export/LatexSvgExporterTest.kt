@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LatexFontFamilies
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -61,6 +63,70 @@ class LatexSvgExporterTest {
         val second = assertNotNull(exporter.exportSvg("\\sqrt{y}"))
 
         assertNotEquals(first.svg, second.svg)
+    }
+
+    @Test
+    fun mathChoiceUsesActualLayoutStyleInSvg() {
+        val exporter = createExporter()
+        val choice = "\\mathchoice{WWWW}{xx}{i}{j}"
+        for ((prefix, expected) in listOf(
+            "\\displaystyle" to "WWWW", "\\textstyle" to "xx",
+            "\\scriptstyle" to "i", "\\scriptscriptstyle" to "j",
+            "\\crampedscriptstyle" to "i"
+        )) {
+            val actual = assertNotNull(exporter.exportSvg("$prefix$choice"))
+            val reference = assertNotNull(exporter.exportSvg("$prefix $expected"))
+            assertEquals(reference.width, actual.width, prefix)
+            assertEquals(reference.height, actual.height, prefix)
+        }
+        val nested = assertNotNull(exporter.exportSvg("x^{$choice}"))
+        val reference = assertNotNull(exporter.exportSvg("x^{i}"))
+        assertEquals(reference.width, nested.width)
+        assertEquals(reference.height, nested.height)
+    }
+
+    @Test
+    fun matrixMathChoiceMatchesTextAndSmallMatrixStyle() {
+        val exporter = createExporter()
+        for ((environment, branch) in listOf("matrix" to "xx", "smallmatrix" to "i")) {
+            val actual = assertNotNull(exporter.exportSvg("\\begin{$environment}\\mathchoice{WWWW}{xx}{i}{j}\\end{$environment}"))
+            val expected = assertNotNull(exporter.exportSvg("\\begin{$environment}$branch\\end{$environment}"))
+            assertEquals(expected.width, actual.width)
+            assertEquals(expected.height, actual.height)
+        }
+    }
+
+    @Test
+    fun namedColorAndDeclarationExportLikeExplicitTextcolor() {
+        val exporter = createExporter()
+        val actual = assertNotNull(exporter.exportSvg("\\definecolor{brand}{HTML}{123456}\\color{brand}a+b"))
+        val reference = assertNotNull(exporter.exportSvg("\\textcolor{#123456}{a+b}"))
+        assertEquals(reference.svg, actual.svg)
+    }
+
+    @Test
+    fun structuredTextKeepsNestedFontChangesAndMath() {
+        val exporter = createExporter()
+        val source = "\\text{normal \\textbf{bold} \\textit{italic} and ${'$'}x^2${'$'}}"
+        val result = assertNotNull(exporter.exportSvg(source))
+        val plain = assertNotNull(exporter.exportSvg("\\text{normal bold italic and x2}"))
+        assertNotEquals(plain.svg, result.svg)
+        assertTrue(result.width > 0)
+        assertTrue(result.height > 0)
+    }
+
+    @Test
+    fun arraySpacingAndDashRulesAffectExportedLayout() {
+        val exporter = createExporter()
+        val body = "\\begin{array}{cc}a&b\\\\\\hline c&d\\end{array}"
+        val normal = assertNotNull(exporter.exportSvg(body))
+        val wide = assertNotNull(exporter.exportSvg("\\setlength{\\arraycolsep}{20pt}$body"))
+        val tall = assertNotNull(exporter.exportSvg("\\def\\arraystretch{2}$body"))
+        val dashed = assertNotNull(exporter.exportSvg(body.replace("hline", "hdashline")))
+        assertTrue(wide.width > normal.width)
+        assertTrue(tall.height > normal.height)
+        assertEquals(normal.width, dashed.width)
+        assertNotEquals(normal.svg, dashed.svg)
     }
 
     private fun createExporter(): LatexExporterState {

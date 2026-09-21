@@ -46,6 +46,22 @@ import com.hrm.latex.parser.tokenizer.LatexTokenizer
  */
 class IncrementalTokenizer {
 
+    /** Stateful commands make isolated AST fragments depend on earlier input. */
+    internal var hasContextDependencies = false
+        private set
+
+    private fun trackContext(token: LatexToken) {
+        if (hasContextDependencies || token !is LatexToken.Command) return
+        hasContextDependencies = when (token.name) {
+            "def", "gdef", "edef", "xdef", "let", "global",
+            "newcommand", "renewcommand", "providecommand", "DeclareMathOperator",
+            "DeclarePairedDelimiter", "newenvironment", "renewenvironment",
+            "csname", "ifdefined", "ifx", "expandafter", "noexpand",
+            "definecolor", "colorlet", "color", "arraycolsep", "setlength" -> true
+            else -> false
+        }
+    }
+
     /** 缓存的完整 token 列表（不含 EOF） */
     private var cachedTokens: MutableList<LatexToken> = mutableListOf()
 
@@ -65,9 +81,10 @@ class IncrementalTokenizer {
         val allTokens = tokenizer.tokenize()
         // 移除末尾的 EOF token，我们自行管理
         // 使用 in-place 过滤替代 filterNot + toMutableList 双拷贝
+        hasContextDependencies = false
         cachedTokens = ArrayList<LatexToken>(allTokens.size).also { list ->
             for (token in allTokens) {
-                if (token !is LatexToken.EOF) list.add(token)
+                if (token !is LatexToken.EOF) { list.add(token); trackContext(token) }
             }
         }
         invalidateResultCache()
@@ -147,12 +164,14 @@ class IncrementalTokenizer {
         )
 
         // 就地构建：prefix(0..dirtyStart) + middle + adjustedSuffix
+        hasContextDependencies = false
         cachedTokens = ArrayList<LatexToken>(dirtyStart + newMiddleTokens.size + adjustedSuffixTokens.size).apply {
             for (i in 0 until dirtyStart) {
                 add(oldTokens[i])
+                trackContext(oldTokens[i])
             }
-            addAll(newMiddleTokens)
-            addAll(adjustedSuffixTokens)
+            for (token in newMiddleTokens) { add(token); trackContext(token) }
+            for (token in adjustedSuffixTokens) { add(token); trackContext(token) }
         }
         textBuffer.clear()
         textBuffer.append(newText)

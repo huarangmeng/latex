@@ -24,6 +24,7 @@
 package com.hrm.latex.parser.model
 
 import com.hrm.latex.parser.visitor.LatexVisitor
+import com.hrm.latex.parser.tokenizer.LatexToken
 import kotlin.js.JsName
 
 /**
@@ -272,7 +273,9 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null,
         val rowGaps: List<RowGap?> = emptyList(),
         /** Optional alignment from mathtools starred matrix environments. */
-        val alignment: String? = null
+        val alignment: String? = null,
+        val rowStretch: Float = 1f,
+        val columnSep: String? = null
     ) : LatexNode() {
         enum class MatrixType {
             PLAIN, PAREN, BRACKET, BRACE, VBAR, DOUBLE_VBAR
@@ -293,7 +296,9 @@ sealed class LatexNode {
         val rows: List<List<LatexNode>>,
         val alignment: String,
         override val sourceRange: SourceRange? = null,
-        val rowGaps: List<RowGap?> = emptyList()
+        val rowGaps: List<RowGap?> = emptyList(),
+        val rowStretch: Float = 1f,
+        val columnSep: String? = null
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -544,7 +549,8 @@ sealed class LatexNode {
     data class Color(
         val content: List<LatexNode>,
         val color: String,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val isDeclaration: Boolean = false
     ) : LatexNode() {
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -552,12 +558,29 @@ sealed class LatexNode {
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitColor(this)
     }
 
-    /**
-     * 数学模式节点（控制公式大小）
-     *
-     * @property content 内容
-     * @property mathStyleType 数学模式类型
-     */
+    /** Four alternatives selected using the effective math style during layout/export. */
+    data class MathChoice(
+        val display: LatexNode,
+        val text: LatexNode,
+        val script: LatexNode,
+        val scriptScript: LatexNode,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        fun branch(style: Int): LatexNode = when (style) {
+            0 -> display
+            1 -> text
+            2 -> script
+            3 -> scriptScript
+            else -> error("Invalid math style: $style")
+        }
+        override fun children() = listOf(display, text, script, scriptScript)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(
+            display = newChildren[0], text = newChildren[1], script = newChildren[2], scriptScript = newChildren[3]
+        )
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitMathChoice(this)
+    }
+
     data class MathStyle(
         val content: List<LatexNode>,
         val mathStyleType: MathStyleType,
@@ -762,11 +785,12 @@ sealed class LatexNode {
      */
     data class TextMode(
         val text: String,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val content: List<LatexNode> = emptyList()
     ) : LatexNode() {
-        override fun children() = emptyList<LatexNode>()
+        override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitTextMode(this)
     }
 
@@ -856,19 +880,19 @@ sealed class LatexNode {
      * 该节点不参与渲染，仅用于记录命令定义
      * @param commandName 命令名（不含反斜杠）
      * @param numArgs 参数个数（0-9）
-     * @param definition 命令定义（AST 节点列表）
+     * @param definition 未展开的宏体 token（声明不是可渲染子树）
      * @param defaultArg 可选参数的默认值（对应 \newcommand{\cmd}[2][default]{body} 中的 default）
      */
     data class NewCommand(
         val commandName: String,
         val numArgs: Int,
-        val definition: List<LatexNode>,
+        val definition: List<LatexToken>,
         val defaultArg: String? = null,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        override fun children() = definition
+        override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>) = copy(definition = newChildren)
+        override fun withChildren(newChildren: List<LatexNode>) = this
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitNewCommand(this)
     }
 
@@ -1091,7 +1115,9 @@ sealed class LatexNode {
         val rows: List<List<LatexNode>>,
         val alignment: String,
         override val sourceRange: SourceRange? = null,
-        val rowGaps: List<RowGap?> = emptyList()
+        val rowGaps: List<RowGap?> = emptyList(),
+        val rowStretch: Float = 1f,
+        val columnSep: String? = null
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -1106,7 +1132,8 @@ sealed class LatexNode {
      * 用于表格中绘制整行水平线
      */
     data class HLine(
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val dashed: Boolean = false
     ) : LatexNode() {
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -1341,27 +1368,21 @@ sealed class LatexNode {
      * 该节点不参与渲染，仅用于记录环境定义
      * @param envName 环境名
      * @param numArgs 参数个数（0-9）
-     * @param beginDef 环境开始定义（AST 节点列表）
-     * @param endDef 环境结束定义（AST 节点列表）
+     * @param beginDef 环境开始定义（未展开 token）
+     * @param endDef 环境结束定义（未展开 token）
      * @param defaultArg 可选参数的默认值
      */
     data class NewEnvironment(
         val envName: String,
         val numArgs: Int,
-        val beginDef: List<LatexNode>,
-        val endDef: List<LatexNode>,
+        val beginDef: List<LatexToken>,
+        val endDef: List<LatexToken>,
         val defaultArg: String? = null,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        override fun children() = beginDef + endDef
+        override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
-        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
-            val beginSize = beginDef.size
-            return copy(
-                beginDef = newChildren.subList(0, beginSize),
-                endDef = newChildren.subList(beginSize, newChildren.size)
-            )
-        }
+        override fun withChildren(newChildren: List<LatexNode>) = this
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitNewEnvironment(this)
     }
 

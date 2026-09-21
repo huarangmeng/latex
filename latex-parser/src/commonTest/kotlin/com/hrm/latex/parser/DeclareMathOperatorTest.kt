@@ -40,9 +40,7 @@ class DeclareMathOperatorTest {
         assertIs<LatexNode.NewCommand>(children[0], "First node should be NewCommand")
         assertEquals("Tr", (children[0] as LatexNode.NewCommand).commandName)
         // Find the expanded OperatorName
-        val opNodes = children.filterIsInstance<LatexNode.Group>()
-            .flatMap { it.children }
-            .filterIsInstance<LatexNode.OperatorName>()
+        val opNodes = children.filterIsInstance<LatexNode.OperatorName>()
         assertTrue(opNodes.isNotEmpty(), "Should have an OperatorName node from expansion")
         assertEquals("Tr", opNodes[0].name)
     }
@@ -84,11 +82,9 @@ class DeclareMathOperatorTest {
     @Test
     fun should_declare_and_use_with_subscript() {
         val result = parser.parse("\\DeclareMathOperator{\\argmin}{arg\\,min} \\argmin_{x}")
-        val allNodes = flattenNodes(result.children)
-        // Should have a subscript containing the expanded command
-        val subscripts = allNodes.filterIsInstance<LatexNode.Subscript>()
-        assertTrue(subscripts.isNotEmpty() || allNodes.any { it is LatexNode.OperatorName },
-            "Should have subscript or OperatorName")
+        val operator = result.children.last() as LatexNode.BigOperator
+        assertTrue(operator.subscript != null)
+        assertTrue(!operator.limitsInDisplay)
     }
 
     private fun flattenNodes(nodes: List<LatexNode>): List<LatexNode> {
@@ -105,7 +101,7 @@ class DeclareMathOperatorTest {
                     result.addAll(flattenNodes(listOf(node.base)))
                     result.addAll(flattenNodes(listOf(node.index)))
                 }
-                is LatexNode.NewCommand -> result.addAll(flattenNodes(node.definition))
+                is LatexNode.NewCommand -> Unit
                 else -> {}
             }
         }

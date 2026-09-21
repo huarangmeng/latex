@@ -36,10 +36,11 @@ sealed class LatexToken {
     /** 创建带有新 SourceRange 的副本（消除 shiftToken 中的 when 分派） */
     abstract fun withRange(newRange: SourceRange): LatexToken
 
-    data class Text(val content: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+    data class Text(val content: String, override val range: SourceRange = SourceRange.EMPTY, val literal: Boolean = false) : LatexToken() {
         override fun withRange(newRange: SourceRange) = copy(range = newRange)
     }
-    data class Command(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {
+    /** expandable is the one-step noexpand marker; builtin preserves a let snapshot across redefinition. */
+    data class Command(val name: String, override val range: SourceRange = SourceRange.EMPTY, val expandable: Boolean = true, val builtin: Boolean = false) : LatexToken() {
         override fun withRange(newRange: SourceRange) = copy(range = newRange)
     }
     data class BeginEnvironment(val name: String, override val range: SourceRange = SourceRange.EMPTY) : LatexToken() {

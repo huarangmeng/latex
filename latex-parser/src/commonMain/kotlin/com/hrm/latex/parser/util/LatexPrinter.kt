@@ -74,6 +74,19 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         return ""
     }
 
+    override fun visitMathChoice(node: LatexNode.MathChoice): String {
+        output.append("MathChoice(")
+        node.children().forEach { visit(it); output.append(", ") }
+        output.append(")")
+        return ""
+    }
+
+    override fun visitTextMode(node: LatexNode.TextMode): String {
+        output.append("TextMode('").append(node.text).append("')")
+        node.content.forEach { visit(it) }
+        return ""
+    }
+
     override fun visitMathStyle(node: LatexNode.MathStyle): String {
         output.append("MathStyle(${node.mathStyleType})")
         if (node.content.isNotEmpty()) {
@@ -332,6 +345,11 @@ class LatexPrinter : BaseLatexVisitor<String>() {
             }
             indent--
         }
+        return ""
+    }
+
+    override fun visitNewCommand(node: LatexNode.NewCommand): String {
+        output.append("NewCommand(${node.commandName}[${node.numArgs}], definition=${node.definition})")
         return ""
     }
 

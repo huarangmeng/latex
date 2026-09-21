@@ -22,204 +22,134 @@
 
 package com.hrm.latex.parser.component.handler
 
-import com.hrm.latex.base.log.HLog
+import com.hrm.latex.parser.ParseDiagnostic
 import com.hrm.latex.parser.component.CustomCommand
 import com.hrm.latex.parser.component.CustomEnvironment
+import com.hrm.latex.parser.component.LatexParserContext
+import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
 
-private const val TAG = "MacroHandlers"
-
-/**
- * 宏定义命令：\newcommand, \renewcommand, \def, \DeclareMathOperator
- */
+/** Definitions read raw tokens; no command in a replacement body executes at definition time. */
 internal fun CommandRegistry.installMacroHandlers() {
-    // \newcommand, \renewcommand
-    val newCommandHandler = CommandHandler { _, ctx, stream ->
-        val commandName = parseCommandName(stream) ?: return@CommandHandler LatexNode.Text("")
+    register("newcommand", "renewcommand", "providecommand") { kind, ctx, stream -> stream.raw {
+        consumeStar(stream)
+        val name = readCommandName(stream) ?: return@raw LatexNode.Text("")
+        val countTokens = stream.readOptionalTokens()
+        val count = if (countTokens == null) 0 else countTokens.text().toIntOrNull() ?: -1
+        val default = if (count > 0) stream.readOptionalTokens() else null
+        val body = stream.readArgumentTokens()
+        if (count !in 0..9) return@raw invalid(ctx, stream, "Macro argument count must be between 0 and 9")
+        if (kind == "providecommand" && ctx.isCommandDefined(name)) return@raw LatexNode.Text("")
+        ctx.defineCommand(CustomCommand(name, count, body, default), takeGlobal(ctx))
+        LatexNode.NewCommand(name, count, body, default?.text())
+    } }
 
-        // 可选参数 [numArgs]
-        var numArgs = 0
-        var defaultArg: String? = null
-        if (stream.peek() is LatexToken.LeftBracket) {
-            stream.advance() // [
-            val numNodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
-            if (!stream.isEOF()) {
-                stream.expect("]")
-            }
-            numArgs = ParseUtils.extractText(numNodes).toIntOrNull() ?: 0
-
-            // 可选默认值 [defaultArg]（紧跟在 [numArgs] 后面的第二个方括号参数）
-            if (stream.peek() is LatexToken.LeftBracket) {
-                stream.advance() // [
-                val defaultNodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
-                if (!stream.isEOF()) {
-                    stream.expect("]")
-                }
-                defaultArg = ParseUtils.extractText(defaultNodes)
-            }
+    register("def", "gdef", "edef", "xdef") { kind, ctx, stream -> stream.raw {
+        stream.skipWhitespace()
+        val name = (stream.readAtom() as? LatexToken.Command)?.name
+            ?: return@raw invalid(ctx, stream, "Expected a command after \\$kind")
+        val parameters = mutableListOf<LatexToken>()
+        while (!stream.isEOF() && stream.peek() !is LatexToken.LeftBrace) {
+            parameters.add(stream.readAtom() ?: break)
         }
-
-        // 定义 {definition}
-        val defArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
-        val definition = when (defArg) {
-            is LatexNode.Group -> defArg.children
-            else -> listOf(defArg)
+        val numbers = parameters.windowed(2).mapNotNull {
+            if ((it[0] as? LatexToken.Text)?.content == "#") (it[1] as? LatexToken.Text)?.content?.toIntOrNull() else null
         }
+        if (numbers != (1..numbers.size).toList() || numbers.size > 9) return@raw invalid(ctx, stream, "Macro parameters must be numbered consecutively")
+        var body = stream.readArgumentTokens()
+        if (kind == "edef" || kind == "xdef") body = ctx.expandTokens(body)
+        val global = takeGlobal(ctx) || kind == "gdef" || kind == "xdef"
+        ctx.defineCommand(CustomCommand(name, numbers.size, body, parameterText = parameters), global)
+        LatexNode.NewCommand(name, numbers.size, body)
+    } }
 
-        ctx.customCommands[commandName] = CustomCommand(commandName, numArgs, definition, defaultArg)
-        HLog.d(TAG) { "注册自定义命令: \\$commandName[$numArgs]${if (defaultArg != null) "[default=$defaultArg]" else ""}" }
-        LatexNode.NewCommand(commandName, numArgs, definition, defaultArg)
+    register("let") { _, ctx, stream -> stream.raw {
+        stream.skipWhitespace()
+        val name = (stream.readAtom() as? LatexToken.Command)?.name
+            ?: return@raw invalid(ctx, stream, "Expected a command after \\let")
+        stream.skipWhitespace()
+        if ((stream.peek() as? LatexToken.Text)?.content == "=") { stream.advance(); stream.skipWhitespace() }
+        val value = stream.readAtom() ?: return@raw invalid(ctx, stream, "Missing \\let value")
+        val existing = (value as? LatexToken.Command)?.let { ctx.customCommands[it.name] }
+        val definition = existing?.copy(name = name) ?: CustomCommand(name, 0, listOf(
+            if (value is LatexToken.Command) value.copy(builtin = true) else value
+        ), isAlias = true)
+        ctx.defineCommand(definition, takeGlobal(ctx))
+        LatexNode.NewCommand(name, definition.numArgs, definition.tokens)
+    } }
+    register("global") { _, ctx, stream ->
+        ctx.globalAssignment = true
+        try {
+            val assignment = ctx.parseFactor() ?: LatexNode.Text("")
+            if (ctx.globalAssignment) invalid(ctx, stream, "Expected an assignment after \\global")
+            assignment
+        } finally { ctx.globalAssignment = false }
     }
+    register("relax") { _, _, _ -> LatexNode.Text("") }
 
-    register("newcommand", "renewcommand", handler = newCommandHandler)
+    register("DeclareMathOperator") { _, ctx, stream -> stream.raw {
+        val starred = consumeStar(stream)
+        val name = readCommandName(stream) ?: return@raw invalid(ctx, stream, "Missing operator command")
+        val body = stream.readArgumentTokens()
+        val replacement = listOf(LatexToken.Command("operatorname")) +
+            (if (starred) listOf(LatexToken.Text("*")) else emptyList()) +
+            LatexToken.LeftBrace() + body + LatexToken.RightBrace()
+        ctx.defineCommand(CustomCommand(name, 0, replacement), takeGlobal(ctx))
+        LatexNode.NewCommand(name, 0, replacement)
+    } }
 
-    // \def
-    register("def") { _, ctx, stream ->
-        val nameToken = if (!stream.isEOF()) stream.advance() else null
-        val commandName = when (nameToken) {
-            is LatexToken.Command -> nameToken.name
-            is LatexToken.Text -> nameToken.content.removePrefix("\\")
-            else -> return@register LatexNode.Text("\\def")
-        }
+    register("DeclarePairedDelimiter") { _, ctx, stream -> stream.raw {
+        val name = readCommandName(stream) ?: return@raw invalid(ctx, stream, "Missing delimiter command")
+        val left = stream.readArgumentTokens()
+        val right = stream.readArgumentTokens()
+        val body = listOf(LatexToken.Command("left")) + left + listOf(LatexToken.Text("#"), LatexToken.Text("1"), LatexToken.Command("right")) + right
+        ctx.defineCommand(CustomCommand(name, 1, body, acceptsDelimiterModifier = true), takeGlobal(ctx))
+        LatexNode.NewCommand(name, 1, body)
+    } }
 
-        // 计算参数个数
-        var numArgs = 0
-        while (!stream.isEOF()) {
-            val token = stream.peek()
-            if (token is LatexToken.Text && token.content.startsWith("#")) {
-                stream.advance()
-                val argNum = token.content.removePrefix("#").toIntOrNull()
-                if (argNum != null && argNum > numArgs) numArgs = argNum
-            } else {
-                break
-            }
-        }
-
-        // 解析定义 {body}
-        val defArg = ctx.parseArgument() ?: return@register LatexNode.Text("\\def")
-        val definition = when (defArg) {
-            is LatexNode.Group -> defArg.children
-            else -> listOf(defArg)
-        }
-
-        ctx.customCommands[commandName] = CustomCommand(commandName, numArgs, definition)
-        HLog.d(TAG, "注册自定义命令 (def): \\$commandName[$numArgs]")
-        LatexNode.NewCommand(commandName, numArgs, definition)
-    }
-
-    // \DeclareMathOperator
-    register("DeclareMathOperator") { _, ctx, _ ->
-        val commandName = parseCommandName(ctx.tokenStream) ?: return@register LatexNode.Text("")
-
-        val opArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
-        val operatorName = when (opArg) {
-            is LatexNode.Text -> opArg.content
-            is LatexNode.Group -> ParseUtils.extractText(opArg.children)
-            else -> ""
-        }
-
-        val definition = listOf(LatexNode.OperatorName(operatorName))
-        ctx.customCommands[commandName] = CustomCommand(commandName, 0, definition)
-        HLog.d(TAG) { "注册运算符: \\$commandName → operatorname{$operatorName}" }
-        LatexNode.NewCommand(commandName, 0, definition)
-    }
-
-    // mathtools: \DeclarePairedDelimiter{\name}{left}{right}
-    // The declared command expands through the existing custom-command machinery.
-    register("DeclarePairedDelimiter") { _, ctx, stream ->
-        val commandName = parseCommandName(stream) ?: return@register LatexNode.Text("")
-        val left = ParseUtils.extractDelimiter(ctx.parseArgument() ?: LatexNode.Text(""))
-        val right = ParseUtils.extractDelimiter(ctx.parseArgument() ?: LatexNode.Text(""))
-        val definition = listOf(
-            LatexNode.Delimited(left, right, listOf(LatexNode.Text("#1")))
-        )
-        ctx.customCommands[commandName] = CustomCommand(
-            commandName,
-            1,
-            definition,
-            acceptsDelimiterModifier = true
-        )
-        HLog.d(TAG) { "注册配对定界符: \\$commandName → $left…$right" }
-        LatexNode.NewCommand(commandName, 1, definition)
-    }
-
-    // \newenvironment, \renewenvironment
-    val newEnvHandler = CommandHandler { _, ctx, stream ->
-        val nameArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
-        val envName = ParseUtils.extractText(
-            when (nameArg) {
-                is LatexNode.Group -> nameArg.children
-                else -> listOf(nameArg)
-            }
-        ).trim()
-
-        // 可选参数 [numArgs]
-        var numArgs = 0
-        var defaultArg: String? = null
-        if (stream.peek() is LatexToken.LeftBracket) {
-            stream.advance() // [
-            val numNodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
-            if (!stream.isEOF()) {
-                stream.expect("]")
-            }
-            numArgs = ParseUtils.extractText(numNodes).toIntOrNull() ?: 0
-
-            // 可选默认值 [defaultArg]
-            if (stream.peek() is LatexToken.LeftBracket) {
-                stream.advance() // [
-                val defaultNodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
-                if (!stream.isEOF()) {
-                    stream.expect("]")
-                }
-                defaultArg = ParseUtils.extractText(defaultNodes)
-            }
-        }
-
-        // {begin-def}
-        val beginArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
-        val beginDef = when (beginArg) {
-            is LatexNode.Group -> beginArg.children
-            else -> listOf(beginArg)
-        }
-
-        // {end-def}
-        val endArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
-        val endDef = when (endArg) {
-            is LatexNode.Group -> endArg.children
-            else -> listOf(endArg)
-        }
-
-        ctx.customEnvironments[envName] = CustomEnvironment(envName, numArgs, beginDef, endDef, defaultArg)
-        HLog.d(TAG) { "注册自定义环境: $envName[$numArgs]" }
-        LatexNode.NewEnvironment(envName, numArgs, beginDef, endDef, defaultArg)
-    }
-
-    register("newenvironment", "renewenvironment", handler = newEnvHandler)
+    register("newenvironment", "renewenvironment") { _, ctx, stream -> stream.raw {
+        consumeStar(stream)
+        val name = stream.readArgumentTokens().text().trim()
+        val countTokens = stream.readOptionalTokens()
+        val count = if (countTokens == null) 0 else countTokens.text().toIntOrNull() ?: -1
+        val default = if (count > 0) stream.readOptionalTokens() else null
+        val begin = stream.readArgumentTokens()
+        val end = stream.readArgumentTokens()
+        if (count !in 0..9) return@raw invalid(ctx, stream, "Environment argument count must be between 0 and 9")
+        ctx.defineEnvironment(CustomEnvironment(name, count, begin, end, default))
+        LatexNode.NewEnvironment(name, count, begin, end, default?.text())
+    } }
 }
 
-/**
- * Reads the control sequence being defined without dispatching it as a command.
- * This is important when a user intentionally overrides a built-in command,
- * for example `\newcommand{\abs}[1]{...}`.
- */
-private fun parseCommandName(stream: com.hrm.latex.parser.component.LatexTokenStream): String? {
-    while (stream.peek() is LatexToken.Whitespace) stream.advance()
-    val grouped = stream.peek() is LatexToken.LeftBrace
-    if (grouped) {
-        stream.advance()
-        while (stream.peek() is LatexToken.Whitespace) stream.advance()
-    }
+private fun consumeStar(stream: LatexTokenStream): Boolean {
+    stream.skipWhitespace()
+    val star = (stream.peek() as? LatexToken.Text)?.content?.startsWith("*") == true
+    if (star) stream.readAtom()
+    return star
+}
 
-    val name = when (val token = stream.advance()) {
-        is LatexToken.Command -> token.name
-        is LatexToken.Text -> token.content.removePrefix("\\").trim()
-        else -> null
-    }
+private fun readCommandName(stream: LatexTokenStream): String? =
+    (stream.readArgumentTokens().firstOrNull { it !is LatexToken.Whitespace } as? LatexToken.Command)?.name
 
-    if (grouped) {
-        while (stream.peek() is LatexToken.Whitespace) stream.advance()
-        if (stream.peek() is LatexToken.RightBrace) stream.advance()
+private fun takeGlobal(ctx: LatexParserContext): Boolean = ctx.globalAssignment.also { ctx.globalAssignment = false }
+
+private fun invalid(ctx: LatexParserContext, stream: LatexTokenStream, message: String): LatexNode {
+    ctx.diagnostics.add(ParseDiagnostic(stream.peek(-1)?.range ?: SourceRange.EMPTY, message,
+        ParseDiagnostic.Severity.ERROR, ParseDiagnostic.Category.MACRO_ERROR))
+    return LatexNode.Text("")
+}
+
+internal fun List<LatexToken>.text(): String = joinToString("") {
+    when (it) {
+        is LatexToken.Text -> it.content
+        is LatexToken.Whitespace -> " "
+        is LatexToken.Command -> "\\${it.name}"
+        is LatexToken.LeftBrace -> "{"
+        is LatexToken.RightBrace -> "}"
+        is LatexToken.LeftBracket -> "["
+        is LatexToken.RightBracket -> "]"
+        else -> ""
     }
-    return name?.takeIf { it.isNotEmpty() }
 }

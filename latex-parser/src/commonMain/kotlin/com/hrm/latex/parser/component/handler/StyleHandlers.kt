@@ -89,6 +89,11 @@ internal fun CommandRegistry.installStyleHandlers() {
         }
     }
 
+    register("mathchoice") { _, ctx, _ ->
+        val branches = List(4) { ctx.parseArgument() ?: LatexNode.Group(emptyList()) }
+        LatexNode.MathChoice(branches[0], branches[1], branches[2], branches[3])
+    }
+
     // 数学模式切换
     val mathStyleMapping = mapOf(
         "displaystyle" to LatexNode.MathStyle.MathStyleType.DISPLAY,
@@ -145,14 +150,26 @@ internal fun CommandRegistry.installStyleHandlers() {
         }
     }
 
-    // 文本模式
+    // Preserve structured text, converting only text-mode leaves; inline math keeps math semantics.
     register("text", "mbox") { _, ctx, _ ->
-        val content = ctx.parseArgument()
-        val text = when (content) {
-            is LatexNode.Text -> content.content
-            is LatexNode.Group -> ParseUtils.extractText(content.children)
-            else -> ""
-        }
-        LatexNode.TextMode(text)
+        val argument = ctx.parseArgument() ?: LatexNode.Text("")
+        val content = (if (argument is LatexNode.Group) argument.children else listOf(argument)).map(::asTextContent)
+        val plain = content.all { it is LatexNode.TextMode && it.content.isEmpty() }
+        if (plain) LatexNode.TextMode(content.joinToString("") { (it as LatexNode.TextMode).text })
+        else LatexNode.TextMode("", content = content)
     }
+}
+
+private fun asTextContent(node: LatexNode): LatexNode = when (node) {
+    is LatexNode.Superscript -> {
+        val exponent = node.exponent as? LatexNode.Group
+        if (exponent != null && exponent.children.all { it is LatexNode.Symbol && it.symbol == "prime" }) {
+            LatexNode.TextMode(ParseUtils.extractText(listOf(node)), node.sourceRange)
+        } else node.withChildren(node.children().map(::asTextContent))
+    }
+    is LatexNode.Text -> LatexNode.TextMode(node.content, node.sourceRange)
+    is LatexNode.Space -> LatexNode.TextMode(" ", node.sourceRange)
+    is LatexNode.Symbol -> LatexNode.TextMode(if (node.symbol == "prime") "'" else node.unicode, node.sourceRange)
+    is LatexNode.InlineMath, is LatexNode.DisplayMath, is LatexNode.TextMode -> node
+    else -> node.withChildren(node.children().map(::asTextContent))
 }

@@ -65,6 +65,9 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
 
     override fun visitText(node: LatexNode.Text): String = node.content
 
+    override fun visitInlineMath(node: LatexNode.InlineMath): String = node.children.joinToString(" ") { visit(it) }.collapseSpaces()
+    override fun visitDisplayMath(node: LatexNode.DisplayMath): String = node.children.joinToString(" ") { visit(it) }.collapseSpaces()
+
     override fun visitGroup(node: LatexNode.Group): String {
         return node.children.joinToString(" ") { visit(it) }.collapseSpaces()
     }
@@ -232,6 +235,8 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
     }
 
+    override fun visitMathChoice(node: LatexNode.MathChoice): String = visit(node.branch(currentMathStyle))
+
     override fun visitMathStyle(node: LatexNode.MathStyle): String {
         return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
     }
@@ -286,7 +291,8 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return "$top choose $bottom"
     }
 
-    override fun visitTextMode(node: LatexNode.TextMode): String = node.text
+    override fun visitTextMode(node: LatexNode.TextMode): String =
+        if (node.content.isEmpty()) node.text else node.content.joinToString("") { visit(it) }
 
     override fun visitNegation(node: LatexNode.Negation): String {
         return "not ${visit(node.content)}"

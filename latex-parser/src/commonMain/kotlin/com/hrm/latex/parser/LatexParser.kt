@@ -101,13 +101,81 @@ internal class ParseSession(
     }
 
     override val tokenStream = LatexTokenStream(tokens)
-    override val customCommands: MutableMap<String, CustomCommand> = mutableMapOf()
-    override val customEnvironments: MutableMap<String, CustomEnvironment> = mutableMapOf()
+    private var commandValues: MutableMap<String, CustomCommand>? = null
+    override val customCommands: Map<String, CustomCommand> get() = commandValues ?: emptyMap()
+    private var environmentValues: MutableMap<String, CustomEnvironment>? = null
+    override val customEnvironments: Map<String, CustomEnvironment> get() = environmentValues ?: emptyMap()
+    override var globalAssignment: Boolean = false
+    override fun expandTokens(tokens: List<LatexToken>): List<LatexToken> = commandParser.expandTokens(tokens)
+    private var lengthValues: MutableMap<String, String>? = null
+    override val lengths: Map<String, String> get() = lengthValues ?: emptyMap()
+    private var colorValues: MutableMap<String, String>? = null
+    override val colors: Map<String, String> get() = colorValues ?: emptyMap()
+    override var scopeDepth = 0
+        private set
+    private var commandChanges: MutableMap<Int, MutableMap<String, CustomCommand?>>? = null
+    private var environmentChanges: MutableMap<Int, MutableMap<String, CustomEnvironment?>>? = null
+    private var colorChanges: MutableMap<Int, MutableMap<String, String?>>? = null
+    private var lengthChanges: MutableMap<Int, MutableMap<String, String?>>? = null
+
+    override fun pushScope() { scopeDepth++ }
+    override fun popScope() {
+        commandValues?.let { restore(it, commandChanges) }
+        environmentValues?.let { restore(it, environmentChanges) }
+        colorValues?.let { restore(it, colorChanges) }
+        lengthValues?.let { restore(it, lengthChanges) }
+        scopeDepth--
+    }
+
+    private fun <T> restore(values: MutableMap<String, T>, changes: MutableMap<Int, MutableMap<String, T?>>?) {
+        changes?.remove(scopeDepth)?.forEach { (name, previous) ->
+            if (previous == null) values.remove(name) else values[name] = previous
+        }
+    }
+
+    /** Record only the first write to a name in this scope; ordinary groups allocate nothing. */
+    private fun <T> assign(
+        values: MutableMap<String, T>, changes: MutableMap<Int, MutableMap<String, T?>>?,
+        name: String, value: T, global: Boolean = false
+    ): MutableMap<Int, MutableMap<String, T?>>? {
+        var log = changes
+        if (global) {
+            log?.values?.forEach { it.remove(name) }
+        } else if (scopeDepth > 0) {
+            if (log == null) log = mutableMapOf()
+            val scope = log.getOrPut(scopeDepth) { mutableMapOf() }
+            if (!scope.containsKey(name)) scope[name] = values[name]
+        }
+        values[name] = value
+        return log
+    }
+
+    override fun defineCommand(command: CustomCommand, global: Boolean) {
+        commandChanges = assign(commandValues ?: mutableMapOf<String, CustomCommand>().also { commandValues = it }, commandChanges, command.name, command, global)
+    }
+    override fun defineEnvironment(environment: CustomEnvironment) {
+        environmentChanges = assign(environmentValues ?: mutableMapOf<String, CustomEnvironment>().also { environmentValues = it }, environmentChanges, environment.name, environment, globalAssignment)
+        globalAssignment = false
+    }
+    override fun defineColor(name: String, value: String) {
+        colorChanges = assign(colorValues ?: mutableMapOf<String, String>().also { colorValues = it }, colorChanges, name, value)
+    }
+    override fun defineLength(name: String, value: String) {
+        lengthChanges = assign(lengthValues ?: mutableMapOf<String, String>().also { lengthValues = it }, lengthChanges, name, value, globalAssignment)
+        globalAssignment = false
+    }
+    override fun isCommandDefined(name: String): Boolean = commandParser.isDefined(name)
+
     override val diagnostics: MutableList<ParseDiagnostic> = mutableListOf()
 
     private val environmentParser = EnvironmentParser(this)
     private val chemicalParser = ChemicalParser(this)
     private val commandParser = CommandParser(this, chemicalParser)
+
+    init {
+        tokenStream.commandParser = commandParser
+        tokenStream.diagnostics = diagnostics
+    }
 
     fun parse(): LatexNode.Document {
         val children = parseMathList { false }
@@ -210,7 +278,8 @@ internal class ParseSession(
         when (val token = tokenStream.peek()) {
             is LatexToken.Text -> {
                 tokenStream.advance()
-                return LatexNode.Text(token.content, sourceRange = token.range)
+                return if (token.literal) LatexNode.TextMode(token.content, sourceRange = token.range)
+                    else LatexNode.Text(token.content, sourceRange = token.range)
             }
 
             is LatexToken.Command -> {
@@ -300,14 +369,45 @@ internal class ParseSession(
     }
 
     override fun parseGroup(): LatexNode.Group {
-        val startOffset = tokenStream.currentSourceOffset()
-        tokenStream.expect("{")
-        val children = parseMathList { it is LatexToken.RightBrace }
+        val opening = requireNotNull(tokenStream.advance())
+        return parseScopedGroup(opening, explicit = false)
+    }
 
-        if (!tokenStream.isEOF()) {
-            tokenStream.expect("}")
+    override fun parseCommandGroup(command: String): LatexNode.Group =
+        parseScopedGroup(requireNotNull(tokenStream.peek(-1)), explicit = command == "begingroup")
+
+    private fun LatexToken?.isGroupCloser(): Boolean =
+        this is LatexToken.RightBrace ||
+            this is LatexToken.Command && (name == "endgroup" || name == "egroup")
+
+    /** All group spellings share declaration normalization and local definition lifetime. */
+    private fun parseScopedGroup(opening: LatexToken, explicit: Boolean): LatexNode.Group {
+        pushScope()
+        try {
+            val children = parseMathList { it.isGroupCloser() }
+            val closing = tokenStream.peek()
+            val matches = if (explicit) {
+                closing is LatexToken.Command && closing.name == "endgroup"
+            } else {
+                closing is LatexToken.RightBrace || closing is LatexToken.Command && closing.name == "egroup"
+            }
+            if (matches) {
+                tokenStream.advance()
+            } else {
+                // Leave a mismatched closer for the enclosing group (or top-level recovery).
+                diagnostics.add(
+                    ParseDiagnostic(
+                        range = opening.range,
+                        message = if (explicit) "Missing \\endgroup" else "Missing }",
+                        severity = ParseDiagnostic.Severity.ERROR,
+                        category = ParseDiagnostic.Category.MISSING_BRACE
+                    )
+                )
+            }
+            return LatexNode.Group(children, sourceRange = tokenStream.rangeFrom(opening.range.start))
+        } finally {
+            popScope()
         }
-        return LatexNode.Group(children, sourceRange = tokenStream.rangeFrom(startOffset))
     }
 
     private fun parseMathList(isTerminator: (LatexToken?) -> Boolean): List<LatexNode> {
@@ -321,7 +421,7 @@ internal class ParseSession(
         while (!tokenStream.isEOF() && !isTerminator(tokenStream.peek())) {
             val token = tokenStream.peek()
             if (token is LatexToken.Command &&
-                token.name in setOf("over", "atop", "choose", "above") &&
+                (token.name == "over" || token.name == "atop" || token.name == "choose" || token.name == "above") &&
                 infixNumerator == null
             ) {
                 tokenStream.advance()
@@ -466,6 +566,7 @@ internal class ParseSession(
     }
 
     private fun LatexNode.isStyleDeclaration(): Boolean = when (this) {
+        is LatexNode.Color -> isDeclaration
         is LatexNode.Style -> content.isEmpty()
         is LatexNode.MathStyle -> content.isEmpty()
         is LatexNode.FontSize -> content.isEmpty()
@@ -474,7 +575,8 @@ internal class ParseSession(
 
     private fun updateActiveDeclaration(activeDeclarations: MutableList<LatexNode>, declaration: LatexNode) {
         val existingIndex = activeDeclarations.indexOfLast { existing ->
-            (existing is LatexNode.Style && declaration is LatexNode.Style) ||
+            (existing is LatexNode.Color && declaration is LatexNode.Color) ||
+                (existing is LatexNode.Style && declaration is LatexNode.Style) ||
                 (existing is LatexNode.MathStyle && declaration is LatexNode.MathStyle) ||
                 (existing is LatexNode.FontSize && declaration is LatexNode.FontSize)
         }
@@ -489,6 +591,10 @@ internal class ParseSession(
         var node: LatexNode = if (content.size == 1) content[0] else LatexNode.Group(content, mergeRange(content))
         for (declaration in declarations.asReversed()) {
             node = when (declaration) {
+                is LatexNode.Color -> declaration.copy(
+                    content = listOf(node), isDeclaration = false,
+                    sourceRange = declaration.sourceRange.mergeWith(node.sourceRange)
+                )
                 is LatexNode.Style -> declaration.copy(
                     content = listOf(node),
                     sourceRange = declaration.sourceRange.mergeWith(node.sourceRange)

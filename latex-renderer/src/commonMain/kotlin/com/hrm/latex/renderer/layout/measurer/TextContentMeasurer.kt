@@ -70,7 +70,8 @@ internal class TextContentMeasurer : NodeMeasurer {
     ): NodeLayout {
         return when (node) {
             is LatexNode.Text -> measureText(node.content, context, measurer, density)
-            is LatexNode.TextMode -> measureTextMode(node.text, context, measurer)
+            is LatexNode.TextMode -> if (node.content.isEmpty()) measureTextMode(node.text, context, measurer)
+                else measureGroup(node.content, context.copy(fontStyle = FontStyle.Normal, fontFamily = context.fontFamilies?.main ?: context.fontFamily))
             is LatexNode.Symbol -> measureSymbol(node, context, measurer, density)
             is LatexNode.Operator -> {
                 val operatorGap =
@@ -335,8 +336,8 @@ internal class TextContentMeasurer : NodeMeasurer {
         text: String, context: RenderContext, measurer: TextMeasurer
     ): NodeLayout {
         val textStyle = context.copy(
-            fontStyle = FontStyle.Normal,
-            fontFamily = context.fontFamilies?.main ?: context.fontFamily,
+            fontStyle = context.fontStyle ?: FontStyle.Normal,
+            fontFamily = context.fontFamily ?: context.fontFamilies?.main,
             fontWeight = context.fontWeight ?: FontWeight.Normal
         ).textStyle()
         val result = measurer.measure(AnnotatedString(text), textStyle)

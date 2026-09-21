@@ -179,6 +179,15 @@ internal fun measureNode(
             node.content, context.withColor(node.color), measurer, density, cache = cache
         )
 
+        is LatexNode.MathChoice -> measureNode(
+            node.branch(when (context.mathStyle) {
+                MathStyle.DISPLAY -> 0
+                MathStyle.TEXT -> 1
+                MathStyle.SCRIPT -> 2
+                MathStyle.SCRIPT_SCRIPT -> 3
+            }), context, measurer, density, cache
+        )
+
         is LatexNode.MathStyle -> measureGroup(
             node.content, context.applyMathStyle(node.mathStyleType), measurer, density, cache = cache
         )
@@ -193,7 +202,7 @@ internal fun measureNode(
         }
 
         is LatexNode.InlineMath -> measureGroup(
-            node.children, context.copy(mathStyle = MathStyle.TEXT, isCramped = false), measurer, density, cache = cache
+            node.children, context.copy(mathStyle = MathStyle.TEXT, isCramped = false, fontStyle = null), measurer, density, cache = cache
         )
 
         is LatexNode.DisplayMath -> measureGroup(
@@ -270,9 +279,21 @@ internal fun measureNode(
  * @param cache 可选的布局缓存。传播至子节点测量调用。
  */
 internal fun measureGroup(
-    nodes: List<LatexNode>, context: RenderContext, measurer: TextMeasurer, density: Density,
+    inputNodes: List<LatexNode>, context: RenderContext, measurer: TextMeasurer, density: Density,
     layoutMap: LayoutMap? = null, cache: LayoutCache? = null
 ): NodeLayout {
+    val styleIndex = when (context.mathStyle) {
+        MathStyle.DISPLAY -> 0
+        MathStyle.TEXT -> 1
+        MathStyle.SCRIPT -> 2
+        MathStyle.SCRIPT_SCRIPT -> 3
+    }
+    fun resolveChoices(node: LatexNode): List<LatexNode> {
+        if (node !is LatexNode.MathChoice) return listOf(node)
+        val branch = node.branch(styleIndex)
+        return (if (branch is LatexNode.Group) branch.children else listOf(branch)).flatMap(::resolveChoices)
+    }
+    val nodes = if (inputNodes.any { it is LatexNode.MathChoice }) inputNodes.flatMap(::resolveChoices) else inputNodes
     // 简单处理多行逻辑：按 NewLine 分割，测量各行，垂直堆叠
     val lines = splitLines(nodes)
     if (lines.size > 1) {
