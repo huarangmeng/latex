@@ -263,15 +263,16 @@ private fun <K, V> MutableMap<K, V>.putBounded(key: K, value: V) {
  *
  * 必须在 Composable 作用域中调用，以获取 [TextMeasurer] 和 [Density]。
  * @param config 可选的渲染配置（用于提前加载字体）
+ * @param fontFamilies 公式字体集。默认使用内置 KaTeX 字体；传入自定义字体集即可不加载内置字体资源。
  * @return [LatexMeasurerState] 实例
  */
 @Composable
 fun rememberLatexMeasurer(
-    config: LatexConfig = LatexConfig()
+    config: LatexConfig = LatexConfig(),
+    fontFamilies: LatexFontFamilies = defaultLatexFontFamilies()
 ): LatexMeasurerState {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val fontFamilies = defaultLatexFontFamilies()
 
     return remember(density, textMeasurer, fontFamilies) {
         LatexMeasurerState(

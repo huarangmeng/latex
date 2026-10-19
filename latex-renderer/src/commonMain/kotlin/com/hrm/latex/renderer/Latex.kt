@@ -45,6 +45,7 @@ import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.visitor.AccessibilityVisitor
+import com.hrm.latex.renderer.model.LatexFontFamilies
 import com.hrm.latex.renderer.font.MathFontProviderFactory
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.layout.LayoutCache
@@ -77,17 +78,18 @@ private const val TAG = "Latex"
  * @param isDarkTheme 当前环境是否为深色模式。
  * 仅在 `config.theme = LatexTheme.auto(...)` 时用于选择 light/dark 色板；
  * 固定主题和 `LatexTheme.material3()` 会直接使用 theme 中的颜色。
+ * @param fontFamilies 公式字体集。默认使用内置 KaTeX 字体；传入自定义字体集
+ * （例如系统字体）即可完全不加载内置字体资源。
  */
 @Composable
 fun Latex(
     latex: String,
     modifier: Modifier = Modifier,
     config: LatexConfig = LatexConfig(),
-    isDarkTheme: Boolean = isSystemInDarkTheme()
+    isDarkTheme: Boolean = isSystemInDarkTheme(),
+    fontFamilies: LatexFontFamilies = defaultLatexFontFamilies()
 ) {
     val resolvedThemeColors = config.resolveThemeColors(isDarkTheme)
-
-    val fontFamilies = defaultLatexFontFamilies()
 
     // 缓存 MathFontProvider 实例：Provider 不是 data class，每次创建新实例会导致
     // RenderContext 的 equals 失效，进而使下游 remember(context) 永远 miss。

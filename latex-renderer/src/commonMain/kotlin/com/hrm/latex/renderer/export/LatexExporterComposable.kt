@@ -279,15 +279,16 @@ class LatexExporterState internal constructor(
  * 导出与屏幕渲染共用内置 KaTeX TTF 字体集。
  *
  * @param config 可选的渲染配置（用于提前加载字体）
+ * @param fontFamilies 公式字体集。默认使用内置 KaTeX 字体；传入自定义字体集即可不加载内置字体资源。
  * @return [LatexExporterState] 实例
  */
 @Composable
 fun rememberLatexExporter(
-    config: LatexConfig = LatexConfig()
+    config: LatexConfig = LatexConfig(),
+    fontFamilies: LatexFontFamilies = defaultLatexFontFamilies()
 ): LatexExporterState {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val fontFamilies = defaultLatexFontFamilies()
 
     val exporter = remember(density, textMeasurer, fontFamilies) {
         LatexExporterState(

@@ -38,6 +38,7 @@ import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.font.MathFontProviderFactory
 import com.hrm.latex.renderer.layout.LayoutCache
 import com.hrm.latex.renderer.layout.LayoutMap
+import com.hrm.latex.renderer.model.LatexFontFamilies
 import com.hrm.latex.renderer.layout.LatexRenderer
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.defaultLatexFontFamilies
@@ -77,6 +78,8 @@ data class EditorRenderInfo(
  * @param layoutMap 布局映射表，测量阶段会将节点位置信息写入其中
  * @param onRenderInfoChanged 渲染信息变化回调
  * @param overlay 叠加绘制回调（在内容绘制之后调用，可用于绘制光标/选区）
+ * @param fontFamilies 公式字体集。默认使用内置 KaTeX 字体；传入自定义字体集
+ * （例如系统字体）即可完全不加载内置字体资源。
  */
 @ExperimentalComposeUiApi
 @Composable
@@ -87,10 +90,10 @@ fun LatexEditorCanvas(
     isDarkTheme: Boolean = isSystemInDarkTheme(),
     layoutMap: LayoutMap? = null,
     onRenderInfoChanged: ((EditorRenderInfo) -> Unit)? = null,
-    overlay: (DrawScope.() -> Unit)? = null
+    overlay: (DrawScope.() -> Unit)? = null,
+    fontFamilies: LatexFontFamilies = defaultLatexFontFamilies()
 ) {
     val resolvedThemeColors = config.resolveThemeColors(isDarkTheme)
-    val fontFamilies = defaultLatexFontFamilies()
     val provider = remember(fontFamilies) {
         MathFontProviderFactory.create(fontFamilies)
     }
