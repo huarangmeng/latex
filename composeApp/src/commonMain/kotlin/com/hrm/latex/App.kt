@@ -8,11 +8,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.hrm.latex.fonts.KatexFonts
 import com.hrm.latex.preview.LatexPreview
 
 @Composable
 @Preview
 fun App() {
+    // 演示应用保留内置 KaTeX 字体；正式宿主可省略这一步以使用系统字体。
+    KatexFonts.install()
     MaterialTheme {
         Column(
             modifier = Modifier

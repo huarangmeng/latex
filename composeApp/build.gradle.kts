@@ -57,6 +57,7 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(projects.latexPreview)
+            implementation(projects.latexFontsKatex)
 
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
