@@ -50,7 +50,8 @@ class VerticalDelimiterGeometryTest {
         assertTrue(geometry.lineCenters[1] > geometry.width / 2f)
         assertEquals(
             geometry.width,
-            geometry.lineCenters[0] + geometry.lineCenters[1]
+            geometry.lineCenters[0] + geometry.lineCenters[1],
+            absoluteTolerance = 1e-5f
         )
     }
 

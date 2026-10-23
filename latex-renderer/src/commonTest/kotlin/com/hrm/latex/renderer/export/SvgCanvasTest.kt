@@ -25,6 +25,7 @@ package com.hrm.latex.renderer.export
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
@@ -32,7 +33,8 @@ import kotlin.test.assertNotNull
 
 class SvgCanvasTest {
     @Test
-    fun recordsCanvasCommandsAsVectorElements() {
+    fun recordsCanvasCommandsAsVectorElements() = runTest {
+        awaitGraphicsReady()
         val bytes = renderToSvg(
             width = 120f,
             height = 48f,
@@ -52,3 +54,5 @@ class SvgCanvasTest {
         assertFalse("data:image" in svg, "SVG export must not embed a raster snapshot")
     }
 }
+
+internal expect suspend fun awaitGraphicsReady()

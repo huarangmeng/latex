@@ -108,16 +108,17 @@ jobs:
           ./gradlew \
             :latex-parser:compileTestKotlin${{ matrix.compiler }} \
             :latex-renderer:${{ matrix.target }} \
-            --tests '*LayoutIdentityTest*' --tests '*FontResourceCacheTest*' \
             --console=plain
-          # 筛选为空也可能成功，额外确认实际执行了测试。
+          # 确认关键跨平台测试确实执行，避免源集或运行器配置变化导致漏测。
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
           target = "${{ matrix.target }}"
           reports = [ET.parse(report).getroot() for report in
                      Path("latex-renderer/build/test-results", target).glob("TEST-*.xml")]
-          for test_class, minimum in (("LayoutIdentityTest", 2), ("FontResourceCacheTest", 3)):
+          required = (("LayoutIdentityTest", 2), ("FontResourceCacheTest", 3),
+                      ("VerticalDelimiterGeometryTest", 2), ("SvgCanvasTest", 1))
+          for test_class, minimum in required:
               count = sum(int(report.get("tests", 0)) for report in reports
                           if test_class in report.get("name", ""))
               if count < minimum:
