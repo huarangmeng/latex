@@ -40,6 +40,8 @@ kotlin {
         }
     }
 
+    macosArm64()
+
     jvm()
 
     js {

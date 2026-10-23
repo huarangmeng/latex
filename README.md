@@ -6,14 +6,14 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base?filter=!*-kt*)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
 
-A high-performance LaTeX mathematical formula parsing and rendering library developed based on Kotlin Multiplatform (KMP). It supports consistent rendering effects on Android, iOS, Desktop (JVM), and Web (Wasm/JS) platforms.
+A high-performance LaTeX mathematical formula parsing and rendering library developed based on Kotlin Multiplatform (KMP). It supports consistent rendering effects on Android, iOS, macOS Native (Apple Silicon), Desktop (JVM), and Web (Wasm/JS) platforms.
 
 [中文版本](./README_zh.md)
 
 ## 🌟 Key Features
 
 - **High-Performance Parsing**: AST-based recursive descent parser with support for incremental updates.
-- **Multi-platform Consistency**: Uses Compose Multiplatform for consistent rendering on Android, iOS, Desktop (JVM), and Web (Wasm/JS).
+- **Multi-platform Consistency**: Uses Compose Multiplatform for consistent rendering on Android, iOS, macOS Native (Apple Silicon), Desktop (JVM), and Web (Wasm/JS).
 - **Automatic Line Breaking**: Smart line wrapping for long formulas at logical breakpoints (operators, relations).
 - **Raster & Vector Export**: Export formulas as PNG/JPEG/WEBP images or resolution-independent SVG vectors.
 - **Inline Math API**: Create Compose `InlineTextContent` directly with `LatexMeasurerState.inlineContent()`, while retaining precise pre-measurement support.
@@ -497,6 +497,30 @@ The font dependency is optional, but omitting it may cause rendering issues.
 KaTeX loads automatically when the dependency is present; no initialization is needed.
 See [Math Fonts](#math-fonts). For parsing only, depend on
 `libs.latex.parser`.
+
+### macOS Native (Apple Silicon)
+
+All four libraries provide `macosArm64`; use the `commonMain` dependencies above.
+`PlatformType.MACOS` has desktop semantics, distinct from iOS and Desktop (JVM).
+With Compose Multiplatform 1.10.3 / Material3 1.9.0, the consuming project must set:
+
+```properties
+org.jetbrains.compose.experimental.macos.enabled=true
+```
+
+For KaTeX fonts, include `latex-fonts-katex`. The application host must stage
+`compose-resources/composeResources/` in the bundle's Resources directory;
+unbundled executables must follow Compose's macOS resource lookup contract.
+
+Run on an ARM64 Mac:
+
+```bash
+./gradlew :latex-base:macosArm64Test :latex-parser:macosArm64Test   :latex-renderer:macosArm64Test :latex-fonts-katex:macosArm64Test   --max-workers=2
+```
+
+CI checks real byte fonts, glyphs, SVG/image ink, iOS compilation and publication
+metadata without publishing. Windows/Linux metadata checks do not validate Native
+linking or execution. Kotlin 2.1.0 alias versions are not covered by this job.
 
 ## 🏗️ Project Structure
 

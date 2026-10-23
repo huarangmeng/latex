@@ -38,7 +38,7 @@ private val glyphTypefaceCache = FontResourceCache<Typeface>(
 )
 
 /**
- * iOS 平台：使用 Skia (org.jetbrains.skia via Skiko) API 获取精确墨水边界。
+ * Apple 平台（iOS/macOS）：使用 Skia (org.jetbrains.skia via Skiko) API 获取精确墨水边界。
  *
  * 按字体字节数组身份复用有界 Typeface 缓存，临时 Data 和 Font 在使用后立即释放。
  * 缓存访问与整段测量共用一把锁，避免其它线程淘汰仍在使用的原生字体。

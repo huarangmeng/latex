@@ -8,6 +8,9 @@ plugins {
     alias(libs.plugins.mavenPublish)
 }
 
+// The optional font module is a test input only, not a renderer runtime dependency.
+evaluationDependsOn(":latex-fonts-katex")
+
 kotlin {
     jvmToolchain(21)
 
@@ -42,6 +45,8 @@ kotlin {
         }
     }
 
+    macosArm64()
+
     jvm()
 
     js {
@@ -54,6 +59,8 @@ kotlin {
         browser()
         binaries.executable()
     }
+
+    applyDefaultHierarchyTemplate()
 
     sourceSets {
         androidMain.dependencies {
@@ -77,9 +84,26 @@ kotlin {
         jvmMain.dependencies {
             implementation(libs.kotlinx.coroutinesSwing)
         }
+        val skiaTest by creating {
+            dependsOn(commonTest.get())
+            dependencies {
+                implementation(projects.latexFontsKatex)
+            }
+        }
+        macosTest {
+            dependsOn(skiaTest)
+            // Compose 1.10.3 aggregates production dependencies, not test-only font resources.
+            // Pass the assembled output to its Native test-bundle copier.
+            // https://github.com/JetBrains/compose-multiplatform/blob/v1.10.3/gradle-plugins/compose/src/main/kotlin/org/jetbrains/compose/resources/IosResources.kt
+            resources.srcDir(
+                project(":latex-fonts-katex").tasks.named("assembleMacosArm64MainResources")
+            )
+        }
+        jvmTest {
+            dependsOn(skiaTest)
+        }
         jvmTest.dependencies {
             implementation(compose.desktop.currentOs)
-            runtimeOnly(projects.latexFontsKatex)
         }
     }
 }
