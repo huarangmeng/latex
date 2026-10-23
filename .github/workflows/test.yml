@@ -59,6 +59,90 @@ jobs:
             **/build/test-results/**
           retention-days: 14
 
+  macos-native-tests:
+    name: macOS ARM64 Native 单元测试
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 确认 Apple Silicon 执行面
+        run: test "$(uname -m)" = arm64
+
+      - name: 配置 JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - name: 缓存 Gradle 与 Kotlin Native
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+
+      - name: 编译 Apple actual 并链接、运行 Native 测试
+        run: |
+          chmod +x ./gradlew
+          ./gradlew \
+            :latex-base:macosArm64Test \
+            :latex-parser:macosArm64Test \
+            :latex-renderer:macosArm64Test \
+            :latex-fonts-katex:macosArm64Test \
+            :latex-renderer:compileKotlinIosArm64 \
+            :latex-renderer:compileKotlinIosSimulatorArm64 \
+            --max-workers=2 \
+            --console=plain
+          python3 - <<'PYTEST'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          modules = ("latex-parser", "latex-renderer")
+          reports = {}
+          for module in modules:
+              reports[module] = [ET.parse(report).getroot() for report in
+                                 Path(module, "build/test-results/macosArm64Test").glob("TEST-*.xml")]
+              executed = sum(int(report.get("tests", 0)) - int(report.get("skipped", 0))
+                             for report in reports[module])
+              if executed == 0:
+                  raise SystemExit(f"{module}: macosArm64Test 未执行任何测试")
+              if any(int(report.get(key, 0)) for report in reports[module]
+                     for key in ("failures", "errors", "skipped")):
+                  raise SystemExit(f"{module}: macosArm64Test 存在失败或跳过")
+              print(f"{module}: macosArm64Test 已执行 {executed} 项测试")
+          for test_class, minimum in (("SkiaPlatformRenderingTest", 1), ("PlatformMacosTest", 2),
+                                      ("LayoutIdentityTest", 2), ("FontResourceCacheTest", 3)):
+              count = sum(int(report.get("tests", 0)) - int(report.get("skipped", 0))
+                          for report in reports["latex-renderer"] if test_class in report.get("name", ""))
+              if count < minimum:
+                  raise SystemExit(f"macosArm64Test: {test_class} 预期至少 {minimum} 项，实际 {count}")
+              print(f"macosArm64Test: {test_class} 已执行 {count} 项测试")
+          PYTEST
+
+      - name: 验证四个模块的 Native 发布元数据（不发布）
+        run: |
+          ./gradlew \
+            :latex-base:generateMetadataFileForKotlinMultiplatformPublication \
+            :latex-parser:generateMetadataFileForKotlinMultiplatformPublication \
+            :latex-renderer:generateMetadataFileForKotlinMultiplatformPublication \
+            :latex-fonts-katex:generateMetadataFileForKotlinMultiplatformPublication \
+            :latex-base:generateMetadataFileForMacosArm64Publication \
+            :latex-parser:generateMetadataFileForMacosArm64Publication \
+            :latex-renderer:generateMetadataFileForMacosArm64Publication \
+            :latex-fonts-katex:generateMetadataFileForMacosArm64Publication \
+            --max-workers=2 \
+            --console=plain
+
+      - name: 保存 Native 测试与发布元数据
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64-native-reports
+          path: |
+            **/build/reports/tests/macosArm64Test/**
+            **/build/test-results/macosArm64Test/**
+            **/build/publications/**
+          retention-days: 14
+
   browser-tests:
     name: 浏览器单元测试（${{ matrix.target }}）
     runs-on: ubuntu-latest

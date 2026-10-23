@@ -52,7 +52,7 @@ class GlyphBounds(
  * 各平台实现：
  * - Android: android.graphics.Paint.getTextBounds() + Typeface.createFromAsset()
  * - JVM: org.jetbrains.skia.Font.measureText() + Typeface.makeFromData()
- * - iOS: org.jetbrains.skia.Font (Compose for iOS 底层也是 Skia)
+ * - iOS/macOS: org.jetbrains.skia.Font (Compose Native 底层也是 Skia)
  * - JS/WASM: org.jetbrains.skia.Font (Compose for Web 底层也是 Skia)
  *
  * @param text 要测量的文本（通常是单个字符或运算符符号）

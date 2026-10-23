@@ -158,7 +158,7 @@ data class ExportResult(
  *
  * 各平台实现：
  * - Android: 使用 Bitmap.compress()
- * - JVM/iOS/JS/WasmJS: 使用 Skia Image.encodeToData()
+ * - JVM/iOS/macOS/JS/WasmJS: 使用 Skia Image.encodeToData()
  *
  * @param format 目标图片格式
  * @param quality 图片压缩质量（1~100），对 JPEG 和 WEBP 有效
