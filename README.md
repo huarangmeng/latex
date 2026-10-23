@@ -422,7 +422,7 @@ The `AccessibilityVisitor` converts the LaTeX AST into descriptive text covering
 
 ```kotlin
 val measurer = rememberLatexMeasurer(config)
-val formula = measurer.inlineContent("\\frac{a}{b}", config)
+val formula = measurer.inlineContent("\\frac{a}{b}", config, isDarkTheme = isSystemInDarkTheme())
 
 Text(
     text = buildAnnotatedString {
@@ -434,7 +434,7 @@ Text(
 )
 ```
 
-For blank input or measurement failure, `inlineContent()` returns `null`, allowing Compose to display the alternate text supplied to `appendInlineContent()`. Repeated calls with the same formula and configuration reuse the `LatexMeasurerState` cache.
+For blank input or measurement failure, `inlineContent()` returns `null`, allowing Compose to display the alternate text supplied to `appendInlineContent()`. Repeated calls with the same formula and configuration reuse the `LatexMeasurerState` cache. The returned content draws the pre-measured layout directly, so each formula is parsed and measured only once; pass `isDarkTheme` matching the current system theme, otherwise it is measured again with the system theme at render time.
 
 For custom layouts, the lower-level `measure()` API remains available. `LatexDimensions` provides `widthPx`, `heightPx`, and `baselinePx` (including padding), plus corresponding content-only fields. Use `measureBatch()` for batch measurement.
 

@@ -416,7 +416,7 @@ Latex(
 
 ```kotlin
 val measurer = rememberLatexMeasurer(config)
-val formula = measurer.inlineContent("\\frac{a}{b}", config)
+val formula = measurer.inlineContent("\\frac{a}{b}", config, isDarkTheme = isSystemInDarkTheme())
 
 Text(
     text = buildAnnotatedString {
@@ -428,7 +428,7 @@ Text(
 )
 ```
 
-空输入或测量失败时 `inlineContent()` 返回 `null`，此时 Compose 会显示 `appendInlineContent()` 提供的替代文本。相同公式和配置会复用 `LatexMeasurerState` 内部缓存。
+空输入或测量失败时 `inlineContent()` 返回 `null`，此时 Compose 会显示 `appendInlineContent()` 提供的替代文本。相同公式和配置会复用 `LatexMeasurerState` 内部缓存。返回的内容直接绘制预测量得到的布局，每个公式只解析和测量一次；`isDarkTheme` 需与当前系统主题一致，否则渲染时会按系统主题再测量一次。
 
 需要自定义布局时仍可使用 `measure()`：`LatexDimensions` 提供 `widthPx`、`heightPx`、`baselinePx`（含内边距）及对应的纯内容尺寸字段。批量测量可使用 `measureBatch()`。
 

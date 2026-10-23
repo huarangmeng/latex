@@ -22,10 +22,17 @@
 
 package com.hrm.latex.renderer.measure
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.TextMeasurer
@@ -34,10 +41,14 @@ import androidx.compose.ui.unit.Density
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.IncrementalLatexParser
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.visitor.AccessibilityVisitor
+import com.hrm.latex.renderer.layout.LatexRenderResult
 import com.hrm.latex.renderer.layout.LatexRenderer
+import com.hrm.latex.renderer.model.HighlightRange
 import com.hrm.latex.renderer.model.LatexConfig
 import com.hrm.latex.renderer.model.LatexFontFamilies
 import com.hrm.latex.renderer.model.resolveFontFamilies
+import com.hrm.latex.renderer.model.resolveThemeColors
 import com.hrm.latex.renderer.model.toContext
 
 private const val TAG = "LatexMeasurer"
@@ -128,34 +139,21 @@ class LatexMeasurerState internal constructor(
             return dimensionsCache[cacheKey]
         }
 
-        val dimensions = try {
-            val document = parseLatex(latex)
-            if (document.children.isEmpty()) return null
-
-            val context = config.toContext(isDarkTheme, fontFamilies)
-
-            val renderResult = LatexRenderer.measure(
-                document.children, context, textMeasurer, density
-            )
-
-            if (renderResult.layout.width <= 0f || renderResult.layout.height <= 0f) return null
-
-            LatexDimensions(
-                widthPx = renderResult.canvasWidth,
-                heightPx = renderResult.canvasHeight,
-                baselinePx = renderResult.layout.baseline + renderResult.verticalPadding,
-                contentWidthPx = renderResult.layout.width,
-                contentHeightPx = renderResult.layout.height,
-                contentBaselinePx = renderResult.layout.baseline
-            )
-        } catch (e: Exception) {
-            HLog.e(TAG, "测量失败", e)
-            null
-        }
-
+        val dimensions = measureForRender(latex, config, isDarkTheme)?.dimensions
         dimensionsCache.putBounded(cacheKey, dimensions)
         return dimensions
     }
+
+    /**
+     * 按浅色模式创建行内公式内容，等价于 `inlineContent(latex, config, isDarkTheme = false)`。
+     *
+     * 单独保留这个两参数版本而不是给 isDarkTheme 加默认值：按旧版本编译的调用方
+     * 仍链接到原签名，升级后不会 NoSuchMethodError。
+     */
+    fun inlineContent(
+        latex: String,
+        config: LatexConfig = defaultConfig
+    ): InlineTextContent? = inlineContent(latex, config, isDarkTheme = false)
 
     /**
      * 创建可直接传给 Compose `Text` / `BasicText` 的行内公式内容。
@@ -170,25 +168,39 @@ class LatexMeasurerState internal constructor(
      *
      * @param latex LaTeX 字符串
      * @param config 渲染配置（字号、主题、字体等）
+     * @param isDarkTheme 当前环境是否为深色模式，传入 `isSystemInDarkTheme()` 即可。
+     * 与渲染时的系统主题一致时，占位内容直接绘制预测量结果，不再重复测量；
+     * 不一致时（例如沿用默认值 false 而系统处于深色模式）会按系统主题再测量一次。
      * @return 可直接嵌入富文本的 [InlineTextContent]；空输入或测量失败时返回 null
      */
     fun inlineContent(
         latex: String,
-        config: LatexConfig = defaultConfig
+        config: LatexConfig,
+        isDarkTheme: Boolean
     ): InlineTextContent? {
         if (latex.isBlank()) return null
 
-        val cacheKey = InlineContentCacheKey(latex, config)
+        val cacheKey = InlineContentCacheKey(latex, config, isDarkTheme)
         if (inlineContentCache.containsKey(cacheKey)) {
             return inlineContentCache[cacheKey]
         }
 
-        val dimensions = measure(latex, config)
-        val inlineContent = dimensions?.toInlineTextContent(
-            density = density,
-            latex = latex,
-            config = config.copy(fontFamilies = config.fontFamilies ?: fontFamilies)
-        )
+        val resolvedConfig = config.copy(fontFamilies = config.fontFamilies ?: fontFamilies)
+        val inlineContent = if (config.onNodeClick != null || config.onHyperlinkClick != null) {
+            // 点击命中依赖 Latex() 内部的 LayoutMap，交给它完整渲染
+            measure(latex, config, isDarkTheme)?.toInlineTextContent(density, latex, resolvedConfig)
+        } else {
+            // 测量结果直接用于绘制，占位内容里不再重新解析和测量同一个公式
+            measureForRender(latex, config, isDarkTheme, config.highlight.ranges)?.let { measured ->
+                dimensionsCache.putBounded(MeasureCacheKey(latex, config, isDarkTheme), measured.dimensions)
+                // 主题不一致时只可能是另一种主题，记住其结果，重新组合时不再重测
+                var otherTheme: MeasuredLatex? = null
+                measured.toInlineTextContent(density, isDarkTheme) { isDark ->
+                    otherTheme ?: measureForRender(latex, config, isDark, config.highlight.ranges)
+                        .also { otherTheme = it }
+                }
+            }
+        }
         inlineContentCache.putBounded(cacheKey, inlineContent)
         return inlineContent
     }
@@ -212,6 +224,49 @@ class LatexMeasurerState internal constructor(
         return formulas.map { measure(it, config, isDarkTheme) }
     }
 
+    /**
+     * 解析并测量，同时保留可直接绘制的 [LatexRenderResult]。
+     *
+     * 空输入、空文档、零尺寸或解析/测量失败时返回 null。
+     */
+    private fun measureForRender(
+        latex: String,
+        config: LatexConfig,
+        isDarkTheme: Boolean,
+        highlightRanges: List<HighlightRange> = emptyList()
+    ): MeasuredLatex? = try {
+        val document = parseLatex(latex)
+        if (document.children.isEmpty()) {
+            null
+        } else {
+            val context = config.toContext(isDarkTheme, fontFamilies)
+            val renderResult = LatexRenderer.measure(
+                document.children, context, textMeasurer, density, highlightRanges
+            )
+            if (renderResult.layout.width <= 0f || renderResult.layout.height <= 0f) {
+                null
+            } else {
+                MeasuredLatex(
+                    dimensions = LatexDimensions(
+                        widthPx = renderResult.canvasWidth,
+                        heightPx = renderResult.canvasHeight,
+                        baselinePx = renderResult.layout.baseline + renderResult.verticalPadding,
+                        contentWidthPx = renderResult.layout.width,
+                        contentHeightPx = renderResult.layout.height,
+                        contentBaselinePx = renderResult.layout.baseline
+                    ),
+                    document = document,
+                    renderResult = renderResult,
+                    backgroundColor = config.resolveThemeColors(isDarkTheme).backgroundColor,
+                    accessibilityEnabled = config.accessibilityEnabled
+                )
+            }
+        }
+    } catch (e: Exception) {
+        HLog.e(TAG, "测量失败", e)
+        null
+    }
+
     private fun parseLatex(latex: String): LatexNode.Document {
         return try {
             parser.clear()
@@ -231,7 +286,8 @@ class LatexMeasurerState internal constructor(
 
     private data class InlineContentCacheKey(
         val latex: String,
-        val config: LatexConfig
+        val config: LatexConfig,
+        val isDarkTheme: Boolean
     )
 }
 
@@ -250,6 +306,59 @@ internal fun LatexDimensions.toInlineTextContent(
         latex = latex,
         config = config
     )
+}
+
+/**
+ * 一次测量的完整产物：尺寸、AST 与可直接绘制的布局。
+ */
+internal class MeasuredLatex(
+    val dimensions: LatexDimensions,
+    val document: LatexNode.Document,
+    val renderResult: LatexRenderResult,
+    val backgroundColor: Color,
+    val accessibilityEnabled: Boolean
+)
+
+/**
+ * 用预测量结果构造行内内容：占位尺寸取自 [MeasuredLatex.dimensions]，绘制直接复用
+ * [MeasuredLatex.renderResult]，与 [Latex][com.hrm.latex.renderer.Latex] 的绘制逻辑一致。
+ *
+ * @param measuredInDarkTheme 测量时使用的深色模式；渲染时系统主题与之不同，
+ *   则通过 [remeasure] 按系统主题重新测量（颜色烘焙在布局里，尺寸不变）
+ */
+internal fun MeasuredLatex.toInlineTextContent(
+    density: Density,
+    measuredInDarkTheme: Boolean,
+    remeasure: (isDarkTheme: Boolean) -> MeasuredLatex?
+): InlineTextContent = InlineTextContent(
+    placeholder = Placeholder(
+        width = with(density) { dimensions.widthPx.toSp() },
+        height = with(density) { dimensions.heightPx.toSp() },
+        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+    )
+) {
+    val isDark = isSystemInDarkTheme()
+    // 以 this 为 key：调用方在同一组合位置换成另一个公式的内容时，不能沿用旧结果
+    val measured = remember(this, isDark) {
+        if (isDark == measuredInDarkTheme) this else remeasure(isDark) ?: this
+    }
+    val description = remember(measured) {
+        if (measured.accessibilityEnabled) AccessibilityVisitor.describe(measured.document) else null
+    }
+    val canvasDensity = LocalDensity.current
+    val sizeModifier = with(canvasDensity) {
+        Modifier.size(measured.dimensions.widthPx.toDp(), measured.dimensions.heightPx.toDp())
+    }
+    val modifier = if (description != null) {
+        Modifier.semantics { contentDescription = description }.then(sizeModifier)
+    } else {
+        sizeModifier
+    }
+    Canvas(modifier = modifier) {
+        with(LatexRenderer) {
+            draw(measured.renderResult, measured.backgroundColor)
+        }
+    }
 }
 
 private fun <K, V> MutableMap<K, V>.putBounded(key: K, value: V) {
