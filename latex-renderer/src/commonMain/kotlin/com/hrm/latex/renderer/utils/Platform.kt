@@ -30,7 +30,8 @@ enum class PlatformType {
     IOS,
     JVM,
     JS,
-    WASM
+    WASM,
+    MACOS
 }
 
 /**
@@ -44,6 +45,6 @@ expect fun getCurrentPlatform(): PlatformType
 fun isMobilePlatform(): Boolean {
     return when (getCurrentPlatform()) {
         PlatformType.ANDROID, PlatformType.IOS -> true
-        else -> false
+        PlatformType.MACOS, PlatformType.JVM, PlatformType.JS, PlatformType.WASM -> false
     }
 }

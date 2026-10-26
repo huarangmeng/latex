@@ -6,14 +6,14 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base?filter=!*-kt*)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
 
-这是一个基于 Kotlin Multiplatform (KMP) 开发的高性能 LaTeX 数学公式解析与渲染库。支持在 Android, iOS, Desktop (JVM) 和 Web (Wasm/JS) 平台上实现一致的渲染效果。
+这是一个基于 Kotlin Multiplatform (KMP) 开发的高性能 LaTeX 数学公式解析与渲染库。支持在 Android、iOS、macOS Native（Apple Silicon）、Desktop (JVM) 和 Web (Wasm/JS) 平台上实现一致的渲染效果。
 
 [English Version](./README.md)
 
 ## 🌟 核心特性
 
 - **高性能解析**：基于 AST 的递归下降解析器，支持增量更新。
-- **多平台一致性**：使用 Compose Multiplatform 在 Android、iOS、Desktop (JVM) 和 Web (Wasm/JS) 平台上实现一致渲染。
+- **多平台一致性**：使用 Compose Multiplatform 在 Android、iOS、macOS Native（Apple Silicon）、Desktop (JVM) 和 Web (Wasm/JS) 平台上实现一致渲染。
 - **自动换行**：长公式在逻辑断点（运算符、关系符）处智能换行。
 - **光栅与矢量导出**：支持 PNG/JPEG/WEBP 图片和与分辨率无关的 SVG 矢量输出。
 - **行内公式 API**：通过 `LatexMeasurerState.inlineContent()` 直接生成 Compose `InlineTextContent`，同时保留精确尺寸预测量能力。
@@ -489,6 +489,30 @@ commonMain.dependencies {
 Android/JVM 单平台模块将依赖放在 `dependencies` 中。
 字体依赖虽然可选，但省略后可能导致排版差异；引入后自动启用，无需初始化，见[数学字体](#数学字体)。
 只需要解析时，仅依赖 `libs.latex.parser`。
+
+### macOS Native（Apple Silicon）
+
+四个库均提供 `macosArm64`，使用上面的 `commonMain` 依赖。
+`PlatformType.MACOS` 保持桌面语义，与 iOS 和 Desktop (JVM) 区分。
+使用 Compose Multiplatform 1.10.3 / Material3 1.9.0 时，消费方须设置：
+
+```properties
+org.jetbrains.compose.experimental.macos.enabled=true
+```
+
+需要 KaTeX 字体时引入 `latex-fonts-katex`。应用宿主须将
+`compose-resources/composeResources/` 放入 bundle 的 Resources 目录；
+独立可执行文件须遵循 Compose 的 macOS 资源查找契约。
+
+在 ARM64 Mac 上执行：
+
+```bash
+./gradlew :latex-base:macosArm64Test :latex-parser:macosArm64Test   :latex-renderer:macosArm64Test :latex-fonts-katex:macosArm64Test   --max-workers=2
+```
+
+CI 验证真实字节字体、字形、SVG/图片墨水像素、iOS 编译和发布元数据，但不发布。
+Windows/Linux metadata 检查不能证明 Native 链接或运行成功；
+本 job 不涵盖 Kotlin 2.1.0 别名版本。
 
 ## 🏗️ 项目结构
 
