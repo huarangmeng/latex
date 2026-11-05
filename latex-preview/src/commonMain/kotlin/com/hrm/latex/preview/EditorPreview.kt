@@ -48,36 +48,36 @@ import com.hrm.latex.renderer.model.LatexTheme
 val editorPreviewGroups: List<PreviewGroup> = listOf(
     PreviewGroup(
         id = "editor-basic",
-        title = "基础编辑器",
-        description = "LaTeX 编辑器的基础使用场景",
+        title = "Formula editor",
+        description = "Edit LaTeX source and see the rendered result as you type",
         items = listOf(
             PreviewItem(
                 id = "editor-empty",
-                title = "空编辑器",
+                title = "Empty editor",
                 latex = "",
                 content = { EditorEmptyPreview() }
             ),
             PreviewItem(
                 id = "editor-simple",
-                title = "简单公式编辑",
+                title = "Edit a simple formula",
                 latex = "x^2 + y^2 = z^2",
                 content = { EditorSimplePreview() }
             ),
             PreviewItem(
                 id = "editor-complex",
-                title = "复杂公式编辑",
+                title = "Edit a complex formula",
                 latex = "\\int_{0}^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}",
                 content = { EditorComplexPreview() }
             ),
             PreviewItem(
                 id = "editor-templates",
-                title = "模板插入",
+                title = "Insert a template",
                 latex = "",
                 content = { EditorTemplatePreview() }
             ),
             PreviewItem(
                 id = "editor-source",
-                title = "显示源码",
+                title = "Show source",
                 latex = "\\frac{a}{b}",
                 content = { EditorSourcePreview() }
             ),
@@ -129,7 +129,7 @@ private fun EditorTemplatePreview() {
 
     Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
         Text(
-            text = "点击模板按钮插入 LaTeX 结构",
+            text = "Choose a template to insert a LaTeX structure",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

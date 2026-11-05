@@ -546,9 +546,9 @@ linking or execution. Kotlin 2.1.0 alias versions are not covered by this job.
 ### Web Demo / GitHub Pages
 
 The Web demo runs the same `latex-preview` samples as the desktop app, with the
-bundled KaTeX fonts. It also preloads bundled Noto Sans SC and Noto Emoji fallback
-fonts so Chinese labels and icons render on Web. Use a current browser with
-WebAssembly GC support.
+bundled KaTeX fonts. The preview interface, sample titles, and descriptions use
+English without emoji, keeping the initial download small. Math fonts load when
+formulas are rendered. Use a current browser with WebAssembly GC support.
 
 For local development, run `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`
 and open the localhost URL printed by Gradle.

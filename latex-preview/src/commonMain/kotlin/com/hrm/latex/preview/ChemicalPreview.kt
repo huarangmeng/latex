@@ -34,79 +34,79 @@ import androidx.compose.ui.tooling.preview.Preview
 val chemicalPreviewGroups = listOf(
     PreviewGroup(
         id = "chemical_basic",
-        title = "1. 基础化学式",
-        description = "简单分子、化合物",
+        title = "1. Molecules",
+        description = "Common molecules and chemical compounds",
         items = listOf(
-            PreviewItem("chem1", "水分子", "\\ce{H2O}"),
-            PreviewItem("chem2", "二氧化碳", "\\ce{CO2}"),
-            PreviewItem("chem3", "硫酸", "\\ce{H2SO4}"),
-            PreviewItem("chem4", "氨气", "\\ce{NH3}"),
-            PreviewItem("chem5", "甲烷", "\\ce{CH4}"),
+            PreviewItem("chem1", "Water", "\\ce{H2O}"),
+            PreviewItem("chem2", "Carbon dioxide", "\\ce{CO2}"),
+            PreviewItem("chem3", "Sulfuric acid", "\\ce{H2SO4}"),
+            PreviewItem("chem4", "Ammonia", "\\ce{NH3}"),
+            PreviewItem("chem5", "Methane", "\\ce{CH4}"),
         )
     ),
     PreviewGroup(
         id = "chemical_ions",
-        title = "2. 离子",
-        description = "阳离子、阴离子、复杂离子",
+        title = "2. Ions",
+        description = "Positive, negative, and polyatomic ions",
         items = listOf(
-            PreviewItem("ion1", "钠离子", "\\ce{Na+}"),
-            PreviewItem("ion2", "氯离子", "\\ce{Cl-}"),
-            PreviewItem("ion3", "铁离子", "\\ce{Fe^{3+}}"),
-            PreviewItem("ion4", "硫酸根离子", "\\ce{SO4^{2-}}"),
-            PreviewItem("ion5", "铵根离子", "\\ce{NH4+}"),
-            PreviewItem("ion6", "高锰酸根", "\\ce{MnO4-}"),
+            PreviewItem("ion1", "Sodium ion", "\\ce{Na+}"),
+            PreviewItem("ion2", "Chloride ion", "\\ce{Cl-}"),
+            PreviewItem("ion3", "Iron ion", "\\ce{Fe^{3+}}"),
+            PreviewItem("ion4", "Sulfate ion", "\\ce{SO4^{2-}}"),
+            PreviewItem("ion5", "Ammonium ion", "\\ce{NH4+}"),
+            PreviewItem("ion6", "Permanganate ion", "\\ce{MnO4-}"),
         )
     ),
     PreviewGroup(
         id = "chemical_reactions",
-        title = "3. 化学反应",
-        description = "化学方程式、离子反应",
+        title = "3. Reactions",
+        description = "Balanced chemical equations and ionic reactions",
         items = listOf(
-            PreviewItem("rxn1", "氢气燃烧", "\\ce{2H2 + O2 -> 2H2O}"),
-            PreviewItem("rxn2", "碳酸分解", "\\ce{H2CO3 -> H2O + CO2 ^}"),
-            PreviewItem("rxn3", "中和反应", "\\ce{HCl + NaOH -> NaCl + H2O}"),
-            PreviewItem("rxn4", "沉淀反应", "\\ce{Ba^{2+} + SO4^{2-} -> BaSO4 v}"),
-            PreviewItem("rxn5", "氧化还原", "\\ce{Zn + 2HCl -> ZnCl2 + H2 ^}"),
+            PreviewItem("rxn1", "Hydrogen combustion", "\\ce{2H2 + O2 -> 2H2O}"),
+            PreviewItem("rxn2", "Carbonic acid decomposition", "\\ce{H2CO3 -> H2O + CO2 ^}"),
+            PreviewItem("rxn3", "Neutralization", "\\ce{HCl + NaOH -> NaCl + H2O}"),
+            PreviewItem("rxn4", "Precipitation", "\\ce{Ba^{2+} + SO4^{2-} -> BaSO4 v}"),
+            PreviewItem("rxn5", "Oxidation and reduction", "\\ce{Zn + 2HCl -> ZnCl2 + H2 ^}"),
             PreviewItem(
                 "rxn6",
-                "复杂反应",
+                "Multistep reaction",
                 "\\ce{2KMnO4 + 16HCl -> 2KCl + 2MnCl2 + 5Cl2 ^ + 8H2O}"
             ),
         )
     ),
     PreviewGroup(
         id = "chemical_reversible",
-        title = "4. 可逆反应",
-        description = "化学平衡、可逆反应",
+        title = "4. Reversible reactions",
+        description = "Chemical equilibrium and reversible reactions",
         items = listOf(
-            PreviewItem("rev1", "氮气与氢气", "\\ce{N2 + 3H2 <-> 2NH3}"),
-            PreviewItem("rev2", "酯化反应", "\\ce{CH3COOH + C2H5OH <=> CH3COOC2H5 + H2O}"),
-            PreviewItem("rev3", "水的电离", "\\ce{H2O <-> H+ + OH-}"),
-            PreviewItem("rev4", "弱酸电离", "\\ce{CH3COOH <-> CH3COO- + H+}"),
-            PreviewItem("rev5", "二氧化碳溶解", "\\ce{CO2 + H2O <-> H2CO3}"),
-            PreviewItem("rev6", "硫酸铜水合", "\\ce{CuSO4 + 5H2O <-> CuSO4*5H2O}"),
+            PreviewItem("rev1", "Ammonia synthesis", "\\ce{N2 + 3H2 <-> 2NH3}"),
+            PreviewItem("rev2", "Esterification", "\\ce{CH3COOH + C2H5OH <=> CH3COOC2H5 + H2O}"),
+            PreviewItem("rev3", "Water ionization", "\\ce{H2O <-> H+ + OH-}"),
+            PreviewItem("rev4", "Weak acid ionization", "\\ce{CH3COOH <-> CH3COO- + H+}"),
+            PreviewItem("rev5", "Carbon dioxide dissolution", "\\ce{CO2 + H2O <-> H2CO3}"),
+            PreviewItem("rev6", "Copper sulfate hydration", "\\ce{CuSO4 + 5H2O <-> CuSO4*5H2O}"),
         )
     ),
     PreviewGroup(
         id = "chemical_complex",
-        title = "5. 复杂结构",
-        description = "配合物、有机物",
+        title = "5. Complex structures",
+        description = "Coordination compounds and organic molecules",
         items = listOf(
-            PreviewItem("comp1", "配合物", "\\ce{[Cu(NH3)4]^{2+}}"),
-            PreviewItem("comp2", "乙醇", "\\ce{CH3CH2OH}"),
-            PreviewItem("comp3", "乙酸", "\\ce{CH3COOH}"),
-            PreviewItem("comp4", "葡萄糖", "\\ce{C6H12O6}"),
+            PreviewItem("comp1", "Coordination compound", "\\ce{[Cu(NH3)4]^{2+}}"),
+            PreviewItem("comp2", "Ethanol", "\\ce{CH3CH2OH}"),
+            PreviewItem("comp3", "Acetic acid", "\\ce{CH3COOH}"),
+            PreviewItem("comp4", "Glucose", "\\ce{C6H12O6}"),
         )
     ),
     PreviewGroup(
         id = "chemical_annotations_bonds",
-        title = "6. 箭头标注与化学键",
-        description = "反应条件、催化剂与单/双/三键",
+        title = "6. Bonds and reaction labels",
+        description = "Reaction conditions, catalysts, and single, double, and triple bonds",
         items = listOf(
-            PreviewItem("bond1", "多种化学键", "\\ce{C-C=C#N}"),
-            PreviewItem("bond2", "箭头上下标注", "\\ce{A ->[heat][catalyst] B}"),
-            PreviewItem("bond3", "bond 命令", "\\ce{C\\bond{#}N}"),
-            PreviewItem("bond4", "物理单位", "\\pu{1.2e3 kg.m/s^2}"),
+            PreviewItem("bond1", "Bond types", "\\ce{C-C=C#N}"),
+            PreviewItem("bond2", "Labels above and below a reaction arrow", "\\ce{A ->[heat][catalyst] B}"),
+            PreviewItem("bond3", "Explicit bonds", "\\ce{C\\bond{#}N}"),
+            PreviewItem("bond4", "Physical units", "\\pu{1.2e3 kg.m/s^2}"),
         )
     ),
 )
@@ -115,7 +115,7 @@ val chemicalPreviewGroups = listOf(
 @Composable
 fun ChemicalPreview(onBack: () -> Unit) {
     PreviewCategoryScreen(
-        title = "化学公式",
+        title = "Chemistry",
         groups = chemicalPreviewGroups,
         onBack = onBack
     )

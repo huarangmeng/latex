@@ -58,15 +58,15 @@ import kotlinx.coroutines.delay
 @Preview
 @Composable
 fun Preview_Demo_RealTimeInput() {
-    IncrementalPreviewCard("实际应用: 实时输入预览 (Debug)") {
+    IncrementalPreviewCard("Live typing preview") {
         var userInput by remember { mutableStateOf("") }
         var debugInfo by remember { mutableStateOf("") }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val latexConfig = LatexConfig(theme = LatexTheme.material3())
-            Text("模拟用户输入:", style = MaterialTheme.typography.bodyMedium)
+            Text("Simulated input:", style = MaterialTheme.typography.bodyMedium)
             Text(
-                text = userInput.ifEmpty { "(正在输入...)" },
+                text = userInput.ifEmpty { "(typing...)" },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -79,7 +79,7 @@ fun Preview_Demo_RealTimeInput() {
 
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
-            Text("实时渲染结果:", style = MaterialTheme.typography.bodyMedium)
+            Text("Live rendering:", style = MaterialTheme.typography.bodyMedium)
             Latex(
                 latex = userInput,
                 config = latexConfig,
@@ -112,7 +112,7 @@ fun Preview_Demo_RealTimeInput() {
 @Preview
 @Composable
 fun Preview_Demo_ProgressTracking() {
-    IncrementalPreviewCard("实际应用: 解析进度追踪") {
+    IncrementalPreviewCard("Parsing progress") {
         var currentText by remember { mutableStateOf("") }
         val formula = "\\sum_{n=0}^{\\infty} \\frac{x^n}{n!} = e^x"
         val progress = if (formula.isEmpty()) 0f else currentText.length.toFloat() / formula.length
@@ -129,7 +129,7 @@ fun Preview_Demo_ProgressTracking() {
             )
 
             Text(
-                text = "解析进度: ${(progress * 100).toInt()}%",
+                text = "Parsing progress: ${(progress * 100).toInt()}%",
                 style = MaterialTheme.typography.bodySmall
             )
 
@@ -156,14 +156,14 @@ fun Preview_Demo_ProgressTracking() {
 @Preview
 @Composable
 fun Preview_Demo_ErrorRecovery() {
-    IncrementalPreviewCard("实际应用: 错误恢复") {
+    IncrementalPreviewCard("Incomplete input and error recovery") {
         val testCases = listOf(
-            "完整公式" to "x^2 + y^2 = r^2",
-            "未闭合括号" to "\\frac{1",
-            "未完成上标" to "x^",
-            "未完成下标" to "a_",
-            "不完整命令" to "\\int",
-            "部分积分" to "\\int_{0}^{1"
+            "Complete formula" to "x^2 + y^2 = r^2",
+            "Unclosed delimiter" to "\\frac{1",
+            "Incomplete superscript" to "x^",
+            "Incomplete subscript" to "a_",
+            "Incomplete command" to "\\int",
+            "Partially typed integral" to "\\int_{0}^{1"
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -176,7 +176,7 @@ fun Preview_Demo_ErrorRecovery() {
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "输入: $latex",
+                        text = "Input: $latex",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -205,12 +205,12 @@ fun Preview_Demo_ErrorRecovery() {
 @Preview
 @Composable
 fun Preview_Demo_MultipleFormulas() {
-    IncrementalPreviewCard("实际应用: 多个公式同时渲染") {
+    IncrementalPreviewCard("Render multiple formulas") {
         val formulas = listOf(
-            "勾股定理" to "a^2 + b^2 = c^2",
-            "二次方程" to "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
-            "欧拉公式" to "e^{i\\pi} + 1 = 0",
-            "高斯积分" to "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}"
+            "Pythagorean theorem" to "a^2 + b^2 = c^2",
+            "Quadratic equation" to "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
+            "Euler's formula" to "e^{i\\pi} + 1 = 0",
+            "Gaussian integral" to "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}"
         )
 
         var currentIndices by remember { mutableStateOf(List(formulas.size) { 0 }) }
@@ -251,7 +251,7 @@ fun Preview_Demo_MultipleFormulas() {
 @Preview
 @Composable
 fun Preview_Demo_ComparisonWithStandard() {
-    IncrementalPreviewCard("对比: 标准 vs 增量渲染") {
+    IncrementalPreviewCard("Complete and incremental rendering") {
         val formula = "\\sum_{i=1}^{n} i^2 = \\frac{n(n+1)(2n+1)}{6}"
         var incrementalText by remember { mutableStateOf("") }
 
@@ -260,7 +260,7 @@ fun Preview_Demo_ComparisonWithStandard() {
             // 标准渲染（完整公式）
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "标准渲染（需要完整公式）:",
+                    text = "Complete formula:",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -283,13 +283,13 @@ fun Preview_Demo_ComparisonWithStandard() {
             // 增量渲染（逐步输入）
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "增量渲染（支持部分公式）:",
+                    text = "Incremental input:",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
 
                 Text(
-                    text = "当前输入: ${incrementalText.ifEmpty { "(空)" }}",
+                    text = "Current input: ${incrementalText.ifEmpty { "(empty)" }}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -330,7 +330,7 @@ fun Preview_Demo_All() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("增量解析实际应用演示", style = MaterialTheme.typography.headlineMedium)
+        Text("Incremental rendering examples", style = MaterialTheme.typography.headlineMedium)
 
         Preview_Demo_RealTimeInput()
         Preview_Demo_ProgressTracking()

@@ -84,7 +84,7 @@ fun GroupCard(
                 modifier = Modifier.padding(top = 4.dp)
             )
             Text(
-                text = "${group.items.size} 个示例",
+                text = if (group.items.size == 1) "1 example" else "${group.items.size} examples",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 8.dp)
