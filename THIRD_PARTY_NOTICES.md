@@ -3,6 +3,19 @@
 This project bundles third-party assets. The project itself remains licensed
 under the terms in [`LICENSE`](./LICENSE).
 
+## Web demo fonts
+
+The Web demo bundles Noto Sans SC and Noto Emoji for Chinese text and emoji
+fallback in Compose Web. These assets are only included in the demo's `webMain`
+source set and are not SDK dependencies.
+
+- Sources: [Noto Sans SC](https://github.com/google/fonts/tree/main/ofl/notosanssc)
+  and [Noto Emoji](https://github.com/google/fonts/tree/main/ofl/notoemoji)
+- Bundled location: `composeApp/src/webMain/composeResources/font/`
+- License: SIL Open Font License 1.1. Full copyright and license notices are
+  bundled with the website in `licenses/NotoSansSC-OFL.txt` and
+  `licenses/NotoEmoji-OFL.txt` (sources in `composeApp/src/webMain/resources/licenses/`).
+
 ## KaTeX fonts
 
 - Component: KaTeX font files

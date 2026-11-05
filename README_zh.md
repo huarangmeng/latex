@@ -10,6 +10,8 @@
 
 [English Version](./README.md)
 
+**[在线体验 Web Demo →](https://huarangmeng.github.io/latex/)** — 在浏览器中查看公式渲染、化学公式、增量更新及编辑器效果。
+
 ## 🌟 核心特性
 
 - **高性能解析**：基于 AST 的递归下降解析器，支持增量更新。
@@ -532,6 +534,31 @@ Windows/Linux metadata 检查不能证明 Native 链接或运行成功；
 - **Desktop**: `./gradlew :composeApp:run`
 - **Web (Wasm)**: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`
 - **iOS**: 在 Xcode 中打开 `iosApp/iosApp.xcworkspace` 运行。
+
+### Web Demo / GitHub Pages
+
+Web Demo 复用桌面应用的 `latex-preview` 示例，并包含 KaTeX 字体资源。
+Web 端会预加载 demo 内置的 Noto Sans SC 和 Noto Emoji 回退字体，确保中文标签和图标正常显示。
+请使用支持 WebAssembly GC 的新版浏览器。
+
+本地开发运行 `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`，
+打开 Gradle 输出的 localhost 地址即可。
+
+构建可部署的静态网站：
+
+```bash
+./gradlew :composeApp:wasmJsBrowserDistribution
+```
+
+完整网站（含 Wasm 和字体资源）输出到
+`composeApp/build/dist/wasmJs/productionExecutable/`。
+请通过 HTTP 服务访问该目录，不要直接双击 `index.html`。
+
+[Web Demo 工作流](.github/workflows/demo.yml) 在 PR 中验证构建，
+在推送到 `master` 或手动选择 `master` 运行时部署到 GitHub Pages。
+首次部署前，在仓库 **Settings → Pages → Build and deployment → Source**
+选择 **GitHub Actions**。部署成功后可访问
+[在线 Demo](https://huarangmeng.github.io/latex/)。
 
 ### 运行测试
 
