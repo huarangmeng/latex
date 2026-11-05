@@ -27,16 +27,16 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 配置 JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: zulu
           java-version: 21
 
       - name: 缓存 Gradle 构建状态
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: wrapper
 
@@ -51,7 +51,7 @@ jobs:
 
       - name: 保存单元测试报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports
           path: |
@@ -65,19 +65,19 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 确认 Apple Silicon 执行面
         run: test "$(uname -m)" = arm64
 
       - name: 配置 JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: zulu
           java-version: 21
 
       - name: 缓存 Gradle 与 Kotlin Native
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: wrapper
 
@@ -134,7 +134,7 @@ jobs:
 
       - name: 保存 Native 测试与发布元数据
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-arm64-native-reports
           path: |
@@ -157,16 +157,16 @@ jobs:
             compiler: WasmJs
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 配置 JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: zulu
           java-version: 21
 
       - name: 缓存 Gradle 与浏览器工具链
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: wrapper
           gradle-home-cache-includes: |
@@ -176,7 +176,7 @@ jobs:
             yarn
 
       - name: 缓存 NPM 依赖
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/latex-yarn-cache
           key: ${{ runner.os }}-yarn-${{ matrix.compiler }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle.properties') }}
@@ -212,7 +212,7 @@ jobs:
 
       - name: 保存浏览器测试报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: browser-test-reports-${{ matrix.compiler }}
           path: |
@@ -229,16 +229,16 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 配置 JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: zulu
           java-version: 21
 
       - name: 缓存 Gradle 构建状态
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: wrapper
 
@@ -272,7 +272,7 @@ jobs:
 
       - name: 保存性能结果、报告与采样日志
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: performance-reports
           path: latex-benchmark/build/reports/**

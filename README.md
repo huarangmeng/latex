@@ -1,7 +1,7 @@
 # Kotlin Multiplatform LaTeX Rendering Library
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-blue.svg)](https://kotlinlang.org)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.3-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-blue.svg)](https://kotlinlang.org)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.12.2-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Android API](https://img.shields.io/badge/Android%20API-23%2B-brightgreen.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base?filter=!*-kt*)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
@@ -11,6 +11,8 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 [中文版本](./README_zh.md)
 
 **[Try the live Web demo →](https://huarangmeng.github.io/latex/)** — explore formula rendering, chemistry, incremental updates, and the editor in your browser.
+
+> **Kotlin 2.1 maintenance:** 1.6.3 (`1.6.3-kt2.1.0`) is the final compatibility release. Mainline now uses Kotlin 2.4.21; legacy sources are on [`release-1.6.3`](https://github.com/huarangmeng/latex/tree/release-1.6.3).
 
 ## 🌟 Key Features
 
@@ -462,12 +464,21 @@ fun MyEditor() {
 
 ## 📦 Installation
 
+### Kotlin compatibility and maintenance
+
+**1.6.3 is the last release maintained for Kotlin 2.1.** Its compatibility artifact
+version is `1.6.3-kt2.1.0`. The legacy source and publishing workflow are preserved on
+[`release-1.6.3`](https://github.com/huarangmeng/latex/tree/release-1.6.3).
+Starting with 1.7.0, mainline uses Kotlin 2.4.21 and no longer maintains or publishes
+Kotlin 2.1 compatibility artifacts. Kotlin 2.1 consumers should pin the final
+compatibility version or upgrade their toolchain to follow mainline.
+
 Choose the variant matching your Kotlin version:
 
 | Variant | Kotlin | Compose Multiplatform | Artifact Version |
 |---------|--------|-----------------------|------------------|
-| Standard | 2.3.10 | 1.10.3 | `<version>` |
-| Kotlin 2.1.0 | 2.1.0 | 1.9.3 | `<version>-kt2.1.0` |
+| Mainline (1.7.0+) | 2.4.21 | 1.12.2 | `<version>` |
+| Kotlin 2.1.0 (final compatibility release) | 2.1.0 | 1.9.3 | `1.6.3-kt2.1.0` |
 
 Replace `<version>` with a published release and use the same version for all
 LaTeX modules. KaTeX fonts require a release containing `latex-fonts-katex`.
@@ -476,7 +487,7 @@ Add to `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-latex = "<version>" # Use "<version>-kt2.1.0" for Kotlin 2.1.0
+latex = "<version>" # For Kotlin 2.1.0, pin "1.6.3-kt2.1.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -504,7 +515,7 @@ See [Math Fonts](#math-fonts). For parsing only, depend on
 
 All four libraries provide `macosArm64`; use the `commonMain` dependencies above.
 `PlatformType.MACOS` has desktop semantics, distinct from iOS and Desktop (JVM).
-With Compose Multiplatform 1.10.3 / Material3 1.9.0, the consuming project must set:
+With Compose Multiplatform 1.12.2 / Material3 1.9.0, the consuming project must set:
 
 ```properties
 org.jetbrains.compose.experimental.macos.enabled=true
@@ -538,7 +549,7 @@ linking or execution. Kotlin 2.1.0 alias versions are not covered by this job.
 
 ### Running the Demo App
 
-- **Android**: `./gradlew :composeApp:assembleDebug`
+- **Android**: `./gradlew :androidapp:assembleDebug`
 - **Desktop**: `./gradlew :composeApp:run`
 - **Web (Wasm)**: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`
 - **iOS**: Open `iosApp/iosApp.xcworkspace` in Xcode to run.

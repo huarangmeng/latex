@@ -24,7 +24,7 @@ Main modules:
 
 Use exact commands unless the user asks otherwise:
 
-- Android build: `./gradlew :composeApp:assembleDebug`
+- Android build: `./gradlew :androidapp:assembleDebug`
 - Desktop demo: `./gradlew :composeApp:run`
 - Preview module: `./gradlew :latex-preview:run`
 - Web demo (Wasm): `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`

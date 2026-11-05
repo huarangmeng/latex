@@ -84,7 +84,7 @@ kotlin {
         jvmMain.dependencies {
             implementation(libs.kotlinx.coroutinesSwing)
         }
-        val skiaTest by creating {
+        val skiaTest = create("skiaTest") {
             dependsOn(commonTest.get())
             dependencies {
                 implementation(projects.latexFontsKatex)

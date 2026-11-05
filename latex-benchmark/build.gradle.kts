@@ -35,9 +35,9 @@ dependencies {
 
     // Compose Desktop 依赖（用于 TextMeasurer, Density 等）
     implementation(compose.desktop.currentOs)
-    implementation(compose.ui)
-    implementation(compose.foundation)
-    implementation(compose.runtime)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.runtime)
 }
 
 benchmark {

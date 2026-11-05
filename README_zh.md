@@ -1,7 +1,7 @@
 # Kotlin Multiplatform LaTeX Rendering Library
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-blue.svg)](https://kotlinlang.org)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.3-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-blue.svg)](https://kotlinlang.org)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.12.2-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Android API](https://img.shields.io/badge/Android%20API-23%2B-brightgreen.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/latex-base?filter=!*-kt*)](https://central.sonatype.com/search?q=io.github.huarangmeng.latex)
@@ -11,6 +11,8 @@
 [English Version](./README.md)
 
 **[在线体验 Web Demo →](https://huarangmeng.github.io/latex/)** — 在浏览器中查看公式渲染、化学公式、增量更新及编辑器效果。
+
+> **Kotlin 2.1 维护说明：** 最后维护版本为 1.6.3（`1.6.3-kt2.1.0`）。主线已升级 Kotlin 2.4.21，后续不再维护 Kotlin 2.1 兼容版；旧版源码保留在 [`release-1.6.3`](https://github.com/huarangmeng/latex/tree/release-1.6.3)。
 
 ## 🌟 核心特性
 
@@ -456,12 +458,20 @@ fun MyEditor() {
 
 ## 📦 安装
 
+### Kotlin 兼容性与维护策略
+
+**1.6.3 是 Kotlin 2.1 兼容版最后维护的版本**，对应制品版本为
+`1.6.3-kt2.1.0`。旧版源码和兼容版发布流程保留在
+[`release-1.6.3`](https://github.com/huarangmeng/latex/tree/release-1.6.3) 分支。
+从 1.7.0 起，主线使用 Kotlin 2.4.21，不再维护或发布 Kotlin 2.1 兼容制品。
+Kotlin 2.1 项目请固定使用最后的兼容版本，或升级工具链后跟进主线。
+
 根据项目的 Kotlin 版本选择制品：
 
 | 变体 | Kotlin | Compose Multiplatform | 制品版本号 |
 |------|--------|-----------------------|-----------|
-| 标准版 | 2.3.10 | 1.10.3 | `<version>` |
-| Kotlin 2.1.0 兼容版 | 2.1.0 | 1.9.3 | `<version>-kt2.1.0` |
+| 主线（1.7.0 起） | 2.4.21 | 1.12.2 | `<version>` |
+| Kotlin 2.1.0 兼容版（最后版本） | 2.1.0 | 1.9.3 | `1.6.3-kt2.1.0` |
 
 将 `<version>` 替换为已发布版本，所有 LaTeX 模块使用相同版本号。
 使用 KaTeX 字体时，需选择包含 `latex-fonts-katex` 的发布版本。
@@ -470,7 +480,7 @@ fun MyEditor() {
 
 ```toml
 [versions]
-latex = "<version>" # Kotlin 2.1.0 使用 "<version>-kt2.1.0"
+latex = "<version>" # Kotlin 2.1.0 固定使用 "1.6.3-kt2.1.0"
 
 [libraries]
 latex-base = { module = "io.github.huarangmeng:latex-base", version.ref = "latex" }
@@ -496,7 +506,7 @@ Android/JVM 单平台模块将依赖放在 `dependencies` 中。
 
 四个库均提供 `macosArm64`，使用上面的 `commonMain` 依赖。
 `PlatformType.MACOS` 保持桌面语义，与 iOS 和 Desktop (JVM) 区分。
-使用 Compose Multiplatform 1.10.3 / Material3 1.9.0 时，消费方须设置：
+使用 Compose Multiplatform 1.12.2 / Material3 1.9.0 时，消费方须设置：
 
 ```properties
 org.jetbrains.compose.experimental.macos.enabled=true
@@ -530,7 +540,7 @@ Windows/Linux metadata 检查不能证明 Native 链接或运行成功；
 
 ### 运行 Demo App
 
-- **Android**: `./gradlew :composeApp:assembleDebug`
+- **Android**: `./gradlew :androidapp:assembleDebug`
 - **Desktop**: `./gradlew :composeApp:run`
 - **Web (Wasm)**: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`
 - **iOS**: 在 Xcode 中打开 `iosApp/iosApp.xcworkspace` 运行。
