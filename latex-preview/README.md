@@ -26,7 +26,7 @@
 
 - 此模块仅用于开发测试，不会被包含在 `latex-sdk` 的发布版本中
 - 通过 `composeApp` 支持 Desktop、Android、iOS 和 Web（Wasm/JS）预览
-- Web Demo 在显示预览前加载本地打包的 Noto Sans SC 和 Noto Emoji 回退字体，避免中文及图标显示为缺字框；字体仅位于 demo 的 `webMain` 中
+- 预览界面、分组、样例说明及操作提示统一使用英文，不使用 emoji；Web 首页不需要下载额外的中文或 emoji 字体，数学公式渲染时再加载 KaTeX 字体
 - 可以在这里测试各种 LaTeX 表达式的渲染效果
 - `composeApp` 已引入 KaTeX 字体资源，运行时自动加载，无需手动初始化；缺失或加载失败时回退系统字体且不再重试。强烈建议其他宿主也引入配套字体，系统字体可能出现排版差异，见[数学字体](../README_zh.md#数学字体)
 - `BasicLatexPreview` 的 `24. 主题模式` 分组覆盖主题配置，以及通过 `LatexConfig.fontFamilies` 显式选择系统字体和等宽字体的示例

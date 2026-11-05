@@ -67,62 +67,62 @@ import kotlinx.coroutines.delay
 val basicLatexPreviewGroups = listOf(
     PreviewGroup(
         id = "basic",
-        title = "1. 基础级别",
-        description = "简单文本、上下标、分数",
+        title = "1. Basic notation",
+        description = "Text, superscripts, subscripts, and fractions",
         items = listOf(
-            PreviewItem("1", "简单文本", "Hello LaTeX"),
-            PreviewItem("2", "简单上标", "x^2"),
-            PreviewItem("3", "简单下标", "a_i"),
-            PreviewItem("4", "上标+下标", "x_i^2"),
-            PreviewItem("5", "简单分数", "\\frac{1}{2}"),
+            PreviewItem("1", "Plain text", "Hello LaTeX"),
+            PreviewItem("2", "Superscripts", "x^2"),
+            PreviewItem("3", "Subscripts", "a_i"),
+            PreviewItem("4", "Combined scripts", "x_i^2"),
+            PreviewItem("5", "Simple fractions", "\\frac{1}{2}"),
             PreviewItem(
                 "6",
-                "Issue #41：无花括号单原子参数",
+                "Issue #41: unbraced single-token arguments",
                 "\\frac12 \\quad \\binom12 \\quad \\int_12"
             ),
         )
     ),
     PreviewGroup(
         id = "elementary",
-        title = "2. 初级级别",
-        description = "多项式、方程、简单求和积分",
+        title = "2. Elementary formulas",
+        description = "Polynomials, equations, sums, and integrals",
         items = listOf(
-            PreviewItem("1", "多项式", "ax^2 + bx + c = 0"),
-            PreviewItem("2", "勾股定理", "a^2 + b^2 = c^2"),
-            PreviewItem("3", "二次方程解", "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"),
-            PreviewItem("4", "简单求和", "\\sum_{i=1}^{n} i"),
-            PreviewItem("5", "简单积分", "\\int_0^1 x dx"),
+            PreviewItem("1", "Polynomial", "ax^2 + bx + c = 0"),
+            PreviewItem("2", "Pythagorean theorem", "a^2 + b^2 = c^2"),
+            PreviewItem("3", "Quadratic formula", "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"),
+            PreviewItem("4", "Summation", "\\sum_{i=1}^{n} i"),
+            PreviewItem("5", "Integral", "\\int_0^1 x dx"),
             PreviewItem("6", "dots (ldots)", "a_1, a_2, \\dots, a_n"),
             PreviewItem("7", "dots (cdots)", "a_1 + a_2 + \\dots + a_n"),
         )
     ),
     PreviewGroup(
         id = "intermediate",
-        title = "3. 中级级别",
-        description = "嵌套结构、根式、复杂运算",
+        title = "3. Nested expressions",
+        description = "Nested fractions, radicals, and compound expressions",
         items = listOf(
-            PreviewItem("1", "嵌套分数", "\\frac{1}{2 + \\frac{1}{3}}"),
-            PreviewItem("2", "复杂分数", "\\frac{a + b}{c + d}"),
-            PreviewItem("3", "平方根", "\\sqrt{x^2 + y^2}"),
-            PreviewItem("4", "复杂求和", "\\sum_{i=1}^{n} i^2 = \\frac{n(n+1)(2n+1)}{6}"),
-            PreviewItem("5", "定积分", "\\int_{0}^{\\infty} e^{-x} dx = 1"),
-            PreviewItem("6", "连乘", "\\prod_{i=1}^{n} x_i"),
+            PreviewItem("1", "Nested fractions", "\\frac{1}{2 + \\frac{1}{3}}"),
+            PreviewItem("2", "Compound fraction", "\\frac{a + b}{c + d}"),
+            PreviewItem("3", "Square root", "\\sqrt{x^2 + y^2}"),
+            PreviewItem("4", "Nested summation", "\\sum_{i=1}^{n} i^2 = \\frac{n(n+1)(2n+1)}{6}"),
+            PreviewItem("5", "Definite integral", "\\int_{0}^{\\infty} e^{-x} dx = 1"),
+            PreviewItem("6", "Product", "\\prod_{i=1}^{n} x_i"),
             PreviewItem("7", "coprod", "\\coprod_{i=1}^{n} A_i"),
             PreviewItem("8", "bigoplus", "\\bigoplus_{k=1}^{n} V_k"),
             PreviewItem("9", "bigotimes", "\\bigotimes_{i=1}^{m} W_i"),
             PreviewItem("10", "bigsqcup", "\\bigsqcup_{j \\in J} S_j"),
             PreviewItem("11", "bigodot", "\\bigodot_{i} R_i"),
             PreviewItem("12", "biguplus", "\\biguplus_{k} T_k"),
-            PreviewItem("13", "极限", "\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1"),
-            PreviewItem("14", "导数", "\\frac{d}{dx}(x^n) = nx^{n-1}"),
+            PreviewItem("13", "Limit", "\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1"),
+            PreviewItem("14", "Derivative", "\\frac{d}{dx}(x^n) = nx^{n-1}"),
             PreviewItem(
                 "15",
-                "导数 (\\left \\right)",
+                "Derivative with scalable delimiters",
                 "\\frac{d}{dx}\\left(x^n\\right) = nx^{n-1}"
             ),
             PreviewItem(
                 "16",
-                "括号中的积分",
+                "Integral inside parentheses",
                 "\\left[ \\int_0^1 \\frac{dx}{\\sqrt{1-x^2}} \\right] = \\frac{\\pi}{2}"
             ),
             PreviewItem("17", "bmod", "a \\bmod b"),
@@ -132,467 +132,467 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "advanced",
-        title = "4. 高级级别",
-        description = "连分数、级数、复杂表达式",
+        title = "4. Advanced formulas",
+        description = "Continued fractions, series, and advanced notation",
         items = listOf(
-            PreviewItem("1", "连分数", "1 + \\frac{1}{1 + \\frac{1}{1 + \\frac{1}{1 + x}}}"),
-            PreviewItem("2", "复杂指数", "e^{i\\pi} + 1 = 0"),
-            PreviewItem("3", "嵌套根式", "\\sqrt{1 + \\sqrt{1 + \\sqrt{1 + x}}}"),
+            PreviewItem("1", "Continued fraction", "1 + \\frac{1}{1 + \\frac{1}{1 + \\frac{1}{1 + x}}}"),
+            PreviewItem("2", "Nested exponents", "e^{i\\pi} + 1 = 0"),
+            PreviewItem("3", "Nested radicals", "\\sqrt{1 + \\sqrt{1 + \\sqrt{1 + x}}}"),
             PreviewItem(
                 "4",
-                "行列式表示",
+                "Determinant",
                 "\\det(A) = \\sum_{\\sigma \\in S_n} \\operatorname{sgn}(\\sigma) \\prod_{i=1}^{n} a_{i,\\sigma(i)}"
             ),
-            PreviewItem("5", "二重积分", "\\int_{0}^{1} \\int_{0}^{1} x^2 + y^2 dx dy"),
+            PreviewItem("5", "Double integral", "\\int_{0}^{1} \\int_{0}^{1} x^2 + y^2 dx dy"),
             PreviewItem(
                 "6",
-                "泰勒级数",
+                "Taylor series",
                 "f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!}(x-a)^n"
             ),
-            PreviewItem("7", "复杂求和", "\\sum_{k=1}^{n} \\frac{1}{k^2} = \\frac{\\pi^2}{6}"),
-            PreviewItem("8", "operatorname 基础", "\\operatorname{Tr}(A)"),
+            PreviewItem("7", "Nested summation", "\\sum_{k=1}^{n} \\frac{1}{k^2} = \\frac{\\pi^2}{6}"),
+            PreviewItem("8", "Named operators", "\\operatorname{Tr}(A)"),
             PreviewItem(
                 "9",
-                "operatorname 带下标",
+                "Named operators with subscripts",
                 "\\operatorname{argmax}_{x \\in \\mathbb{R}} f(x)"
             ),
             PreviewItem(
                 "9-star",
-                "operatorname* 自动 limits",
+                "Named operators with limits",
                 "\\operatorname*{argmax}_{x \\in \\mathbb{R}} f(x)"
             ),
             PreviewItem("10", "operatorname + limits", "\\operatorname{Res}\\limits_{z=0} f(z)"),
             PreviewItem("11", "mathop + limits", "\\[\\int_0^\\infty  {1 - \\mathop \\prod \\limits_{i = 1}^n \\left( {1 - {e^{ - {p_i}t}}} \\right){\\text{d}}t} \\]"),
-            PreviewItem("12", "Bbb (mathbb 别名)", "\\Bbb{R} \\quad \\mathbb{R} \\quad \\Bbb R"),
+            PreviewItem("12", "Blackboard bold: Bbb alias", "\\Bbb{R} \\quad \\mathbb{R} \\quad \\Bbb R"),
             PreviewItem("13", "cal/frak/scr (legacy)", "\\cal A \\quad \\frak g \\quad \\scr F"),
-            PreviewItem("14", "字号阶梯", "\\tiny x \\scriptsize x \\footnotesize x \\small x \\normalsize x \\large x \\Large x \\LARGE x \\huge x \\Huge x"),
-            PreviewItem("15", "字号作用域", "{\\small a + b} \\quad {\\Huge c + d}"),
-            PreviewItem("16", "广义与中缀分数", "\\genfrac{(}{)}{0pt}{0}{a+b}{c} \\quad {n \\choose k}"),
-            PreviewItem("17", "mathtools 分行分数", "\\splitdfrac{a+b+c}{d+e}"),
+            PreviewItem("14", "Font size scale", "\\tiny x \\scriptsize x \\footnotesize x \\small x \\normalsize x \\large x \\Large x \\LARGE x \\huge x \\Huge x"),
+            PreviewItem("15", "Font size scopes", "{\\small a + b} \\quad {\\Huge c + d}"),
+            PreviewItem("16", "Generalized and infix fractions", "\\genfrac{(}{)}{0pt}{0}{a+b}{c} \\quad {n \\choose k}"),
+            PreviewItem("17", "Split fractions", "\\splitdfrac{a+b+c}{d+e}"),
         )
     ),
     PreviewGroup(
         id = "expert",
-        title = "5. 专家级别",
-        description = "物理公式、复变函数、高级积分",
+        title = "5. Mathematical physics",
+        description = "Physics, complex analysis, and advanced integrals",
         items = listOf(
             PreviewItem(
                 "1",
-                "柯西积分公式",
+                "Cauchy integral formula",
                 "f(z) = \\frac{1}{2\\pi i} \\oint_{\\gamma} \\frac{f(\\zeta)}{\\zeta - z} d\\zeta"
             ),
             PreviewItem(
                 "2",
-                "傅里叶变换",
+                "Fourier transform",
                 "F(\\omega) = \\int_{-\\infty}^{\\infty} f(t) e^{-i\\omega t} dt"
             ),
-            PreviewItem("3", "高斯积分", "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}"),
+            PreviewItem("3", "Gaussian integral", "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}"),
             PreviewItem(
                 "4",
-                "黎曼ζ函数",
+                "Riemann zeta function",
                 "\\zeta(s) = \\sum_{n=1}^{\\infty} \\frac{1}{n^s} = \\prod_{p} \\frac{1}{1-p^{-s}}"
             ),
             PreviewItem(
                 "5",
-                "斯托克斯定理",
+                "Stokes' theorem",
                 "\\int_{\\partial \\Omega} \\omega = \\int_{\\Omega} d\\omega"
             ),
             PreviewItem(
                 "6",
-                "向量场",
+                "Vector field",
                 "v(x, t_\\theta)"
             )
         )
     ),
     PreviewGroup(
         id = "extreme",
-        title = "6. 极其复杂级别",
-        description = "量子力学、相对论、终极表达式",
+        title = "6. Complex expressions",
+        description = "Quantum mechanics, relativity, and deeply nested formulas",
         items = listOf(
             PreviewItem(
                 "1",
-                "超级连分数",
+                "Extended continued fraction",
                 "\\frac{1}{a + \\frac{b}{c + \\frac{d}{e + \\frac{f}{g + \\frac{h}{i + j}}}}}"
             ),
             PreviewItem(
                 "2",
-                "深度嵌套根式",
+                "Deeply nested radicals",
                 "\\sqrt{x + \\sqrt{y + \\sqrt{z + \\sqrt{w + \\sqrt{v + u}}}}}"
             ),
             PreviewItem(
                 "3",
-                "多层次混合",
+                "Mixed nested expressions",
                 "\\sum_{n=1}^{\\infty} \\frac{(-1)^n}{n} \\int_0^1 x^n \\left(\\frac{1}{1+x^2}\\right)^{\\frac{1}{2}} dx"
             ),
             PreviewItem(
                 "4",
-                "薛定谔方程",
+                "Schrodinger equation",
                 "i\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\vec{r},t) = \\left[-\\frac{\\hbar^2}{2m}\\nabla^2 + V(\\vec{r},t)\\right]\\Psi(\\vec{r},t)"
             ),
             PreviewItem(
                 "5",
-                "路径积分",
+                "Path integral",
                 "\\langle x_f | e^{-iHt/\\hbar} | x_i \\rangle = \\int \\mathcal{D}[x(t)] e^{iS[x]/\\hbar}"
             ),
             PreviewItem(
                 "6",
-                "爱因斯坦场方程",
+                "Einstein field equations",
                 "R_{\\mu\\nu} - \\frac{1}{2}Rg_{\\mu\\nu} + \\Lambda g_{\\mu\\nu} = \\frac{8\\pi G}{c^4}T_{\\mu\\nu}"
             ),
             PreviewItem(
                 "7",
-                "配分函数",
+                "Partition function",
                 "Z = \\sum_{n=0}^{\\infty} e^{-\\beta E_n} = \\text{Tr}\\left(e^{-\\beta \\hat{H}}\\right)"
             ),
             PreviewItem(
                 "8",
-                "费曼传播子",
+                "Feynman propagator",
                 "G(x-y) = \\int \\frac{d^4p}{(2\\pi)^4} \\frac{e^{-ip(x-y)}}{p^2 - m^2 + i\\epsilon}"
             ),
             PreviewItem(
                 "9",
-                "杨-米尔斯拉氏量",
+                "Yang-Mills Lagrangian",
                 "\\mathcal{L} = -\\frac{1}{4}F_{\\mu\\nu}^a F^{a\\mu\\nu} + \\bar{\\psi}(i\\gamma^\\mu D_\\mu - m)\\psi"
             ),
             PreviewItem(
                 "10",
-                "终极复杂表达式",
+                "Combined advanced expression",
                 "\\sum_{n=0}^{\\infty} \\frac{1}{n!} \\int_{-\\infty}^{\\infty} \\left(\\frac{d}{dx}\\right)^n \\left[\\frac{\\sqrt{\\pi}}{\\sqrt{1+x^2}} \\cdot e^{-\\frac{x^2}{2\\sigma^2}} \\cdot \\prod_{k=1}^{n} \\left(1 + \\frac{x^k}{k!}\\right)\\right] dx"
             ),
-            PreviewItem("11", "径向薛定谔方程", "\\dfrac{1}{r^2}\\dfrac{\\partial }{\\partial r}\\left (r^2\\dfrac{\\partial }{\\partial r} \\right )  R(r)+\\left[\\dfrac{2\\mu}{\\hbar^2}(E-V(r)) -\\dfrac{\\alpha}{r^2} \\right ]R(r)=0")
+            PreviewItem("11", "Radial Schrodinger equation", "\\dfrac{1}{r^2}\\dfrac{\\partial }{\\partial r}\\left (r^2\\dfrac{\\partial }{\\partial r} \\right )  R(r)+\\left[\\dfrac{2\\mu}{\\hbar^2}(E-V(r)) -\\dfrac{\\alpha}{r^2} \\right ]R(r)=0")
         )
     ),
     PreviewGroup(
         id = "radicals",
-        title = "7. 根号专题",
-        description = "根号字形变体、嵌套根式、n次根",
+        title = "7. Radicals",
+        description = "Radical sizes, nested roots, and indexed roots",
         items = listOf(
-            PreviewItem("1", "简单根号", "\\sqrt{2}"),
-            PreviewItem("2", "变量根号", "\\sqrt{x^2 + y^2}"),
-            PreviewItem("3", "分数根号", "\\sqrt{\\frac{a}{b}}"),
-            PreviewItem("4", "三次根号", "\\sqrt[3]{8} = 2"),
-            PreviewItem("5", "n次根号", "\\sqrt[n]{x^n} = |x|"),
-            PreviewItem("6", "嵌套根式", "\\sqrt{1 + \\sqrt{1 + \\sqrt{1 + x}}}"),
+            PreviewItem("1", "Square root", "\\sqrt{2}"),
+            PreviewItem("2", "Root of a variable", "\\sqrt{x^2 + y^2}"),
+            PreviewItem("3", "Root of a fraction", "\\sqrt{\\frac{a}{b}}"),
+            PreviewItem("4", "Cube root", "\\sqrt[3]{8} = 2"),
+            PreviewItem("5", "Indexed root", "\\sqrt[n]{x^n} = |x|"),
+            PreviewItem("6", "Nested radicals", "\\sqrt{1 + \\sqrt{1 + \\sqrt{1 + x}}}"),
             PreviewItem(
                 "7",
-                "大内容根号",
+                "Root of a large expression",
                 "\\sqrt{\\frac{a^2 + b^2}{c^2 + d^2}}"
             ),
             PreviewItem(
                 "8",
-                "根号与分数混合",
+                "Radicals and fractions",
                 "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"
             ),
             PreviewItem(
                 "9",
-                "高斯积分根号",
+                "Radical in a Gaussian integral",
                 "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}"
             ),
             PreviewItem(
                 "10",
-                "深层嵌套根式",
+                "Deeply nested roots",
                 "\\sqrt{x + \\sqrt{y + \\sqrt{z + \\sqrt{w + \\sqrt{v + u}}}}}"
             ),
             PreviewItem(
                 "11",
-                "根号内积分",
+                "Integral under a radical",
                 "\\sqrt{\\int_0^1 f(x) dx}"
             ),
             PreviewItem(
                 "12",
-                "根号与上下标",
+                "Radicals with scripts",
                 "\\sqrt{a_1^2 + a_2^2 + \\cdots + a_n^2}"
             ),
         )
     ),
     PreviewGroup(
         id = "delimiters",
-        title = "8. 分隔符专题",
-        description = "括号、自动伸缩、手动大小控制",
+        title = "8. Delimiters",
+        description = "Parentheses, automatic scaling, and manual sizes",
         items = listOf(
             PreviewItem(
                 "1",
-                "基础括号",
+                "Basic delimiters",
                 "\\left( x + y \\right) \\quad \\left[ a + b \\right] \\quad \\left\\{ c + d \\right\\}"
             ),
             PreviewItem(
                 "2",
-                "括号自动伸缩",
+                "Automatically scaled delimiters",
                 "\\left( \\frac{a}{b} \\right) + \\left[ \\frac{x^2}{y^2} \\right]"
             ),
             PreviewItem(
                 "3",
-                "求值符号（不对称分隔符）",
+                "Evaluation bar: asymmetric delimiters",
                 "\\left. \\frac{d}{dx}x^2 \\right|_{x=0} = 0"
             ),
-            PreviewItem("4", "分段函数（不对称分隔符）", "f(x) = \\left\\{ x^2, x > 0 \\right."),
+            PreviewItem("4", "Piecewise function: asymmetric delimiters", "f(x) = \\left\\{ x^2, x > 0 \\right."),
             PreviewItem(
                 "5",
-                "复杂求值",
+                "Evaluation of a compound expression",
                 "\\left. \\frac{d^2}{dx^2} \\left( x^3 + 2x^2 - x + 1 \\right) \\right|_{x=1} = 10"
             ),
             PreviewItem(
                 "6",
-                "手动大小 \\big",
+                "Manual size: big",
                 "\\big( \\frac{1}{2} \\big) \\quad \\big[ x + y \\big] \\quad \\big\\{ a, b \\big\\}"
             ),
             PreviewItem(
                 "7",
-                "手动大小 \\Big",
+                "Manual size: Big",
                 "\\Big( \\frac{a}{b} \\Big) \\quad \\Big[ \\frac{x^2}{y^2} \\Big] \\quad \\Big| x \\Big|"
             ),
             PreviewItem(
                 "8",
-                "手动大小 \\bigg",
+                "Manual size: bigg",
                 "\\bigg( \\sum_{i=1}^n x_i \\bigg) \\quad \\bigg\\{ \\frac{a+b}{c+d} \\bigg\\}"
             ),
             PreviewItem(
                 "9",
-                "手动大小 \\Bigg",
+                "Manual size: Bigg",
                 "\\Bigg[ \\int_0^1 \\frac{dx}{\\sqrt{1-x^2}} \\Bigg] = \\frac{\\pi}{2}"
             ),
             PreviewItem(
                 "10",
-                "所有手动大小对比",
+                "Manual delimiter size comparison",
                 "\\big| \\Big| \\bigg| \\Bigg| x \\Bigg| \\bigg| \\Big| \\big|"
             ),
             PreviewItem(
                 "11",
-                "特殊分隔符",
+                "Special delimiters",
                 "\\left\\langle \\psi \\right\\rangle \\quad \\left\\lfloor x \\right\\rfloor \\quad \\left\\lceil y \\right\\rceil"
             ),
             PreviewItem(
                 "12",
-                "混合使用",
+                "Mixed delimiter styles",
                 "\\Bigg( \\left. \\frac{df}{dx} \\right|_{x=0} + \\Big[ \\sum_{i=1}^n x_i \\Big] \\Bigg)"
             ),
             PreviewItem(
                 "13",
-                "嵌套不对称",
+                "Nested asymmetric delimiters",
                 "\\left\\{ \\left. x^2 \\right|_{x=1}, \\left. y^2 \\right|_{y=2} \\right\\}"
             ),
             PreviewItem(
                 "14",
-                "绝对值与范数",
+                "Absolute values and norms",
                 "\\big| x \\big| \\quad \\Big\\| \\mathbf{v} \\Big\\| \\quad \\left| \\frac{a}{b} \\right|"
             ),
             PreviewItem(
                 "15",
-                "量子态（狄拉克符号）",
+                "Quantum states: Dirac notation",
                 "\\big\\langle \\psi \\big| \\hat{H} \\big| \\phi \\big\\rangle = E"
             ),
-            PreviewItem("16", "lvert/rvert 定界符", "\\left\\lvert x \\right\\rvert"),
-            PreviewItem("17", "lVert/rVert 定界符", "\\left\\lVert v \\right\\rVert"),
+            PreviewItem("16", "Single vertical bars", "\\left\\lvert x \\right\\rvert"),
+            PreviewItem("17", "Double vertical bars", "\\left\\lVert v \\right\\rVert"),
             PreviewItem("18", "Big lvert", "\\Big\\lvert x \\Big\\rvert"),
-            PreviewItem("19", "lbrace 花括号写法", "\\left{123\\right} \\left\\lbrace12345\\right\\rbrace"),
-            PreviewItem("20", "中间定界符", "\\left\\langle x \\middle| y \\right\\rangle"),
+            PreviewItem("19", "Brace aliases", "\\left{123\\right} \\left\\lbrace12345\\right\\rbrace"),
+            PreviewItem("20", "Middle delimiters", "\\left\\langle x \\middle| y \\right\\rangle"),
         )
     ),
     PreviewGroup(
         id = "accents",
-        title = "9. 装饰符号专题",
-        description = "上标装饰、箭头、帽子、取消线等",
+        title = "9. Accents and decorations",
+        description = "Accents, arrows, braces, stacking, and strike-throughs",
         items = listOf(
-            PreviewItem("1", "简单帽子", "\\hat{x}"),
-            PreviewItem("2", "波浪线", "\\tilde{y}"),
-            PreviewItem("3", "上划线", "\\overline{AB}"),
-            PreviewItem("4", "下划线", "\\underline{text}"),
-            PreviewItem("5", "向量箭头", "\\vec{v}"),
-            PreviewItem("6", "单点", "\\dot{x}"),
-            PreviewItem("7", "双点", "\\ddot{x}"),
-            PreviewItem("8", "上大括号", "\\overbrace{a+b+c}"),
-            PreviewItem("9", "下大括号", "\\underbrace{x+y+z}"),
-            PreviewItem("10", "宽帽子", "\\widehat{ABC}"),
-            PreviewItem("11", "右箭头", "\\overrightarrow{AB}"),
-            PreviewItem("12", "左箭头", "\\overleftarrow{BA}"),
-            PreviewItem("13", "取消线", "\\cancel{x+y}"),
-            PreviewItem("14", "可扩展右箭头", "\\xrightarrow{f}"),
-            PreviewItem("15", "可扩展左箭头", "\\xleftarrow{g}"),
-            PreviewItem("16", "带下标箭头", "\\xrightarrow[n\\to\\infty]{\\text{极限}}"),
-            PreviewItem("17", "上堆叠", "A \\overset{?}{=} B"),
-            PreviewItem("18", "下堆叠", "\\underset{n \\to \\infty}{\\lim} f(x)"),
+            PreviewItem("1", "Hat accent", "\\hat{x}"),
+            PreviewItem("2", "Tilde accent", "\\tilde{y}"),
+            PreviewItem("3", "Overline", "\\overline{AB}"),
+            PreviewItem("4", "Underline", "\\underline{text}"),
+            PreviewItem("5", "Vector accent", "\\vec{v}"),
+            PreviewItem("6", "Dot accent", "\\dot{x}"),
+            PreviewItem("7", "Double-dot accent", "\\ddot{x}"),
+            PreviewItem("8", "Overbrace", "\\overbrace{a+b+c}"),
+            PreviewItem("9", "Underbrace", "\\underbrace{x+y+z}"),
+            PreviewItem("10", "Wide hat", "\\widehat{ABC}"),
+            PreviewItem("11", "Right arrow accent", "\\overrightarrow{AB}"),
+            PreviewItem("12", "Left arrow accent", "\\overleftarrow{BA}"),
+            PreviewItem("13", "Cancellation", "\\cancel{x+y}"),
+            PreviewItem("14", "Extensible right arrow", "\\xrightarrow{f}"),
+            PreviewItem("15", "Extensible left arrow", "\\xleftarrow{g}"),
+            PreviewItem("16", "Arrow with a lower label", "\\xrightarrow[n\\to\\infty]{\\text{limit}}"),
+            PreviewItem("17", "Stacked annotation above", "A \\overset{?}{=} B"),
+            PreviewItem("18", "Stacked annotation below", "\\underset{n \\to \\infty}{\\lim} f(x)"),
             PreviewItem("19", "stackrel", "x \\stackrel{def}{=} y + 1"),
             PreviewItem(
                 "20",
-                "堆叠与箭头组合",
+                "Arrows with stacked annotations",
                 "A \\overset{f}{\\to} B \\underset{g}{\\to} C"
             ),
             PreviewItem(
                 "21",
-                "同一箭头上下堆叠",
+                "Annotations above and below an arrow",
                 "A \\overset{f}{\\underset{g}{\\to}} B"
             ),
             PreviewItem(
                 "22",
-                "复杂装饰组合",
+                "Combined decorations",
                 "\\widehat{ABC} + \\overrightarrow{PQ} + \\cancel{X}"
             ),
             PreviewItem(
                 "23",
-                "物理学中的应用",
+                "Physics notation",
                 "\\vec{F} = m\\vec{a} \\quad \\cancel{E_1} + E_2"
             ),
-            PreviewItem("24", "钩右箭头", "\\xhookrightarrow{f}"),
-            PreviewItem("25", "钩左箭头", "\\xhookleftarrow{g}"),
-            PreviewItem("26", "钩箭头带下标", "\\xhookrightarrow[n\\to\\infty]{\\text{inclusion}}"),
-            PreviewItem("27", "grave 重音", "\\grave{a}"),
-            PreviewItem("28", "acute 重音", "\\acute{e}"),
-            PreviewItem("29", "check 重音", "\\check{s}"),
-            PreviewItem("30", "breve 重音", "\\breve{u}"),
-            PreviewItem("31", "ring 重音", "\\ring{A}"),
-            PreviewItem("32", "dddot 重音", "\\dddot{x}"),
-            PreviewItem("33", "overbracket 方括号", "\\overbracket{x + y}"),
-            PreviewItem("34", "underbracket 方括号", "\\underbracket{a + b}"),
-            PreviewItem("35", "方括号嵌套", "\\overbracket{\\frac{a}{b} + c}"),
+            PreviewItem("24", "Right hook arrow", "\\xhookrightarrow{f}"),
+            PreviewItem("25", "Left hook arrow", "\\xhookleftarrow{g}"),
+            PreviewItem("26", "Hook arrow with a lower label", "\\xhookrightarrow[n\\to\\infty]{\\text{inclusion}}"),
+            PreviewItem("27", "Grave accent", "\\grave{a}"),
+            PreviewItem("28", "Acute accent", "\\acute{e}"),
+            PreviewItem("29", "Check accent", "\\check{s}"),
+            PreviewItem("30", "Breve accent", "\\breve{u}"),
+            PreviewItem("31", "Ring accent", "\\ring{A}"),
+            PreviewItem("32", "Triple-dot accent", "\\dddot{x}"),
+            PreviewItem("33", "Overbracket", "\\overbracket{x + y}"),
+            PreviewItem("34", "Underbracket", "\\underbracket{a + b}"),
+            PreviewItem("35", "Nested brackets", "\\overbracket{\\frac{a}{b} + c}"),
             PreviewItem("36", "overbrace vs overbracket", "\\overbrace{x+y} \\quad \\overbracket{x+y}"),
-            PreviewItem("37", "xRightarrow 双线", "A \\xRightarrow{f} B"),
-            PreviewItem("38", "xLeftarrow 双线", "A \\xLeftarrow{g} B"),
-            PreviewItem("39", "xLeftrightarrow 双线", "A \\xLeftrightarrow{\\sim} B"),
-            PreviewItem("40", "xmapsto 映射", "x \\xmapsto{f} f(x)"),
-            PreviewItem("41", "xRightarrow 带下标", "A \\xRightarrow[below]{above} B"),
-            PreviewItem("42", "箭头对比", "\\xrightarrow{f} \\quad \\xRightarrow{f} \\quad \\xmapsto{f}"),
-            PreviewItem("43", "宽重音与上下箭头", "\\widecheck{ABC} \\quad \\overleftrightarrow{AB} \\quad \\underparen{xy}"),
+            PreviewItem("37", "Double right arrow", "A \\xRightarrow{f} B"),
+            PreviewItem("38", "Double left arrow", "A \\xLeftarrow{g} B"),
+            PreviewItem("39", "Double bidirectional arrow", "A \\xLeftrightarrow{\\sim} B"),
+            PreviewItem("40", "Mapping arrow", "x \\xmapsto{f} f(x)"),
+            PreviewItem("41", "Double arrow with a lower label", "A \\xRightarrow[below]{above} B"),
+            PreviewItem("42", "Extensible arrow comparison", "\\xrightarrow{f} \\quad \\xRightarrow{f} \\quad \\xmapsto{f}"),
+            PreviewItem("43", "Wide accents and arrow decorations", "\\widecheck{ABC} \\quad \\overleftrightarrow{AB} \\quad \\underparen{xy}"),
         )
     ),
     PreviewGroup(
         id = "colors",
-        title = "10. 颜色专题",
-        description = "文本颜色、公式着色",
+        title = "10. Colors and backgrounds",
+        description = "Text colors, formula highlights, and colored backgrounds",
         items = listOf(
-            PreviewItem("1", "基础颜色", "\\color{red}{红色} + \\color{blue}{蓝色}"),
-            PreviewItem("2", "textcolor 命令", "\\textcolor{green}{绿色文字}"),
-            PreviewItem("3", "公式中着色", "x + \\color{red}{y^2} = \\color{blue}{z}"),
-            PreviewItem("4", "分数着色", "\\frac{\\color{red}{a}}{\\color{blue}{b}}"),
+            PreviewItem("1", "Basic colors", "\\color{red}{red} + \\color{blue}{blue}"),
+            PreviewItem("2", "Text color", "\\textcolor{green}{\\text{Green text}}"),
+            PreviewItem("3", "Color within a formula", "x + \\color{red}{y^2} = \\color{blue}{z}"),
+            PreviewItem("4", "Colored fractions", "\\frac{\\color{red}{a}}{\\color{blue}{b}}"),
             PreviewItem(
                 "5",
-                "多种颜色",
+                "Multiple colors",
                 "\\color{red}{R} \\color{orange}{O} \\color{yellow}{Y} \\color{green}{G} \\color{blue}{B}"
             ),
-            PreviewItem("6", "强调重点", "E = mc^2 \\quad \\color{red}{(爱因斯坦质能方程)}"),
-            PreviewItem("7", "十六进制颜色", "\\color{#FF5733}{橙红色} \\color{#33FF57}{青绿色}"),
-            PreviewItem("8", "colorbox 背景色", "\\colorbox{yellow}{重要}"),
-            PreviewItem("9", "fcolorbox 带边框", "\\fcolorbox{red}{yellow}{重要}"),
-            PreviewItem("10", "colorbox 蓝色背景", "\\colorbox{cyan}{x^2 + y^2}"),
-            PreviewItem("11", "fcolorbox 组合", "\\fcolorbox{blue}{#FFFFCC}{E = mc^2}"),
+            PreviewItem("6", "Emphasizing part of a formula", "E = mc^2 \\quad \\color{red}{\\text{Mass-energy equivalence}}"),
+            PreviewItem("7", "Hexadecimal colors", "\\color{#FF5733}{orange} \\color{#33FF57}{green}"),
+            PreviewItem("8", "Background color", "\\colorbox{yellow}{Important}"),
+            PreviewItem("9", "Colored frame and background", "\\fcolorbox{red}{yellow}{Important}"),
+            PreviewItem("10", "Blue background", "\\colorbox{cyan}{x^2 + y^2}"),
+            PreviewItem("11", "Combined colored frames", "\\fcolorbox{blue}{#FFFFCC}{E = mc^2}"),
         )
     ),
     PreviewGroup(
         id = "special_effects",
-        title = "11. 特殊效果与布局",
-        description = "方框（boxed/fbox）、幻影（phantom）、取消线变体、否定修饰、smash、RTL 文本方向",
+        title = "11. Boxes and layout effects",
+        description = "Boxes, invisible spacing, cancellation, negation, height control, and text direction",
         items = listOf(
-            PreviewItem("1", "简单方框", "\\boxed{E = mc^2}"),
-            PreviewItem("2", "方框中的分数", "\\boxed{\\frac{a + b}{c}}"),
-            PreviewItem("3", "方框中的求和", "\\boxed{\\sum_{i=1}^{n} x_i}"),
-            PreviewItem("4", "多个方框", "\\boxed{x} + \\boxed{y} = \\boxed{z}"),
-            PreviewItem("5", "方框+颜色", "\\boxed{\\color{red}{x^2} + \\color{blue}{y^2}} = r^2"),
-            PreviewItem("6", "嵌套方框", "\\boxed{\\boxed{a} + b}"),
+            PreviewItem("1", "Boxed expression", "\\boxed{E = mc^2}"),
+            PreviewItem("2", "Boxed fraction", "\\boxed{\\frac{a + b}{c}}"),
+            PreviewItem("3", "Boxed summation", "\\boxed{\\sum_{i=1}^{n} x_i}"),
+            PreviewItem("4", "Multiple boxes", "\\boxed{x} + \\boxed{y} = \\boxed{z}"),
+            PreviewItem("5", "Colored boxes", "\\boxed{\\color{red}{x^2} + \\color{blue}{y^2}} = r^2"),
+            PreviewItem("6", "Nested boxes", "\\boxed{\\boxed{a} + b}"),
             PreviewItem(
                 "7",
-                "幻影对齐",
+                "Alignment with invisible content",
                 "\\begin{aligned} x &= 1234 \\\\ \\phantom{x} &= 5678 \\end{aligned}"
             ),
-            PreviewItem("8", "幻影占位", "a + \\phantom{bbb} = c"),
-            PreviewItem("9", "复杂幻影", "\\frac{a}{\\phantom{a}b\\phantom{a}}"),
-            PreviewItem("10", "方框+幻影组合", "\\boxed{x} + \\phantom{+ y} = z"),
-            PreviewItem("11", "反向取消线", "\\bcancel{x+y}"),
-            PreviewItem("12", "交叉取消线", "\\xcancel{abc}"),
-            PreviewItem("13", "取消线对比", "\\cancel{a} + \\bcancel{b} + \\xcancel{c}"),
-            PreviewItem("14", "否定等于", "a \\not= b"),
-            PreviewItem("15", "否定属于", "x \\not\\in S"),
-            PreviewItem("16", "否定子集", "A \\not\\subset B"),
-            PreviewItem("17", "smash 消除高度", "x + \\smash{\\frac{a}{b}} + y"),
-            PreviewItem("18", "smash[t] 压顶部", "x + \\smash[t]{\\frac{a}{b}} + y"),
-            PreviewItem("19", "smash[b] 压底部", "x + \\smash[b]{\\frac{a}{b}} + y"),
-            PreviewItem("20", "vphantom 垂直占位", "\\left(\\vphantom{\\frac{a}{b}} x\\right)"),
-            PreviewItem("21", "hphantom 水平占位", "a + \\hphantom{bbb} + c"),
-            PreviewItem("22", "substack 多行条件", "\\sum_{\\substack{i<n \\\\ j<m}} x_{ij}"),
-            PreviewItem("23", "fbox 文本方框", "\\fbox{Important}"),
-            PreviewItem("24", "fbox 数学内容", "\\fbox{x^2 + y^2 = r^2}"),
+            PreviewItem("8", "Invisible placeholder", "a + \\phantom{bbb} = c"),
+            PreviewItem("9", "Compound invisible content", "\\frac{a}{\\phantom{a}b\\phantom{a}}"),
+            PreviewItem("10", "Boxes with invisible spacing", "\\boxed{x} + \\phantom{+ y} = z"),
+            PreviewItem("11", "Reverse cancellation", "\\bcancel{x+y}"),
+            PreviewItem("12", "Crossed cancellation", "\\xcancel{abc}"),
+            PreviewItem("13", "Cancellation styles", "\\cancel{a} + \\bcancel{b} + \\xcancel{c}"),
+            PreviewItem("14", "Not equal", "a \\not= b"),
+            PreviewItem("15", "Not an element", "x \\not\\in S"),
+            PreviewItem("16", "Not a subset", "A \\not\\subset B"),
+            PreviewItem("17", "Remove vertical extent", "x + \\smash{\\frac{a}{b}} + y"),
+            PreviewItem("18", "Remove top extent", "x + \\smash[t]{\\frac{a}{b}} + y"),
+            PreviewItem("19", "Remove bottom extent", "x + \\smash[b]{\\frac{a}{b}} + y"),
+            PreviewItem("20", "Invisible vertical extent", "\\left(\\vphantom{\\frac{a}{b}} x\\right)"),
+            PreviewItem("21", "Invisible horizontal extent", "a + \\hphantom{bbb} + c"),
+            PreviewItem("22", "Multiline conditions", "\\sum_{\\substack{i<n \\\\ j<m}} x_{ij}"),
+            PreviewItem("23", "Framed text", "\\fbox{Important}"),
+            PreviewItem("24", "Framed math", "\\fbox{x^2 + y^2 = r^2}"),
             PreviewItem("25", "fbox vs boxed", "\\fbox{a} \\quad \\boxed{a}"),
-            PreviewItem("26", "underbrace 标注", "\\underbrace{x+y+z}_{n}"),
-            PreviewItem("27", "overbrace 标注", "\\overbrace{a+b+c}^{3\\text{ terms}}"),
-            PreviewItem("28", "RTL 文本方向", "\\RLE{مرحبا بالعالم}"),
-            PreviewItem("29", "LTR 嵌套在 RTL 中", "\\RLE{مرحبا \\LRE{Hello} عالم}"),
-            PreviewItem("30", "RTL 环境", "\\begin{RTL}مرحبا بالعالم\\end{RTL}"),
-            PreviewItem("31", "RTL 数学混排", "\\RLE{x^2 + y^2 = r^2}"),
-            PreviewItem("32", "raisebox 与 rule", "\\raisebox{3pt}{x} \\quad \\rule{2em}{.1em}"),
-            PreviewItem("33", "mathtools 方框与位移", "\\Aboxed{x=1} \\quad \\MoveEqLeft[2] y=2"),
+            PreviewItem("26", "Underbrace annotation", "\\underbrace{x+y+z}_{n}"),
+            PreviewItem("27", "Overbrace annotation", "\\overbrace{a+b+c}^{3\\text{ terms}}"),
+            PreviewItem("28", "Right-to-left direction", "\\RLE{مرحبا بالعالم}"),
+            PreviewItem("29", "Left-to-right content inside RTL", "\\RLE{مرحبا \\LRE{Hello} عالم}"),
+            PreviewItem("30", "Right-to-left environment", "\\begin{RTL}مرحبا بالعالم\\end{RTL}"),
+            PreviewItem("31", "Math in right-to-left text", "\\RLE{x^2 + y^2 = r^2}"),
+            PreviewItem("32", "Vertical offsets and rules", "\\raisebox{3pt}{x} \\quad \\rule{2em}{.1em}"),
+            PreviewItem("33", "Aligned boxes and equation offsets", "\\Aboxed{x=1} \\quad \\MoveEqLeft[2] y=2"),
         )
     ),
     PreviewGroup(
         id = "enclose_menclose",
         title = "12. Enclose / menclose",
-        description = "通用 menclose 围框、圆圈、组合边框与删除线，以及 mathcolor/mathbackground 属性",
+        description = "Circles, frames, combined borders, strike-throughs, and foreground/background colors",
         items = listOf(
-            PreviewItem("1", "circle 圆圈", "\\enclose{circle}{x}"),
-            PreviewItem("2", "box 方框", "\\enclose{box}{x+y}"),
+            PreviewItem("1", "Circle enclosure", "\\enclose{circle}{x}"),
+            PreviewItem("2", "Box enclosure", "\\enclose{box}{x+y}"),
             PreviewItem("3", "roundedbox + mathcolor", "\\enclose{roundedbox}[mathcolor=\"red\"]{\\frac{a}{b}}"),
             PreviewItem("4", "circle + box + background", "\\enclose{circle,box}[mathbackground=\"yellow\"]{x}"),
-            PreviewItem("5", "双对角删除线", "\\enclose{updiagonalstrike downdiagonalstrike}{x}"),
-            PreviewItem("6", "边框组合", "\\enclose{left,right,top,bottom}{a+b=c}"),
-            PreviewItem("7", "水平/垂直删除线", "\\enclose{horizontalstrike verticalstrike}{T}"),
+            PreviewItem("5", "Crossed diagonal strikes", "\\enclose{updiagonalstrike downdiagonalstrike}{x}"),
+            PreviewItem("6", "Combined borders", "\\enclose{left,right,top,bottom}{a+b=c}"),
+            PreviewItem("7", "Horizontal and vertical strikes", "\\enclose{horizontalstrike verticalstrike}{T}"),
         )
     ),
     PreviewGroup(
         id = "labels_refs",
-        title = "13. 标签、引用与编号",
-        description = "公式编号（tag）、标签引用（label/ref/eqref）、equation 自动编号",
+        title = "13. Labels, references, and numbering",
+        description = "Manual tags, cross-references, and automatic equation numbering",
         items = listOf(
-            PreviewItem("1", "公式编号 tag", "E = mc^2 \\tag{1}"),
-            PreviewItem("2", "公式编号 tag*", "F = ma \\tag*{Newton}"),
+            PreviewItem("1", "Equation tag", "E = mc^2 \\tag{1}"),
+            PreviewItem("2", "Unparenthesized equation tag", "F = ma \\tag*{Newton}"),
             PreviewItem("3", "label+eqref", "\\label{eq:1} E = mc^2 \\eqref{eq:1}"),
-            PreviewItem("4", "ref 引用", "See \\ref{eq:1}"),
-            PreviewItem("5", "equation 自动编号", "\\begin{equation} E = mc^2 \\label{eq:einstein} \\end{equation}"),
-            PreviewItem("6", "多个自动编号", "\\begin{equation} a^2 + b^2 = c^2 \\label{eq:pyth} \\end{equation} \\begin{equation} e^{i\\pi} + 1 = 0 \\label{eq:euler} \\end{equation}"),
-            PreviewItem("7", "自动编号+引用", "\\begin{equation} F = ma \\label{eq:f} \\end{equation} See \\eqref{eq:f}"),
-            PreviewItem("8", "equation* 无编号", "\\begin{equation*} x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a} \\end{equation*}"),
-            PreviewItem("9", "编号+手动tag混合", "\\begin{equation} a = b \\label{eq:a} \\end{equation} \\begin{equation} c = d \\tag{★} \\end{equation} \\begin{equation} e = f \\label{eq:e} \\end{equation} See \\eqref{eq:a} and \\eqref{eq:e}"),
+            PreviewItem("4", "Label references", "See \\ref{eq:1}"),
+            PreviewItem("5", "Automatic equation numbering", "\\begin{equation} E = mc^2 \\label{eq:einstein} \\end{equation}"),
+            PreviewItem("6", "Multiple numbered equations", "\\begin{equation} a^2 + b^2 = c^2 \\label{eq:pyth} \\end{equation} \\begin{equation} e^{i\\pi} + 1 = 0 \\label{eq:euler} \\end{equation}"),
+            PreviewItem("7", "Numbered equations and references", "\\begin{equation} F = ma \\label{eq:f} \\end{equation} See \\eqref{eq:f}"),
+            PreviewItem("8", "Unnumbered equation", "\\begin{equation*} x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a} \\end{equation*}"),
+            PreviewItem("9", "Automatic numbering with manual tags", "\\begin{equation} a = b \\label{eq:a} \\end{equation} \\begin{equation} c = d \\tag{★} \\end{equation} \\begin{equation} e = f \\label{eq:e} \\end{equation} See \\eqref{eq:a} and \\eqref{eq:e}"),
         )
     ),
     PreviewGroup(
         id = "advanced_annotations",
-        title = "14. 高级标注",
-        description = "sideset 四角标、tensor 张量、prescript 前置上下标、零宽叠放",
+        title = "14. Advanced annotations",
+        description = "Corner scripts, tensors, prescripts, and zero-width overlaps",
         items = listOf(
-            PreviewItem("1", "sideset 四角", "\\sideset{_a^b}{_c^d}{\\sum}"),
-            PreviewItem("2", "sideset 部分", "\\sideset{_1}{^n}{\\prod}"),
-            PreviewItem("3", "tensor 基础", "\\tensor{T}{^a_b}"),
-            PreviewItem("4", "tensor 多指标", "\\tensor{R}{^\\mu_{\\nu\\rho\\sigma}}"),
-            PreviewItem("5", "prescript 基础", "\\prescript{A}{Z}{X}"),
-            PreviewItem("6", "prescript 同位素", "\\prescript{235}{92}{U}"),
-            PreviewItem("7", "prescript 部分", "\\prescript{14}{}{C}"),
-            PreviewItem("8", "mathclap 零宽居中", "\\sum_{\\mathclap{1 \\le i \\le n}} x_i"),
-            PreviewItem("9", "mathrlap 零宽右叠", "\\mathrlap{\\overbrace{\\phantom{abc}}}abc"),
-            PreviewItem("10", "mathllap 零宽左叠", "abc\\mathllap{\\underbrace{\\phantom{abc}}}"),
+            PreviewItem("1", "Scripts at all four corners", "\\sideset{_a^b}{_c^d}{\\sum}"),
+            PreviewItem("2", "Partial corner scripts", "\\sideset{_1}{^n}{\\prod}"),
+            PreviewItem("3", "Tensor notation", "\\tensor{T}{^a_b}"),
+            PreviewItem("4", "Tensor with multiple indices", "\\tensor{R}{^\\mu_{\\nu\\rho\\sigma}}"),
+            PreviewItem("5", "Prescripts", "\\prescript{A}{Z}{X}"),
+            PreviewItem("6", "Isotope prescripts", "\\prescript{235}{92}{U}"),
+            PreviewItem("7", "Partial prescripts", "\\prescript{14}{}{C}"),
+            PreviewItem("8", "Centered zero-width overlap", "\\sum_{\\mathclap{1 \\le i \\le n}} x_i"),
+            PreviewItem("9", "Right zero-width overlap", "\\mathrlap{\\overbrace{\\phantom{abc}}}abc"),
+            PreviewItem("10", "Left zero-width overlap", "abc\\mathllap{\\underbrace{\\phantom{abc}}}"),
         )
     ),
     PreviewGroup(
         id = "hyperlinks_api",
-        title = "15. 超链接、高亮与诊断",
-        description = "超链接（href/url）、子表达式高亮、错误指示、注释、不断开空格",
+        title = "15. Links, highlights, and diagnostics",
+        description = "Clickable links, highlighted subexpressions, diagnostics, comments, and nonbreaking spaces",
         items = listOf(
-            PreviewItem("1", "href 超链接", "\\href{https://example.com}{点击这里}"),
-            PreviewItem("2", "url 链接", "\\url{https://example.com}"),
-            PreviewItem("3", "href 数学内容", "\\href{https://wiki.org}{E = mc^2}"),
+            PreviewItem("1", "Hyperlink", "\\href{https://example.com}{Click here}"),
+            PreviewItem("2", "URL", "\\url{https://example.com}"),
+            PreviewItem("3", "Linked math", "\\href{https://wiki.org}{E = mc^2}"),
             PreviewItem(
-                "4", "href 超链接(带点击回调)", "\\href{https://example.com}{点击这里}",
+                "4", "Hyperlink with click callback", "\\href{https://example.com}{Click here}",
                 content = {
                     Latex(
-                        latex = "\\href{https://example.com}{点击这里}",
+                        latex = "\\href{https://example.com}{Click here}",
                         config = LatexConfig(
                             theme = LatexTheme.light(),
                             onHyperlinkClick = { url ->
-                                println("超链接被点击: $url")
+                                println("Link clicked: $url")
                             }
                         )
                     )
                 }
             ),
-            PreviewItem("5", "不断开空格 (~)", "Fig.~1 Eq.~2"),
-            PreviewItem("6", "注释处理 (%)", "x^2 + y^2 % comment\n= z^2"),
+            PreviewItem("5", "Nonbreaking spaces", "Fig.~1 Eq.~2"),
+            PreviewItem("6", "Comments", "x^2 + y^2 % comment\n= z^2"),
             PreviewItem(
-                "7", "高亮子表达式(pattern)", "E = mc^2",
+                "7", "Highlight by pattern", "E = mc^2",
                 content = {
                     Latex(
                         latex = "E = mc^2",
@@ -612,7 +612,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "8", "高亮子表达式(indices)", "\\frac{a+b}{c} + x^2",
+                "8", "Highlight by index", "\\frac{a+b}{c} + x^2",
                 content = {
                     Latex(
                         latex = "\\frac{a+b}{c} + x^2",
@@ -632,7 +632,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "9", "多区域高亮", "a + b + c + d",
+                "9", "Highlight multiple ranges", "a + b + c + d",
                 content = {
                     Latex(
                         latex = "a + b + c + d",
@@ -654,62 +654,62 @@ val basicLatexPreviewGroups = listOf(
                     )
                 }
             ),
-            PreviewItem("10", "错误指示(未知命令)", "x + \\unknowncmd + y"),
-            PreviewItem("11", "错误指示(混合)", "\\frac{a}{b} + \\notacommand + \\sqrt{c}"),
+            PreviewItem("10", "Unknown-command diagnostic", "x + \\unknowncmd + y"),
+            PreviewItem("11", "Diagnostics in a compound expression", "\\frac{a}{b} + \\notacommand + \\sqrt{c}"),
         )
     ),
     PreviewGroup(
         id = "custom_commands",
-        title = "16. 自定义命令",
-        description = "newcommand 定义和使用",
+        title = "16. Custom commands",
+        description = "Define and expand reusable LaTeX commands",
         items = listOf(
-            PreviewItem("1", "无参数命令", "\\newcommand{\\R}{\\mathbb{R}} x \\in \\R"),
-            PreviewItem("2", "单参数命令", "\\newcommand{\\diff}[1]{\\frac{d}{d#1}} \\diff{x}"),
+            PreviewItem("1", "Command without arguments", "\\newcommand{\\R}{\\mathbb{R}} x \\in \\R"),
+            PreviewItem("2", "Command with one argument", "\\newcommand{\\diff}[1]{\\frac{d}{d#1}} \\diff{x}"),
             PreviewItem(
                 "3",
-                "双参数命令",
+                "Command with two arguments",
                 "\\newcommand{\\pdiff}[2]{\\frac{\\partial #1}{\\partial #2}} \\pdiff{f}{x}"
             ),
             PreviewItem(
                 "4",
-                "多个自定义命令",
+                "Multiple custom commands",
                 "\\newcommand{\\N}{\\mathbb{N}} \\newcommand{\\Z}{\\mathbb{Z}} \\N \\subset \\Z"
             ),
-            PreviewItem("5", "嵌套命令", "\\newcommand{\\abs}[1]{\\left|#1\\right|} \\abs{x}"),
-            PreviewItem("6", "参数在文本中", "\\newcommand{\\test}[1]{a#1b} \\test{x}"),
+            PreviewItem("5", "Nested commands", "\\newcommand{\\abs}[1]{\\left|#1\\right|} \\abs{x}"),
+            PreviewItem("6", "Arguments within text", "\\newcommand{\\test}[1]{a#1b} \\test{x}"),
             PreviewItem(
                 "7",
-                "复杂定义",
+                "Compound command definition",
                 "\\newcommand{\\myvec}[1]{\\boldsymbol{#1}} \\myvec{v} = \\myvec{u} + \\myvec{w}"
             ),
             PreviewItem(
                 "8",
-                "数学符号",
+                "Custom math symbols",
                 "\\newcommand{\\R}{\\mathbb{R}} \\newcommand{\\C}{\\mathbb{C}} \\R + \\C"
             ),
             PreviewItem(
                 "9",
-                "组合其他命令",
+                "Combining commands",
                 "\\newcommand{\\norm}[1]{\\left\\|#1\\right\\|} \\norm{x} = \\norm{\\vec{v}}"
             ),
             PreviewItem(
                 "10",
-                "递归定义",
+                "Recursive definition",
                 "\\newcommand{\\fact}[1]{#1!} \\fact{n} = \\frac{\\fact{2n}}{(2n)!!}"
             ),
             PreviewItem(
                 "11",
-                "DeclareMathOperator 基础",
+                "Declare a math operator",
                 "\\DeclareMathOperator{\\Tr}{Tr} \\Tr(A)"
             ),
             PreviewItem(
                 "12",
-                "DeclareMathOperator 多个",
+                "Declare multiple math operators",
                 "\\DeclareMathOperator{\\rank}{rank} \\DeclareMathOperator{\\sgn}{sgn} \\rank(A) + \\sgn(x)"
             ),
             PreviewItem(
                 "13",
-                "mathop 基础",
+                "Custom operator expression",
                 "\\mathop{Res}_{z=0} f(z)"
             ),
             PreviewItem(
@@ -719,22 +719,22 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem(
                 "15",
-                "可选参数默认值",
+                "Optional argument with a default",
                 "\\newcommand{\\greet}[1][World]{Hello\\ #1} \\greet \\quad \\greet[LaTeX]"
             ),
             PreviewItem(
                 "16",
-                "双参数+默认值",
+                "Two arguments with a default",
                 "\\newcommand{\\pair}[2][x]{#1+#2} \\pair{y} \\quad \\pair[a]{b}"
             ),
             PreviewItem(
                 "17",
-                "newenvironment 基础",
+                "Custom environment",
                 "\\newenvironment{mybox}{[}{]} \\begin{mybox}hello\\end{mybox}"
             ),
             PreviewItem(
                 "18",
-                "newenvironment 带参数",
+                "Custom environment with arguments",
                 "\\newenvironment{titled}[1]{\\textbf{#1:}~}{} \\begin{titled}{Theorem}P \\implies Q\\end{titled}"
             ),
             PreviewItem(
@@ -744,60 +744,60 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem(
                 "20",
-                "Issue #46：显式分组与样式恢复",
+                "Issue #46: explicit groups and style restoration",
                 "a+\\begingroup\\bf x+{\\it y}+z\\endgroup+w"
             ),
             PreviewItem(
                 "21",
-                "局部宏重定义与恢复",
+                "Local macro redefinition and restoration",
                 "\\def\\value{a}\\value+\\begingroup\\def\\value{b}\\value\\endgroup+\\value"
             ),
             PreviewItem(
                 "22",
-                "宏体内的显式分组",
+                "Explicit groups within macros",
                 "\\newcommand{\\bold}[1]{\\begingroup\\bf #1\\endgroup}\\bold{x+y}+z"
             ),
-            PreviewItem("23", "延迟展开与含义快照", "\\def\\a{\\b}\\def\\b{x}\\let\\saved\\b\\def\\b{y}\\a+\\saved"),
-            PreviewItem("24", "展开控制与条件分支", "\\def\\name{result}\\expandafter\\def\\csname\\name\\endcsname{42}\\ifdefined\\result\\result\\else 0\\fi"),
-            PreviewItem("25", "分隔参数宏", "\\def\\pair#1,#2;{\\frac{#1}{#2}}\\pair a+b,c+d;"),
-            PreviewItem("26", "跨环境起止体分组", "\\newenvironment{boldgroup}{\\begingroup\\bf}{\\endgroup}\\begin{boldgroup}x+y\\end{boldgroup}+z"),
-            PreviewItem("27", "数学样式分支", "\\def\\pick{\\mathchoice{D}{T}{S}{Q}}\\pick+x^{\\pick^{\\pick}}"),
-            PreviewItem("28", "命名颜色与声明作用域", "\\definecolor{accent}{HTML}{3A7BD5}{\\color{accent}a+b}+\\textcolor[RGB]{220,50,70}{c}"),
-            PreviewItem("29", "结构化文本与逐字文本", "\\text{normal \\textbf{bold} and \$x^2\$}+\\verb|a%{b}|"),
-            PreviewItem("30", "数组间距与虚线", "\\def\\arraystretch{1.5}\\setlength{\\arraycolsep}{8pt}\\begin{array}{cc}a&b\\\\\\hdashline c&d\\end{array}"),
+            PreviewItem("23", "Deferred expansion and meaning snapshots", "\\def\\a{\\b}\\def\\b{x}\\let\\saved\\b\\def\\b{y}\\a+\\saved"),
+            PreviewItem("24", "Expansion control and conditional branches", "\\def\\name{result}\\expandafter\\def\\csname\\name\\endcsname{42}\\ifdefined\\result\\result\\else 0\\fi"),
+            PreviewItem("25", "Macros with delimited arguments", "\\def\\pair#1,#2;{\\frac{#1}{#2}}\\pair a+b,c+d;"),
+            PreviewItem("26", "Groups across environment boundaries", "\\newenvironment{boldgroup}{\\begingroup\\bf}{\\endgroup}\\begin{boldgroup}x+y\\end{boldgroup}+z"),
+            PreviewItem("27", "Branches by math style", "\\def\\pick{\\mathchoice{D}{T}{S}{Q}}\\pick+x^{\\pick^{\\pick}}"),
+            PreviewItem("28", "Named colors and declaration scopes", "\\definecolor{accent}{HTML}{3A7BD5}{\\color{accent}a+b}+\\textcolor[RGB]{220,50,70}{c}"),
+            PreviewItem("29", "Structured and verbatim text", "\\text{normal \\textbf{bold} and \$x^2\$}+\\verb|a%{b}|"),
+            PreviewItem("30", "Array spacing and dashed lines", "\\def\\arraystretch{1.5}\\setlength{\\arraycolsep}{8pt}\\begin{array}{cc}a&b\\\\\\hdashline c&d\\end{array}"),
         )
     ),
     PreviewGroup(
         id = "spaces",
-        title = "17. 间距专题",
-        description = "负空格、自定义空格、水平间距",
+        title = "17. Spacing",
+        description = "Negative spaces, custom lengths, and horizontal spacing",
         items = listOf(
-            PreviewItem("1", "标准空格对比", "a \\, b \\: c \\; d \\quad e \\qquad f"),
-            PreviewItem("2", "负空格", "a \\! b (tight)"),
-            PreviewItem("3", "自定义空格 (cm)", "a \\hspace{1cm} b"),
-            PreviewItem("4", "自定义空格 (pt)", "a \\hspace{20pt} b"),
-            PreviewItem("5", "自定义空格 (em)", "a \\hspace{2em} b"),
-            PreviewItem("6", "负自定义空格", "a \\hspace{-0.5em} b"),
-            PreviewItem("7", "命名空格", "a \\space b \\thinspace c \\medspace d \\thickspace e"),
-            PreviewItem("8", "扩展空格", "a \\enspace b \\enskip c \\negmedspace d \\negthickspace e"),
-            PreviewItem("9", "转义特殊字符", "\\{ \\} \\$ \\% \\# \\& \\_"),
-            PreviewItem("10", "双竖线命令", "\\| \\quad \\left\\| x \\right\\| \\quad \\big\\|"),
-            PreviewItem("11", "kern 与 mkern", "a\\kern1em b \\quad x\\mkern6mu y"),
+            PreviewItem("1", "Standard spacing comparison", "a \\, b \\: c \\; d \\quad e \\qquad f"),
+            PreviewItem("2", "Negative spacing", "a \\! b (tight)"),
+            PreviewItem("3", "Custom spacing in centimeters", "a \\hspace{1cm} b"),
+            PreviewItem("4", "Custom spacing in points", "a \\hspace{20pt} b"),
+            PreviewItem("5", "Custom spacing in em", "a \\hspace{2em} b"),
+            PreviewItem("6", "Custom negative spacing", "a \\hspace{-0.5em} b"),
+            PreviewItem("7", "Named spaces", "a \\space b \\thinspace c \\medspace d \\thickspace e"),
+            PreviewItem("8", "Additional space commands", "a \\enspace b \\enskip c \\negmedspace d \\negthickspace e"),
+            PreviewItem("9", "Escaped special characters", "\\{ \\} \\$ \\% \\# \\& \\_"),
+            PreviewItem("10", "Double vertical bar command", "\\| \\quad \\left\\| x \\right\\| \\quad \\big\\|"),
+            PreviewItem("11", "Text and math kerning", "a\\kern1em b \\quad x\\mkern6mu y"),
         )
     ),
     PreviewGroup(
         id = "mathstyle",
-        title = "18. 数学模式切换",
-        description = "四档数学样式、cramped 样式与上下标排版",
+        title = "18. Math styles and metrics",
+        description = "Display, text, script, and cramped styles with script positioning",
         items = listOf(
             PreviewItem(
                 "1",
-                "displaystyle 分数",
+                "Display-style fraction",
                 "\\frac{a}{b} \\quad \\displaystyle{\\frac{a}{b}}"
             ),
             PreviewItem(
                 "2",
-                "frac dfrac tfrac 对比",
+                "Fraction style comparison",
                 "\\textstyle{\\frac{1}{1+x}} \\quad \\dfrac{1}{1+x} \\quad \\tfrac{1}{1+x}"
             ),
             PreviewItem(
@@ -807,97 +807,97 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem(
                 "4",
-                "dfrac 连分数",
+                "Display-style continued fraction",
                 "\\dfrac{1}{1+\\dfrac{1}{1+\\dfrac{1}{1+\\dfrac{1}{1+\\dfrac{1}{\\cdots}}}}}"
             ),
             PreviewItem(
                 "5",
-                "displaystyle 求和",
+                "Display-style summation",
                 "\\sum_{i=1}^{n} \\quad \\displaystyle{\\sum_{i=1}^{n}}"
             ),
             PreviewItem(
                 "6",
-                "scriptstyle 求和",
+                "Script-style summation",
                 "x\\sum_{i=1}^{n} \\quad x\\scriptstyle{\\sum_{i=1}^{n}}"
             ),
             PreviewItem(
                 "7",
-                "求和作为上标",
+                "Summation in a superscript",
                 "x^{\\sum_{i=1}^{n}} \\quad x^{\\scriptstyle{\\sum_{i=1}^{n}}}"
             ),
             PreviewItem("8", "scriptscriptstyle", "\\scriptscriptstyle{x + y + z}"),
             PreviewItem(
                 "9",
-                "分数中的模式",
+                "Math styles within fractions",
                 "\\frac{\\displaystyle{\\sum_{i=1}^{n}}}{\\textstyle{n}}"
             ),
-            PreviewItem("10", "嵌套模式", "\\displaystyle{\\frac{\\sum}{n}}"),
-            PreviewItem("11", "symbf 粗体", "\\symbf{x} + \\symbf{\\alpha}"),
-            PreviewItem("12", "symsf 无衬线", "\\symsf{ABC}"),
-            PreviewItem("13", "symrm 罗马体", "\\symrm{dx}"),
-            PreviewItem("14", "KaTeX 默认字体路由", "xyzABC012 \\quad \\alpha\\beta\\Gamma"),
-            PreviewItem("15", "KaTeX 字体族", "\\mathrm{Ab0} \\quad \\mathbf{Ab0} \\quad \\boldsymbol{x\\alpha}"),
-            PreviewItem("16", "KaTeX 装饰字体", "\\mathbb{R} \\quad \\mathcal{L} \\quad \\mathfrak{g} \\quad \\mathscr{F}"),
-            PreviewItem("17", "基线与上下标", "x_i^2 + f_j^{n+1} = A_k^m"),
-            PreviewItem("18", "Rule 15 分数对齐", "a + \\frac{x^2}{1+y} + b \\quad \\dfrac{x^2}{1+y}"),
-            PreviewItem("19", "定界符与数学轴", "a + \\left(\\dfrac{x_i^2}{1+y}\\right) + b"),
-            PreviewItem("20", "积分上下限", "\\int_{-\\infty}^{\\infty} f(t)e^{-i\\omega t}\\,dt"),
-            PreviewItem("21", "向量重音锚点", "\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\vec r,t)=V(\\vec r,t)\\Psi(\\vec r,t)"),
-            PreviewItem("22", "重音墨迹边界", "\\hat{x} \\quad \\tilde{y} \\quad \\bar{z} \\quad \\dot{x}"),
-            PreviewItem("23", "普通与 cramped 上标", "x^2 \\quad \\cramped{x^2}"),
-            PreviewItem("24", "分子与分母", "\\frac{x^2}{x^2}"),
-            PreviewItem("25", "根式与重音", "x^2 \\quad \\sqrt{x^2} \\quad \\hat{x^2} \\quad \\overline{x^2}"),
-            PreviewItem("26", "上标与下标子式", "x_{a^2}^{a^2} \\quad \\sum_{a^2}^{a^2}"),
-            PreviewItem("27", "手动 cramped 四档", "\\crampeddisplaystyle x^2 \\quad \\crampedtextstyle x^2 \\quad \\crampedscriptstyle x^2 \\quad \\crampedscriptscriptstyle x^2"),
-            PreviewItem("28", "mathtools 可选样式", "\\cramped{x^2} \\quad \\cramped[\\scriptstyle]{x^2}"),
+            PreviewItem("10", "Nested math styles", "\\displaystyle{\\frac{\\sum}{n}}"),
+            PreviewItem("11", "Bold math symbols", "\\symbf{x} + \\symbf{\\alpha}"),
+            PreviewItem("12", "Sans-serif math symbols", "\\symsf{ABC}"),
+            PreviewItem("13", "Upright math symbols", "\\symrm{dx}"),
+            PreviewItem("14", "Default KaTeX font selection", "xyzABC012 \\quad \\alpha\\beta\\Gamma"),
+            PreviewItem("15", "KaTeX font families", "\\mathrm{Ab0} \\quad \\mathbf{Ab0} \\quad \\boldsymbol{x\\alpha}"),
+            PreviewItem("16", "KaTeX decorative fonts", "\\mathbb{R} \\quad \\mathcal{L} \\quad \\mathfrak{g} \\quad \\mathscr{F}"),
+            PreviewItem("17", "Baselines and scripts", "x_i^2 + f_j^{n+1} = A_k^m"),
+            PreviewItem("18", "TeX Rule 15: fraction alignment", "a + \\frac{x^2}{1+y} + b \\quad \\dfrac{x^2}{1+y}"),
+            PreviewItem("19", "Delimiters and the math axis", "a + \\left(\\dfrac{x_i^2}{1+y}\\right) + b"),
+            PreviewItem("20", "Integral limits", "\\int_{-\\infty}^{\\infty} f(t)e^{-i\\omega t}\\,dt"),
+            PreviewItem("21", "Vector accent positioning", "\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\vec r,t)=V(\\vec r,t)\\Psi(\\vec r,t)"),
+            PreviewItem("22", "Accent ink bounds", "\\hat{x} \\quad \\tilde{y} \\quad \\bar{z} \\quad \\dot{x}"),
+            PreviewItem("23", "Normal and cramped superscripts", "x^2 \\quad \\cramped{x^2}"),
+            PreviewItem("24", "Numerator and denominator styles", "\\frac{x^2}{x^2}"),
+            PreviewItem("25", "Radicals and accents", "x^2 \\quad \\sqrt{x^2} \\quad \\hat{x^2} \\quad \\overline{x^2}"),
+            PreviewItem("26", "Superscript and subscript expressions", "x_{a^2}^{a^2} \\quad \\sum_{a^2}^{a^2}"),
+            PreviewItem("27", "Explicit cramped math styles", "\\crampeddisplaystyle x^2 \\quad \\crampedtextstyle x^2 \\quad \\crampedscriptstyle x^2 \\quad \\crampedscriptscriptstyle x^2"),
+            PreviewItem("28", "Optional mathtools styles", "\\cramped{x^2} \\quad \\cramped[\\scriptstyle]{x^2}"),
         )
     ),
     PreviewGroup(
         id = "environments",
-        title = "19. 环境专题",
-        description = "split、multline、eqnarray、subequations、cases 环境",
+        title = "19. Math environments",
+        description = "Multiline equations, aligned expressions, and piecewise functions",
         items = listOf(
-            PreviewItem("1", "split 基础", "\\begin{split} x &= a + b \\\\ &= c \\end{split}"),
+            PreviewItem("1", "Split equation", "\\begin{split} x &= a + b \\\\ &= c \\end{split}"),
             PreviewItem(
                 "2",
-                "split 多行",
+                "Multiline split equation",
                 "\\begin{split} a &= b + c \\\\ &= d + e \\\\ &= f \\end{split}"
             ),
             PreviewItem(
                 "3",
-                "multline 基础",
+                "Multline environment",
                 "\\begin{multline} a + b + c \\\\ + d + e \\end{multline}"
             ),
             PreviewItem(
                 "4",
-                "multline 三行",
+                "Three-line equation",
                 "\\begin{multline} \\text{Left} \\\\ \\text{Center} \\\\ \\text{Right} \\end{multline}"
             ),
             PreviewItem(
                 "5",
-                "eqnarray 基础",
+                "Equation array",
                 "\\begin{eqnarray} x &=& 1 \\\\ y &=& 2 \\end{eqnarray}"
             ),
             PreviewItem(
                 "6",
-                "eqnarray 三列",
+                "Three-column equation array",
                 "\\begin{eqnarray} a + b &=& c \\\\ d - e &=& f \\end{eqnarray}"
             ),
             PreviewItem("7", "subequations", "\\begin{subequations} a = b \\end{subequations}"),
-            PreviewItem("8", "混合环境", "\\begin{align} x &= 1 \\\\ y &= 2 \\end{align}"),
+            PreviewItem("8", "Combined environments", "\\begin{align} x &= 1 \\\\ y &= 2 \\end{align}"),
             PreviewItem(
                 "9",
-                "cases 基础",
+                "Piecewise function",
                 "f(x) = \\begin{cases} x^2 & \\text{if } x > 0 \\\\ 0 & \\text{if } x = 0 \\\\ -x^2 & \\text{if } x < 0 \\end{cases}"
             ),
             PreviewItem(
                 "10",
-                "cases 简单",
+                "Simple cases",
                 "y = \\begin{cases} 1 & x > 0 \\\\ 0 & x = 0 \\\\ -1 & x < 0 \\end{cases}"
             ),
             PreviewItem(
                 "11",
-                "cases 嵌套分数",
+                "Cases with nested fractions",
                 "|x| = \\begin{cases} \\frac{x}{1} & x \\geq 0 \\\\ \\frac{-x}{1} & x < 0 \\end{cases}"
             ),
             PreviewItem(
@@ -907,48 +907,48 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem(
                 "11b",
-                "rcases (右花括号)",
+                "Cases with a right brace",
                 "\\begin{rcases} x^2 & x > 0 \\\\ -x^2 & x < 0 \\end{rcases} = |x| \\cdot x"
             ),
             PreviewItem(
                 "11c",
-                "单侧花括号分段",
+                "Piecewise function with one brace",
                 "f(x)=\\left\\{\\begin{array}{l}-x^2-2ax-a, x<0\\\\\\epsilon^x+\\ln(x+1), x\\ge 0\\end{array}\\right."
             ),
             PreviewItem(
                 "12",
-                "tabular 基础",
+                "Basic table",
                 "\\begin{tabular}{cc} a & b \\\\ c & d \\end{tabular}"
             ),
             PreviewItem(
                 "13",
-                "tabular 三列",
+                "Three-column table",
                 "\\begin{tabular}{lcr} left & center & right \\\\ 1 & 2 & 3 \\end{tabular}"
             ),
             PreviewItem(
                 "14",
-                "align* 环境",
+                "Unnumbered aligned equations",
                 "\\begin{align*} a &= b + c \\\\ d &= e + f \\end{align*}"
             ),
             PreviewItem(
                 "15",
-                "gather* 环境",
+                "Unnumbered gathered equations",
                 "\\begin{gather*} x + y = z \\\\ a^2 + b^2 = c^2 \\end{gather*}"
             ),
             PreviewItem(
                 "16",
-                "multline* 环境",
+                "Unnumbered multiline equation",
                 "\\begin{multline*} a + b + c \\\\ + d + e + f \\end{multline*}"
             ),
             PreviewItem(
                 "17",
-                "eqnarray* 环境",
+                "Unnumbered equation array",
                 "\\begin{eqnarray*} x &=& 1 \\\\ y &=& 2 \\end{eqnarray*}"
             ),
-            PreviewItem("18", "equation* 环境", "\\begin{equation*} E = mc^2 \\end{equation*}"),
+            PreviewItem("18", "Unnumbered equation", "\\begin{equation*} E = mc^2 \\end{equation*}"),
             PreviewItem(
                 "19",
-                "tabular 竖线",
+                "Table with vertical rules",
                 "\\begin{tabular}{|c|c|c|} a & b & c \\\\ d & e & f \\end{tabular}"
             ),
             PreviewItem(
@@ -968,196 +968,196 @@ val basicLatexPreviewGroups = listOf(
             ),
             PreviewItem(
                 "23",
-                "完整表格",
+                "Complete table",
                 "\\begin{tabular}{|l|c|r|} \\hline \\multicolumn{3}{|c|}{Student Scores} \\\\ \\hline Name & Subject & Score \\\\ \\hline Alice & Math & 95 \\\\ Bob & English & 88 \\\\ \\hline \\end{tabular}"
             ),
             PreviewItem(
                 "24",
-                "flalign 环境",
+                "Full-width aligned equations",
                 "\\begin{flalign*} a &= b + c \\\\ d &= e + f \\end{flalign*}"
             ),
             PreviewItem(
                 "25",
-                "alignat 环境",
+                "Aligned equation pairs",
                 "\\begin{alignat}{2} a &= b & \\quad c &= d \\\\ e &= f & \\quad g &= h \\end{alignat}"
             ),
-            PreviewItem("26", "星号矩阵对齐", "\\begin{pmatrix*}[r] a&b \\\\ c&d \\end{pmatrix*}"),
+            PreviewItem("26", "Matrix column alignment", "\\begin{pmatrix*}[r] a&b \\\\ c&d \\end{pmatrix*}"),
         )
     ),
     PreviewGroup(
         id = "ams_relations",
-        title = "20. AMS 符号",
-        description = "AMS 符号",
+        title = "20. AMS symbols",
+        description = "AMS symbols",
         items = listOf(
-            PreviewItem("1", "否定不等式", "a \\nleq b \\quad c \\ngeq d"),
-            PreviewItem("2", "否定集合关系", "A \\nsubseteq B \\quad C \\nsupseteq D"),
-            PreviewItem("3", "否定序关系", "a \\nprec b \\quad c \\nsucc d"),
-            PreviewItem("4", "否定相似/全等", "a \\ncong b \\quad c \\nsim d"),
-            PreviewItem("5", "否定整除/平行", "a \\nmid b \\quad c \\nparallel d"),
+            PreviewItem("1", "Negated inequalities", "a \\nleq b \\quad c \\ngeq d"),
+            PreviewItem("2", "Negated set relations", "A \\nsubseteq B \\quad C \\nsupseteq D"),
+            PreviewItem("3", "Negated order relations", "a \\nprec b \\quad c \\nsucc d"),
+            PreviewItem("4", "Negated similarity and congruence", "a \\ncong b \\quad c \\nsim d"),
+            PreviewItem("5", "Negated divisibility and parallelism", "a \\nmid b \\quad c \\nparallel d"),
             PreviewItem(
                 "6",
-                "否定推导",
+                "Negated implication",
                 "\\nvdash \\quad \\nvDash \\quad \\nVdash \\quad \\nVDash"
             ),
             PreviewItem(
                 "7",
-                "否定三角关系",
+                "Negated triangle relations",
                 "\\ntriangleleft \\quad \\ntriangleright \\quad \\ntrianglelefteq \\quad \\ntrianglerighteq"
             ),
-            PreviewItem("8", "否定比较", "a \\nless b \\quad c \\ngtr d"),
-            PreviewItem("9", "AMS 额外关系", "a \\leqslant b \\quad c \\geqslant d"),
-            PreviewItem("10", "逻辑推导", "\\vDash \\quad \\Vdash \\quad \\Vvdash \\quad \\models"),
+            PreviewItem("8", "Negated comparisons", "a \\nless b \\quad c \\ngtr d"),
+            PreviewItem("9", "Additional AMS relations", "a \\leqslant b \\quad c \\geqslant d"),
+            PreviewItem("10", "Logical implication", "\\vDash \\quad \\Vdash \\quad \\Vvdash \\quad \\models"),
             PreviewItem(
                 "11",
-                "综合示例",
+                "Combined example",
                 "\\forall x \\in A, \\; x \\nleq 0 \\implies x \\nsubseteq B"
             ),
             PreviewItem(
                 "12",
-                "杂项符号",
+                "Miscellaneous symbols",
                 "\\checkmark \\quad \\complement \\quad \\eth \\quad \\mho"
             ),
-            PreviewItem("13", "双头箭头", "\\twoheadrightarrow \\quad \\twoheadleftarrow"),
+            PreviewItem("13", "Two-headed arrows", "\\twoheadrightarrow \\quad \\twoheadleftarrow"),
             PreviewItem(
                 "14",
-                "双线箭头",
+                "Double arrows",
                 "\\leftleftarrows \\quad \\rightrightarrows \\quad \\leftrightarrows \\quad \\rightleftarrows"
             ),
             PreviewItem(
                 "15",
-                "弯曲箭头",
+                "Curved arrows",
                 "\\curvearrowright \\quad \\curvearrowleft \\quad \\circlearrowright \\quad \\circlearrowleft"
             ),
-            PreviewItem("16", "特殊关系", "\\lessdot \\quad \\gtrdot \\quad \\lll \\quad \\ggg"),
+            PreviewItem("16", "Special relations", "\\lessdot \\quad \\gtrdot \\quad \\lll \\quad \\ggg"),
             PreviewItem(
                 "17",
-                "几何符号",
+                "Geometric symbols",
                 "\\blacksquare \\quad \\square \\quad \\lozenge \\quad \\blacktriangle \\quad \\blacktriangledown"
             ),
-            PreviewItem("18", "希伯来字母", "\\aleph \\quad \\beth \\quad \\gimel \\quad \\daleth"),
-            PreviewItem("19", "角度符号", "\\angle \\quad \\measuredangle \\quad \\sphericalangle"),
-            PreviewItem("20", "正比符号", "a \\propto b \\quad c \\varpropto d"),
-            PreviewItem("21", "AMS 希腊变体", "\\digamma \\quad \\varkappa"),
+            PreviewItem("18", "Hebrew letters", "\\aleph \\quad \\beth \\quad \\gimel \\quad \\daleth"),
+            PreviewItem("19", "Angle symbols", "\\angle \\quad \\measuredangle \\quad \\sphericalangle"),
+            PreviewItem("20", "Proportionality symbols", "a \\propto b \\quad c \\varpropto d"),
+            PreviewItem("21", "AMS Greek variants", "\\digamma \\quad \\varkappa"),
             PreviewItem(
                 "21a",
-                "KaTeX 大写希腊别名",
+                "Uppercase Greek aliases",
                 "\\Alpha \\quad \\Beta \\quad \\Epsilon \\quad \\Zeta \\quad \\Eta \\quad \\Iota \\quad \\Kappa \\quad \\Mu \\quad \\Nu \\quad \\Omicron \\quad \\Rho \\quad \\Tau \\quad \\Chi"
             ),
             PreviewItem(
                 "21b",
-                "KaTeX var 大写希腊",
+                "Uppercase Greek variants",
                 "\\varGamma \\quad \\varDelta \\quad \\varTheta \\quad \\varLambda \\quad \\varXi \\quad \\varPi \\quad \\varSigma \\quad \\varUpsilon \\quad \\varPhi \\quad \\varPsi \\quad \\varOmega"
             ),
             PreviewItem(
                 "22",
-                "AMS 二元运算符 (1)",
+                "AMS binary operators (1)",
                 "\\dotplus \\quad \\smallsetminus \\quad \\barwedge \\quad \\veebar \\quad \\doublebarwedge"
             ),
             PreviewItem(
                 "23",
-                "AMS 二元运算符 (2)",
+                "AMS binary operators (2)",
                 "\\boxminus \\quad \\boxplus \\quad \\boxtimes \\quad \\boxdot"
             ),
             PreviewItem(
                 "24",
-                "AMS 二元运算符 (3)",
+                "AMS binary operators (3)",
                 "\\leftthreetimes \\quad \\rightthreetimes \\quad \\curlywedge \\quad \\curlyvee"
             ),
             PreviewItem(
                 "25",
-                "AMS 二元运算符 (4)",
+                "AMS binary operators (4)",
                 "\\circleddash \\quad \\circledast \\quad \\circledcirc \\quad \\centerdot \\quad \\intercal"
             ),
             PreviewItem(
                 "26",
-                "AMS 二元运算符 (5)",
+                "AMS binary operators (5)",
                 "\\divideontimes \\quad \\rtimes \\quad \\ltimes"
             ),
             PreviewItem(
                 "27",
-                "AMS 额外关系 (eqslant/approx)",
+                "AMS slanted and approximate relations",
                 "\\eqslantless \\quad \\eqslantgtr \\quad \\lessapprox \\quad \\gtrapprox"
             ),
             PreviewItem(
                 "28",
-                "AMS 额外关系 (prec/succ)",
+                "AMS precedence relations",
                 "\\precsim \\quad \\succsim \\quad \\precapprox \\quad \\succapprox"
             ),
             PreviewItem(
                 "29",
-                "AMS 否定集合 (var/subsetneqq)",
+                "AMS negated subset variants",
                 "\\varsubsetneq \\quad \\varsupsetneq \\quad \\subsetneqq \\quad \\supsetneqq"
             ),
             PreviewItem(
                 "30",
-                "AMS 否定集合 (nsubset)",
+                "AMS negated subsets",
                 "\\nsubset \\quad \\nsupset \\quad \\nsubseteqq \\quad \\nsupseteqq"
             ),
             PreviewItem(
                 "31",
-                "AMS 否定箭头",
+                "AMS negated arrows",
                 "\\nleftarrow \\quad \\nrightarrow \\quad \\nLeftarrow \\quad \\nRightarrow \\quad \\nLeftrightarrow \\quad \\nleftrightarrow"
             ),
             PreviewItem(
                 "32",
-                "AMS 额外箭头",
+                "Additional AMS arrows",
                 "\\Rrightarrow \\quad \\Lleftarrow \\quad \\twoheadrightarrowtail"
             ),
             PreviewItem(
                 "33",
-                "平衡箭头",
+                "Equilibrium arrows",
                 "\\rightleftharpoons \\quad \\leftrightharpoons"
             ),
             PreviewItem(
                 "34",
-                "大型运算符扩展",
+                "Additional large operators",
                 "\\bigtriangleup \\quad \\bigtriangledown \\quad \\iiiint \\quad \\oiint \\quad \\oiiint"
             ),
             PreviewItem(
                 "35",
-                "额外定界符",
+                "Additional delimiters",
                 "\\left\\langle x \\right\\rangle \\quad \\left\\lgroup a \\right\\rgroup \\quad \\left\\lmoustache b \\right\\rmoustache"
             ),
             PreviewItem(
                 "36",
-                "AMS 杂项扩展",
+                "Additional AMS symbols",
                 "\\blacklozenge \\quad \\Bbbk"
             ),
-            PreviewItem("37", "mathtools 定义关系", "f \\coloneqq x^2 \\quad y \\eqqcolon g(x)"),
+            PreviewItem("37", "Mathtools definition relations", "f \\coloneqq x^2 \\quad y \\eqqcolon g(x)"),
         )
     ),
     PreviewGroup(
         id = "math_mode",
-        title = "21. 数学模式切换",
-        description = "\$...\$ 行内数学，\$\$...\$\$ 和 \\[...\\] 展示数学",
+        title = "21. Inline and display math",
+        description = "Inline math with dollar delimiters and display math with double dollars or brackets",
         items = listOf(
-            PreviewItem("1", "行内数学", "The formula \$E=mc^2\$ is famous"),
-            PreviewItem("2", "展示数学", "\$\$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\$\$"),
+            PreviewItem("1", "Inline math", "The formula \$E=mc^2\$ is famous"),
+            PreviewItem("2", "Display math", "\$\$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\$\$"),
             PreviewItem(
                 "3",
-                "方括号展示数学",
+                "Display math in brackets",
                 "\\[\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\\]"
             ),
             PreviewItem(
                 "4",
-                "混合文本+数学",
+                "Mixed text and math",
                 "Given \$a > 0\$ and \$b > 0\$, we have \$\$a + b \\geq 2\\sqrt{ab}\$\$"
             ),
             PreviewItem(
                 "5",
-                "多个行内公式",
+                "Multiple inline formulas",
                 "Let \$x \\in \\mathbb{R}\$, then \$x^2 \\geq 0\$ for all \$x\$"
             ),
-            PreviewItem("6", "转义美元符号", "Price is \\\$10 and \$x = 5\$"),
+            PreviewItem("6", "Escaped dollar signs", "Price is \\\$10 and \$x = 5\$"),
         )
     ),
     PreviewGroup(
         id = "animated",
-        title = "22. 动画过渡",
-        description = "AnimatedLatex 公式切换动画",
+        title = "22. Animated transitions",
+        description = "Crossfade and slide animations between formulas",
         items = listOf(
             PreviewItem(
-                "1", "淡入淡出 (Crossfade)", "E = mc^2 ↔ a^2+b^2=c^2",
+                "1", "Crossfade", "E = mc^2 ↔ a^2+b^2=c^2",
                 content = {
                     val formulas =
                         listOf("E = mc^2", "a^2 + b^2 = c^2", "\\frac{d}{dx}x^n = nx^{n-1}")
@@ -1179,7 +1179,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "2", "上滑切换 (Slide Up)", "\\sum ↔ \\int",
+                "2", "Slide up", "\\sum ↔ \\int",
                 content = {
                     val formulas =
                         listOf("\\sum_{i=1}^{n} i^2", "\\int_0^1 x^2 dx", "\\prod_{k=1}^{n} k")
@@ -1201,7 +1201,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "3", "下滑切换 (Slide Down)", "\\frac{a}{b} ↔ \\sqrt{x}",
+                "3", "Slide down", "\\frac{a}{b} ↔ \\sqrt{x}",
                 content = {
                     val formulas = listOf("\\frac{a+b}{c+d}", "\\sqrt{x^2 + y^2}", "x^{n+1}")
                     var index by remember { mutableStateOf(0) }
@@ -1222,7 +1222,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "4", "淡入+滑动 (Fade Slide)", "多公式循环",
+                "4", "Fade and slide", "Cycle through formulas",
                 content = {
                     val formulas = listOf(
                         "e^{i\\pi} + 1 = 0",
@@ -1247,7 +1247,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "5", "四种动画对比", "同时展示所有过渡类型",
+                "5", "Compare four transitions", "All transition styles",
                 content = {
                     val formulas = listOf("x^2", "\\frac{a}{b}", "\\sqrt{c}")
                     var index by remember { mutableStateOf(0) }
@@ -1276,11 +1276,11 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "themes",
-        title = "24. 主题模式",
-        description = "Auto、Light、Dark、Material3 主题及 LatexConfig 字体配置",
+        title = "24. Themes and fonts",
+        description = "Automatic, light, dark, and Material3 themes with custom font settings",
         items = listOf(
             PreviewItem(
-                "1", "Auto 跟随系统", "E = mc^2",
+                "1", "Follow the system theme", "E = mc^2",
                 content = {
                     Latex(
                         latex = "E = mc^2",
@@ -1289,7 +1289,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "2", "固定浅色主题", "\\frac{a+b}{c+d}",
+                "2", "Light theme", "\\frac{a+b}{c+d}",
                 content = {
                     Latex(
                         latex = "\\frac{a+b}{c+d}",
@@ -1298,7 +1298,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "3", "固定深色主题", "\\int_0^1 x^2 dx = \\frac{1}{3}",
+                "3", "Dark theme", "\\int_0^1 x^2 dx = \\frac{1}{3}",
                 content = {
                     Latex(
                         latex = "\\int_0^1 x^2 dx = \\frac{1}{3}",
@@ -1307,7 +1307,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "4", "Material3 当前主题", "\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}",
+                "4", "Current Material3 theme", "\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}",
                 content = {
                     Latex(
                         latex = "\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}",
@@ -1316,7 +1316,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "5", "显式使用系统字体", "E = mc^2",
+                "5", "System fonts", "E = mc^2",
                 content = {
                     Latex(
                         latex = "E = mc^2",
@@ -1325,7 +1325,7 @@ val basicLatexPreviewGroups = listOf(
                 }
             ),
             PreviewItem(
-                "6", "配置等宽字体", "\\text{WWWWiiii} + x^2",
+                "6", "Monospace fonts", "\\text{WWWWiiii} + x^2",
                 content = {
                     val fonts = systemLatexFontFamilies().copy(
                         main = FontFamily.Monospace,
@@ -1341,7 +1341,7 @@ val basicLatexPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "section_headings",
-        title = "23. 章节标题",
+        title = "23. Section headings",
         description = "section, subsection, subsubsection, paragraph, subparagraph",
         items = listOf(
             PreviewItem("1", "section", "\\section{Introduction}"),
@@ -1349,41 +1349,41 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("3", "subsubsection", "\\subsubsection{Details}"),
             PreviewItem("4", "paragraph", "\\paragraph{Note}"),
             PreviewItem("5", "subparagraph", "\\subparagraph{Remark}"),
-            PreviewItem("6", "section 星号变体", "\\section*{No Numbering}"),
-            PreviewItem("7", "混合标题层级", "\\section{Title} \\subsection{Subtitle}"),
+            PreviewItem("6", "Unnumbered section headings", "\\section*{No Numbering}"),
+            PreviewItem("7", "Mixed heading levels", "\\section{Title} \\subsection{Subtitle}"),
         )
     ),
     PreviewGroup(
         id = "package_subsets",
-        title = "25. physics / siunitx 常用子集",
-        description = "长等号、圈注、数学支架、导数、狄拉克符号与 SI 单位",
+        title = "25. Physics and SI units",
+        description = "Annotated equals, circled text, derivatives, Dirac notation, and SI units",
         items = listOf(
-            PreviewItem("1", "可扩展长等号", "A \\xlongequal[below]{condition} B"),
-            PreviewItem("2", "圈注与数学支架", "\\circled{1} + a\\mathstrut + b"),
-            PreviewItem("3", "常微分", "\\dv[2]{f}{x} + \\dv{x}"),
-            PreviewItem("4", "偏微分", "\\pdv{f}{x} + \\pdv[2]{f}{y}"),
-            PreviewItem("5", "狄拉克符号", "\\bra{\\psi} \\ket{\\phi} \\braket{\\psi|\\phi}"),
-            PreviewItem("6", "绝对值与范数", "\\abs{x} + \\norm{v}"),
-            PreviewItem("7", "SI 数值与单位", "\\SI{9.8}{m/s^2}"),
-            PreviewItem("8", "单位与科学计数法", "\\si{kg.m/s^2} \\quad \\num{1.23e4}"),
+            PreviewItem("1", "Extensible equals", "A \\xlongequal[below]{condition} B"),
+            PreviewItem("2", "Circled text and math struts", "\\circled{1} + a\\mathstrut + b"),
+            PreviewItem("3", "Ordinary derivatives", "\\dv[2]{f}{x} + \\dv{x}"),
+            PreviewItem("4", "Partial derivatives", "\\pdv{f}{x} + \\pdv[2]{f}{y}"),
+            PreviewItem("5", "Dirac notation", "\\bra{\\psi} \\ket{\\phi} \\braket{\\psi|\\phi}"),
+            PreviewItem("6", "Absolute values and norms", "\\abs{x} + \\norm{v}"),
+            PreviewItem("7", "SI values and units", "\\SI{9.8}{m/s^2}"),
+            PreviewItem("8", "Units and scientific notation", "\\si{kg.m/s^2} \\quad \\num{1.23e4}"),
             PreviewItem("9", "siunitx v3", "\\qty{1.5}{\\kilo\\metre\\per\\second} \\quad \\qtyrange{2}{4}{\\metre}"),
-            PreviewItem("10", "对易与向量", "\\comm{A}{B} + \\anticomm{A}{B} \\quad \\vb{v}, \\va{a}"),
+            PreviewItem("10", "Commutators and vectors", "\\comm{A}{B} + \\anticomm{A}{B} \\quad \\vb{v}, \\va{a}"),
         )
     ),
     PreviewGroup(
         id = "mathclass",
-        title = "数学类代码",
-        description = "\\mathord, \\mathbin, \\mathrel, \\mathopen, \\mathclose, \\mathpunct, \\mathinner 控制原子间距",
+        title = "Math atom classes",
+        description = "Control inter-atom spacing with mathord, mathbin, mathrel, and related commands",
         items = listOf(
-            PreviewItem("1", "普通符号强制为二元运算", "a \\mathbin{R} b"),
-            PreviewItem("2", "普通符号强制为关系", "a \\mathrel{R} b"),
-            PreviewItem("3", "斜杠作为二元运算", "a \\mathbin{/} b"),
-            PreviewItem("4", "对比：默认 vs mathbin", "a / b \\quad a \\mathbin{/} b"),
-            PreviewItem("5", "自定义开闭定界", "\\mathopen{[} x \\mathclose{]}"),
-            PreviewItem("6", "标点类间距", "a \\mathpunct{;} b"),
-            PreviewItem("7", "内部原子间距", "a + \\mathinner{x} + b"),
-            PreviewItem("8", "普通符号去除运算间距", "a \\mathord{+} b"),
-            PreviewItem("9", "组合示例", "f \\mathrel{:=} \\mathopen{\\langle} x, y \\mathclose{\\rangle}"),
+            PreviewItem("1", "Treat a symbol as a binary operator", "a \\mathbin{R} b"),
+            PreviewItem("2", "Treat a symbol as a relation", "a \\mathrel{R} b"),
+            PreviewItem("3", "Slash as a binary operator", "a \\mathbin{/} b"),
+            PreviewItem("4", "Default spacing vs. a binary operator", "a / b \\quad a \\mathbin{/} b"),
+            PreviewItem("5", "Custom opening and closing delimiters", "\\mathopen{[} x \\mathclose{]}"),
+            PreviewItem("6", "Punctuation spacing", "a \\mathpunct{;} b"),
+            PreviewItem("7", "Inner atom spacing", "a + \\mathinner{x} + b"),
+            PreviewItem("8", "Remove operator spacing with an ordinary atom", "a \\mathord{+} b"),
+            PreviewItem("9", "Combined example", "f \\mathrel{:=} \\mathopen{\\langle} x, y \\mathclose{\\rangle}"),
         )
     ),
 )
@@ -1392,7 +1392,7 @@ val basicLatexPreviewGroups = listOf(
 @Composable
 fun BasicLatexPreview(onBack: () -> Unit = {}) {
     PreviewCategoryScreen(
-        title = "基础 LaTeX",
+        title = "Math formulas",
         groups = basicLatexPreviewGroups,
         onBack = onBack
     )

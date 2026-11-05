@@ -52,58 +52,58 @@ private fun Float.toFixed1(): String = (round(this * 10) / 10).toString()
 val inlineMathPreviewGroups = listOf(
     PreviewGroup(
         id = "inline_basic",
-        title = "基础行内公式",
-        description = "在文本段落中嵌入数学公式",
+        title = "Inline formulas",
+        description = "Embed a formula in a sentence and align it with the text baseline",
         items = listOf(
             PreviewItem(
                 id = "inline_simple",
-                title = "简单行内公式",
+                title = "Inline equation",
                 latex = "E = mc^2",
                 content = {
                     InlineMathCard(
-                        title = "简单行内公式",
-                        textBefore = "爱因斯坦的质能方程 ",
+                        title = "Inline equation",
+                        textBefore = "Einstein's mass-energy equation ",
                         formula = "E = mc^2",
-                        textAfter = " 是物理学中最著名的公式之一。"
+                        textAfter = " is one of the best-known equations in physics."
                     )
                 }
             ),
             PreviewItem(
                 id = "inline_fraction",
-                title = "分数行内",
+                title = "Inline fraction",
                 latex = "\\frac{a}{b}",
                 content = {
                     InlineMathCard(
-                        title = "分数行内嵌入",
-                        textBefore = "分数 ",
+                        title = "Fraction within a sentence",
+                        textBefore = "The fraction ",
                         formula = "\\frac{a}{b}",
-                        textAfter = " 表示 a 除以 b。"
+                        textAfter = " represents a divided by b."
                     )
                 }
             ),
             PreviewItem(
                 id = "inline_integral",
-                title = "积分行内",
+                title = "Inline integral",
                 latex = "\\int_{0}^{\\infty} e^{-x} dx",
                 content = {
                     InlineMathCard(
-                        title = "积分行内嵌入",
-                        textBefore = "积分 ",
+                        title = "Integral within a sentence",
+                        textBefore = "The integral ",
                         formula = "\\int_{0}^{\\infty} e^{-x} dx",
-                        textAfter = " 的结果为 1。"
+                        textAfter = " evaluates to 1."
                     )
                 }
             ),
             PreviewItem(
                 id = "inline_sqrt",
-                title = "根号行内",
+                title = "Inline radical",
                 latex = "\\sqrt{x^2 + y^2}",
                 content = {
                     InlineMathCard(
-                        title = "根号行内嵌入",
-                        textBefore = "向量的模 ",
+                        title = "Radical within a sentence",
+                        textBefore = "The vector length ",
                         formula = "\\sqrt{x^2 + y^2}",
-                        textAfter = " 表示到原点的距离。"
+                        textAfter = " is the distance from the origin."
                     )
                 }
             ),
@@ -111,51 +111,51 @@ val inlineMathPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "inline_multi",
-        title = "多公式段落",
-        description = "一段文本中嵌入多个数学公式",
+        title = "Multiple inline formulas",
+        description = "Combine several formulas with running text in one paragraph",
         items = listOf(
             PreviewItem(
                 id = "inline_multi_formulas",
-                title = "多公式混排",
+                title = "Text with several formulas",
                 latex = "a^2 + b^2 = c^2",
                 content = {
                     MultiInlineMathCard(
-                        title = "多公式混排",
+                        title = "Text with several formulas",
                         segments = listOf(
-                            TextSegment.Plain("勾股定理 "),
+                            TextSegment.Plain("By the Pythagorean theorem, "),
                             TextSegment.Math("a^2 + b^2 = c^2"),
-                            TextSegment.Plain(" 中，当 "),
+                            TextSegment.Plain(", when "),
                             TextSegment.Math("c = 5"),
-                            TextSegment.Plain(" 且 "),
+                            TextSegment.Plain(" and "),
                             TextSegment.Math("a = 3"),
-                            TextSegment.Plain(" 时，"),
+                            TextSegment.Plain(", "),
                             TextSegment.Math("b = 4"),
-                            TextSegment.Plain("。"),
+                            TextSegment.Plain("."),
                         )
                     )
                 }
             ),
             PreviewItem(
                 id = "inline_euler",
-                title = "欧拉公式段落",
+                title = "Euler's identity in a sentence",
                 latex = "e^{i\\pi} + 1 = 0",
                 content = {
                     MultiInlineMathCard(
-                        title = "欧拉公式段落",
+                        title = "Euler's identity in a sentence",
                         segments = listOf(
-                            TextSegment.Plain("欧拉恒等式 "),
+                            TextSegment.Plain("Euler's identity "),
                             TextSegment.Math("e^{i\\pi} + 1 = 0"),
-                            TextSegment.Plain(" 将五个基本常数 "),
+                            TextSegment.Plain(" connects the five fundamental constants "),
                             TextSegment.Math("e"),
-                            TextSegment.Plain("、"),
+                            TextSegment.Plain(", "),
                             TextSegment.Math("i"),
-                            TextSegment.Plain("、"),
+                            TextSegment.Plain(", "),
                             TextSegment.Math("\\pi"),
-                            TextSegment.Plain("、"),
+                            TextSegment.Plain(", "),
                             TextSegment.Math("1"),
-                            TextSegment.Plain(" 和 "),
+                            TextSegment.Plain(" and "),
                             TextSegment.Math("0"),
-                            TextSegment.Plain(" 联系在了一起。"),
+                            TextSegment.Plain("."),
                         )
                     )
                 }
@@ -164,12 +164,12 @@ val inlineMathPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "inline_batch",
-        title = "批量测量",
-        description = "使用 measureBatch 批量预测量公式",
+        title = "Batch measurement",
+        description = "Measure several formulas together before laying out inline text",
         items = listOf(
             PreviewItem(
                 id = "inline_batch_demo",
-                title = "批量测量演示",
+                title = "Measure multiple formulas",
                 latex = "\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}",
                 content = { BatchMeasureCard() }
             ),
@@ -224,7 +224,7 @@ fun InlineMathCard(
                     style = MaterialTheme.typography.bodyLarge
                 )
             } else {
-                Text("测量失败", color = MaterialTheme.colorScheme.error)
+                Text("Unable to measure this formula", color = MaterialTheme.colorScheme.error)
             }
 
             HorizontalDivider()
@@ -237,7 +237,7 @@ fun InlineMathCard(
 
             if (dims != null) {
                 Text(
-                    text = "尺寸: ${dims.widthPx.toFixed1()} × ${dims.heightPx.toFixed1()} px, 基线: ${dims.baselinePx.toFixed1()} px",
+                    text = "Size: ${dims.widthPx.toFixed1()} x ${dims.heightPx.toFixed1()} px, baseline: ${dims.baselinePx.toFixed1()} px",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -328,9 +328,9 @@ fun BatchMeasureCard() {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("批量测量演示", style = MaterialTheme.typography.titleSmall)
+            Text("Measure multiple formulas", style = MaterialTheme.typography.titleSmall)
             Text(
-                "使用 measureBatch() 一次测量 ${formulas.size} 个公式",
+                "Measured ${formulas.size} formulas together with measureBatch()",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

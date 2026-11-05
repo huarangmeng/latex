@@ -82,7 +82,6 @@ data class PreviewCategory(
     val id: String,
     val title: String,
     val description: String,
-    val icon: String = "📚",
     val groups: List<PreviewGroup>
 )
 
@@ -91,51 +90,44 @@ data class PreviewCategory(
 val previewCategories = listOf(
     PreviewCategory(
         id = "basic",
-        title = "基础 LaTeX",
-        description = "传统 LaTeX 数学公式渲染",
-        icon = "📐",
+        title = "Math formulas",
+        description = "Explore fractions, roots, matrices, symbols, colors, and advanced math notation",
         groups = basicLatexPreviewGroups
     ),
     PreviewCategory(
         id = "incremental",
-        title = "增量 LaTeX",
-        description = "增量解析和渲染演示",
-        icon = "⚡",
+        title = "Incremental rendering",
+        description = "Watch formulas update as you type and recover from incomplete input",
         groups = incrementalLatexPreviewGroups
     ),
     PreviewCategory(
         id = "chemical",
-        title = "化学公式",
-        description = "化学方程式和分子式",
-        icon = "⚗️",
+        title = "Chemistry",
+        description = "Browse molecules, ions, chemical bonds, and annotated reaction equations",
         groups = chemicalPreviewGroups
     ),
     PreviewCategory(
         id = "linebreaking",
-        title = "Line Breaking",
-        description = "automatic line breaking and edge case fixes",
-        icon = "↩️",
+        title = "Line wrapping",
+        description = "See how long formulas wrap at operators and adapt to narrow layouts",
         groups = lineBreakingPreviewGroups
     ),
     PreviewCategory(
         id = "export",
-        title = "光栅 / 矢量导出",
-        description = "导出 PNG/JPEG/WEBP 图片或 SVG 矢量文档",
-        icon = "🖼️",
+        title = "Image and SVG export",
+        description = "Compare PNG, JPEG, WebP, and scalable SVG exports",
         groups = exportPreviewGroups
     ),
     PreviewCategory(
         id = "inline_math",
-        title = "行内公式",
-        description = "预测量 API + InlineTextContent 行内数学公式",
-        icon = "📏",
+        title = "Inline math",
+        description = "Mix formulas with running text using baseline alignment and pre-measurement",
         groups = inlineMathPreviewGroups
     ),
     PreviewCategory(
         id = "editor",
-        title = "LaTeX 编辑器",
-        description = "实时编辑和渲染 LaTeX 公式",
-        icon = "✏️",
+        title = "Formula editor",
+        description = "Edit LaTeX, insert templates, and preview the rendered formula in real time",
         groups = editorPreviewGroups
     ),
 )
@@ -178,7 +170,7 @@ fun CategoryListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("LaTeX 预览") }
+                title = { Text("LaTeX examples") }
             )
         }
     ) { paddingValues ->
@@ -200,7 +192,7 @@ fun CategoryListScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "${category.icon} ${category.title}",
+                            text = category.title,
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
@@ -209,7 +201,7 @@ fun CategoryListScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${category.groups.size} 个分组",
+                            text = if (category.groups.size == 1) "1 group" else "${category.groups.size} groups",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -245,7 +237,7 @@ fun PreviewCategoryScreen(
                     title = { Text(title) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Text("返回")
+                            Text("Back")
                         }
                     }
                 )
@@ -279,7 +271,7 @@ fun PreviewItemList(
                 title = { Text(group.title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("返回")
+                        Text("Back")
                     }
                 }
             )

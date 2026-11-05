@@ -538,7 +538,8 @@ Windows/Linux metadata 检查不能证明 Native 链接或运行成功；
 ### Web Demo / GitHub Pages
 
 Web Demo 复用桌面应用的 `latex-preview` 示例，并包含 KaTeX 字体资源。
-Web 端会预加载 demo 内置的 Noto Sans SC 和 Noto Emoji 回退字体，确保中文标签和图标正常显示。
+预览界面、样例标题和说明统一使用英文，并移除 emoji，以减少首屏下载量。
+数学公式渲染时再加载 KaTeX 字体。
 请使用支持 WebAssembly GC 的新版浏览器。
 
 本地开发运行 `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`，

@@ -64,12 +64,12 @@ import kotlinx.coroutines.withContext
 val exportPreviewGroups = listOf(
     PreviewGroup(
         id = "export_svg",
-        title = "SVG 矢量导出",
-        description = "原生矢量命令输出，支持字形路径与可选择文本模式",
+        title = "SVG export",
+        description = "Export scalable SVG with portable glyph paths or selectable text",
         items = listOf(
             PreviewItem(
                 id = "export_svg_modes",
-                title = "SVG PATH / TEXT 模式",
+                title = "SVG path and text modes",
                 latex = "\\int_{0}^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}",
                 content = { SvgExportPreviewCard() }
             )
@@ -77,51 +77,51 @@ val exportPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "export_basic",
-        title = "PNG 导出",
-        description = "将 LaTeX 公式导出为 PNG 图片",
+        title = "PNG export",
+        description = "Export formulas as PNG images with transparent backgrounds",
         items = listOf(
             PreviewItem(
                 id = "export_simple",
-                title = "简单公式导出",
+                title = "Export a simple formula",
                 latex = "E = mc^2",
-                content = { ExportPreviewCard(latex = "E = mc^2", title = "简单公式") }
+                content = { ExportPreviewCard(latex = "E = mc^2", title = "Simple formula") }
             ),
             PreviewItem(
                 id = "export_fraction",
-                title = "分数公式导出",
+                title = "Export a fraction",
                 latex = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
                 content = {
                     ExportPreviewCard(
                         latex = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
-                        title = "二次方程求根公式"
+                        title = "Quadratic formula"
                     )
                 }
             ),
             PreviewItem(
                 id = "export_integral",
-                title = "积分公式导出",
+                title = "Export an integral",
                 latex = "\\int_{0}^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}",
                 content = {
                     ExportPreviewCard(
                         latex = "\\int_{0}^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}",
-                        title = "高斯积分"
+                        title = "Gaussian integral"
                     )
                 }
             ),
             PreviewItem(
                 id = "export_matrix",
-                title = "矩阵导出",
+                title = "Export a matrix",
                 latex = "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}",
                 content = {
                     ExportPreviewCard(
                         latex = "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}",
-                        title = "矩阵"
+                        title = "Matrix"
                     )
                 }
             ),
             PreviewItem(
                 id = "export_scale",
-                title = "不同缩放倍率对比",
+                title = "Compare export resolutions",
                 latex = "\\sum_{k=1}^{n} k = \\frac{n(n+1)}{2}",
                 content = { ExportScaleComparisonCard() }
             )
@@ -129,36 +129,36 @@ val exportPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "export_jpeg",
-        title = "JPEG 导出",
-        description = "将 LaTeX 公式导出为 JPEG 图片（不支持透明背景）",
+        title = "JPEG export",
+        description = "Export formulas as JPEG images with an opaque background",
         items = listOf(
             PreviewItem(
                 id = "export_jpeg_simple",
-                title = "JPEG 简单公式导出",
+                title = "Export a simple formula as JPEG",
                 latex = "E = mc^2",
                 content = {
                     ExportPreviewCard(
                         latex = "E = mc^2",
-                        title = "简单公式 (JPEG)",
+                        title = "Simple formula (JPEG)",
                         format = ImageFormat.JPEG
                     )
                 }
             ),
             PreviewItem(
                 id = "export_jpeg_fraction",
-                title = "JPEG 分数公式导出",
+                title = "Export a fraction as JPEG",
                 latex = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
                 content = {
                     ExportPreviewCard(
                         latex = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
-                        title = "求根公式 (JPEG)",
+                        title = "Quadratic formula (JPEG)",
                         format = ImageFormat.JPEG
                     )
                 }
             ),
             PreviewItem(
                 id = "export_format_comparison",
-                title = "PNG vs JPEG 格式对比",
+                title = "Compare PNG and JPEG",
                 latex = "\\sum_{k=1}^{n} k = \\frac{n(n+1)}{2}",
                 content = { ExportFormatComparisonCard() }
             )
@@ -166,36 +166,36 @@ val exportPreviewGroups = listOf(
     ),
     PreviewGroup(
         id = "export_webp",
-        title = "WEBP 导出",
-        description = "将 LaTeX 公式导出为 WEBP 图片（支持透明背景，文件体积更小）",
+        title = "WebP export",
+        description = "Export formulas as compact WebP images with transparent backgrounds",
         items = listOf(
             PreviewItem(
                 id = "export_webp_simple",
-                title = "WEBP 简单公式导出",
+                title = "Export a simple formula as WebP",
                 latex = "E = mc^2",
                 content = {
                     ExportPreviewCard(
                         latex = "E = mc^2",
-                        title = "简单公式 (WEBP)",
+                        title = "Simple formula (WebP)",
                         format = ImageFormat.WEBP
                     )
                 }
             ),
             PreviewItem(
                 id = "export_webp_fraction",
-                title = "WEBP 分数公式导出",
+                title = "Export a fraction as WebP",
                 latex = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
                 content = {
                     ExportPreviewCard(
                         latex = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
-                        title = "求根公式 (WEBP)",
+                        title = "Quadratic formula (WebP)",
                         format = ImageFormat.WEBP
                     )
                 }
             ),
             PreviewItem(
                 id = "export_all_format_comparison",
-                title = "PNG vs JPEG vs WEBP 格式对比",
+                title = "Compare PNG, JPEG, and WebP",
                 latex = "\\sum_{k=1}^{n} k = \\frac{n(n+1)}{2}",
                 content = { ExportAllFormatComparisonCard() }
             )
@@ -217,7 +217,7 @@ private fun SvgExportPreviewCard() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("原始渲染:", style = MaterialTheme.typography.labelMedium)
+        Text("Original rendering:", style = MaterialTheme.typography.labelMedium)
         Latex(latex = latex, config = config)
 
         Button(
@@ -239,11 +239,11 @@ private fun SvgExportPreviewCard() {
             },
             enabled = !isExporting
         ) {
-            Text(if (isExporting) "导出中..." else "导出 SVG PATH / TEXT")
+            Text(if (isExporting) "Exporting..." else "Export SVG paths and text")
         }
 
-        pathResult?.let { result -> SvgResultSummary("PATH（独立可移植）", result) }
-        textResult?.let { result -> SvgResultSummary("TEXT（可选择）", result) }
+        pathResult?.let { result -> SvgResultSummary("PATH: portable glyph outlines", result) }
+        textResult?.let { result -> SvgResultSummary("TEXT: selectable text", result) }
     }
 }
 
@@ -292,7 +292,7 @@ private fun ExportPreviewCard(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("原始渲染:", style = MaterialTheme.typography.labelMedium)
+        Text("Original rendering:", style = MaterialTheme.typography.labelMedium)
         Latex(latex = latex, config = config)
 
         Spacer(Modifier.height(4.dp))
@@ -317,14 +317,14 @@ private fun ExportPreviewCard(
                 },
                 enabled = !isExporting
             ) {
-                Text(if (isExporting) "导出中..." else "导出 $formatName (2x)")
+                Text(if (isExporting) "Exporting..." else "Export $formatName (2x)")
             }
         }
 
         exportResult?.let { result ->
             Spacer(Modifier.height(4.dp))
             Text(
-                "导出结果: ${result.width} x ${result.height} px" +
+                "Exported image: ${result.width} x ${result.height} px" +
                         (result.bytes?.size?.let { " | $formatName: ${it / 1024} KB" } ?: ""),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -332,7 +332,7 @@ private fun ExportPreviewCard(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Image(
                     bitmap = result.imageBitmap,
-                    contentDescription = "导出的 LaTeX 图片: $title",
+                    contentDescription = "Exported LaTeX image: $title",
                     modifier = Modifier.padding(8.dp),
                     contentScale = ContentScale.Inside
                 )
@@ -358,7 +358,7 @@ private fun ExportFormatComparisonCard() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("原始渲染:", style = MaterialTheme.typography.labelMedium)
+        Text("Original rendering:", style = MaterialTheme.typography.labelMedium)
         Latex(latex = latex, config = config)
 
         Spacer(Modifier.height(4.dp))
@@ -390,7 +390,7 @@ private fun ExportFormatComparisonCard() {
             },
             enabled = !isExporting
         ) {
-            Text(if (isExporting) "导出中..." else "PNG vs JPEG 对比 (2x)")
+            Text(if (isExporting) "Exporting..." else "Compare PNG and JPEG at 2x")
         }
 
         pngResult?.let { result ->
@@ -447,7 +447,7 @@ private fun ExportAllFormatComparisonCard() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("原始渲染:", style = MaterialTheme.typography.labelMedium)
+        Text("Original rendering:", style = MaterialTheme.typography.labelMedium)
         Latex(latex = latex, config = config)
 
         Spacer(Modifier.height(4.dp))
@@ -490,7 +490,7 @@ private fun ExportAllFormatComparisonCard() {
             },
             enabled = !isExporting
         ) {
-            Text(if (isExporting) "导出中..." else "PNG vs JPEG vs WEBP 对比 (2x)")
+            Text(if (isExporting) "Exporting..." else "Compare PNG, JPEG, and WebP at 2x")
         }
 
         pngResult?.let { result ->
@@ -562,7 +562,7 @@ private fun ExportScaleComparisonCard() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("原始渲染:", style = MaterialTheme.typography.labelMedium)
+        Text("Original rendering:", style = MaterialTheme.typography.labelMedium)
         Latex(latex = latex, config = config)
 
         Spacer(Modifier.height(4.dp))
@@ -589,7 +589,7 @@ private fun ExportScaleComparisonCard() {
             },
             enabled = !isExporting
         ) {
-            Text(if (isExporting) "导出中..." else "导出 1x / 2x / 3x 对比")
+            Text(if (isExporting) "Exporting..." else "Compare exports at 1x, 2x, and 3x")
         }
 
         results.forEach { (scale, result) ->
