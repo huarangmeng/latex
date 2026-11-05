@@ -1,6 +1,7 @@
 # LaTeX Preview Module
 
-这是一个独立的预览模块，仅用于本地开发和测试 LaTeX 渲染效果。
+这是一个独立的预览模块，用于开发、测试和在线演示 LaTeX 渲染效果。
+可通过 [Web Demo](https://huarangmeng.github.io/latex/) 在线体验。
 
 ## 特性
 
@@ -16,12 +17,16 @@
 ```bash
 # 运行桌面预览应用（composeApp 加载 latex-preview 的所有分组）
 ./gradlew :composeApp:run
+
+# 运行浏览器预览（Wasm，包含相同分组与 KaTeX 字体）
+./gradlew :composeApp:wasmJsBrowserDevelopmentRun
 ```
 
 ## 注意事项
 
 - 此模块仅用于开发测试，不会被包含在 `latex-sdk` 的发布版本中
-- 只支持 JVM/Desktop 平台
+- 通过 `composeApp` 支持 Desktop、Android、iOS 和 Web（Wasm/JS）预览
+- Web Demo 在显示预览前加载本地打包的 Noto Sans SC 和 Noto Emoji 回退字体，避免中文及图标显示为缺字框；字体仅位于 demo 的 `webMain` 中
 - 可以在这里测试各种 LaTeX 表达式的渲染效果
 - `composeApp` 已引入 KaTeX 字体资源，运行时自动加载，无需手动初始化；缺失或加载失败时回退系统字体且不再重试。强烈建议其他宿主也引入配套字体，系统字体可能出现排版差异，见[数学字体](../README_zh.md#数学字体)
 - `BasicLatexPreview` 的 `24. 主题模式` 分组覆盖主题配置，以及通过 `LatexConfig.fontFamilies` 显式选择系统字体和等宽字体的示例

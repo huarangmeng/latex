@@ -10,6 +10,8 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 
 [中文版本](./README_zh.md)
 
+**[Try the live Web demo →](https://huarangmeng.github.io/latex/)** — explore formula rendering, chemistry, incremental updates, and the editor in your browser.
+
 ## 🌟 Key Features
 
 - **High-Performance Parsing**: AST-based recursive descent parser with support for incremental updates.
@@ -540,6 +542,32 @@ linking or execution. Kotlin 2.1.0 alias versions are not covered by this job.
 - **Desktop**: `./gradlew :composeApp:run`
 - **Web (Wasm)**: `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`
 - **iOS**: Open `iosApp/iosApp.xcworkspace` in Xcode to run.
+
+### Web Demo / GitHub Pages
+
+The Web demo runs the same `latex-preview` samples as the desktop app, with the
+bundled KaTeX fonts. It also preloads bundled Noto Sans SC and Noto Emoji fallback
+fonts so Chinese labels and icons render on Web. Use a current browser with
+WebAssembly GC support.
+
+For local development, run `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`
+and open the localhost URL printed by Gradle.
+
+To build a static website:
+
+```bash
+./gradlew :composeApp:wasmJsBrowserDistribution
+```
+
+The complete website (including Wasm and font resources) is generated in
+`composeApp/build/dist/wasmJs/productionExecutable/`. Serve this directory over
+HTTP rather than opening `index.html` as a local file.
+
+The [Web Demo workflow](.github/workflows/demo.yml) builds the website on pull
+requests and deploys `master` to GitHub Pages after a push or manual run on
+`master`. Before the first deployment, select **Settings → Pages → Build and
+deployment → Source → GitHub Actions** in the repository. The published demo
+will be available at <https://huarangmeng.github.io/latex/> after deployment.
 
 ### Running Tests
 
