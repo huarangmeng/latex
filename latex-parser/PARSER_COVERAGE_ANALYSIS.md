@@ -299,6 +299,8 @@
 - ✅ `\symrm{x}` Unicode 数学罗马体
 - ✅ `\textnormal`, `\textup`, `\textmd`, `\textsc`, `\textsl`, `\emph` 文本样式命令
 - ✅ `\textsc{...}` 对参数应用小型大写样式；`\sc` / `\scshape` 在当前分组内声明该样式。
+- ✅ `\rmfamily` / `\sffamily` / `\ttfamily`、`\bfseries` / `\mdseries`、`\itshape` / `\slshape` / `\upshape` 按属性叠加。
+- ✅ `\textulc{...}` / `\ulcshape` 恢复正常大小写，`\normalshape` 恢复默认字形，`\textnormal{...}` / `\normalfont` 恢复默认字体。
 - ✅ `\tiny` / `\scriptsize` / `\footnotesize` / `\small` / `\normalsize`
 - ✅ `\large` / `\Large` / `\LARGE` / `\huge` / `\Huge`
 

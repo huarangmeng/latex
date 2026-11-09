@@ -93,6 +93,10 @@
 `\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\textnormal`, `\textup`, `\textmd`, `\textsc`, `\textsl`, `\emph` 及 Unicode-math 样式别名。
 
 `\textsc{Mixed Case}` 对参数应用小型大写样式，`{\sc Mixed Case}` 和 `{\scshape Mixed Case}` 在所在分组内生效。Compose 将小写字母绘制为缩小的大写字形，原有大写字母保持全尺寸。
+
+分组内可以叠加字体声明，例如 `{\sffamily\bfseries\scshape Abc}`。`\rmfamily`、`\sffamily`、`\ttfamily` 切换字族，`\bfseries`、`\mdseries` 切换粗细，`\itshape`、`\slshape`、`\upshape` 切换斜度。Compose 对 slanted 文本使用斜体字形。
+
+`\textulc{...}` 和 `\ulcshape` 恢复正常大小写并保留其他字体属性。`\normalshape` 恢复默认斜度和大小写，`\textnormal{...}` 和 `\normalfont` 同时恢复默认字族和粗细。
 </details>
 
 <details>

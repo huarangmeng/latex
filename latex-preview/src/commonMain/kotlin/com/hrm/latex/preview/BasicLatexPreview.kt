@@ -770,6 +770,16 @@ val basicLatexPreviewGroups = listOf(
                 "Issue #57: small caps and group scope",
                 "\\textrm{Abc123}\\quad\\textsc{Abc123}\\quad{\\sc Abc}\\quad{\\scshape Abc}\\quad\\text{outside}"
             ),
+            PreviewItem(
+                "32",
+                "Restore ordinary case within small caps",
+                "{\\scshape Abc \\textulc{Def} Ghi}\\quad\\text{outside}"
+            ),
+            PreviewItem(
+                "33",
+                "Combine font declarations and reset shape",
+                "\\textnormal{Abc}\\quad{\\sffamily\\bfseries\\scshape Abc}\\quad{\\sffamily\\bfseries\\scshape\\normalshape Abc}"
+            ),
         )
     ),
     PreviewGroup(

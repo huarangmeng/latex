@@ -93,6 +93,10 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 `\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\textnormal`, `\textup`, `\textmd`, `\textsc`, `\textsl`, `\emph`, and Unicode-math style aliases.
 
 `\textsc{Mixed Case}` applies small caps to its argument. The declarations `{\sc Mixed Case}` and `{\scshape Mixed Case}` apply within the enclosing group. Compose draws lowercase letters as scaled uppercase glyphs and keeps existing capitals at full size.
+
+Font declarations can be combined within a group, as in `{\sffamily\bfseries\scshape Abc}`. Use `\rmfamily`, `\sffamily`, or `\ttfamily` for the family, `\bfseries` or `\mdseries` for weight, and `\itshape`, `\slshape`, or `\upshape` for slope. Compose uses the italic face for slanted text.
+
+`\textulc{...}` and `\ulcshape` restore ordinary letter case while preserving the other font attributes. `\normalshape` resets slope and small caps. `\textnormal{...}` and `\normalfont` also restore the default family and weight.
 </details>
 
 <details>

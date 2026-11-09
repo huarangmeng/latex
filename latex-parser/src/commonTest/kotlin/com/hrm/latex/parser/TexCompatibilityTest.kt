@@ -108,7 +108,8 @@ class TexCompatibilityTest {
         val text = assertIs<LatexNode.TextMode>(document.children.single())
         assertTrue(text.content.isNotEmpty())
         val mathml = MathMLVisitor.convert(document)
-        assertTrue(mathml.contains("mathvariant=\"bold\""))
+        assertTrue(mathml.contains("style=\"font-weight: bold\""))
+        assertTrue(mathml.contains("<mtext>bold</mtext>"))
         assertTrue(mathml.contains("<msup>"))
         assertTrue(mathml.contains("<mtext>normal"))
     }

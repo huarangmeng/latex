@@ -574,9 +574,14 @@ internal class ParseSession(
     }
 
     private fun updateActiveDeclaration(activeDeclarations: MutableList<LatexNode>, declaration: LatexNode) {
+        if (declaration is LatexNode.Style) {
+            activeDeclarations.removeAll { it is LatexNode.Style && declaration.styleType.supersedes(it.styleType) }
+            // Apply declarations in order so resets precede later changes to individual attributes.
+            activeDeclarations.add(declaration)
+            return
+        }
         val existingIndex = activeDeclarations.indexOfLast { existing ->
             (existing is LatexNode.Color && declaration is LatexNode.Color) ||
-                (existing is LatexNode.Style && declaration is LatexNode.Style) ||
                 (existing is LatexNode.MathStyle && declaration is LatexNode.MathStyle) ||
                 (existing is LatexNode.FontSize && declaration is LatexNode.FontSize)
         }

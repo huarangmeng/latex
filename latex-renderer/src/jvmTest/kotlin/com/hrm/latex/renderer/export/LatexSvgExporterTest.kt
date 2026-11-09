@@ -132,6 +132,51 @@ class LatexSvgExporterTest {
     }
 
     @Test
+    fun textFontDeclarationsComposeLikeNestedTextCommands() {
+        val exporter = createExporter()
+        fun svg(source: String) = assertNotNull(exporter.exportSvg(source)).svg
+
+        val styled = svg("""\textsf{\textbf{\textit{\textsc{Abc}}}}""")
+        assertEquals(styled, svg("""{\sffamily\bfseries\itshape\scshape Abc}"""))
+        assertEquals(styled, svg("""{\scshape\itshape\bfseries\sffamily Abc}"""))
+        assertEquals(styled, svg("""\textsf{\text{\textbf{\textit{\textsc{Abc}}}}}"""))
+        assertNotEquals(styled, svg("""{\rmfamily\bfseries\itshape\scshape Abc}"""))
+        assertNotEquals(styled, svg("""{\sffamily\mdseries\itshape\scshape Abc}"""))
+        assertNotEquals(styled, svg("""{\sffamily\bfseries\upshape\scshape Abc}"""))
+        assertEquals(
+            svg("""\textsf{\textbf{\textsc{Abc} Def \textsc{Ghi}}}"""),
+            svg("""{\sffamily\bfseries\scshape Abc \textulc{Def} Ghi}""")
+        )
+        assertEquals(svg("""{\ttfamily\slshape Abc}"""), svg("""\texttt{\textsl{Abc}}"""))
+    }
+
+    @Test
+    fun textFontResetsChangeOnlyTheRequestedAttributes() {
+        val exporter = createExporter()
+        fun svg(source: String) = assertNotNull(exporter.exportSvg(source)).svg
+
+        assertEquals(
+            svg("""{\sffamily\bfseries\itshape Abc}"""),
+            svg("""{\sffamily\bfseries\itshape\scshape{\ulcshape Abc}}""")
+        )
+        assertEquals(
+            svg("""{\sffamily\bfseries\scshape Abc}"""),
+            svg("""{\sffamily\bfseries\itshape\scshape \textup{Abc}}""")
+        )
+        assertEquals(
+            svg("""{\sffamily\bfseries Abc}"""),
+            svg("""{\sffamily\bfseries\itshape\scshape{\normalshape Abc}}""")
+        )
+        assertEquals(
+            svg("""{\sffamily\itshape\scshape Abc}"""),
+            svg("""{\sffamily\bfseries\itshape\scshape \textmd{Abc}}""")
+        )
+        assertEquals(svg("""\textnormal{Abc}"""), svg("""{\sffamily\bfseries\itshape\scshape{\normalfont Abc}}"""))
+        assertEquals(svg("""\textnormal{Abc}"""), svg("""{\sffamily\bfseries\itshape\scshape \textnormal{Abc}}"""))
+        assertEquals(svg("""\textsc{Abc}"""), svg("""{\sffamily\bfseries\itshape{\sc Abc}}"""))
+    }
+
+    @Test
     fun arraySpacingAndDashRulesAffectExportedLayout() {
         val exporter = createExporter()
         val body = "\\begin{array}{cc}a&b\\\\\\hline c&d\\end{array}"

@@ -57,6 +57,7 @@ private val bboxMathMlDimensionPattern =
  */
 class MathMLVisitor : BaseLatexVisitor<String>() {
     private var currentFontScale: Float = 1.0f
+    private var textStyleActive = false
     private var smallCaps = false
 
     companion object {
@@ -89,7 +90,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitText(node: LatexNode.Text): String {
-        if (smallCaps) return textElement(node.content)
+        if (textStyleActive) return textElement(node.content)
         return node.content.map { ch ->
             when {
                 ch.isDigit() -> "<mn>$ch</mn>"
@@ -104,18 +105,21 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitInlineMath(node: LatexNode.InlineMath): String =
-        withSmallCaps(false) { mrow(node.children.joinToString("") { visit(it) }) }
+        withTextStyle(active = false, caps = false) { mrow(node.children.joinToString("") { visit(it) }) }
 
     override fun visitDisplayMath(node: LatexNode.DisplayMath): String =
-        withSmallCaps(false) { mrow(node.children.joinToString("") { visit(it) }) }
+        withTextStyle(active = false, caps = false) { mrow(node.children.joinToString("") { visit(it) }) }
 
-    private inline fun withSmallCaps(enabled: Boolean, content: () -> String): String {
-        val previous = smallCaps
-        smallCaps = enabled
+    private inline fun withTextStyle(active: Boolean, caps: Boolean, content: () -> String): String {
+        val previousActive = textStyleActive
+        val previousCaps = smallCaps
+        textStyleActive = active
+        smallCaps = caps
         return try {
             content()
         } finally {
-            smallCaps = previous
+            textStyleActive = previousActive
+            smallCaps = previousCaps
         }
     }
 
@@ -307,7 +311,14 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitStyle(node: LatexNode.Style): String {
-        val content = withSmallCaps(smallCaps || node.styleType == LatexNode.Style.StyleType.SMALL_CAPS) {
+        val caps = when (node.styleType) {
+            LatexNode.Style.StyleType.SMALL_CAPS, LatexNode.Style.StyleType.LEGACY_SMALL_CAPS -> true
+            LatexNode.Style.StyleType.TEXT_UPPER_LOWER_CASE,
+            LatexNode.Style.StyleType.TEXT_NORMAL_SHAPE,
+            LatexNode.Style.StyleType.TEXT_NORMAL -> false
+            else -> smallCaps
+        }
+        val content = withTextStyle(textStyleActive || node.styleType.isTextStyle, caps) {
             node.content.joinToString("") { visit(it) }
         }
         val attr = when (node.styleType) {
@@ -321,7 +332,20 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Style.StyleType.FRAKTUR -> " mathvariant=\"fraktur\""
             LatexNode.Style.StyleType.SCRIPT -> " mathvariant=\"script\""
             LatexNode.Style.StyleType.CALLIGRAPHIC -> " mathvariant=\"script\""
-            LatexNode.Style.StyleType.SMALL_CAPS -> return mrow(content)
+            LatexNode.Style.StyleType.TEXT_ROMAN -> " style=\"font-family: serif\""
+            LatexNode.Style.StyleType.TEXT_SANS_SERIF -> " style=\"font-family: sans-serif\""
+            LatexNode.Style.StyleType.TEXT_MONOSPACE -> " style=\"font-family: monospace\""
+            LatexNode.Style.StyleType.TEXT_BOLD -> " style=\"font-weight: bold\""
+            LatexNode.Style.StyleType.TEXT_MEDIUM -> " style=\"font-weight: normal\""
+            LatexNode.Style.StyleType.TEXT_ITALIC -> " style=\"font-style: italic\""
+            LatexNode.Style.StyleType.TEXT_SLANTED -> " style=\"font-style: oblique\""
+            LatexNode.Style.StyleType.TEXT_UPRIGHT,
+            LatexNode.Style.StyleType.TEXT_NORMAL_SHAPE -> " style=\"font-style: normal\""
+            LatexNode.Style.StyleType.TEXT_NORMAL,
+            LatexNode.Style.StyleType.LEGACY_SMALL_CAPS ->
+                " style=\"font-family: serif; font-weight: normal; font-style: normal\""
+            LatexNode.Style.StyleType.SMALL_CAPS,
+            LatexNode.Style.StyleType.TEXT_UPPER_LOWER_CASE -> return mrow(content)
         }
         return "<mstyle$attr>$content</mstyle>"
     }

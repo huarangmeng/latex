@@ -23,6 +23,7 @@
 package com.hrm.latex.parser
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.LatexNode.Style.StyleType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -112,15 +113,43 @@ class SyntaxExpansionTest {
 
     @Test
     fun parsesSmallCapsWithArgumentAndDeclarationScopes() {
-        for (source in listOf("""\textsc{Abc}def""", """{\sc Abc}def""", """{\scshape Abc}def""")) {
+        val samples = mapOf(
+            """\textsc{Abc}def""" to StyleType.SMALL_CAPS,
+            """{\sc Abc}def""" to StyleType.LEGACY_SMALL_CAPS,
+            """{\scshape Abc}def""" to StyleType.SMALL_CAPS
+        )
+        for ((source, styleType) in samples) {
             val result = parser.parseWithDiagnostics(source)
             assertTrue(result.diagnostics.isEmpty(), source)
             val (styled, following) = result.document.children
             val style = styled.descendants().filterIsInstance<LatexNode.Style>().single()
-            assertEquals(LatexNode.Style.StyleType.SMALL_CAPS, style.styleType, source)
+            assertEquals(styleType, style.styleType, source)
             assertEquals("Abc", style.descendants().filterIsInstance<LatexNode.Text>().single().content)
             assertEquals("def", assertIs<LatexNode.Text>(following).content)
         }
+    }
+
+    @Test
+    fun textFontDeclarationsStackAndResetByAttribute() {
+        val result = parser.parseWithDiagnostics(
+            """{\rmfamily\sffamily\bfseries\slshape\itshape\scshape Abc""" +
+                """\ulcshape Def\normalshape Ghi\normalfont\ttfamily\mdseries Jkl}Mno"""
+        )
+        assertTrue(result.diagnostics.isEmpty())
+        val (inside, outside) = result.document.children
+        val styles = assertIs<LatexNode.Group>(inside).children.map { segment ->
+            segment.descendants().filterIsInstance<LatexNode.Style>().map { it.styleType }
+        }
+        assertEquals(
+            listOf(
+                listOf(StyleType.TEXT_SANS_SERIF, StyleType.TEXT_BOLD, StyleType.TEXT_ITALIC, StyleType.SMALL_CAPS),
+                listOf(StyleType.TEXT_SANS_SERIF, StyleType.TEXT_BOLD, StyleType.TEXT_ITALIC, StyleType.TEXT_UPPER_LOWER_CASE),
+                listOf(StyleType.TEXT_SANS_SERIF, StyleType.TEXT_BOLD, StyleType.TEXT_NORMAL_SHAPE),
+                listOf(StyleType.TEXT_NORMAL, StyleType.TEXT_MONOSPACE, StyleType.TEXT_MEDIUM)
+            ),
+            styles
+        )
+        assertEquals("Mno", assertIs<LatexNode.Text>(outside).content)
     }
 
     @Test

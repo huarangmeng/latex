@@ -496,7 +496,26 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
             isVariantFontFamily = false
         )
 
+        LatexNode.Style.StyleType.TEXT_ROMAN -> withTextFamily(families?.main)
+        LatexNode.Style.StyleType.TEXT_SANS_SERIF -> withTextFamily(families?.sansSerif)
+        LatexNode.Style.StyleType.TEXT_MONOSPACE -> withTextFamily(families?.monospace)
+        LatexNode.Style.StyleType.TEXT_BOLD -> copy(fontWeight = FontWeight.Bold, fontStyle = fontStyle ?: FontStyle.Normal)
+        LatexNode.Style.StyleType.TEXT_MEDIUM -> copy(fontWeight = FontWeight.Normal, fontStyle = fontStyle ?: FontStyle.Normal)
+        LatexNode.Style.StyleType.TEXT_ITALIC,
+        LatexNode.Style.StyleType.TEXT_SLANTED -> copy(fontStyle = FontStyle.Italic)
+        LatexNode.Style.StyleType.TEXT_UPRIGHT -> copy(fontStyle = FontStyle.Normal)
         LatexNode.Style.StyleType.SMALL_CAPS -> copy(smallCaps = true)
+        LatexNode.Style.StyleType.TEXT_UPPER_LOWER_CASE -> copy(smallCaps = false, fontStyle = fontStyle ?: FontStyle.Normal)
+        LatexNode.Style.StyleType.TEXT_NORMAL_SHAPE -> copy(fontStyle = FontStyle.Normal, smallCaps = false)
+        LatexNode.Style.StyleType.TEXT_NORMAL,
+        LatexNode.Style.StyleType.LEGACY_SMALL_CAPS -> copy(
+            fontFamily = families?.main ?: fontFamily,
+            fontWeight = FontWeight.Normal,
+            fontStyle = FontStyle.Normal,
+            fontVariant = FontVariant.NORMAL,
+            isVariantFontFamily = false,
+            smallCaps = styleType == LatexNode.Style.StyleType.LEGACY_SMALL_CAPS
+        )
 
         LatexNode.Style.StyleType.SANS_SERIF -> copy(
             fontFamily = families?.sansSerif ?: fontFamily,
@@ -551,6 +570,13 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         }
     }
 }
+
+private fun RenderContext.withTextFamily(family: FontFamily?): RenderContext = copy(
+    fontFamily = family ?: fontFamily,
+    fontStyle = fontStyle ?: FontStyle.Normal,
+    fontVariant = FontVariant.NORMAL,
+    isVariantFontFamily = false
+)
 
 /**
  * 应用数学模式（内部命令触发）

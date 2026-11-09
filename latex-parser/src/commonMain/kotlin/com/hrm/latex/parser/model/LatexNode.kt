@@ -509,7 +509,34 @@ sealed class LatexNode {
     ) : LatexNode() {
         enum class StyleType {
             BOLD, BOLD_SYMBOL, ITALIC, ROMAN, SANS_SERIF, MONOSPACE,
-            BLACKBOARD_BOLD, FRAKTUR, SCRIPT, CALLIGRAPHIC, SMALL_CAPS
+            BLACKBOARD_BOLD, FRAKTUR, SCRIPT, CALLIGRAPHIC, SMALL_CAPS,
+            TEXT_ROMAN, TEXT_SANS_SERIF, TEXT_MONOSPACE, TEXT_BOLD, TEXT_MEDIUM,
+            TEXT_ITALIC, TEXT_SLANTED, TEXT_UPRIGHT, TEXT_UPPER_LOWER_CASE,
+            TEXT_NORMAL_SHAPE, TEXT_NORMAL, LEGACY_SMALL_CAPS;
+
+            private enum class Axis { LEGACY, FAMILY, SERIES, SLOPE, CASE, SHAPE, FONT }
+
+            private val axis: Axis
+                get() = when (this) {
+                    TEXT_ROMAN, TEXT_SANS_SERIF, TEXT_MONOSPACE -> Axis.FAMILY
+                    TEXT_BOLD, TEXT_MEDIUM -> Axis.SERIES
+                    TEXT_ITALIC, TEXT_SLANTED, TEXT_UPRIGHT -> Axis.SLOPE
+                    SMALL_CAPS, TEXT_UPPER_LOWER_CASE -> Axis.CASE
+                    TEXT_NORMAL_SHAPE -> Axis.SHAPE
+                    TEXT_NORMAL, LEGACY_SMALL_CAPS -> Axis.FONT
+                    else -> Axis.LEGACY
+                }
+
+            internal val isTextStyle: Boolean get() = axis != Axis.LEGACY
+
+            internal fun supersedes(previous: StyleType): Boolean = when (axis) {
+                Axis.LEGACY, Axis.FONT -> true
+                Axis.SHAPE -> when (previous.axis) {
+                    Axis.SLOPE, Axis.CASE, Axis.SHAPE -> true
+                    else -> false
+                }
+                else -> axis == previous.axis
+            }
         }
 
         override fun children() = content

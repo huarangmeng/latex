@@ -48,6 +48,19 @@ class MathMLVisitorTest {
     }
 
     @Test
+    fun textFontStylesStackAndPreserveCaseThroughLocalResets() {
+        val result = MathMLVisitor.convert(
+            parser.parse("""{\sffamily\bfseries\scshape Abc \textulc{Def} Ghi \textnormal{Jkl}}""")
+        )
+        assertTrue(result.contains("""<mstyle style="font-family: sans-serif"><mstyle style="font-weight: bold">"""))
+        assertTrue(result.contains("""<mtext style="font-variant-caps: small-caps">Abc</mtext>"""))
+        assertTrue(result.contains("<mtext>Def</mtext>"))
+        assertTrue(result.contains("""<mtext style="font-variant-caps: small-caps">Ghi</mtext>"""))
+        assertTrue(result.contains("style=\"font-family: serif; font-weight: normal; font-style: normal\""))
+        assertTrue(result.contains("<mtext>Jkl</mtext>"))
+    }
+
+    @Test
     fun testDisplayMode() {
         val doc = parser.parse("x")
         val block = MathMLVisitor.convert(doc, displayMode = true)

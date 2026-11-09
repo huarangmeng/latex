@@ -74,7 +74,10 @@ internal class TextContentMeasurer : NodeMeasurer {
             is LatexNode.Text -> if (context.smallCaps) measureTextMode(node.content, context, measurer)
                 else measureText(node.content, context, measurer, density)
             is LatexNode.TextMode -> if (node.content.isEmpty()) measureTextMode(node.text, context, measurer)
-                else measureGroup(node.content, context.copy(fontStyle = FontStyle.Normal, fontFamily = context.fontFamilies?.main ?: context.fontFamily))
+                else measureGroup(node.content, context.copy(
+                    fontStyle = context.fontStyle ?: FontStyle.Normal,
+                    fontFamily = context.fontFamily ?: context.fontFamilies?.main
+                ))
             is LatexNode.Symbol -> measureSymbol(node, context, measurer, density)
             is LatexNode.Operator -> {
                 val operatorGap =
