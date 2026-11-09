@@ -6,14 +6,32 @@
 name: Publish
 on:
   release:
-    types: [released, prereleased]
+    types: [published]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maven-central-${{ github.ref }}
 
 jobs:
   publish:
     name: "📦 Publish normal version"
     runs-on: macOS-latest
     steps:
+      - name: Resolve version from release tag
+        shell: bash
+        run: |
+          release_tag_pattern='^release-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)(\.(0|[1-9][0-9]*))?)?$'
+          if [[ "$GITHUB_REF_TYPE" != tag || ! "$GITHUB_REF_NAME" =~ $release_tag_pattern ]]; then
+            echo '::error::Select a release-X.Y.Z tag, optionally with an alpha, beta, or rc suffix.'
+            exit 1
+          fi
+          version=${GITHUB_REF_NAME#release-}
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "Publishing LaTeX $version from $GITHUB_REF_NAME"
+
       - name: Check out code
         uses: actions/checkout@v6
 
@@ -24,24 +42,8 @@ jobs:
           java-version: 21
           cache: 'gradle'
 
-      - name: Get VERSION from gradle.properties
-        run: |
-          VERSION=$(grep '^VERSION=' gradle.properties | cut -d'=' -f2)
-          echo ""
-          echo "╔══════════════════════════════════════╗"
-          echo "║  📦 正常发布                          ║"
-          echo "╠══════════════════════════════════════╣"
-          echo "║  VERSION = $VERSION"
-          echo "║"
-          echo "║  将发布:"
-          echo "║    io.github.huarangmeng:latex-base:$VERSION"
-          echo "║    io.github.huarangmeng:latex-parser:$VERSION"
-          echo "║    io.github.huarangmeng:latex-renderer:$VERSION"
-          echo "║    io.github.huarangmeng:latex-fonts-katex:$VERSION (可选字体)"
-          echo "╚══════════════════════════════════════╝"
-
       - name: Publish to MavenCentral
-        run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-configuration-cache
+        run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-configuration-cache -PVERSION="$VERSION"
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}

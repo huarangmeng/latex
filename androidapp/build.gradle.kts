@@ -44,7 +44,6 @@ android {
 
 dependencies {
     implementation(projects.latexBase)
-//    implementation(libs.latex.base)
     implementation(projects.composeApp)
     implementation(libs.androidx.activity.compose)
     debugImplementation(libs.compose.ui.tooling)

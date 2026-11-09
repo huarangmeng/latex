@@ -51,7 +51,6 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.latexRenderer)
-//            api(libs.bundles.latex)
 
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)

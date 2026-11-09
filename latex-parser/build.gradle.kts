@@ -78,7 +78,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("io.github.huarangmeng", "latex-parser", rootProject.property("VERSION").toString())
+    coordinates("io.github.huarangmeng", "latex-parser", rootProject.version.toString())
 
     pom {
         name.set("Kotlin Multiplatform LaTeX Parser")

@@ -12,3 +12,5 @@ plugins {
     alias(libs.plugins.kotlinxBenchmark) apply false
     alias(libs.plugins.mavenPublish) apply false
 }
+
+version = providers.gradleProperty("VERSION").getOrElse("0.0.0-SNAPSHOT")

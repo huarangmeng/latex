@@ -276,6 +276,14 @@ graph LR
     F -->|No| H[No release]
 ```
 
+### Publishing to Maven Central
+
+Publish a GitHub Release with a `release-X.Y.Z` tag on the commit you want to ship.
+For prereleases, use an `-alpha`, `-beta`, or `-rc` suffix with an optional number,
+such as `release-1.7.1-rc.1`. The Publish workflow takes the Maven version from the
+tag and uses it for all four modules. Development builds default to `0.0.0-SNAPSHOT`.
+To retry, rerun the failed workflow or select the release tag in **Run workflow**.
+
 ---
 
 ## 7. Common Mistakes

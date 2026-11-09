@@ -127,7 +127,7 @@ Typical pattern:
 
 - Follow Conventional Commits in `CONTRIBUTING.md`.
 - Recommended scopes: `parser`, `renderer`, `preview`, `base`, `build`, `android`, `ios`, `app`.
-- Be careful with `gradle.properties` `VERSION` and `.github/workflows/publish.yml`.
+- Maven Central versions come from release tags in `.github/workflows/publish.yml`.
 - Never add secrets, tokens, signing keys, or local credentials.
 
 ## Working Style

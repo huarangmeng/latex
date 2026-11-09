@@ -116,7 +116,7 @@ mavenPublishing {
     coordinates(
         "io.github.huarangmeng",
         "latex-renderer",
-        rootProject.property("VERSION").toString()
+        rootProject.version.toString()
     )
 
     pom {

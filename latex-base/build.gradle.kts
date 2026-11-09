@@ -69,7 +69,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("io.github.huarangmeng", "latex-base", rootProject.property("VERSION").toString())
+    coordinates("io.github.huarangmeng", "latex-base", rootProject.version.toString())
 
     pom {
         name.set("Kotlin Multiplatform LaTeX Rendering Engine")
