@@ -145,6 +145,7 @@ private class CacheKey(private val node: LatexNode, context: RenderContext) {
     private val fontVariant = context.fontVariant
     private val fontFamilies = context.fontFamilies
     private val isVariantFontFamily = context.isVariantFontFamily
+    private val smallCaps = context.smallCaps
     private val layoutHints = context.layoutHints
     private val mathFontProvider = context.mathFontProvider
     private val textDirection = context.textDirection
@@ -163,6 +164,7 @@ private class CacheKey(private val node: LatexNode, context: RenderContext) {
         result = 31 * result + fontVariant.hashCode()
         result = 31 * result + identityHash(fontFamilies)
         result = 31 * result + isVariantFontFamily.hashCode()
+        result = 31 * result + smallCaps.hashCode()
         result = 31 * result + layoutHints.hashCode()
         result = 31 * result + identityHash(mathFontProvider)
         result = 31 * result + textDirection.hashCode()
@@ -176,7 +178,7 @@ private class CacheKey(private val node: LatexNode, context: RenderContext) {
         color == other.color && errorColor == other.errorColor && mathStyle == other.mathStyle &&
         isCramped == other.isCramped && fontWeight == other.fontWeight && fontStyle == other.fontStyle &&
         fontFamily === other.fontFamily && fontVariant == other.fontVariant &&
-        fontFamilies === other.fontFamilies && isVariantFontFamily == other.isVariantFontFamily &&
+        fontFamilies === other.fontFamilies && isVariantFontFamily == other.isVariantFontFamily && smallCaps == other.smallCaps &&
         layoutHints == other.layoutHints && mathFontProvider === other.mathFontProvider &&
         textDirection == other.textDirection
 }

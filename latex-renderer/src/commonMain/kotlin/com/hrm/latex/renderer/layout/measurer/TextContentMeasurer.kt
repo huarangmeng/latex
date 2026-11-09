@@ -25,7 +25,9 @@ package com.hrm.latex.renderer.layout.measurer
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -69,7 +71,8 @@ internal class TextContentMeasurer : NodeMeasurer {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         return when (node) {
-            is LatexNode.Text -> measureText(node.content, context, measurer, density)
+            is LatexNode.Text -> if (context.smallCaps) measureTextMode(node.content, context, measurer)
+                else measureText(node.content, context, measurer, density)
             is LatexNode.TextMode -> if (node.content.isEmpty()) measureTextMode(node.text, context, measurer)
                 else measureGroup(node.content, context.copy(fontStyle = FontStyle.Normal, fontFamily = context.fontFamilies?.main ?: context.fontFamily))
             is LatexNode.Symbol -> measureSymbol(node, context, measurer, density)
@@ -340,7 +343,8 @@ internal class TextContentMeasurer : NodeMeasurer {
             fontFamily = context.fontFamily ?: context.fontFamilies?.main,
             fontWeight = context.fontWeight ?: FontWeight.Normal
         ).textStyle()
-        val result = measurer.measure(AnnotatedString(text), textStyle)
+        val annotatedText = if (context.smallCaps) smallCapsText(text, context) else AnnotatedString(text)
+        val result = measurer.measure(annotatedText, textStyle)
 
         return NodeLayout(
             result.size.width.toFloat(),
@@ -349,6 +353,40 @@ internal class TextContentMeasurer : NodeMeasurer {
         ) { x, y ->
             drawText(result, topLeft = Offset(x, y))
         }
+    }
+
+    // The bundled KaTeX fonts lack small-cap glyphs. Scale lowercase runs on the same baseline.
+    private fun smallCapsText(text: String, context: RenderContext): AnnotatedString = buildAnnotatedString {
+        val style = SpanStyle(fontSize = context.fontSize * 0.8f)
+        var runStart = -1
+        var index = 0
+        while (index < text.length) {
+            val start = index
+            val first = text[index++]
+            val uppercase = if (first.isHighSurrogate() && index < text.length && text[index].isLowSurrogate()) {
+                val codePoint = text.substring(start, ++index)
+                codePoint.uppercase().takeIf { it != codePoint && codePoint == codePoint.lowercase() }
+            } else if (first.isLowerCase()) {
+                first.uppercase().takeIf { it.length != 1 || it[0] != first }
+            } else {
+                null
+            }
+            if (uppercase != null) {
+                if (runStart < 0) runStart = length
+                append(uppercase)
+            } else {
+                val combiningMark = when (first.category) {
+                    CharCategory.NON_SPACING_MARK, CharCategory.COMBINING_SPACING_MARK, CharCategory.ENCLOSING_MARK -> true
+                    else -> false
+                }
+                if (runStart >= 0 && !combiningMark) {
+                    addStyle(style, runStart, length)
+                    runStart = -1
+                }
+                append(text, start, index)
+            }
+        }
+        if (runStart >= 0) addStyle(style, runStart, length)
     }
 
     private fun measureModOperator(

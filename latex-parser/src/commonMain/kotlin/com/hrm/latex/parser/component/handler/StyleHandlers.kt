@@ -54,7 +54,7 @@ internal fun CommandRegistry.installStyleHandlers() {
         "mathfrak" to LatexNode.Style.StyleType.FRAKTUR,
         "mathscr" to LatexNode.Style.StyleType.SCRIPT,
         "mathcal" to LatexNode.Style.StyleType.CALLIGRAPHIC,
-        "textsc" to LatexNode.Style.StyleType.ROMAN,
+        "textsc" to LatexNode.Style.StyleType.SMALL_CAPS,
         // unicode-math
         "symbf" to LatexNode.Style.StyleType.BOLD_SYMBOL,
         "symit" to LatexNode.Style.StyleType.ITALIC,
@@ -81,6 +81,8 @@ internal fun CommandRegistry.installStyleHandlers() {
         "cal" to LatexNode.Style.StyleType.CALLIGRAPHIC,
         "frak" to LatexNode.Style.StyleType.FRAKTUR,
         "scr" to LatexNode.Style.StyleType.SCRIPT,
+        "sc" to LatexNode.Style.StyleType.SMALL_CAPS,
+        "scshape" to LatexNode.Style.StyleType.SMALL_CAPS,
     )
 
     for ((cmd, styleType) in styleDeclarationMapping) {

@@ -111,6 +111,19 @@ class SyntaxExpansionTest {
     }
 
     @Test
+    fun parsesSmallCapsWithArgumentAndDeclarationScopes() {
+        for (source in listOf("""\textsc{Abc}def""", """{\sc Abc}def""", """{\scshape Abc}def""")) {
+            val result = parser.parseWithDiagnostics(source)
+            assertTrue(result.diagnostics.isEmpty(), source)
+            val (styled, following) = result.document.children
+            val style = styled.descendants().filterIsInstance<LatexNode.Style>().single()
+            assertEquals(LatexNode.Style.StyleType.SMALL_CAPS, style.styleType, source)
+            assertEquals("Abc", style.descendants().filterIsInstance<LatexNode.Text>().single().content)
+            assertEquals("def", assertIs<LatexNode.Text>(following).content)
+        }
+    }
+
+    @Test
     fun parsesMathtoolsPhysicsAndSiunitxSubset() {
         val paired = parser.parse(
             "\\DeclarePairedDelimiter{\\set}{\\lbrace}{\\rbrace}" +

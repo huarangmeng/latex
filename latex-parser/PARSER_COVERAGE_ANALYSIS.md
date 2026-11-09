@@ -298,6 +298,7 @@
 - ✅ `\symsf{x}` Unicode 数学无衬线体
 - ✅ `\symrm{x}` Unicode 数学罗马体
 - ✅ `\textnormal`, `\textup`, `\textmd`, `\textsc`, `\textsl`, `\emph` 文本样式命令
+- ✅ `\textsc{...}` 对参数应用小型大写样式；`\sc` / `\scshape` 在当前分组内声明该样式。
 - ✅ `\tiny` / `\scriptsize` / `\footnotesize` / `\small` / `\normalsize`
 - ✅ `\large` / `\Large` / `\LARGE` / `\huge` / `\Huge`
 

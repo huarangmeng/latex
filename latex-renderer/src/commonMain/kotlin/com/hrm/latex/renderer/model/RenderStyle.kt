@@ -351,6 +351,7 @@ internal data class RenderContext(
     val fontVariant: FontVariant = FontVariant.NORMAL,
     val fontFamilies: LatexFontFamilies? = null,
     val isVariantFontFamily: Boolean = false,
+    val smallCaps: Boolean = false,
     // ── 布局提示 ──
     val layoutHints: LayoutHints = LayoutHints(),
     // ── 排版参数 ──
@@ -494,6 +495,8 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
             fontFamily = families?.main ?: fontFamily,
             isVariantFontFamily = false
         )
+
+        LatexNode.Style.StyleType.SMALL_CAPS -> copy(smallCaps = true)
 
         LatexNode.Style.StyleType.SANS_SERIF -> copy(
             fontFamily = families?.sansSerif ?: fontFamily,

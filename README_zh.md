@@ -91,6 +91,8 @@
 <summary><b>字体样式（17）</b></summary>
 
 `\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\textnormal`, `\textup`, `\textmd`, `\textsc`, `\textsl`, `\emph` 及 Unicode-math 样式别名。
+
+`\textsc{Mixed Case}` 对参数应用小型大写样式，`{\sc Mixed Case}` 和 `{\scshape Mixed Case}` 在所在分组内生效。Compose 将小写字母绘制为缩小的大写字形，原有大写字母保持全尺寸。
 </details>
 
 <details>

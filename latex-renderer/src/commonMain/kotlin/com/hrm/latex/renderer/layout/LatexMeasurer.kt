@@ -204,11 +204,13 @@ internal fun measureNode(
         }
 
         is LatexNode.InlineMath -> measureGroup(
-            node.children, context.copy(mathStyle = MathStyle.TEXT, isCramped = false, fontStyle = null), measurer, density, cache = cache
+            node.children, context.copy(mathStyle = MathStyle.TEXT, isCramped = false, fontStyle = null, smallCaps = false),
+            measurer, density, cache = cache
         )
 
         is LatexNode.DisplayMath -> measureGroup(
-            node.children, context.copy(mathStyle = MathStyle.DISPLAY, isCramped = false), measurer, density, cache = cache
+            node.children, context.copy(mathStyle = MathStyle.DISPLAY, isCramped = false, smallCaps = false),
+            measurer, density, cache = cache
         )
 
         // MathLap: 绘制内容但宽度为零（或部分为零）

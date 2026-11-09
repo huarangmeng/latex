@@ -91,6 +91,8 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 <summary><b>Font Styles (17)</b></summary>
 
 `\mathbf`, `\mathit`, `\mathrm`, `\mathsf`, `\mathtt`, `\mathbb`, `\mathfrak`, `\mathcal`, `\mathscr`, `\boldsymbol`, `\bm`, `\text`, `\mbox`, `\textnormal`, `\textup`, `\textmd`, `\textsc`, `\textsl`, `\emph`, and Unicode-math style aliases.
+
+`\textsc{Mixed Case}` applies small caps to its argument. The declarations `{\sc Mixed Case}` and `{\scshape Mixed Case}` apply within the enclosing group. Compose draws lowercase letters as scaled uppercase glyphs and keeps existing capitals at full size.
 </details>
 
 <details>

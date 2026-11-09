@@ -116,6 +116,22 @@ class LatexSvgExporterTest {
     }
 
     @Test
+    fun smallCapsRendersMixedCaseAndScopedDeclarations() {
+        val exporter = createExporter()
+        val config = LatexConfig(fontSize = 40.sp)
+        fun export(source: String) = assertNotNull(exporter.exportSvg(source, config = config))
+
+        val mixed = export("""\textsc{WWww1}+\textrm{outside}""")
+        assertEquals(mixed.svg, export("""{\sc WWww1}+\textrm{outside}""").svg)
+        assertEquals(mixed.svg, export("""{\scshape WWww1}+\textrm{outside}""").svg)
+        assertEquals(mixed.svg, export("""\text{\textsc{WWww1}}+\textrm{outside}""").svg)
+        assertNotEquals(mixed.svg, export("""\textrm{WWww1}+\textrm{outside}""").svg)
+        assertTrue(mixed.width < export("""\textrm{WWWW1}+\textrm{outside}""").width)
+        assertTrue(mixed.width > export("""\textsc{wwww1}+\textrm{outside}""").width)
+        assertEquals(export("""\textrm{WW1}""").svg, export("""\textsc{WW1}""").svg)
+    }
+
+    @Test
     fun arraySpacingAndDashRulesAffectExportedLayout() {
         val exporter = createExporter()
         val body = "\\begin{array}{cc}a&b\\\\\\hline c&d\\end{array}"

@@ -765,6 +765,11 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("28", "Named colors and declaration scopes", "\\definecolor{accent}{HTML}{3A7BD5}{\\color{accent}a+b}+\\textcolor[RGB]{220,50,70}{c}"),
             PreviewItem("29", "Structured and verbatim text", "\\text{normal \\textbf{bold} and \$x^2\$}+\\verb|a%{b}|"),
             PreviewItem("30", "Array spacing and dashed lines", "\\def\\arraystretch{1.5}\\setlength{\\arraycolsep}{8pt}\\begin{array}{cc}a&b\\\\\\hdashline c&d\\end{array}"),
+            PreviewItem(
+                "31",
+                "Issue #57: small caps and group scope",
+                "\\textrm{Abc123}\\quad\\textsc{Abc123}\\quad{\\sc Abc}\\quad{\\scshape Abc}\\quad\\text{outside}"
+            ),
         )
     ),
     PreviewGroup(

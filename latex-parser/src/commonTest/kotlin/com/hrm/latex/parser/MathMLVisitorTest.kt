@@ -39,6 +39,15 @@ class MathMLVisitorTest {
     }
 
     @Test
+    fun smallCapsKeepsSourceCaseAndLeavesInlineMathUnstyled() {
+        val result = MathMLVisitor.convert(parser.parse("""\textsc{Abc\text{Def} ${'$'}x${'$'}}y"""))
+        assertTrue(result.contains("""<mtext style="font-variant-caps: small-caps">Abc</mtext>"""))
+        assertTrue(result.contains("""<mtext style="font-variant-caps: small-caps">Def</mtext>"""))
+        assertTrue(result.contains("<mi>x</mi>"))
+        assertTrue(result.contains("<mi>y</mi>"))
+    }
+
+    @Test
     fun testDisplayMode() {
         val doc = parser.parse("x")
         val block = MathMLVisitor.convert(doc, displayMode = true)

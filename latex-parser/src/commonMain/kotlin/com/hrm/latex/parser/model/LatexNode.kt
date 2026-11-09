@@ -509,7 +509,7 @@ sealed class LatexNode {
     ) : LatexNode() {
         enum class StyleType {
             BOLD, BOLD_SYMBOL, ITALIC, ROMAN, SANS_SERIF, MONOSPACE,
-            BLACKBOARD_BOLD, FRAKTUR, SCRIPT, CALLIGRAPHIC
+            BLACKBOARD_BOLD, FRAKTUR, SCRIPT, CALLIGRAPHIC, SMALL_CAPS
         }
 
         override fun children() = content

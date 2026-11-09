@@ -57,6 +57,7 @@ private val bboxMathMlDimensionPattern =
  */
 class MathMLVisitor : BaseLatexVisitor<String>() {
     private var currentFontScale: Float = 1.0f
+    private var smallCaps = false
 
     companion object {
         /**
@@ -88,6 +89,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitText(node: LatexNode.Text): String {
+        if (smallCaps) return textElement(node.content)
         return node.content.map { ch ->
             when {
                 ch.isDigit() -> "<mn>$ch</mn>"
@@ -101,8 +103,21 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         }.joinToString("")
     }
 
-    override fun visitInlineMath(node: LatexNode.InlineMath): String = mrow(node.children.joinToString("") { visit(it) })
-    override fun visitDisplayMath(node: LatexNode.DisplayMath): String = mrow(node.children.joinToString("") { visit(it) })
+    override fun visitInlineMath(node: LatexNode.InlineMath): String =
+        withSmallCaps(false) { mrow(node.children.joinToString("") { visit(it) }) }
+
+    override fun visitDisplayMath(node: LatexNode.DisplayMath): String =
+        withSmallCaps(false) { mrow(node.children.joinToString("") { visit(it) }) }
+
+    private inline fun withSmallCaps(enabled: Boolean, content: () -> String): String {
+        val previous = smallCaps
+        smallCaps = enabled
+        return try {
+            content()
+        } finally {
+            smallCaps = previous
+        }
+    }
 
     override fun visitGroup(node: LatexNode.Group): String {
         return mrow(node.children.joinToString("") { visit(it) })
@@ -292,7 +307,9 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitStyle(node: LatexNode.Style): String {
-        val content = node.content.joinToString("") { visit(it) }
+        val content = withSmallCaps(smallCaps || node.styleType == LatexNode.Style.StyleType.SMALL_CAPS) {
+            node.content.joinToString("") { visit(it) }
+        }
         val attr = when (node.styleType) {
             LatexNode.Style.StyleType.BOLD, LatexNode.Style.StyleType.BOLD_SYMBOL ->
                 " mathvariant=\"bold\""
@@ -304,6 +321,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Style.StyleType.FRAKTUR -> " mathvariant=\"fraktur\""
             LatexNode.Style.StyleType.SCRIPT -> " mathvariant=\"script\""
             LatexNode.Style.StyleType.CALLIGRAPHIC -> " mathvariant=\"script\""
+            LatexNode.Style.StyleType.SMALL_CAPS -> return mrow(content)
         }
         return "<mstyle$attr>$content</mstyle>"
     }
@@ -423,8 +441,13 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitTextMode(node: LatexNode.TextMode): String {
-        return if (node.content.isEmpty()) "<mtext>${escapeXml(node.text)}</mtext>"
+        return if (node.content.isEmpty()) textElement(node.text)
             else mrow(node.content.joinToString("") { visit(it) })
+    }
+
+    private fun textElement(text: String): String {
+        val style = if (smallCaps) " style=\"font-variant-caps: small-caps\"" else ""
+        return "<mtext$style>${escapeXml(text)}</mtext>"
     }
 
     override fun visitNegation(node: LatexNode.Negation): String {
