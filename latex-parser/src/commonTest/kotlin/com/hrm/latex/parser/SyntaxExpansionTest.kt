@@ -24,6 +24,7 @@ package com.hrm.latex.parser
 
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.LatexNode.Style.StyleType
+import com.hrm.latex.parser.visitor.MathMLVisitor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -31,6 +32,123 @@ import kotlin.test.assertTrue
 
 class SyntaxExpansionTest {
     private val parser = LatexParser()
+
+    @Test
+    fun parsesKaTeXSymbolsDelimitersOperatorsAndText() {
+        val symbols = parser.parse("""\leqq\gtreqless\backepsilon\lvertneqq\npreceq\upuparrows""")
+        assertEquals(listOf("≦", "⋛", "∍", "≨︀", "⋠", "⇈"),
+            symbols.children.map { assertIs<LatexNode.Symbol>(it).unicode })
+        val delimited = assertIs<LatexNode.Delimited>(parser.parse(
+            """\left\llbracket\frac{x}{y}\right\rrbracket"""
+        ).children.single())
+        assertEquals("⟦" to "⟧", delimited.left to delimited.right)
+
+        val dots = parser.parse("""\dotsb\dotsc\dotsi\dotsm\dotso""")
+        assertEquals(listOf("⋯", "…", "⋯", "⋯", "…"),
+            dots.descendants().filterIsInstance<LatexNode.Symbol>().map { it.unicode })
+        assertEquals(LatexNode.Space.SpaceType.NEGATIVE_THIN,
+            dots.descendants().filterIsInstance<LatexNode.Space>().single().type)
+        val operators = parser.parse("""\argmax_x\argmin_y""").children
+            .map { assertIs<LatexNode.BigOperator>(it) }
+        assertEquals(listOf("arg\u2009max", "arg\u2009min"), operators.map { it.operator })
+        assertTrue(operators.all { it.subscript != null && it.limitsInDisplay })
+
+        val text = assertIs<LatexNode.TextMode>(parser.parse(
+            """\text{\AA\textdegree\textemdash\textbackslash\'{e}\c{c}}"""
+        ).children.single())
+        assertEquals("Å°—\\e\u0301c\u0327", text.text)
+    }
+
+    @Test
+    fun parsesAnnotatedHarpoonsAndDoubleHeads() {
+        val document = parser.parse(
+            """\xrightleftharpoons[below]{above}\xleftrightharpoons{x}\xrightharpoonup{x}\xtwoheadrightarrow{x}"""
+        )
+        val arrows = document.children.map { assertIs<LatexNode.ExtensibleArrow>(it) }
+        assertEquals(listOf("RIGHT_LEFT_HARPOONS", "LEFT_RIGHT_HARPOONS", "RIGHT_HARPOON_UP", "TWO_HEAD_RIGHT"),
+            arrows.map { it.direction.name })
+        assertTrue(arrows.first().below != null)
+    }
+
+    @Test
+    fun parsesRepeatedAndTightArrayColumnsAndMultlined() {
+        val array = parser.parseWithDiagnostics("""\begin{array}{*{2}{r@{}c}}1&2&3&4\end{array}""")
+        assertTrue(array.diagnostics.isEmpty(), array.diagnostics.toString())
+        val table = assertIs<LatexNode.Array>(array.document.children.single())
+        assertEquals("rcrc", table.alignment)
+        assertEquals(setOf(1, 3), table.tightColumnBoundaries)
+        assertEquals(4, table.rows.single().size)
+        val mathML = MathMLVisitor.convert(array.document)
+        assertTrue("""columnalign="right center right center"""" in mathML)
+        assertTrue("""columnspacing="0em 0.8em 0em"""" in mathML)
+
+        val multlined = assertIs<LatexNode.Multline>(parser.parse(
+            """\begin{multlined}[b][8em]a=b\\[2pt]c=d\end{multlined}"""
+        ).children.single())
+        assertEquals("multlined", multlined.envName)
+        assertEquals(LatexNode.Multline.Position.BOTTOM, multlined.position)
+        assertEquals("8em", multlined.width)
+        assertEquals(2, multlined.lines.size)
+        assertEquals("pt", multlined.rowGaps.single()?.unit)
+    }
+
+    @Test
+    fun expandsPairedDelimitersWithParametersAndModifiers() {
+        val doc = parser.parseWithDiagnostics(
+            """\DeclarePairedDelimiterX{\pair}[2]{\langle}{\rangle}{#1\delimsize\vert#2}\pair{a}{b}\pair*{\frac{a}{b}}{c}\pair[\Big]{d}{e}"""
+        )
+        assertTrue(doc.diagnostics.isEmpty(), doc.diagnostics.toString())
+        assertTrue(doc.document.descendants().none { it is LatexNode.Command })
+        val delimited = assertIs<LatexNode.Delimited>(doc.document.children[2])
+        assertEquals("⟨" to "⟩", delimited.left to delimited.right)
+        assertTrue(delimited.content.any { it is LatexNode.ManualSizedDelimiter && it.isMiddle })
+        assertEquals(3, doc.document.children.last().descendants().filterIsInstance<LatexNode.ManualSizedDelimiter>().size)
+    }
+
+    @Test
+    fun parsesQuantitiesAndResolvesScopedColorMixes() {
+        val doc = parser.parseWithDiagnostics(
+            """\qty[per-mode=symbol]{9.8}{\meter\per\second\squared}\qty[per-mode=fraction]{9.8}{\meter\per\second}\numlist{1;2e3;4}\qtylist{1;2;3}{\meter}\colorlet{accent}{red!30!blue}\textcolor{accent}{x}\colorbox{accent!50}{y}"""
+        )
+        assertTrue(doc.diagnostics.isEmpty(), doc.diagnostics.toString())
+        assertTrue(doc.document.descendants().none { it is LatexNode.Command })
+        assertEquals(7, doc.document.children.size)
+        assertTrue(doc.document.children[1].descendants().any { it is LatexNode.Fraction })
+        assertTrue(doc.document.children[2].descendants().any { it is LatexNode.Superscript })
+        assertEquals(3, doc.document.children[3].descendants().filterIsInstance<LatexNode.Style>().size)
+        assertEquals("#4d00b3", assertIs<LatexNode.Color>(doc.document.children[5]).color)
+        assertEquals("#a680d9", assertIs<LatexNode.ColorBox>(doc.document.children[6]).backgroundColor)
+    }
+
+    @Test
+    fun mathcodeRespectsGroupingGlobalAssignmentsAndTextMode() {
+        val source = """{\mathcode`+="302B"a+b \text{a+b} \global\mathcode`-="2200"} a+b-c"""
+        val doc = parser.parseWithDiagnostics(source)
+        assertTrue(doc.diagnostics.isEmpty(), doc.diagnostics.toString())
+        val classified = doc.document.descendants().filterIsInstance<LatexNode.MathClass>()
+        assertEquals(listOf(LatexNode.MathClass.AtomClass.REL, LatexNode.MathClass.AtomClass.BIN), classified.map { it.atomClass })
+        assertEquals("−", assertIs<LatexNode.Text>(classified.last().content.single()).content)
+        assertTrue(doc.document.descendants().any { it is LatexNode.TextMode && it.text == "a+b" })
+
+        val active = parser.parseWithDiagnostics("""{\mathcode`;="8000\def;{\alpha} a;b\text{;}} c;d""")
+        assertTrue(active.diagnostics.isEmpty(), active.diagnostics.toString())
+        assertEquals("α", active.document.descendants().filterIsInstance<LatexNode.Symbol>().single().unicode)
+        assertTrue(active.document.descendants().any { it is LatexNode.TextMode && it.text == ";" })
+        assertTrue(active.document.children.any { it is LatexNode.Text && it.content == ";" })
+    }
+
+    @Test
+    fun mathcodesSplitCoalescedTextAndRespectNestedMath() {
+        val source = """\mathcode65=12353 \mathcode`x='141 Aword x \text{A ${'$'}A${'$'}}"""
+        val doc = parser.parseWithDiagnostics(source)
+        assertTrue(doc.diagnostics.isEmpty(), doc.diagnostics.toString())
+        val atoms = doc.document.descendants().filterIsInstance<LatexNode.MathClass>()
+        assertEquals(3, atoms.size)
+        assertEquals(LatexNode.MathClass.AtomClass.REL, atoms.first().atomClass)
+        assertEquals("a", atoms[1].descendants().filterIsInstance<LatexNode.Text>().single().content)
+        assertEquals("A", atoms.first().descendants().filterIsInstance<LatexNode.Text>().single().content)
+        assertTrue(doc.document.descendants().any { it is LatexNode.TextMode && it.text == "A" })
+    }
 
     @Test
     fun parsesGeneralizedAndInfixFractions() {

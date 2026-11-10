@@ -22,9 +22,11 @@
 
 package com.hrm.latex.parser.component.handler
 
+import com.hrm.latex.parser.ParseDiagnostic
 import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
 
 /** Common, deliberately small subsets of the physics and siunitx packages. */
@@ -93,26 +95,31 @@ private fun CommandRegistry.installSiunitxHandlers() {
         formatNumber(ctx.parseArgument() ?: LatexNode.Text(""))
     }
 
-    register("si") { _, ctx, _ ->
-        formatUnit(ctx.parseArgument() ?: LatexNode.Text(""))
-    }
-
-    register("SI") { _, ctx, _ ->
-        val number = formatNumber(ctx.parseArgument() ?: LatexNode.Text(""))
-        val unit = formatUnit(ctx.parseArgument() ?: LatexNode.Text(""))
-        LatexNode.Group(
-            listOf(number, LatexNode.Space(LatexNode.Space.SpaceType.THIN), unit)
-        )
-    }
-
-    register("unit") { _, ctx, _ ->
-        formatUnit(ctx.parseArgument() ?: LatexNode.Text(""))
+    register("si", "unit") { _, ctx, stream ->
+        val perMode = readPerMode(ctx, stream)
+        formatUnit(ctx.parseArgument() ?: LatexNode.Text(""), perMode)
     }
 
     // siunitx v3 spellings. \qty intentionally belongs to siunitx here; the
     // physics-package parenthesis alias remains available as \quantity only.
-    register("qty") { _, ctx, _ ->
-        quantity(ctx)
+    register("SI", "qty") { _, ctx, stream ->
+        val perMode = readPerMode(ctx, stream)
+        val number = formatNumber(ctx.parseArgument() ?: LatexNode.Text(""))
+        val unit = formatUnit(ctx.parseArgument() ?: LatexNode.Text(""), perMode)
+        quantity(number, unit)
+    }
+    register("numlist", "qtylist") { name, ctx, stream ->
+        val perMode = readPerMode(ctx, stream)
+        val values = ParseUtils.extractText(listOfNotNull(ctx.parseArgument()))
+            .split(';').map(String::trim).filter(String::isNotEmpty)
+            .map { formatNumber(LatexNode.Text(it)) }
+        val unit = if (name == "qtylist") formatUnit(ctx.parseArgument() ?: LatexNode.Text(""), perMode) else null
+        LatexNode.Group(buildList {
+            for ((index, number) in values.withIndex()) {
+                if (index > 0) add(LatexNode.TextMode(if (index == values.lastIndex) " and " else ", "))
+                add(if (unit == null) number else quantity(number, unit))
+            }
+        })
     }
     register("quantity") { _, ctx, _ -> delimited(ctx, "(", ")") }
 
@@ -123,11 +130,12 @@ private fun CommandRegistry.installSiunitxHandlers() {
         )
     }
 
-    register("qtyrange") { _, ctx, _ ->
+    register("qtyrange") { _, ctx, stream ->
+        val perMode = readPerMode(ctx, stream)
         val from = formatNumber(ctx.parseArgument() ?: LatexNode.Text(""))
         val to = formatNumber(ctx.parseArgument() ?: LatexNode.Text(""))
-        val unit = formatUnit(ctx.parseArgument() ?: LatexNode.Text(""))
-        LatexNode.Group(listOf(range(from, to), LatexNode.Space(LatexNode.Space.SpaceType.THIN), unit))
+        val unit = formatUnit(ctx.parseArgument() ?: LatexNode.Text(""), perMode)
+        quantity(range(from, to), unit)
     }
 
     register("ang") { _, ctx, _ ->
@@ -176,10 +184,27 @@ private fun CommandRegistry.installSiunitxHandlers() {
     register("cubed") { _, _, _ -> LatexNode.Text("³") }
 }
 
-private fun quantity(ctx: LatexParserContext): LatexNode {
-    val number = formatNumber(ctx.parseArgument() ?: LatexNode.Text(""))
-    val unit = formatUnit(ctx.parseArgument() ?: LatexNode.Text(""))
-    return LatexNode.Group(listOf(number, LatexNode.Space(LatexNode.Space.SpaceType.THIN), unit))
+private fun quantity(number: LatexNode, unit: LatexNode): LatexNode =
+    LatexNode.Group(listOf(number, LatexNode.Space(LatexNode.Space.SpaceType.THIN), unit))
+
+private fun readPerMode(ctx: LatexParserContext, stream: LatexTokenStream): String? {
+    val options = stream.readOptionalTokens()?.text() ?: return null
+    var perMode: String? = null
+    for (option in options.split(',').map(String::trim).filter(String::isNotEmpty)) {
+        val key = option.substringBefore('=').trim()
+        val value = option.substringAfter('=', "").trim()
+        if (key == "per-mode" && value in setOf("symbol", "fraction")) {
+            perMode = value
+        } else {
+            ctx.diagnostics.add(ParseDiagnostic(
+                stream.peek(-1)?.range ?: SourceRange.EMPTY,
+                "Unsupported siunitx option: $option",
+                ParseDiagnostic.Severity.WARNING,
+                ParseDiagnostic.Category.INVALID_ARGUMENT
+            ))
+        }
+    }
+    return perMode
 }
 
 private fun range(from: LatexNode, to: LatexNode): LatexNode = LatexNode.Group(
@@ -225,7 +250,7 @@ private fun formatNumber(arg: LatexNode): LatexNode {
     )
 }
 
-private fun formatUnit(arg: LatexNode): LatexNode {
+private fun formatUnit(arg: LatexNode, perMode: String? = null): LatexNode {
     val content = unwrap(arg).map { node ->
         node.mapNodes { child ->
             if (child is LatexNode.Text && '.' in child.content) {
@@ -233,6 +258,15 @@ private fun formatUnit(arg: LatexNode): LatexNode {
             } else {
                 child
             }
+        }
+    }
+    if (perMode == "fraction") {
+        val separator = content.indexOfFirst { it is LatexNode.Text && it.content == "/" }
+        if (separator > 0 && separator < content.lastIndex) {
+            return LatexNode.Fraction(
+                LatexNode.Style(content.take(separator), LatexNode.Style.StyleType.ROMAN),
+                LatexNode.Style(content.drop(separator + 1), LatexNode.Style.StyleType.ROMAN)
+            )
         }
     }
     return LatexNode.Style(content, LatexNode.Style.StyleType.ROMAN)

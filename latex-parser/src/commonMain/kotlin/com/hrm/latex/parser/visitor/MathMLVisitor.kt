@@ -188,7 +188,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitArray(node: LatexNode.Array): String {
-        return buildTable(node.rows, node.rowStretch, node.columnSep)
+        return buildTable(node.rows, node.rowStretch, node.columnSep, node.tightColumnBoundaries, columnSpec = node.alignment)
     }
 
     override fun visitSymbol(node: LatexNode.Symbol): String {
@@ -218,10 +218,15 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitHSpace(node: LatexNode.HSpace): String {
+        when (node.breakHint) {
+            LatexNode.HSpace.BreakHint.ALLOW -> return "<mspace width=\"0em\" linebreak=\"goodbreak\"/>"
+            LatexNode.HSpace.BreakHint.FORBID -> return "<mspace width=\"0em\" linebreak=\"nobreak\"/>"
+            null -> Unit
+        }
         return "<mspace width=\"${escapeXml(node.dimension)}\"/>"
     }
 
-    override fun visitNewLine(node: LatexNode.NewLine): String = ""
+    override fun visitNewLine(node: LatexNode.NewLine): String = "<mspace linebreak=\"newline\"/>"
 
     override fun visitDelimited(node: LatexNode.Delimited): String {
         val content = node.content.joinToString("") { visit(it) }
@@ -293,6 +298,14 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE -> "⇔"
             LatexNode.ExtensibleArrow.Direction.MAPSTO -> "↦"
             LatexNode.ExtensibleArrow.Direction.EQUAL -> "="
+            LatexNode.ExtensibleArrow.Direction.RIGHT_HARPOON_UP -> "⇀"
+            LatexNode.ExtensibleArrow.Direction.RIGHT_HARPOON_DOWN -> "⇁"
+            LatexNode.ExtensibleArrow.Direction.LEFT_HARPOON_UP -> "↼"
+            LatexNode.ExtensibleArrow.Direction.LEFT_HARPOON_DOWN -> "↽"
+            LatexNode.ExtensibleArrow.Direction.RIGHT_LEFT_HARPOONS -> "⇌"
+            LatexNode.ExtensibleArrow.Direction.LEFT_RIGHT_HARPOONS -> "⇋"
+            LatexNode.ExtensibleArrow.Direction.TWO_HEAD_RIGHT -> "↠"
+            LatexNode.ExtensibleArrow.Direction.TWO_HEAD_LEFT -> "↞"
         }
         val arrow = "<mo stretchy=\"true\">$arrowChar</mo>"
         val above = visit(node.content)
@@ -476,7 +489,13 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
 
     override fun visitMultline(node: LatexNode.Multline): String {
         val rows = node.lines.map { listOf(it) }
-        return buildTable(rows)
+        val alignment = when (node.position) {
+            LatexNode.Multline.Position.TOP -> "baseline 1"
+            LatexNode.Multline.Position.CENTER -> "axis"
+            LatexNode.Multline.Position.BOTTOM -> "baseline -1"
+            null -> null
+        }
+        return buildTable(rows, alignment = alignment, width = node.width)
     }
 
     override fun visitEqnarray(node: LatexNode.Eqnarray): String {
@@ -585,7 +604,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitTabular(node: LatexNode.Tabular): String {
-        return buildTable(node.rows, node.rowStretch, node.columnSep)
+        return buildTable(node.rows, node.rowStretch, node.columnSep, node.tightColumnBoundaries, columnSpec = node.alignment)
     }
 
     override fun visitHLine(node: LatexNode.HLine): String = ""
@@ -730,7 +749,15 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         return "<mpadded$paddingAttributes$styleAttribute>$content</mpadded>"
     }
 
-    private fun buildTable(rows: List<List<LatexNode>>, stretch: Float = 1f, columnSep: String? = null): String {
+    private fun buildTable(
+        rows: List<List<LatexNode>>,
+        stretch: Float = 1f,
+        columnSep: String? = null,
+        tightBoundaries: Set<Int> = emptySet(),
+        columnSpec: String? = null,
+        alignment: String? = null,
+        width: String? = null
+    ): String {
         val data = mutableListOf<List<LatexNode>>()
         val rules = mutableMapOf<Int, String>()
         for (row in rows) {
@@ -740,10 +767,31 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         }
         val attributes = buildString {
             if (stretch != 1f) append(" rowspacing=\"${0.5f * stretch}em\"")
-            if (columnSep != null) {
-                val match = Regex("([+-]?[0-9.]+)([a-zA-Z]+)").matchEntire(columnSep)
-                if (match != null) append(" columnspacing=\"${match.groupValues[1].toDouble() * 2}${escapeXml(match.groupValues[2])}\"")
+            val separator = columnSep?.let { Regex("([+-]?[0-9.]+)([a-zA-Z]+)").matchEntire(it) }
+                ?.let { match -> match.groupValues[1].toDoubleOrNull()?.let { 2 * it to match.groupValues[2] } }
+                ?.let { (size, unit) -> size.toString() + escapeXml(unit) }
+            if (tightBoundaries.isNotEmpty()) {
+                val columnCount = data.maxOfOrNull { row -> row.sumOf { (it as? LatexNode.Multicolumn)?.columnCount ?: 1 } } ?: 0
+                if (columnCount > 1) {
+                    val gaps = (1 until columnCount).joinToString(" ") { if (it in tightBoundaries) "0em" else separator ?: "0.8em" }
+                    append(" columnspacing=\"$gaps\"")
+                }
+            } else if (separator != null) {
+                append(" columnspacing=\"$separator\"")
             }
+            val columnAlignment = columnSpec?.mapNotNull {
+                when (it) {
+                    'l' -> "left"
+                    'c' -> "center"
+                    'r' -> "right"
+                    else -> null
+                }
+            }
+            if (columnAlignment != null && columnAlignment.any { it != "center" }) {
+                append(" columnalign=\"").append(columnAlignment.joinToString(" ")).append('"')
+            }
+            if (alignment != null) append(" align=\"$alignment\"")
+            if (width != null) append(" width=\"").append(escapeXml(width)).append('"')
             if (rules.isNotEmpty()) {
                 val lines = (1 until data.size).joinToString(" ") { rules[it] ?: "none" }
                 if (lines.isNotEmpty()) append(" rowlines=\"$lines\"")

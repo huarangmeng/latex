@@ -41,7 +41,8 @@ data class CustomCommand(
     val defaultTokens: List<LatexToken>? = null,
     val parameterText: List<LatexToken> = emptyList(),
     val acceptsDelimiterModifier: Boolean = false,
-    val isAlias: Boolean = false
+    val isAlias: Boolean = false,
+    val pairedDelimiters: Pair<List<LatexToken>, List<LatexToken>>? = null
 )
 
 /** Environment definitions remain unexpanded until the environment is entered. */
@@ -67,6 +68,9 @@ internal interface LatexParserContext {
     val lengths: Map<String, String>
     fun defineLength(name: String, value: String)
     val colors: Map<String, String>
+    val mathCodes: Map<Char, Int>
+    var inTextMode: Boolean
+    fun defineMathCode(character: Char, code: Int)
     val diagnostics: MutableList<ParseDiagnostic>
     var globalAssignment: Boolean
     fun expandTokens(tokens: List<LatexToken>): List<LatexToken>
@@ -81,6 +85,7 @@ internal interface LatexParserContext {
     fun parseExpression(): LatexNode?
     fun parseFactor(): LatexNode?
     fun parseArgument(): LatexNode?
+    fun parseTextArgument(): LatexNode?
     fun parseGroup(): LatexNode.Group
     /** Opening command has already been consumed by CommandParser. */
     fun parseCommandGroup(command: String): LatexNode.Group

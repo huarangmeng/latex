@@ -85,7 +85,8 @@ internal class MatrixMeasurer : NodeMeasurer {
             is LatexNode.Matrix -> measureMatrix(node, context, measurer, density, measureNode)
             is LatexNode.Array -> measureTabular(
                 LatexNode.Tabular(node.rows, node.alignment, rowGaps = node.rowGaps,
-                    rowStretch = node.rowStretch, columnSep = node.columnSep),
+                    rowStretch = node.rowStretch, columnSep = node.columnSep,
+                    tightColumnBoundaries = node.tightColumnBoundaries),
                 context, measurer, density, measureNode
             )
 
@@ -119,7 +120,7 @@ internal class MatrixMeasurer : NodeMeasurer {
                 )
             }
 
-            is LatexNode.Multline -> measureMultline(node, context, density, measureNode)
+            is LatexNode.Multline -> measureMultline(node, context, measurer, density, measureNode)
             is LatexNode.Subequations -> measureGroup(node.content, context)
             else -> throw IllegalArgumentException("Unsupported node type: ${node::class.simpleName}")
         }
@@ -489,6 +490,8 @@ internal class MatrixMeasurer : NodeMeasurer {
             }
         }
 
+        fun columnGap(boundary: Int): Float = if (boundary in node.tightColumnBoundaries) 0f else colSpacing
+
         // 检查 multicolumn 单元格是否需要扩展列宽
         for (r in 0 until rowCount) {
             var colIdx = 0
@@ -496,7 +499,7 @@ internal class MatrixMeasurer : NodeMeasurer {
                 if (cell.colSpan > 1) {
                     val endCol = min(colIdx + cell.colSpan, colCount)
                     val spanWidth = (colIdx until endCol).sumOf { colWidths[it].toDouble() }.toFloat() +
-                        colSpacing * max(0, endCol - colIdx - 1)
+                        (colIdx + 1 until endCol).sumOf { columnGap(it).toDouble() }.toFloat()
                     if (cell.layout.width > spanWidth) {
                         val extra = cell.layout.width - spanWidth
                         val perCol = extra / (endCol - colIdx)
@@ -532,7 +535,7 @@ internal class MatrixMeasurer : NodeMeasurer {
             colXOffsets[c] = xAcc
             xAcc += colWidths[c]
             if (c < colCount - 1) {
-                xAcc += colSpacing
+                xAcc += columnGap(c + 1)
                 if (vLinePositions.contains(c + 1)) {
                     xAcc += vLinePadding + lineStrokeWidth + vLinePadding
                 }
@@ -683,29 +686,39 @@ internal class MatrixMeasurer : NodeMeasurer {
     private fun measureMultline(
         node: LatexNode.Multline,
         context: RenderContext,
+        measurer: TextMeasurer,
         density: Density,
         measureNode: (LatexNode, RenderContext) -> NodeLayout
     ): NodeLayout {
         val lineLayouts = node.lines.map { measureNode(it, context) }
         if (lineLayouts.isEmpty()) return NodeLayout(0f, 0f, 0f) { _, _ -> }
 
-        val maxWidth = lineLayouts.maxOf { it.width }
+        val maxWidth = max(lineLayouts.maxOf { it.width },
+            node.width?.let { parseDimension(it, context, density) } ?: 0f)
         val rowSpacing =
             with(density) { (context.fontSize * MathConstants.MULTLINE_ROW_SPACING).toPx() }
-        val totalHeight = lineLayouts.sumOf { it.height.toDouble() }
-            .toFloat() + rowSpacing * (lineLayouts.size - 1)
-        val baseline = lineLayouts.first().baseline
+        val rowOffsets = FloatArray(lineLayouts.size)
+        for (i in 1 until rowOffsets.size) {
+            val gap = node.rowGaps.getOrNull(i - 1)?.let {
+                parseDimension(it.number.toString() + it.unit, context, density)
+            } ?: 0f
+            rowOffsets[i] = rowOffsets[i - 1] + lineLayouts[i - 1].height + rowSpacing + gap
+        }
+        val totalHeight = rowOffsets.last() + lineLayouts.last().height
+        val baseline = when (node.position) {
+            LatexNode.Multline.Position.CENTER -> totalHeight / 2 + LayoutUtils.getAxisHeight(density, context, measurer)
+            LatexNode.Multline.Position.BOTTOM -> rowOffsets.last() + lineLayouts.last().baseline
+            else -> lineLayouts.first().baseline
+        }
 
         return NodeLayout(maxWidth, totalHeight, baseline) { x, y ->
-            var currentY = y
             lineLayouts.forEachIndexed { i, layout ->
                 val offsetX = when {
                     i == 0 -> 0f
                     i == lineLayouts.lastIndex -> maxWidth - layout.width
                     else -> (maxWidth - layout.width) / 2
                 }
-                layout.draw(this, x + offsetX, currentY)
-                currentY += layout.height + rowSpacing
+                layout.draw(this, x + offsetX, y + rowOffsets[i])
             }
         }
     }

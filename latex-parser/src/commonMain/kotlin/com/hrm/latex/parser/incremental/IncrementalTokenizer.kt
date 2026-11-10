@@ -55,7 +55,7 @@ class IncrementalTokenizer {
         hasContextDependencies = when (token.name) {
             "def", "gdef", "edef", "xdef", "let", "global",
             "newcommand", "renewcommand", "providecommand", "DeclareMathOperator",
-            "DeclarePairedDelimiter", "newenvironment", "renewenvironment",
+            "DeclarePairedDelimiter", "DeclarePairedDelimiterX", "mathcode", "newenvironment", "renewenvironment",
             "csname", "ifdefined", "ifx", "expandafter", "noexpand",
             "definecolor", "colorlet", "color", "arraycolsep", "setlength" -> true
             else -> false

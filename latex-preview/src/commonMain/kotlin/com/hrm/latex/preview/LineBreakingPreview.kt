@@ -34,7 +34,24 @@ import com.hrm.latex.renderer.LatexAutoWrap
  * demonstrates automatic line breaking for long formulas
  */
 
+private val allowBreakExample =
+    """\mathrm{firstTerm}\allowbreak\mathrm{secondTerm}\allowbreak\mathrm{thirdTerm}\allowbreak\mathrm{fourthTerm}"""
+private val noBreakExample =
+    """\mathrm{firstTerm}+\mathrm{secondTerm}=\nobreak\mathrm{thirdTerm}+\mathrm{fourthTerm}"""
+
 val lineBreakingPreviewGroups = listOf(
+    PreviewGroup(
+        id = "explicit-breaks",
+        title = "Explicit break hints",
+        description = "Preferred breaks, bound terms, and hard line breaks",
+        items = listOf(
+            PreviewItem("allow-break", "Allow a break between terms", allowBreakExample,
+                content = { LatexAutoWrap(latex = allowBreakExample, modifier = Modifier.width(180.dp)) }),
+            PreviewItem("no-break", "Keep an operator with the following term", noBreakExample,
+                content = { LatexAutoWrap(latex = noBreakExample, modifier = Modifier.width(180.dp)) }),
+            PreviewItem("new-line", "Explicit new line", """x+y=1\newline a+b=2"""),
+        )
+    ),
     PreviewGroup(
         id = "autowrap_basic",
         title = "1. basic autowrap",

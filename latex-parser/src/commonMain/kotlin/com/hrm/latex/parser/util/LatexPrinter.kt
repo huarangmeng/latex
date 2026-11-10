@@ -264,8 +264,21 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         return ""
     }
     
+    override fun visitExtensibleArrow(node: LatexNode.ExtensibleArrow): String {
+        output.append("ExtensibleArrow(").append(node.direction).append(", ")
+        visit(node.content)
+        node.below?.let { output.append(", "); visit(it) }
+        output.append(")")
+        return ""
+    }
+
+    override fun visitNewLine(node: LatexNode.NewLine): String {
+        output.append("NewLine")
+        return ""
+    }
+
     override fun visitHSpace(node: LatexNode.HSpace): String {
-        output.append("HSpace(${node.dimension})")
+        output.append(node.breakHint?.let { "BreakHint($it)" } ?: "HSpace(${node.dimension})")
         return ""
     }
     

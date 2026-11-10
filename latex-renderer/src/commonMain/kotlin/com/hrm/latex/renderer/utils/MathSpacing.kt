@@ -220,7 +220,7 @@ object MathSpacing {
         "mapsto", "to", "longmapsto",
         "propto", "varpropto", "perp", "parallel", "mid",
         "prec", "succ", "preceq", "succeq",
-        "vdash", "dashv",
+        "vdash", "dashv", "leqq", "gtreqless", "backepsilon", "lvertneqq", "npreceq", "upuparrows",
         "coloneqq", "coloneq", "eqqcolon", "eqcolon", "dblcolon"
     )
 
@@ -232,12 +232,12 @@ object MathSpacing {
     /**
      * 开定界符
      */
-    private val OPEN_DELIMITERS = setOf("(", "[", "{", "\\{", "\\langle", "\\lfloor", "\\lceil")
+    private val OPEN_DELIMITERS = setOf("(", "[", "{", "⟦", "llbracket", "\\{", "\\langle", "\\lfloor", "\\lceil")
 
     /**
      * 闭定界符
      */
-    private val CLOSE_DELIMITERS = setOf(")", "]", "}", "\\}", "\\rangle", "\\rfloor", "\\rceil")
+    private val CLOSE_DELIMITERS = setOf(")", "]", "}", "⟧", "rrbracket", "\\}", "\\rangle", "\\rfloor", "\\rceil")
 
     /**
      * 将 LatexNode 分类为 AtomType

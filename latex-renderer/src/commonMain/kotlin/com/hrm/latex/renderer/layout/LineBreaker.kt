@@ -76,15 +76,19 @@ internal class LineBreaker(private val maxWidth: Float) {
         val candidatePenalties = IntArray(nodes.size)
         var candidateHead = 0
         var candidateEnd = 0
+        val forbidden = forbiddenBreaks(nodes)
         val ranges = ArrayList<IntRange>()
         var lineStart = 0
+        var lastAllowedBoundary = 0
         var depth = 0
 
         for (i in nodes.indices) {
             val node = nodes[i]
             depth += getDepthDelta(node, entering = true)
             val penalty = calculatePenalty(node, depth)
-            if (i > lineStart && penalty < NOBREAK) {
+            val allowed = forbidden?.get(i) != true
+            if (allowed) lastAllowedBoundary = i
+            if (i > lineStart && penalty < NOBREAK && allowed) {
                 while (candidateEnd > candidateHead && candidatePenalties[candidateEnd - 1] >= penalty) {
                     candidateEnd--
                 }
@@ -96,10 +100,13 @@ internal class LineBreaker(private val maxWidth: Float) {
 
             // 提交旧候选后，剩余部分加当前节点仍可能超宽，必须继续检查。
             while (i > lineStart && width(lineStart, i + 1) > maxWidth) {
-                var breakAt = if (candidateHead < candidateEnd) candidateIndices[candidateHead] else i
+                var breakAt = if (candidateHead < candidateEnd) candidateIndices[candidateHead] else lastAllowedBoundary
+                if (breakAt <= lineStart) break
                 // 负间距或边界修正可能使去掉前缀后的候选行反而变宽，不能提交超宽组合。
                 if (breakAt > lineStart + 1 && width(lineStart, breakAt) > maxWidth) {
                     breakAt = lineStart + 1
+                    while (breakAt < i && forbidden?.get(breakAt) == true) breakAt++
+                    if (forbidden?.get(breakAt) == true) break
                 }
                 ranges.add(lineStart until breakAt)
                 lineStart = breakAt
@@ -111,6 +118,26 @@ internal class LineBreaker(private val maxWidth: Float) {
         }
         ranges.add(lineStart until nodes.size)
         return ranges
+    }
+
+    /** A no-break marker binds the atoms on both sides, including intervening spaces. */
+    private fun forbiddenBreaks(nodes: List<LatexNode>): BooleanArray? {
+        var forbidden: BooleanArray? = null
+        var previousAtom = -1
+        var binding = false
+        for ((index, node) in nodes.withIndex()) {
+            if ((node as? LatexNode.HSpace)?.breakHint == LatexNode.HSpace.BreakHint.FORBID) binding = true
+            if (node is LatexNode.Space || node is LatexNode.HSpace) continue
+            if (binding && previousAtom >= 0) {
+                if (forbidden == null) forbidden = BooleanArray(nodes.size)
+                for (boundary in previousAtom + 1..index) forbidden[boundary] = true
+                // This breaker places operators at the start of the next line.
+                if (calculatePenalty(nodes[previousAtom], 0) < NOBREAK) forbidden[previousAtom] = true
+            }
+            previousAtom = index
+            binding = false
+        }
+        return forbidden
     }
 
     private fun getDepthDelta(node: LatexNode, entering: Boolean): Int {
@@ -134,6 +161,7 @@ internal class LineBreaker(private val maxWidth: Float) {
             is LatexNode.Symbol -> getSymbolPenalty(node.unicode)
             is LatexNode.Text -> getTextPenalty(node.content)
             is LatexNode.Space -> PENALTY_SPACE
+            is LatexNode.HSpace -> if (node.breakHint == LatexNode.HSpace.BreakHint.ALLOW) PENALTY_SPACE else NOBREAK
 
             is LatexNode.Fraction,
             is LatexNode.Root,

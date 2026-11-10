@@ -278,6 +278,29 @@ class LatexSvgExporterTest {
         assertNotEquals(normal.svg, dashed.svg)
     }
 
+    @Test
+    fun exportsCompatibilityLayoutsWithExpectedGeometry() {
+        val exporter = createExporter()
+        val loose = assertNotNull(exporter.exportSvg("""\begin{array}{rr}1&2\end{array}"""))
+        val repeated = assertNotNull(exporter.exportSvg("""\begin{array}{*{2}{r}}1&2\end{array}"""))
+        val tight = assertNotNull(exporter.exportSvg("""\begin{array}{r@{}r}1&2\end{array}"""))
+        assertEquals(loose.svg, repeated.svg)
+        assertTrue(tight.width < loose.width)
+
+        val small = assertNotNull(exporter.exportSvg("""\llbracket x\rrbracket"""))
+        val stretched = assertNotNull(exporter.exportSvg("""\left\llbracket\frac{x}{y}\right\rrbracket"""))
+        assertTrue(stretched.height > small.height)
+
+        val normal = assertNotNull(exporter.exportSvg("""A\xrightarrow[\text{back}]{\text{forward}}B"""))
+        val harpoons = assertNotNull(exporter.exportSvg("""A\xrightleftharpoons[\text{back}]{\text{forward}}B"""))
+        assertEquals(normal.width, harpoons.width)
+        assertNotEquals(normal.svg, harpoons.svg)
+
+        val mixed = assertNotNull(exporter.exportSvg("""\textcolor{red!30!blue}{x}"""))
+        val explicit = assertNotNull(exporter.exportSvg("""\textcolor{#4d00b3}{x}"""))
+        assertEquals(explicit.svg, mixed.svg)
+    }
+
     private fun createExporter(): LatexExporterState {
         val density = Density(1f)
         val family = FontFamily.Serif

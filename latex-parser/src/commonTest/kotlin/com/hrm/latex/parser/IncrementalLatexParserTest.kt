@@ -107,6 +107,22 @@ class IncrementalLatexParserTest {
         assertEquals(doc1.children.size, doc2.children.size)
     }
 
+    @Test
+    fun editsToMathcodesAndPairedDefinitionsReparseFollowingUses() {
+        val parser = IncrementalLatexParser()
+        val source = """\mathcode`+="302B"a+b\DeclarePairedDelimiterX{\pair}[2]{(}{)}{#1,#2}\pair*{x}{y}"""
+        parser.setInput(source)
+        val edited = source.replace("302B", "202B").replace("#1,#2", "#1;#2")
+        parser.setInput(edited)
+        assertEquals(LatexParser().parse(edited), parser.getCurrentDocument())
+        assertTrue(parser.getCurrentDocument().children.any {
+            it is LatexNode.MathClass && it.atomClass == LatexNode.MathClass.AtomClass.BIN
+        })
+        assertTrue(parser.getCurrentDocument().children.any {
+            it is LatexNode.Delimited && it.content.any { child -> child is LatexNode.Text && child.content == ";" }
+        })
+    }
+
     // ========== 容错：不完整输入 ==========
 
     @Test

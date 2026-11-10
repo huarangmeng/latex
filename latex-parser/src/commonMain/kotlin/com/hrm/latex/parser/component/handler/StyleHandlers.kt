@@ -68,7 +68,7 @@ internal fun CommandRegistry.installStyleHandlers() {
 
     for ((cmd, styleType) in styleCommandMapping) {
         register(cmd) { _, ctx, _ ->
-            val content = ctx.parseArgument()
+            val content = if (cmd.startsWith("text") || cmd == "emph") ctx.parseTextArgument() else ctx.parseArgument()
             LatexNode.Style(
                 if (content != null) listOf(content) else emptyList(),
                 styleType
@@ -171,9 +171,44 @@ internal fun CommandRegistry.installStyleHandlers() {
         }
     }
 
+    val textSymbols = mapOf(
+        "AA" to "Å", "aa" to "å", "AE" to "Æ", "ae" to "æ",
+        "OE" to "Œ", "oe" to "œ", "O" to "Ø", "o" to "ø", "ss" to "ß",
+        "i" to "ı", "j" to "ȷ",
+        "textdegree" to "°", "textemdash" to "—", "textendash" to "–",
+        "textbackslash" to "\\", "textasciitilde" to "~", "textasciicircum" to "^",
+        "textbraceleft" to "{", "textbraceright" to "}", "textbar" to "|",
+        "textbardbl" to "‖", "textunderscore" to "_", "textdollar" to "$",
+        "textless" to "<", "textgreater" to ">", "textellipsis" to "…",
+        "textquoteleft" to "‘", "textquoteright" to "’",
+        "textquotedblleft" to "“", "textquotedblright" to "”",
+        "textdagger" to "†", "textdaggerdbl" to "‡", "textregistered" to "®", "textsterling" to "£"
+    )
+    for ((name, text) in textSymbols) {
+        register(name) { _, _, _ -> LatexNode.TextMode(text) }
+    }
+
+    val textAccents = mapOf(
+        "'" to '\u0301', "`" to '\u0300', "^" to '\u0302', "~" to '\u0303',
+        "=" to '\u0304', "u" to '\u0306', "." to '\u0307', "\"" to '\u0308',
+        "r" to '\u030A', "H" to '\u030B', "v" to '\u030C', "c" to '\u0327'
+    )
+    for ((name, accent) in textAccents) {
+        register(name) { _, ctx, _ ->
+            val argument = ctx.parseTextArgument() ?: LatexNode.Text("")
+            val text = ParseUtils.extractText(listOf(argument))
+            val base = when (text.firstOrNull()) {
+                'ı' -> 'i'
+                'ȷ' -> 'j'
+                else -> text.firstOrNull()
+            }
+            LatexNode.TextMode(if (base == null) "" else "$base$accent" + text.drop(1))
+        }
+    }
+
     // Preserve structured text, converting only text-mode leaves; inline math keeps math semantics.
     register("text", "mbox") { _, ctx, _ ->
-        val argument = ctx.parseArgument() ?: LatexNode.Text("")
+        val argument = ctx.parseTextArgument() ?: LatexNode.Text("")
         val content = (if (argument is LatexNode.Group) argument.children else listOf(argument)).map(::asTextContent)
         val plain = content.all { it is LatexNode.TextMode && it.content.isEmpty() }
         if (plain) LatexNode.TextMode(content.joinToString("") { (it as LatexNode.TextMode).text })

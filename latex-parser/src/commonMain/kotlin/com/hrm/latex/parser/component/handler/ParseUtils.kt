@@ -46,6 +46,7 @@ internal object ParseUtils {
         return nodes.joinToString("") { node ->
             when (node) {
                 is LatexNode.Text -> node.content
+                is LatexNode.TextMode -> if (node.content.isEmpty()) node.text else extractText(node.content)
                 is LatexNode.Group -> extractText(node.children)
                 is LatexNode.Space -> " "
                 is LatexNode.Symbol -> if (node.symbol == "prime") "'" else node.unicode
@@ -120,7 +121,9 @@ internal object ParseUtils {
         "rfloor" -> "⌋"
         "lceil" -> "⌈"
         "rceil" -> "⌉"
+        "llbracket" -> "⟦"
         "lgroup" -> "⟮"
+        "rrbracket" -> "⟧"
         "rgroup" -> "⟯"
         "lmoustache" -> "⎰"
         "rmoustache" -> "⎱"

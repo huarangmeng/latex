@@ -1426,6 +1426,33 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("9", "Combined example", "f \\mathrel{:=} \\mathopen{\\langle} x, y \\mathclose{\\rangle}"),
         )
     ),
+    PreviewGroup(
+        id = "syntax-compatibility",
+        title = "Formula syntax compatibility",
+        description = "AMS symbols, text commands, annotated arrows, and package syntax",
+        items = listOf(
+            PreviewItem("compat-ams", "AMS relations and double brackets",
+                """a\leqq b\gtreqless c\quad A\backepsilon x\quad a\lvertneqq b\quad x\npreceq y\quad\upuparrows\quad\left\llbracket\frac{x}{y}\right\rrbracket"""),
+            PreviewItem("compat-dots", "Ellipses and optimization operators",
+                """\argmin_{x\in X} f(x)\quad\argmax_{x\in X}f(x)\quad a_1+\dotsb+a_n\quad a_1,\dotsc,a_n\quad \int\dotsi\int"""),
+            PreviewItem("compat-text", "Text symbols and accents",
+                """\textsc{\text{\AA ngstr\"{o}m}}\quad\text{caf\'{e}\textemdash 24\textdegree\textbackslash}"""),
+            PreviewItem("compat-arrows", "Extensible harpoons and double heads",
+                """A\xrightleftharpoons[\text{reverse}]{\text{forward}} B\xleftrightharpoons{g} C\xrightharpoonup{f} D\xtwoheadrightarrow{q}E"""),
+            PreviewItem("compat-array", "Repeated columns and removed intercolumn space",
+                """\begin{array}{*{2}{r@{}l}}-1&.23&6&.01\\42&.05&-9&.99\end{array}"""),
+            PreviewItem("compat-multlined", "Nested multlined with bottom alignment",
+                """\left[\begin{multlined}[b][12em]a+b+c+d\\[2pt]{}+e+f+g\end{multlined}\right]"""),
+            PreviewItem("compat-paired", "Paired delimiters with arguments",
+                """\DeclarePairedDelimiterX{\pair}[2]{\langle}{\rangle}{#1\delimsize\vert#2}\pair{a}{b}\quad\pair*{\frac{x}{y}}{z}\quad\pair[\Big]{c}{d}"""),
+            PreviewItem("compat-units", "Quantity options and lists",
+                """\qty[per-mode=symbol]{9.8}{\meter\per\second\squared}\quad\numlist{1;2e3;4}\quad\qtylist{1;2;3}{\meter}"""),
+            PreviewItem("compat-color", "Mixed colors and aliases",
+                """\colorlet{accent}{red!30!blue}\textcolor{accent}{x}\quad\colorbox{accent!50}{y}\quad\fcolorbox{blue}{red!15}{z}"""),
+            PreviewItem("compat-mathcode", "Scoped math classes and active characters",
+                """a+b\quad{\mathcode`+="302B"a+b}\quad a+b\quad{\mathcode`;="8000\def;{\alpha}a;b}"""),
+        )
+    ),
 )
 
 @Preview

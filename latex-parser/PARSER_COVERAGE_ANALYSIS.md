@@ -1,5 +1,17 @@
 # LaTeX 解析器功能覆盖分析
 
+## 公式兼容性补充
+
+- AMS 符号补充 `\leqq`、`\gtreqless`、`\backepsilon`、`\lvertneqq`、`\npreceq`、`\upuparrows`。`\llbracket` 与 `\rrbracket` 可独立使用，也可随 `\left` / `\right` 或手动尺寸命令使用。
+- `\dotsb`、`\dotsc`、`\dotsi`、`\dotsm`、`\dotso` 区分居中和基线省略号。`\argmax`、`\argmin` 在展示公式中默认使用上下限布局。
+- 带标注的箭头包括 `\xrightleftharpoons`、`\xleftrightharpoons`、上下半箭头和双头箭头。参数格式为 `[下方]{上方}`。
+- `\text{...}` 支持 `\AA`、`\textdegree`、`\textemdash`、`\textbackslash` 等字符和 `\'{e}`、`\c{c}` 等文本重音。
+- 自动换行启用时，`\allowbreak` 提供候选断点，`\nobreak` 绑定相邻数学原子，`\newline` 直接换行。
+- `array` 和 `tabular` 的 `*{n}{规格}` 可重复列规格，`@{}` 移除相邻列之间的间距。当前实现覆盖 `l/c/r`、竖线、空 `@{}` 与嵌套重复。
+- `multlined` 可嵌在公式中，支持可选的垂直位置和宽度，如 `\begin{multlined}[b][8em]`。`\DeclarePairedDelimiterX` 支持带参数的定义体、`\delimsize`、星号自动伸缩与手动尺寸。
+- `siunitx` 新增 `\numlist`、`\qtylist` 和单位的 `per-mode=symbol` / `per-mode=fraction` 子集。`xcolor` 支持基本命名颜色、已定义颜色和 RGB 十六进制颜色的百分比混合，如 `red!30!blue`、`red!30!blue!50`。
+- `\mathcode` 支持十进制、八进制和十六进制赋值、局部作用域与 `\global`、数学原子类别、常见 TeX 字形槽位以及 `"8000` 数学活动字符。活动字符可用 `\def` 定义，作用限于数学模式。字体槽位兼容范围为直接字符槽位、OML 希腊字母及 OMS 的常用运算符。自定义字体寄存器与 catcode 仍在范围之外。
+
 ## 1. 基础结构
 
 ### ✅ 已支持

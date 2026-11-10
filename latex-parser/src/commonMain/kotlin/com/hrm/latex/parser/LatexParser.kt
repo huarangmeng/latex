@@ -24,6 +24,7 @@
 package com.hrm.latex.parser
 
 import com.hrm.latex.base.log.HLog
+import com.hrm.latex.parser.component.handler.ACTIVE_MATH_CODE
 import com.hrm.latex.parser.component.ChemicalParser
 import com.hrm.latex.parser.component.CommandParser
 import com.hrm.latex.parser.component.CustomCommand
@@ -37,6 +38,9 @@ import com.hrm.latex.parser.model.LatexNode.Style.StyleType
 import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
 import com.hrm.latex.parser.tokenizer.LatexTokenizer
+
+private const val TEX_MATH_ITALIC_GREEK = "ΓΔΘΛΞΠΣΥΦΨΩαβγδεζηθικλμνξοπρστυφχψωϵϑϖϱςϕ"
+private const val TEX_MATH_SYMBOLS = "−·×∗÷⋄±∓⊕⊖⊗⊘⊙○∘•"
 
 /**
  * LaTeX 语法解析器
@@ -112,6 +116,10 @@ internal class ParseSession(
     override val lengths: Map<String, String> get() = lengthValues ?: emptyMap()
     private var colorValues: MutableMap<String, String>? = null
     override val colors: Map<String, String> get() = colorValues ?: emptyMap()
+    private var mathCodeValues: MutableMap<Char, Int>? = null
+    override val mathCodes: Map<Char, Int> get() = mathCodeValues ?: emptyMap()
+    override var inTextMode = false
+    private var mathCodeChanges: MutableMap<Int, MutableMap<Char, Int?>>? = null
     override var scopeDepth = 0
         private set
     private var commandChanges: MutableMap<Int, MutableMap<String, CustomCommand?>>? = null
@@ -125,20 +133,21 @@ internal class ParseSession(
         environmentValues?.let { restore(it, environmentChanges) }
         colorValues?.let { restore(it, colorChanges) }
         lengthValues?.let { restore(it, lengthChanges) }
+        mathCodeValues?.let { restore(it, mathCodeChanges) }
         scopeDepth--
     }
 
-    private fun <T> restore(values: MutableMap<String, T>, changes: MutableMap<Int, MutableMap<String, T?>>?) {
+    private fun <K, T> restore(values: MutableMap<K, T>, changes: MutableMap<Int, MutableMap<K, T?>>?) {
         changes?.remove(scopeDepth)?.forEach { (name, previous) ->
             if (previous == null) values.remove(name) else values[name] = previous
         }
     }
 
     /** Record only the first write to a name in this scope; ordinary groups allocate nothing. */
-    private fun <T> assign(
-        values: MutableMap<String, T>, changes: MutableMap<Int, MutableMap<String, T?>>?,
-        name: String, value: T, global: Boolean = false
-    ): MutableMap<Int, MutableMap<String, T?>>? {
+    private fun <K, T> assign(
+        values: MutableMap<K, T>, changes: MutableMap<Int, MutableMap<K, T?>>?,
+        name: K, value: T, global: Boolean = false
+    ): MutableMap<Int, MutableMap<K, T?>>? {
         var log = changes
         if (global) {
             log?.values?.forEach { it.remove(name) }
@@ -165,6 +174,13 @@ internal class ParseSession(
         lengthChanges = assign(lengthValues ?: mutableMapOf<String, String>().also { lengthValues = it }, lengthChanges, name, value, globalAssignment)
         globalAssignment = false
     }
+    override fun defineMathCode(character: Char, code: Int) {
+        val values = mathCodeValues ?: mutableMapOf<Char, Int>().also { mathCodeValues = it }
+        mathCodeChanges = assign(values, mathCodeChanges, character, code, globalAssignment)
+        globalAssignment = false
+        tokenStream.invalidateExpansion()
+    }
+
     override fun isCommandDefined(name: String): Boolean = commandParser.isDefined(name)
 
     override val diagnostics: MutableList<ParseDiagnostic> = mutableListOf()
@@ -280,7 +296,7 @@ internal class ParseSession(
             is LatexToken.Text -> {
                 tokenStream.advance()
                 return if (token.literal) LatexNode.TextMode(token.content, sourceRange = token.range)
-                    else LatexNode.Text(token.content, sourceRange = token.range)
+                    else mathText(token)
             }
 
             is LatexToken.Command -> {
@@ -319,12 +335,12 @@ internal class ParseSession(
 
             is LatexToken.LeftBracket -> {
                 tokenStream.advance()
-                return LatexNode.Text("[", sourceRange = token.range)
+                return mathText(LatexToken.Text("[", token.range))
             }
 
             is LatexToken.RightBracket -> {
                 tokenStream.advance()
-                return LatexNode.Text("]", sourceRange = token.range)
+                return mathText(LatexToken.Text("]", token.range))
             }
 
             is LatexToken.Ampersand -> {
@@ -500,9 +516,49 @@ internal class ParseSession(
             is LatexToken.LeftBrace -> parseGroup()
             is LatexToken.Text -> {
                 val token = tokenStream.consumeTextAtom() ?: return null
-                LatexNode.Text(token.content, sourceRange = token.range)
+                mathText(token)
             }
             else -> parseFactor()
+        }
+    }
+
+    private fun mathText(token: LatexToken.Text): LatexNode {
+        val code = if (inTextMode) null else mathCodeValues?.let { codes ->
+            token.content.singleOrNull()?.let(codes::get)
+        }
+        if (code == null || code == ACTIVE_MATH_CODE) return LatexNode.Text(token.content, token.range)
+        val family = code shr 8 and 0xf
+        val slot = code and 0xff
+        val atomClass = when (code shr 12) {
+            1 -> LatexNode.MathClass.AtomClass.OP
+            2 -> LatexNode.MathClass.AtomClass.BIN
+            3 -> LatexNode.MathClass.AtomClass.REL
+            4 -> LatexNode.MathClass.AtomClass.OPEN
+            5 -> LatexNode.MathClass.AtomClass.CLOSE
+            6 -> LatexNode.MathClass.AtomClass.PUNCT
+            else -> LatexNode.MathClass.AtomClass.ORD
+        }
+        val glyph = when {
+            family == 1 && slot < TEX_MATH_ITALIC_GREEK.length -> TEX_MATH_ITALIC_GREEK[slot]
+            family == 2 && slot < TEX_MATH_SYMBOLS.length -> TEX_MATH_SYMBOLS[slot]
+            else -> slot.toChar()
+        }
+        val text = LatexNode.Text(glyph.toString(), token.range)
+        val content = when {
+            glyph.isLetter() && family == 0 && code shr 12 != 7 -> LatexNode.Style(listOf(text), LatexNode.Style.StyleType.ROMAN)
+            glyph.isLetter() && family == 1 -> LatexNode.Style(listOf(text), LatexNode.Style.StyleType.ITALIC)
+            else -> text
+        }
+        return LatexNode.MathClass(listOf(content), atomClass, token.range)
+    }
+
+    override fun parseTextArgument(): LatexNode? {
+        val previous = inTextMode
+        inTextMode = true
+        if (mathCodes.isNotEmpty()) tokenStream.invalidateExpansion()
+        return try { parseArgument() } finally {
+            inTextMode = previous
+            tokenStream.invalidateExpansion()
         }
     }
 
@@ -511,8 +567,12 @@ internal class ParseSession(
         val count = openToken.count
         tokenStream.advance()
 
-        val children = parseMathList { token ->
-            token is LatexToken.MathShift && token.count == count
+        val previous = inTextMode
+        inTextMode = false
+        val children = try {
+            parseMathList { token -> token is LatexToken.MathShift && token.count == count }
+        } finally {
+            inTextMode = previous
         }
         val closingToken = tokenStream.peek()
         if (closingToken is LatexToken.MathShift && closingToken.count == count) {

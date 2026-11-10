@@ -54,7 +54,15 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         if (consumed == null) consumed = initialTokens.take(position).toMutableList()
         for (index in tokens.indices.reversed()) queue.addFirst(tokens[index])
         head = queue.first()
-        headNormalized = head !is LatexToken.Command && head !is LatexToken.BeginEnvironment
+        invalidateExpansion()
+    }
+
+    /** Split the current token without moving the parser's previous source position. */
+    internal fun replaceHead(tokens: List<LatexToken>) {
+        if (consumed == null) consumed = initialTokens.take(position).toMutableList()
+        val queue = pending
+        if (queue != null && queue.isNotEmpty()) queue.removeFirst() else position++
+        insert(tokens)
     }
 
     internal fun skipWhitespace() {
@@ -152,10 +160,16 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
             else initialTokens.getOrNull(position + offset)
     }
 
+    internal fun invalidateExpansion() {
+        val token = head
+        headNormalized = token !is LatexToken.Command && token !is LatexToken.BeginEnvironment &&
+            (token !is LatexToken.Text && token !is LatexToken.Whitespace || commandParser?.hasMathCodes != true)
+    }
+
     private fun normalizeHead() {
         readingRaw = true
         try {
-            while ((head is LatexToken.Command || head is LatexToken.BeginEnvironment) && commandParser?.expandNext() == true) { /* expansion updates head */ }
+            while (commandParser?.expandNext() == true) { /* expansion updates head */ }
             headNormalized = true
         } finally { readingRaw = false }
     }
@@ -181,7 +195,7 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         head = queue?.firstOrNull() ?: initialTokens.getOrNull(position)
         if (token != null) consumed?.add(token)
         previous = token
-        headNormalized = head !is LatexToken.Command && head !is LatexToken.BeginEnvironment
+        invalidateExpansion()
         return token
     }
 
@@ -202,15 +216,19 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         } else {
             1
         }
-        val atomEnd = (token.range.start + atomLength).coerceAtMost(token.range.end)
+        return consumeTextPrefix(token, atomLength)
+    }
+
+    internal fun consumeTextPrefix(token: LatexToken.Text, length: Int): LatexToken.Text {
+        val atomEnd = (token.range.start + length).coerceAtMost(token.range.end)
         val atom = LatexToken.Text(
-            token.content.substring(0, atomLength),
+            token.content.substring(0, length),
             SourceRange(token.range.start, atomEnd)
         )
 
         advance()
-        if (atomLength < token.content.length) {
-            insert(listOf(LatexToken.Text(token.content.substring(atomLength), SourceRange(atomEnd, token.range.end))))
+        if (length < token.content.length) {
+            insert(listOf(token.copy(content = token.content.substring(length), range = SourceRange(atomEnd, token.range.end))))
         }
         previous = atom
         consumed?.let { if (it.isNotEmpty()) it[it.lastIndex] = atom }
@@ -257,6 +275,6 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         pending = null
         consumed = null
         previous = null
-        headNormalized = head !is LatexToken.Command && head !is LatexToken.BeginEnvironment
+        invalidateExpansion()
     }
 }

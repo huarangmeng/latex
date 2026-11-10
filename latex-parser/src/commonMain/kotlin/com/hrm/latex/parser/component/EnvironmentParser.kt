@@ -24,6 +24,7 @@
 package com.hrm.latex.parser.component
 
 import com.hrm.latex.base.log.HLog
+import com.hrm.latex.parser.ParseDiagnostic
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.component.handler.text
@@ -68,7 +69,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
                 "flalign", "flalign*" -> parseAligned(envName)
                 "alignat", "alignat*", "alignedat" -> parseAlignat(envName)
                 "split" -> parseSplit()
-                "multline", "multline*" -> parseMultline(envName)
+                "multline", "multline*", "multlined" -> parseMultline(envName)
                 "eqnarray", "eqnarray*" -> parseEqnarray(envName)
                 "subequations" -> parseSubequations()
                 "cases", "cases*" -> parseCases(envName, LatexNode.Cases.CasesStyle.NORMAL)
@@ -129,7 +130,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
         context.pushScope()
         try {
             while (!tokenStream.isEOF()) {
-                if ((tokenStream.peek() as? LatexToken.Command)?.name == "cr") {
+                if ((tokenStream.peek() as? LatexToken.Command)?.name.let { it == "cr" || it == "newline" }) {
                     if (currentCell.isNotEmpty()) {
                         currentRow.add(LatexNode.Group(context.normalizeStyleDeclarations(currentCell)))
                     }
@@ -284,13 +285,15 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
         val separation = context.lengths["arraycolsep"]
         val alignment = parseAlignmentSpec()
         val structure = parseRowColumnStructure("array", handleSpecialNodes = true)
-        return LatexNode.Array(structure.rows, alignment, rowGaps = structure.rowGaps, rowStretch = stretch, columnSep = separation)
+        return LatexNode.Array(structure.rows, alignment.columns, rowGaps = structure.rowGaps,
+            rowStretch = stretch, columnSep = separation, tightColumnBoundaries = alignment.tightBoundaries)
     }
 
     private fun parseSubarray(): LatexNode.Array {
         val alignment = parseAlignmentSpec()
         val structure = parseRowColumnStructure("subarray")
-        return LatexNode.Array(structure.rows, alignment, rowGaps = structure.rowGaps)
+        return LatexNode.Array(structure.rows, alignment.columns, rowGaps = structure.rowGaps,
+            tightColumnBoundaries = alignment.tightBoundaries)
     }
 
     /**
@@ -301,7 +304,8 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
         val separation = context.lengths["arraycolsep"]
         val alignment = parseAlignmentSpec()
         val structure = parseRowColumnStructure("tabular", handleSpecialNodes = true)
-        return LatexNode.Tabular(structure.rows, alignment, rowGaps = structure.rowGaps, rowStretch = stretch, columnSep = separation)
+        return LatexNode.Tabular(structure.rows, alignment.columns, rowGaps = structure.rowGaps,
+            rowStretch = stretch, columnSep = separation, tightColumnBoundaries = alignment.tightBoundaries)
     }
 
     /**
@@ -339,13 +343,28 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
      * 解析 multline 环境
      */
     private fun parseMultline(envName: String): LatexNode.Multline {
+        var position: LatexNode.Multline.Position? = null
+        var width: String? = null
+        if (envName == "multlined") {
+            position = LatexNode.Multline.Position.CENTER
+            val option = tokenStream.readOptionalTokens()?.text()?.trim()
+            when (option) {
+                "t" -> position = LatexNode.Multline.Position.TOP
+                "b" -> position = LatexNode.Multline.Position.BOTTOM
+                "c", null -> Unit
+                else -> width = option.takeIf(ROW_GAP_PATTERN::matches)
+            }
+            if (option in setOf("t", "c", "b")) {
+                width = tokenStream.readOptionalTokens()?.text()?.trim()?.takeIf(ROW_GAP_PATTERN::matches)
+            }
+        }
         // multline 没有列分隔符，只有行分隔
         val lines = mutableListOf<LatexNode>()
         val rowGaps = mutableListOf<LatexNode.RowGap?>()
         var currentLine = mutableListOf<LatexNode>()
 
         while (!tokenStream.isEOF()) {
-            if ((tokenStream.peek() as? LatexToken.Command)?.name == "cr") {
+            if ((tokenStream.peek() as? LatexToken.Command)?.name.let { it == "cr" || it == "newline" }) {
                 if (currentLine.isNotEmpty()) {
                     lines.add(LatexNode.Group(context.normalizeStyleDeclarations(currentLine)))
                 }
@@ -385,7 +404,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
             }
         }
 
-        return LatexNode.Multline(lines, envName = envName, rowGaps = rowGaps)
+        return LatexNode.Multline(lines, envName = envName, rowGaps = rowGaps, position = position, width = width)
     }
 
     /**
@@ -419,7 +438,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
         var isCondition = false
 
         while (!tokenStream.isEOF()) {
-            if ((tokenStream.peek() as? LatexToken.Command)?.name == "cr") {
+            if ((tokenStream.peek() as? LatexToken.Command)?.name.let { it == "cr" || it == "newline" }) {
                 if (expression.isNotEmpty()) {
                     cases.add(
                         LatexNode.Group(context.normalizeStyleDeclarations(expression)) to
@@ -488,25 +507,77 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
     // 辅助方法
     // ====================================================================
 
-    /**
-     * 解析列对齐规格（如 {ccc} 或 {rcl}）
-     */
-    private fun parseAlignmentSpec(): String {
-        if (tokenStream.peek() !is LatexToken.LeftBrace) return "c"
+    private data class ColumnSpec(val columns: String, val tightBoundaries: Set<Int> = emptySet())
 
-        tokenStream.advance() // consume {
-        val alignText = StringBuilder()
-        while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBrace) {
-            when (val token = tokenStream.peek()) {
-                is LatexToken.Text -> alignText.append(token.content)
-                else -> break
+    private fun parseAlignmentSpec(): ColumnSpec {
+        tokenStream.skipWhitespace()
+        if (tokenStream.peek() !is LatexToken.LeftBrace) return ColumnSpec("c")
+        val start = tokenStream.currentSourceOffset()
+        val tokens = tokenStream.readArgumentTokens()
+        val spec = (if (tokens.any { it is LatexToken.Command }) context.expandTokens(tokens) else tokens).text()
+        val columns = StringBuilder()
+        val tightBoundaries = mutableSetOf<Int>()
+        var columnCount = 0
+        var offset = 0
+
+        fun group(): String? {
+            while (spec.getOrNull(offset)?.isWhitespace() == true) offset++
+            if (spec.getOrNull(offset) != '{') return null
+            val body = ++offset
+            var depth = 1
+            while (offset < spec.length) {
+                when (spec[offset++]) {
+                    '{' -> depth++
+                    '}' -> if (--depth == 0) return spec.substring(body, offset - 1)
+                }
             }
-            tokenStream.advance()
+            return null
         }
-        if (tokenStream.peek() is LatexToken.RightBrace) {
-            tokenStream.advance() // consume }
+
+        fun read(end: Int, depth: Int): Boolean {
+            if (depth > 32) return false
+            while (offset < end) {
+                if (columns.length >= 1024) return false
+                when (val ch = spec[offset++]) {
+                    'l', 'c', 'r' -> { columns.append(ch); columnCount++ }
+                    '|', ':' -> columns.append(ch)
+                    '@' -> {
+                        if (group()?.isBlank() != true) return false
+                        tightBoundaries.add(columnCount)
+                    }
+                    '*' -> {
+                        val count = group()?.trim()?.toIntOrNull() ?: return false
+                        if (count !in 1..1024) return false
+                        val body = group() ?: return false
+                        val bodyEnd = offset - 1
+                        val columnStart = columnCount
+                        val outputStart = columns.length
+                        val boundariesBefore = tightBoundaries.toSet()
+                        offset = bodyEnd - body.length
+                        if (!read(bodyEnd, depth + 1)) return false
+                        offset = bodyEnd + 1
+                        val template = columns.substring(outputStart)
+                        if (columns.length + template.length * (count - 1) > 1024) return false
+                        val boundaries = tightBoundaries.filter { it !in boundariesBefore || it == columnStart }
+                        val step = columnCount - columnStart
+                        for (i in 1 until count) {
+                            columns.append(template)
+                            for (boundary in boundaries) tightBoundaries.add(boundary + step * i)
+                        }
+                        columnCount += step * (count - 1)
+                    }
+                    else -> if (!ch.isWhitespace()) return false
+                }
+            }
+            return offset == end
         }
-        return alignText.toString()
+
+        if (!read(spec.length, 0)) {
+            context.diagnostics.add(ParseDiagnostic(tokenStream.rangeFrom(start),
+                "Unsupported or invalid array column specification", ParseDiagnostic.Severity.WARNING,
+                ParseDiagnostic.Category.INVALID_ARGUMENT))
+        }
+        return ColumnSpec(columns.toString().ifEmpty { "c" }, tightBoundaries)
     }
 
     private fun parseOptionalBracketText(): String? {

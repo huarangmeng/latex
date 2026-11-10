@@ -235,8 +235,7 @@ internal object EquationNumbering {
      * 判断 Multline 节点是否需要自动编号
      */
     private fun shouldNumberMultline(node: LatexNode.Multline): Boolean {
-        val name = node.envName ?: return false
-        if (name.endsWith("*")) return false
+        if (node.envName != "multline") return false
         if (containsTag(node.lines)) return false
         return true
     }

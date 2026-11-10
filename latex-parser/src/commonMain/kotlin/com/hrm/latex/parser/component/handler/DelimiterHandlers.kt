@@ -37,6 +37,10 @@ internal fun CommandRegistry.installDelimiterHandlers() {
         return if (!isEOF()) advance() else null
     }
 
+    register("llbracket", "rrbracket") { name, _, _ ->
+        LatexNode.ManualSizedDelimiter(ParseUtils.delimiterFromName(name), 1f)
+    }
+
     // \left...\right 自动伸缩
     register("left") { _, ctx, stream ->
         val leftToken = stream.consumeDelimiterToken()
@@ -48,6 +52,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
                 "langle" -> "⟨"
                 "lfloor" -> "⌊"
                 "lceil" -> "⌈"
+                "llbracket" -> "⟦"
                 "lgroup" -> "⟮"
                 "lmoustache" -> "⎰"
                 "lvert" -> "|"
@@ -90,6 +95,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
                 "rangle" -> "⟩"
                 "rfloor" -> "⌋"
                 "rceil" -> "⌉"
+                "rrbracket" -> "⟧"
                 "rgroup" -> "⟯"
                 "rmoustache" -> "⎱"
                 "rvert" -> "|"
@@ -147,7 +153,9 @@ internal fun CommandRegistry.installDelimiterHandlers() {
                 "rfloor" -> "⌋"
                 "lceil" -> "⌈"
                 "rceil" -> "⌉"
+                "llbracket" -> "⟦"
                 "lgroup" -> "⟮"
+                "rrbracket" -> "⟧"
                 "rgroup" -> "⟯"
                 "lmoustache" -> "⎰"
                 "rmoustache" -> "⎱"

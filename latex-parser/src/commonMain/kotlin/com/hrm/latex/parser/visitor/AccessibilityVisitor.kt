@@ -138,7 +138,7 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
 
     override fun visitSpace(node: LatexNode.Space): String = " "
 
-    override fun visitHSpace(node: LatexNode.HSpace): String = " "
+    override fun visitHSpace(node: LatexNode.HSpace): String = if (node.breakHint == null) " " else ""
 
     override fun visitNewLine(node: LatexNode.NewLine): String = "; "
 
@@ -204,6 +204,14 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE -> "double bidirectional arrow"
             LatexNode.ExtensibleArrow.Direction.MAPSTO -> "maps to"
             LatexNode.ExtensibleArrow.Direction.EQUAL -> "long equals"
+            LatexNode.ExtensibleArrow.Direction.RIGHT_HARPOON_UP -> "right harpoon up"
+            LatexNode.ExtensibleArrow.Direction.RIGHT_HARPOON_DOWN -> "right harpoon down"
+            LatexNode.ExtensibleArrow.Direction.LEFT_HARPOON_UP -> "left harpoon up"
+            LatexNode.ExtensibleArrow.Direction.LEFT_HARPOON_DOWN -> "left harpoon down"
+            LatexNode.ExtensibleArrow.Direction.RIGHT_LEFT_HARPOONS -> "right and left harpoons"
+            LatexNode.ExtensibleArrow.Direction.LEFT_RIGHT_HARPOONS -> "left and right harpoons"
+            LatexNode.ExtensibleArrow.Direction.TWO_HEAD_RIGHT -> "two-headed right arrow"
+            LatexNode.ExtensibleArrow.Direction.TWO_HEAD_LEFT -> "two-headed left arrow"
         }
         return buildString {
             append(dir)

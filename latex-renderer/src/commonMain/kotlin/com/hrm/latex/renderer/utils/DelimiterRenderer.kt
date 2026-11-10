@@ -67,7 +67,7 @@ internal object DelimiterRenderer {
     ): NodeLayout {
         if (delimiter.isEmpty()) return NodeLayout.EMPTY
 
-        measureVerticalBars(delimiter, context, measurer, targetHeight, density)?.let {
+        measureConstructed(delimiter, context, measurer, targetHeight, density)?.let {
             return it
         }
 
@@ -105,17 +105,18 @@ internal object DelimiterRenderer {
      * 竖线是可拼装定界符，不能把 Size 字体中的 glyph 0 当作完整字形缩放。
      * 高度按目标值伸展，笔画宽始终保持 TeX rule thickness。
      */
-    fun measureVerticalBars(
+    fun measureConstructed(
         delimiter: String,
         context: RenderContext,
         measurer: TextMeasurer,
         targetHeight: Float,
         density: Density? = null
     ): NodeLayout? {
-        val lineCount = verticalBarCount(delimiter) ?: return null
+        val doubleBracket = delimiter == "⟦" || delimiter == "⟧"
+        val lineCount = if (doubleBracket) 2 else verticalBarCount(delimiter) ?: return null
         val mainContext = FontResolver.delimiterContext(context, delimiter, scale = 1.0f)
         val baseLayout = measureText(
-            delimiter,
+            if (doubleBracket) "[" else delimiter,
             mainContext,
             measurer,
             context.fontFamilies?.mainBytes,
@@ -127,7 +128,7 @@ internal object DelimiterRenderer {
             ?: fontSizePx * MathConstants.FRACTION_RULE_THICKNESS
         val geometry = calculateVerticalDelimiterGeometry(
             lineCount = lineCount,
-            advanceWidth = baseLayout.width,
+            advanceWidth = if (doubleBracket) max(baseLayout.width, fontSizePx * 0.38f) else baseLayout.width,
             targetHeight = if (targetHeight > 0f) targetHeight else baseLayout.height,
             fontSizePx = fontSizePx,
             strokeWidth = strokeWidth
@@ -138,13 +139,21 @@ internal object DelimiterRenderer {
             height = geometry.height,
             baseline = geometry.height / 2f
         ) { x, y ->
+            val inset = if (doubleBracket) geometry.strokeWidth / 2 else 0f
             for (center in geometry.lineCenters) {
                 drawLine(
                     color = context.color,
-                    start = Offset(x + center, y),
-                    end = Offset(x + center, y + geometry.height),
+                    start = Offset(x + center, y + inset),
+                    end = Offset(x + center, y + geometry.height - inset),
                     strokeWidth = geometry.strokeWidth
                 )
+            }
+            if (doubleBracket) {
+                val tip = if (delimiter == "⟦") geometry.width else 0f
+                val inner = if (delimiter == "⟦") geometry.lineCenters.first() else geometry.lineCenters.last()
+                drawLine(context.color, Offset(x + inner, y + inset), Offset(x + tip, y + inset), geometry.strokeWidth)
+                val bottom = y + geometry.height - inset
+                drawLine(context.color, Offset(x + inner, bottom), Offset(x + tip, bottom), geometry.strokeWidth)
             }
         }
     }

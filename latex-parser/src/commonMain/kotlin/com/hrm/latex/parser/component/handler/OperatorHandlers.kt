@@ -148,6 +148,26 @@ internal fun CommandRegistry.installOperatorHandlers() {
         LatexNode.ModOperator(null, LatexNode.ModOperator.ModStyle.MOD)
     }
 
+    val afterDots = setOf(")", "]", "rbrack", "}", "rbrace", "rangle", "rceil", "rfloor",
+        "rgroup", "rmoustache", "right", "bigr", "Bigr", "biggr", "Biggr", ";", ".", ",")
+    register("dotsb", "dotsm", "dotsc", "dotso", "dotsi") { name, _, stream ->
+        val baseline = name == "dotsc" || name == "dotso"
+        val dots = if (baseline) LatexNode.Symbol("ldots", "…") else LatexNode.Symbol("cdots", "⋯")
+        val next = when (val token = stream.peekSkipping { it is LatexToken.Whitespace }) {
+            is LatexToken.Text -> token.content
+            is LatexToken.Command -> token.name
+            is LatexToken.RightBracket -> "]"
+            is LatexToken.MathShift -> "$"
+            else -> null
+        }
+        val extraSpace = (next in afterDots || next == "$") && !(name == "dotsc" && next == ",")
+        if (!extraSpace && name != "dotsi") dots else LatexNode.Group(buildList {
+            if (name == "dotsi") add(LatexNode.Space(LatexNode.Space.SpaceType.NEGATIVE_THIN))
+            add(dots)
+            if (extraSpace) add(LatexNode.Space(LatexNode.Space.SpaceType.THIN))
+        })
+    }
+
     // 自适应省略号 \dots
     register("dots") { _, _, stream ->
         val next = stream.peekSkipping { it is LatexToken.Whitespace }

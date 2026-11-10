@@ -31,6 +31,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.LatexNode.ExtensibleArrow.Direction
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.shrink
@@ -115,7 +116,9 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
         val isDoubleLine = node.direction == LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE ||
                 node.direction == LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE ||
                 node.direction == LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE ||
-                node.direction == LatexNode.ExtensibleArrow.Direction.EQUAL
+                node.direction == Direction.EQUAL ||
+            node.direction == Direction.RIGHT_LEFT_HARPOONS ||
+            node.direction == Direction.LEFT_RIGHT_HARPOONS
 
         return NodeLayout(totalWidth, vertical.totalHeight, vertical.baseline) { x, y ->
             // 绘制上方文字
@@ -172,7 +175,44 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
         val filledPaths = mutableListOf<Path>()
         val strokePaths = mutableListOf<Path>()
 
+        fun harpoon(right: Boolean, up: Boolean, y: Float) {
+            val tip = if (right) endX else startX
+            val back = if (right) tip - headSize else tip + headSize
+            strokePaths.add(Path().apply {
+                moveTo(back, y + if (up) -headSize / 3f else headSize / 3f)
+                lineTo(tip, y)
+            })
+        }
+
         when (direction) {
+            Direction.RIGHT_HARPOON_UP -> harpoon(right = true, up = true, y = centerY)
+            Direction.RIGHT_HARPOON_DOWN -> harpoon(right = true, up = false, y = centerY)
+            Direction.LEFT_HARPOON_UP -> harpoon(right = false, up = true, y = centerY)
+            Direction.LEFT_HARPOON_DOWN -> harpoon(right = false, up = false, y = centerY)
+            Direction.RIGHT_LEFT_HARPOONS, Direction.LEFT_RIGHT_HARPOONS -> {
+                val upperRight = direction == Direction.RIGHT_LEFT_HARPOONS
+                val gap = headSize / 6f
+                strokePaths.add(Path().apply {
+                    moveTo(startX, centerY - gap)
+                    lineTo(endX, centerY - gap)
+                    moveTo(startX, centerY + gap)
+                    lineTo(endX, centerY + gap)
+                })
+                harpoon(right = upperRight, up = true, y = centerY - gap)
+                harpoon(right = !upperRight, up = false, y = centerY + gap)
+            }
+            Direction.TWO_HEAD_RIGHT, Direction.TWO_HEAD_LEFT -> {
+                val right = direction == Direction.TWO_HEAD_RIGHT
+                val tip = if (right) endX else startX
+                val offset = if (right) -headSize else headSize
+                strokePaths.add(Path().apply {
+                    for (head in listOf(tip, tip + offset / 2f)) {
+                        moveTo(head + offset, centerY - headSize / 2f)
+                        lineTo(head, centerY)
+                        lineTo(head + offset, centerY + headSize / 2f)
+                    }
+                })
+            }
             LatexNode.ExtensibleArrow.Direction.RIGHT -> {
                 filledPaths.add(Path().apply {
                     moveTo(endX, centerY)

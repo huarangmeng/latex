@@ -48,7 +48,9 @@ internal fun CommandRegistry.installMacroHandlers() {
 
     register("def", "gdef", "edef", "xdef") { kind, ctx, stream -> stream.raw {
         stream.skipWhitespace()
-        val name = (stream.readAtom() as? LatexToken.Command)?.name
+        val target = stream.readAtom()
+        val name = (target as? LatexToken.Command)?.name
+            ?: target?.mathCharacter()?.takeIf { ctx.mathCodes[it] == ACTIVE_MATH_CODE }?.let(::activeMathName)
             ?: return@raw invalid(ctx, stream, "Expected a command after \\$kind")
         val parameters = mutableListOf<LatexToken>()
         while (!stream.isEOF() && stream.peek() !is LatexToken.LeftBrace) {
@@ -107,6 +109,19 @@ internal fun CommandRegistry.installMacroHandlers() {
         val body = listOf(LatexToken.Command("left")) + left + listOf(LatexToken.Text("#"), LatexToken.Text("1"), LatexToken.Command("right")) + right
         ctx.defineCommand(CustomCommand(name, 1, body, acceptsDelimiterModifier = true), takeGlobal(ctx))
         LatexNode.NewCommand(name, 1, body)
+    } }
+
+    register("DeclarePairedDelimiterX") { _, ctx, stream -> stream.raw {
+        val name = readCommandName(stream) ?: return@raw invalid(ctx, stream, "Missing delimiter command")
+        val count = stream.readOptionalTokens()?.text()?.trim()?.toIntOrNull()
+        val left = stream.readArgumentTokens()
+        val right = stream.readArgumentTokens()
+        val body = stream.readArgumentTokens()
+        if (count == null || count !in 1..9 || left.size != 1 || right.size != 1) {
+            return@raw invalid(ctx, stream, "Expected an argument count in 1..9 and two single-token delimiters")
+        }
+        ctx.defineCommand(CustomCommand(name, count, body, pairedDelimiters = left to right), takeGlobal(ctx))
+        LatexNode.NewCommand(name, count, body)
     } }
 
     register("newenvironment", "renewenvironment") { _, ctx, stream -> stream.raw {

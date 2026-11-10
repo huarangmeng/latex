@@ -77,7 +77,7 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         node as LatexNode.BigOperator
         val symbol = mapBigOp(node.operator)
         val isIntegral = node.operator.contains("int")
-        val isNamedOperator = symbol == node.operator && symbol.all { it.isLetter() }
+        val isNamedOperator = symbol == node.operator && symbol.all { it.isLetter() || it.isWhitespace() }
 
         val renderSymbol = symbol
 

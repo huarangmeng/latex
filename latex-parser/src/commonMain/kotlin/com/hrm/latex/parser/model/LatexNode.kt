@@ -298,7 +298,8 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null,
         val rowGaps: List<RowGap?> = emptyList(),
         val rowStretch: Float = 1f,
-        val columnSep: String? = null
+        val columnSep: String? = null,
+        val tightColumnBoundaries: Set<Int> = emptySet()
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -330,8 +331,11 @@ sealed class LatexNode {
      */
     data class HSpace(
         val dimension: String,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        val breakHint: BreakHint? = null
     ) : LatexNode() {
+        enum class BreakHint { ALLOW, FORBID }
+
         override fun children() = emptyList<LatexNode>()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = this
@@ -463,7 +467,9 @@ sealed class LatexNode {
     ) : LatexNode() {
         enum class Direction {
             RIGHT, LEFT, BOTH, HOOK_RIGHT, HOOK_LEFT,
-            RIGHT_DOUBLE, LEFT_DOUBLE, BOTH_DOUBLE, MAPSTO, EQUAL
+            RIGHT_DOUBLE, LEFT_DOUBLE, BOTH_DOUBLE, MAPSTO, EQUAL,
+            RIGHT_HARPOON_UP, RIGHT_HARPOON_DOWN, LEFT_HARPOON_UP, LEFT_HARPOON_DOWN,
+            RIGHT_LEFT_HARPOONS, LEFT_RIGHT_HARPOONS, TWO_HEAD_RIGHT, TWO_HEAD_LEFT
         }
 
         override fun children() = listOfNotNull(content, below)
@@ -774,8 +780,12 @@ sealed class LatexNode {
         val lines: List<LatexNode>,
         val envName: String? = null,
         override val sourceRange: SourceRange? = null,
-        val rowGaps: List<RowGap?> = emptyList()
+        val rowGaps: List<RowGap?> = emptyList(),
+        val position: Position? = null,
+        val width: String? = null
     ) : LatexNode() {
+        enum class Position { TOP, CENTER, BOTTOM }
+
         override fun children() = lines
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(lines = newChildren)
@@ -1170,7 +1180,8 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null,
         val rowGaps: List<RowGap?> = emptyList(),
         val rowStretch: Float = 1f,
-        val columnSep: String? = null
+        val columnSep: String? = null,
+        val tightColumnBoundaries: Set<Int> = emptySet()
     ) : LatexNode() {
         override fun children() = rows.flatten()
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)

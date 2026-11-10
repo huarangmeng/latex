@@ -31,6 +31,22 @@ import kotlin.test.assertTrue
 class LineBreakerTest {
 
     @Test
+    fun respectsExplicitBreakHints() {
+        val allow = LatexNode.HSpace("0pt", breakHint = LatexNode.HSpace.BreakHint.ALLOW)
+        val forbid = LatexNode.HSpace("0pt", breakHint = LatexNode.HSpace.BreakHint.FORBID)
+        val a = LatexNode.Text("a")
+        val b = LatexNode.Text("b")
+        val operator = LatexNode.Text("=")
+        val c = LatexNode.Text("c")
+        val breaker = LineBreaker(24f)
+
+        assertEquals(listOf(0..1, 2..3),
+            breaker.breakIntoRanges(listOf(a, b, allow, c), floatArrayOf(10f, 10f, 0f, 10f)))
+        assertEquals(listOf(0..3),
+            breaker.breakIntoRanges(listOf(a, operator, forbid, b), floatArrayOf(10f, 10f, 0f, 10f)))
+    }
+
+    @Test
     fun should_not_break_when_content_fits() {
         val breaker = LineBreaker(100f)
         val nodes = listOf(

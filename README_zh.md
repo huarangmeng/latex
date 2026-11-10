@@ -31,6 +31,10 @@
 
 ## 📐 已支持的 LaTeX 功能（450+）
 
+**公式语法兼容**
+
+支持更多 AMS 关系符号、双括号、带标注的鱼叉箭头、文本重音、显式断行、数组列重复，以及 mathtools、siunitx 和 xcolor 的常用子集。 示例和具体范围见[语法覆盖说明](latex-parser/PARSER_COVERAGE_ANALYSIS.md#公式兼容性补充)。
+
 <details>
 <summary><b>数学公式</b> — 分数、根号、二项式、上下标</summary>
 

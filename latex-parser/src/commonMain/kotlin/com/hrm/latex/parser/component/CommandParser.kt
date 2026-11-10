@@ -40,6 +40,8 @@ internal class CommandParser(
     private var expandedTokenCount = 0
     private var expansionCount = 0
 
+    val hasMathCodes: Boolean get() = context.mathCodes.isNotEmpty()
+
     fun isBuiltin(name: String): Boolean = registry.hasHandler(name) ||
         SymbolMap.getSymbol(name) != null || name in expansionCommands || name == "ce" || name == "cf"
 
@@ -58,6 +60,7 @@ internal class CommandParser(
     )
 
         private const val TAG = "CommandParser"
+        private val manualDelimiterSizes = setOf("big", "Big", "bigg", "Bigg")
 
         /**
          * 命令注册表：所有已知 LaTeX 命令的分发中心。
@@ -79,6 +82,7 @@ internal class CommandParser(
             installSpecialEffectHandlers()
             installHyperlinkHandlers()
             installMacroHandlers()
+            installMathCodeHandlers()
             installGroupHandlers()
             installTableHandlers()
             installReferenceHandlers()
@@ -180,7 +184,24 @@ internal class CommandParser(
                 LatexToken.RightBrace(stream.peek(-1)?.range ?: token.range), token.range)
             return true
         }
-        if (token !is LatexToken.Command || !token.expandable) return false
+        var activeCharacter = false
+        if (token !is LatexToken.Command) {
+            if (context.inTextMode || context.mathCodes.isEmpty()) return false
+            if (token is LatexToken.Text && !token.literal && token.content.length > 1 &&
+                splitAtMathCodes(stream, token)) return true
+            if (token !is LatexToken.Text && token !is LatexToken.Whitespace) return false
+            val character = token.mathCharacter() ?: return false
+            if (context.mathCodes[character] != ACTIVE_MATH_CODE) return false
+            val activeName = activeMathName(character)
+            val name = when {
+                activeName in context.customCommands -> activeName
+                character.toString() in context.customCommands -> character.toString()
+                else -> return false
+            }
+            token = LatexToken.Command(name, token.range)
+            activeCharacter = true
+        }
+        if (!token.expandable) return false
         var macro = if (token.builtin) null else context.customCommands[token.name]
         if (macro?.isAlias == true) {
             val original = macro.tokens.singleOrNull() as? LatexToken.Command
@@ -190,8 +211,42 @@ internal class CommandParser(
             }
         }
         if (macro != null) {
-            stream.advance()
+            if (activeCharacter) stream.readAtom() else stream.advance()
             if (rejectNestedExpansion(token.range)) return true
+            val paired = macro.pairedDelimiters
+            if (paired != null) {
+                stream.skipWhitespace()
+                val starred = (stream.peek() as? LatexToken.Text)?.content?.startsWith("*") == true
+                if (starred) stream.readAtom()
+                val size = if (!starred) stream.readOptionalTokens() else null
+                val sizeName = (size?.filterNot { it is LatexToken.Whitespace }?.singleOrNull() as? LatexToken.Command)?.name
+                if (size != null && sizeName !in manualDelimiterSizes) {
+                    macroError(token.range, "Expected \\big, \\Big, \\bigg, or \\Bigg")
+                }
+                val manualSize = sizeName?.takeIf { it in manualDelimiterSizes }
+                val args = readArguments(macro.numArgs, null)
+                val range = stream.rangeFrom(token.range.start)
+                val leftSize = if (starred) "left" else manualSize?.plus("l")
+                val rightSize = if (starred) "right" else manualSize?.plus("r")
+                val middleSize = if (starred) "middle" else manualSize?.plus("m")
+                val replacement = buildList {
+                    if (!starred) add(LatexToken.LeftBrace(range))
+                    leftSize?.let { add(LatexToken.Command(it, range, builtin = true)) }
+                    addAll(paired.first.map { it.withRange(range) })
+                    // Replace only the definition's delimsize commands, before parameter substitution.
+                    val body = macro.tokens.flatMap {
+                        if (it is LatexToken.Command && it.name == "delimsize") {
+                            listOfNotNull(middleSize?.let { name -> LatexToken.Command(name, range, builtin = true) })
+                        } else listOf(it)
+                    }
+                    addAll(substitute(body, args, range))
+                    rightSize?.let { add(LatexToken.Command(it, range, builtin = true)) }
+                    addAll(paired.second.map { it.withRange(range) })
+                    if (!starred) add(LatexToken.RightBrace(range))
+                }
+                emit(replacement, token.range)
+                return true
+            }
             if (macro.acceptsDelimiterModifier) {
                 stream.skipWhitespace()
                 if ((stream.peek() as? LatexToken.Text)?.content?.startsWith("*") == true) stream.readAtom()
@@ -291,6 +346,32 @@ internal class CommandParser(
             }
             else -> return false
         }
+        return true
+    }
+
+    private fun splitAtMathCodes(stream: LatexTokenStream, token: LatexToken.Text): Boolean {
+        val codes = context.mathCodes
+        val first = token.content.indexOfFirst { it in codes }
+        if (first < 0) return false
+
+        fun fragment(start: Int, end: Int): LatexToken.Text = LatexToken.Text(
+            token.content.substring(start, end),
+            SourceRange(
+                (token.range.start + start).coerceAtMost(token.range.end),
+                (token.range.start + end).coerceAtMost(token.range.end)
+            )
+        )
+
+        val fragments = mutableListOf<LatexToken.Text>()
+        var start = 0
+        for (index in first until token.content.length) {
+            if (token.content[index] !in codes) continue
+            if (start < index) fragments.add(fragment(start, index))
+            fragments.add(fragment(index, index + 1))
+            start = index + 1
+        }
+        if (start < token.content.length) fragments.add(fragment(start, token.content.length))
+        stream.replaceHead(fragments)
         return true
     }
 

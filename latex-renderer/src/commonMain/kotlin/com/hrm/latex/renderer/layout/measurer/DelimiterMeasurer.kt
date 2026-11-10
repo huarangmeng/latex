@@ -201,7 +201,7 @@ internal class DelimiterMeasurer : NodeMeasurer {
 
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
-        DelimiterRenderer.measureVerticalBars(
+        DelimiterRenderer.measureConstructed(
             delimiter = delimiter,
             context = context,
             measurer = measurer,
