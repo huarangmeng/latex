@@ -1450,7 +1450,7 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("compat-color", "Mixed colors and aliases",
                 """\colorlet{accent}{red!30!blue}\textcolor{accent}{x}\quad\colorbox{accent!50}{y}\quad\fcolorbox{blue}{red!15}{z}"""),
             PreviewItem("compat-mathcode", "Scoped math classes and active characters",
-                """a+b\quad{\mathcode`+="302B"a+b}\quad a+b\quad{\mathcode`;="8000\def;{\alpha}a;b}"""),
+                """a+b\quad{\mathcode`+="302B a+b}\quad a+b\quad{\mathcode`;="8000\def;{\alpha}a;b}"""),
         )
     ),
 )

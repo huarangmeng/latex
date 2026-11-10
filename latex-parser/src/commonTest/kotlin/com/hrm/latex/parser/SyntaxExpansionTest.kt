@@ -60,6 +60,14 @@ class SyntaxExpansionTest {
     }
 
     @Test
+    fun textControlWordsConsumeOnlyOrdinarySeparatorWhitespace() {
+        val text = assertIs<LatexNode.TextMode>(parser.parse(
+            """\text{\AA ngstr\"{o}m \AA\ B \AA~C}"""
+        ).children.single())
+        assertEquals("Ångstro\u0308m Å B Å C", text.text)
+    }
+
+    @Test
     fun parsesAnnotatedHarpoonsAndDoubleHeads() {
         val document = parser.parse(
             """\xrightleftharpoons[below]{above}\xleftrightharpoons{x}\xrightharpoonup{x}\xtwoheadrightarrow{x}"""
@@ -122,9 +130,10 @@ class SyntaxExpansionTest {
 
     @Test
     fun mathcodeRespectsGroupingGlobalAssignmentsAndTextMode() {
-        val source = """{\mathcode`+="302B"a+b \text{a+b} \global\mathcode`-="2200"} a+b-c"""
+        val source = """{\mathcode`+="302B a+b \text{a+b} \global\mathcode`-="2200} a+b-c"""
         val doc = parser.parseWithDiagnostics(source)
         assertTrue(doc.diagnostics.isEmpty(), doc.diagnostics.toString())
+        assertTrue(doc.document.descendants().none { it is LatexNode.Text && '"' in it.content })
         val classified = doc.document.descendants().filterIsInstance<LatexNode.MathClass>()
         assertEquals(listOf(LatexNode.MathClass.AtomClass.REL, LatexNode.MathClass.AtomClass.BIN), classified.map { it.atomClass })
         assertEquals("−", assertIs<LatexNode.Text>(classified.last().content.single()).content)

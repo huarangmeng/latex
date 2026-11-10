@@ -70,22 +70,32 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
             minArrowLength
         )
         val padding = with(density) { MathConstants.EXTENSIBLE_ARROW_PADDING_DP.dp.toPx() }
-        val strokeWidth = with(density) { MathConstants.EXTENSIBLE_ARROW_STROKE_DP.dp.toPx() }
+        val fontSizePx = with(density) { context.fontSize.toPx() }
+        val isHarpoonPair = node.direction == Direction.RIGHT_LEFT_HARPOONS ||
+            node.direction == Direction.LEFT_RIGHT_HARPOONS
+        val hasTwoHeads = node.direction == Direction.TWO_HEAD_RIGHT || node.direction == Direction.TWO_HEAD_LEFT
+        // KaTeX uses 0.04em shafts and separates paired harpoons by 0.194em.
+        val harpoonShaftOffset = if (isHarpoonPair) fontSizePx * 0.097f else 0f
+        val strokeWidth = if (isHarpoonPair || hasTwoHeads) {
+            fontSizePx * 0.04f
+        } else {
+            with(density) { MathConstants.EXTENSIBLE_ARROW_STROKE_DP.dp.toPx() }
+        }
         val strokeHalf = strokeWidth / 2f
         val arrowHeadSize = with(density) { MathConstants.EXTENSIBLE_ARROW_HEAD_SIZE_DP.dp.toPx() }
 
         val totalWidth = contentWidth + padding * 2
-        val fontSizePx = with(density) { context.fontSize.toPx() }
         val labelGap = fontSizePx * MathConstants.EXTENSIBLE_ARROW_TEXT_GAP
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)
 
         // Path 的实际墨水高度由箭头头部决定，而不是中间横线的 strokeWidth。
         // 钩形箭头在数学轴下方多伸出 0.1 * headSize。
-        val arrowTopExtent = arrowHeadSize / 2f
-        val arrowBottomExtent = if (
-            node.direction == LatexNode.ExtensibleArrow.Direction.HOOK_RIGHT ||
-            node.direction == LatexNode.ExtensibleArrow.Direction.HOOK_LEFT
-        ) arrowHeadSize * 0.6f else arrowHeadSize / 2f
+        val arrowTopExtent = if (isHarpoonPair) harpoonShaftOffset + arrowHeadSize / 3f + strokeHalf
+            else arrowHeadSize / 2f
+        val arrowBottomExtent = when (node.direction) {
+            Direction.HOOK_RIGHT, Direction.HOOK_LEFT -> arrowHeadSize * 0.6f
+            else -> arrowTopExtent
+        }
 
         val vertical = calculateKaTeXExtensibleArrowVerticalPlacement(
             aboveHeight = aboveLayout.height,
@@ -110,15 +120,16 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
         val color = context.color
 
         // 预构建箭头头部 Path (以 (0,0) 为原点)
-        val arrowResult = buildArrowPaths(node.direction, arrowStartRelX, arrowEndRelX, arrowCenterRelY, arrowHeadSize)
+        val arrowResult = buildArrowPaths(
+            node.direction, arrowStartRelX, arrowEndRelX, arrowCenterRelY, arrowHeadSize, harpoonShaftOffset
+        )
 
         // 双线箭头不画中间单线（strokePaths 中已包含双平行线）
         val isDoubleLine = node.direction == LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE ||
                 node.direction == LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE ||
                 node.direction == LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE ||
                 node.direction == Direction.EQUAL ||
-            node.direction == Direction.RIGHT_LEFT_HARPOONS ||
-            node.direction == Direction.LEFT_RIGHT_HARPOONS
+                isHarpoonPair
 
         return NodeLayout(totalWidth, vertical.totalHeight, vertical.baseline) { x, y ->
             // 绘制上方文字
@@ -170,7 +181,8 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
         startX: Float,
         endX: Float,
         centerY: Float,
-        headSize: Float
+        headSize: Float,
+        harpoonShaftOffset: Float
     ): ArrowPaths {
         val filledPaths = mutableListOf<Path>()
         val strokePaths = mutableListOf<Path>()
@@ -191,15 +203,14 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
             Direction.LEFT_HARPOON_DOWN -> harpoon(right = false, up = false, y = centerY)
             Direction.RIGHT_LEFT_HARPOONS, Direction.LEFT_RIGHT_HARPOONS -> {
                 val upperRight = direction == Direction.RIGHT_LEFT_HARPOONS
-                val gap = headSize / 6f
                 strokePaths.add(Path().apply {
-                    moveTo(startX, centerY - gap)
-                    lineTo(endX, centerY - gap)
-                    moveTo(startX, centerY + gap)
-                    lineTo(endX, centerY + gap)
+                    moveTo(startX, centerY - harpoonShaftOffset)
+                    lineTo(endX, centerY - harpoonShaftOffset)
+                    moveTo(startX, centerY + harpoonShaftOffset)
+                    lineTo(endX, centerY + harpoonShaftOffset)
                 })
-                harpoon(right = upperRight, up = true, y = centerY - gap)
-                harpoon(right = !upperRight, up = false, y = centerY + gap)
+                harpoon(right = upperRight, up = true, y = centerY - harpoonShaftOffset)
+                harpoon(right = !upperRight, up = false, y = centerY + harpoonShaftOffset)
             }
             Direction.TWO_HEAD_RIGHT, Direction.TWO_HEAD_LEFT -> {
                 val right = direction == Direction.TWO_HEAD_RIGHT

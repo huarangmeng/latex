@@ -185,7 +185,13 @@ internal fun CommandRegistry.installStyleHandlers() {
         "textdagger" to "†", "textdaggerdbl" to "‡", "textregistered" to "®", "textsterling" to "£"
     )
     for ((name, text) in textSymbols) {
-        register(name) { _, _, _ -> LatexNode.TextMode(text) }
+        register(name) { _, _, stream ->
+            // Ordinary whitespace terminates a control word. Explicit spaces remain separate tokens.
+            stream.raw {
+                while ((stream.peek() as? LatexToken.Whitespace)?.content == " ") stream.advance()
+            }
+            LatexNode.TextMode(text)
+        }
     }
 
     val textAccents = mapOf(

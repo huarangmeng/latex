@@ -22,6 +22,7 @@
 
 package com.hrm.latex.renderer.export
 
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
@@ -299,6 +300,23 @@ class LatexSvgExporterTest {
         val mixed = assertNotNull(exporter.exportSvg("""\textcolor{red!30!blue}{x}"""))
         val explicit = assertNotNull(exporter.exportSvg("""\textcolor{#4d00b3}{x}"""))
         assertEquals(explicit.svg, mixed.svg)
+    }
+
+    @Test
+    fun pairedHarpoonsLeaveClearSpaceBetweenTheShafts() {
+        val exporter = createExporter()
+        for (source in listOf("""\xrightleftharpoons{}""", """\xleftrightharpoons{}""")) {
+            val image = assertNotNull(exporter.export(
+                source,
+                config = LatexConfig(fontSize = 20.sp),
+                exportConfig = ExportConfig(scale = 1f, transparentBackground = true)
+            )).imageBitmap
+            val pixels = image.toPixelMap()
+            val shaftRows = (0 until image.height).filter { pixels[image.width / 2, it].alpha > 0.2f }
+            assertTrue(shaftRows.zipWithNext().any { (upper, lower) ->
+                (upper + 1 until lower).any { pixels[image.width / 2, it].alpha < 0.01f }
+            }, "Expected two separated shafts for $source, got painted rows $shaftRows")
+        }
     }
 
     private fun createExporter(): LatexExporterState {

@@ -110,7 +110,7 @@ class IncrementalLatexParserTest {
     @Test
     fun editsToMathcodesAndPairedDefinitionsReparseFollowingUses() {
         val parser = IncrementalLatexParser()
-        val source = """\mathcode`+="302B"a+b\DeclarePairedDelimiterX{\pair}[2]{(}{)}{#1,#2}\pair*{x}{y}"""
+        val source = """\mathcode`+="302B a+b\DeclarePairedDelimiterX{\pair}[2]{(}{)}{#1,#2}\pair*{x}{y}"""
         parser.setInput(source)
         val edited = source.replace("302B", "202B").replace("#1,#2", "#1;#2")
         parser.setInput(edited)
