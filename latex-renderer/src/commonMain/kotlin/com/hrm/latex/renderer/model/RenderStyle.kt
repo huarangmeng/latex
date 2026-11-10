@@ -352,6 +352,7 @@ internal data class RenderContext(
     val fontFamilies: LatexFontFamilies? = null,
     val isVariantFontFamily: Boolean = false,
     val smallCaps: Boolean = false,
+    val inTextMode: Boolean = false,
     // ── 布局提示 ──
     val layoutHints: LayoutHints = LayoutHints(),
     // ── 排版参数 ──
@@ -476,7 +477,8 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
     val families = fontFamilies
 
     return when (styleType) {
-        LatexNode.Style.StyleType.BOLD -> copy(
+        LatexNode.Style.StyleType.BOLD,
+        LatexNode.Style.StyleType.LEGACY_BOLD -> copy(
             fontWeight = FontWeight.Bold,
             fontStyle = FontStyle.Normal,
             fontFamily = families?.main ?: fontFamily,
@@ -485,12 +487,14 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
 
         LatexNode.Style.StyleType.BOLD_SYMBOL -> copy(fontWeight = FontWeight.Bold)
 
-        LatexNode.Style.StyleType.ITALIC -> copy(
+        LatexNode.Style.StyleType.ITALIC,
+        LatexNode.Style.StyleType.LEGACY_ITALIC -> copy(
             fontStyle = FontStyle.Italic,
             fontFamily = families?.main ?: fontFamily,
             isVariantFontFamily = false
         )
-        LatexNode.Style.StyleType.ROMAN -> copy(
+        LatexNode.Style.StyleType.ROMAN,
+        LatexNode.Style.StyleType.LEGACY_ROMAN -> copy(
             fontStyle = FontStyle.Normal,
             fontFamily = families?.main ?: fontFamily,
             isVariantFontFamily = false
@@ -508,26 +512,33 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
             smallCaps = smallCaps && fontStyle == FontStyle.Italic
         )
         LatexNode.Style.StyleType.TEXT_STRAIGHTEN -> copy(fontStyle = FontStyle.Normal)
+        LatexNode.Style.StyleType.TEXT_EMPHASIS -> copy(
+            fontStyle = if (fontStyle == FontStyle.Italic) FontStyle.Normal else FontStyle.Italic
+        )
+        LatexNode.Style.StyleType.TEXT_INHERIT_SLOPE -> copy(fontStyle = fontStyle ?: FontStyle.Normal)
         LatexNode.Style.StyleType.SMALL_CAPS -> copy(smallCaps = true)
         LatexNode.Style.StyleType.TEXT_UPPER_LOWER_CASE -> copy(smallCaps = false, fontStyle = fontStyle ?: FontStyle.Normal)
         LatexNode.Style.StyleType.TEXT_NORMAL_SHAPE -> copy(fontStyle = FontStyle.Normal, smallCaps = false)
         LatexNode.Style.StyleType.TEXT_NORMAL,
-        LatexNode.Style.StyleType.LEGACY_SMALL_CAPS -> copy(
+        LatexNode.Style.StyleType.LEGACY_SMALL_CAPS,
+        LatexNode.Style.StyleType.LEGACY_SLANTED -> copy(
             fontFamily = families?.main ?: fontFamily,
             fontWeight = FontWeight.Normal,
-            fontStyle = FontStyle.Normal,
+            fontStyle = if (styleType == LatexNode.Style.StyleType.LEGACY_SLANTED) FontStyle.Italic else FontStyle.Normal,
             fontVariant = FontVariant.NORMAL,
             isVariantFontFamily = false,
             smallCaps = styleType == LatexNode.Style.StyleType.LEGACY_SMALL_CAPS
         )
 
-        LatexNode.Style.StyleType.SANS_SERIF -> copy(
+        LatexNode.Style.StyleType.SANS_SERIF,
+        LatexNode.Style.StyleType.LEGACY_SANS_SERIF -> copy(
             fontFamily = families?.sansSerif ?: fontFamily,
             fontStyle = FontStyle.Normal,
             isVariantFontFamily = false
         )
 
-        LatexNode.Style.StyleType.MONOSPACE -> copy(
+        LatexNode.Style.StyleType.MONOSPACE,
+        LatexNode.Style.StyleType.LEGACY_MONOSPACE -> copy(
             fontFamily = families?.monospace ?: fontFamily,
             fontStyle = FontStyle.Normal,
             isVariantFontFamily = false

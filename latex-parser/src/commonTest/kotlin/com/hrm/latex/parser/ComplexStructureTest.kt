@@ -417,7 +417,7 @@ class ComplexStructureTest {
         val env = doc.children[0] as LatexNode.Environment
         val style = env.content[0] as LatexNode.Style
 
-        assertEquals(LatexNode.Style.StyleType.BOLD, style.styleType)
+        assertEquals(LatexNode.Style.StyleType.LEGACY_BOLD, style.styleType)
         assertEquals("x", (style.content[0] as LatexNode.Text).content)
     }
 

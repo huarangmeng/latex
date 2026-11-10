@@ -99,6 +99,10 @@ Font declarations can be combined within a group, as in `{\sffamily\bfseries\scs
 `\textulc{...}` and `\ulcshape` restore ordinary letter case while preserving the other font attributes. `\normalshape` resets slope and small caps. `\textnormal{...}` and `\normalfont` also restore the default family and weight.
 
 `\textup{...}` and `\upshape` follow LaTeX's compatibility rule. On upright small caps they restore ordinary case. On italic or slanted small caps the first switch removes the slant, and a second switch restores ordinary case. Both preserve the current family and weight.
+
+`\emph{...}` and `\em` use LaTeX's default emphasis behavior, alternating between italic and upright while preserving the family, weight, and small caps. In text mode, the legacy switches `\bf`, `\it`, `\rm`, `\sf`, `\tt`, `\sl`, and `\sc` restore the default font before applying their own attribute.
+
+The renderer uses LaTeX's fallback shapes for `\textsw{...}` / `\swshape` (italic) and `\textssc{...}` / `\sscshape` (ordinary small caps).
 </details>
 
 <details>

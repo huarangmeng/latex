@@ -169,9 +169,20 @@ internal fun measureNode(
         is LatexNode.Group -> measureGroup(node.children, context, measurer, density, cache = cache)
         is LatexNode.Document -> measureGroup(node.children, context, measurer, density, cache = cache)
 
-        is LatexNode.Style -> measureGroup(
-            node.content, context.applyStyle(node.styleType), measurer, density, cache = cache
-        )
+        is LatexNode.Style -> {
+            val legacyTextStyle = node.styleType.legacyTextStyle?.takeIf { context.inTextMode }
+            val styledContext = if (legacyTextStyle != null) {
+                context.applyStyle(LatexNode.Style.StyleType.TEXT_NORMAL).applyStyle(legacyTextStyle)
+            } else {
+                context.applyStyle(node.styleType)
+            }
+            val contentContext = if (node.styleType.isTextStyle && !styledContext.inTextMode) {
+                styledContext.copy(inTextMode = true)
+            } else {
+                styledContext
+            }
+            measureGroup(node.content, contentContext, measurer, density, cache = cache)
+        }
 
         is LatexNode.MathClass -> measureGroup(
             node.content, context, measurer, density, cache = cache
@@ -204,12 +215,12 @@ internal fun measureNode(
         }
 
         is LatexNode.InlineMath -> measureGroup(
-            node.children, context.copy(mathStyle = MathStyle.TEXT, isCramped = false, fontStyle = null, smallCaps = false),
+            node.children, context.copy(mathStyle = MathStyle.TEXT, isCramped = false, fontStyle = null, smallCaps = false, inTextMode = false),
             measurer, density, cache = cache
         )
 
         is LatexNode.DisplayMath -> measureGroup(
-            node.children, context.copy(mathStyle = MathStyle.DISPLAY, isCramped = false, smallCaps = false),
+            node.children, context.copy(mathStyle = MathStyle.DISPLAY, isCramped = false, smallCaps = false, inTextMode = false),
             measurer, density, cache = cache
         )
 

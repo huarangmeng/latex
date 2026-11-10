@@ -74,6 +74,27 @@ class MathMLVisitorTest {
     }
 
     @Test
+    fun nestedEmphasisKeepsTheFontFamilyAndTogglesSlope() {
+        val mathml = MathMLVisitor.convert(parser.parse(
+            """\textsf{\emph{Abc \emph{Def} Ghi}}"""
+        ))
+        assertTrue(mathml.contains("""<mstyle style="font-family: sans-serif"><mrow><mstyle style="font-style: italic">"""), mathml)
+        assertTrue(mathml.contains("""<mstyle style="font-style: normal"><mrow><mtext>Def</mtext>"""), mathml)
+        assertTrue(mathml.contains("<mtext>Ghi</mtext>"), mathml)
+    }
+
+    @Test
+    fun legacyFontSwitchesResetTextFontsAndKeepMathAlphabets() {
+        val mathml = MathMLVisitor.convert(parser.parse(
+            """\textsc{Abc {\bf Def} Ghi ${'$'}{\bf x}${'$'}}"""
+        ))
+        assertTrue(mathml.contains("""<mtext style="font-variant-caps: small-caps">Abc</mtext>"""), mathml)
+        assertTrue(mathml.contains("""<mstyle style="font-weight: bold"><mtext>Def</mtext>"""), mathml)
+        assertTrue(mathml.contains("""<mtext style="font-variant-caps: small-caps">Ghi</mtext>"""), mathml)
+        assertTrue(mathml.contains("""<mstyle mathvariant="bold"><mi>x</mi>"""), mathml)
+    }
+
+    @Test
     fun testDisplayMode() {
         val doc = parser.parse("x")
         val block = MathMLVisitor.convert(doc, displayMode = true)

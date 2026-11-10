@@ -790,6 +790,21 @@ val basicLatexPreviewGroups = listOf(
                 "Two upright switches from italic small caps",
                 "{\\sffamily\\itshape\\scshape Abc \\upshape Def \\upshape Ghi}"
             ),
+            PreviewItem(
+                "36",
+                "Nested emphasis in a sans-serif family",
+                "\\textsf{\\emph{Abc \\emph{Def} Ghi}}\\quad{\\sffamily\\em Jkl}"
+            ),
+            PreviewItem(
+                "37",
+                "Legacy font switches inside small caps",
+                "\\textsf{\\textsc{Abc {\\bf Def} {\\sl Ghi} Jkl}}"
+            ),
+            PreviewItem(
+                "38",
+                "Font fallbacks for swash and spaced small caps",
+                "\\textsw{Abc}\\quad{\\swshape Def}\\quad\\textssc{Ghi}\\quad{\\sscshape Jkl}"
+            ),
         )
     ),
     PreviewGroup(

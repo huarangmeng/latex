@@ -28,6 +28,8 @@ import kotlin.math.round
 private val bboxMathMlDimensionPattern =
     Regex("""(-?\d+(?:\.\d+)?)(px|pt|em|ex|mm|cm|in)""", RegexOption.IGNORE_CASE)
 
+private const val defaultTextFont = " style=\"font-family: serif; font-weight: normal; font-style: normal\""
+
 /**
  * LaTeX AST → MathML 转换访问者
  *
@@ -315,28 +317,36 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitStyle(node: LatexNode.Style): String {
-        val caps = when (node.styleType) {
+        val legacyTextStyle = node.styleType.legacyTextStyle?.takeIf { textStyleActive }
+        val styleType = legacyTextStyle ?: node.styleType
+        val nextSlope = when (styleType) {
+            LatexNode.Style.StyleType.TEXT_EMPHASIS -> !slopedShape
+            else -> styleType.slopedShape ?: (legacyTextStyle == null && slopedShape)
+        }
+        val caps = when (styleType) {
             LatexNode.Style.StyleType.SMALL_CAPS, LatexNode.Style.StyleType.LEGACY_SMALL_CAPS -> true
             LatexNode.Style.StyleType.TEXT_UPRIGHT -> smallCaps && slopedShape
             LatexNode.Style.StyleType.TEXT_UPPER_LOWER_CASE,
             LatexNode.Style.StyleType.TEXT_NORMAL_SHAPE,
-            LatexNode.Style.StyleType.TEXT_NORMAL -> false
-            else -> smallCaps
+            LatexNode.Style.StyleType.TEXT_NORMAL,
+            LatexNode.Style.StyleType.LEGACY_SLANTED -> false
+            else -> legacyTextStyle == null && smallCaps
         }
         val content = withTextStyle(
-            active = textStyleActive || node.styleType.isTextStyle,
+            active = textStyleActive || styleType.isTextStyle,
             caps = caps,
-            sloped = node.styleType.slopedShape ?: slopedShape
+            sloped = nextSlope
         ) {
             node.content.joinToString("") { visit(it) }
         }
-        val attr = when (node.styleType) {
-            LatexNode.Style.StyleType.BOLD, LatexNode.Style.StyleType.BOLD_SYMBOL ->
+        val attr = when (styleType) {
+            LatexNode.Style.StyleType.BOLD, LatexNode.Style.StyleType.BOLD_SYMBOL,
+            LatexNode.Style.StyleType.LEGACY_BOLD ->
                 " mathvariant=\"bold\""
-            LatexNode.Style.StyleType.ITALIC -> " mathvariant=\"italic\""
-            LatexNode.Style.StyleType.ROMAN -> " mathvariant=\"normal\""
-            LatexNode.Style.StyleType.SANS_SERIF -> " mathvariant=\"sans-serif\""
-            LatexNode.Style.StyleType.MONOSPACE -> " mathvariant=\"monospace\""
+            LatexNode.Style.StyleType.ITALIC, LatexNode.Style.StyleType.LEGACY_ITALIC -> " mathvariant=\"italic\""
+            LatexNode.Style.StyleType.ROMAN, LatexNode.Style.StyleType.LEGACY_ROMAN -> " mathvariant=\"normal\""
+            LatexNode.Style.StyleType.SANS_SERIF, LatexNode.Style.StyleType.LEGACY_SANS_SERIF -> " mathvariant=\"sans-serif\""
+            LatexNode.Style.StyleType.MONOSPACE, LatexNode.Style.StyleType.LEGACY_MONOSPACE -> " mathvariant=\"monospace\""
             LatexNode.Style.StyleType.BLACKBOARD_BOLD -> " mathvariant=\"double-struck\""
             LatexNode.Style.StyleType.FRAKTUR -> " mathvariant=\"fraktur\""
             LatexNode.Style.StyleType.SCRIPT -> " mathvariant=\"script\""
@@ -348,16 +358,23 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Style.StyleType.TEXT_MEDIUM -> " style=\"font-weight: normal\""
             LatexNode.Style.StyleType.TEXT_ITALIC -> " style=\"font-style: italic\""
             LatexNode.Style.StyleType.TEXT_SLANTED -> " style=\"font-style: oblique\""
+            LatexNode.Style.StyleType.TEXT_EMPHASIS -> {
+                val slope = if (nextSlope) "italic" else "normal"
+                " style=\"font-style: $slope\""
+            }
             LatexNode.Style.StyleType.TEXT_UPRIGHT,
             LatexNode.Style.StyleType.TEXT_STRAIGHTEN,
             LatexNode.Style.StyleType.TEXT_NORMAL_SHAPE -> " style=\"font-style: normal\""
             LatexNode.Style.StyleType.TEXT_NORMAL,
-            LatexNode.Style.StyleType.LEGACY_SMALL_CAPS ->
-                " style=\"font-family: serif; font-weight: normal; font-style: normal\""
+            LatexNode.Style.StyleType.LEGACY_SMALL_CAPS -> defaultTextFont
+            LatexNode.Style.StyleType.LEGACY_SLANTED ->
+                " style=\"font-family: serif; font-weight: normal; font-style: oblique\""
             LatexNode.Style.StyleType.SMALL_CAPS,
+            LatexNode.Style.StyleType.TEXT_INHERIT_SLOPE,
             LatexNode.Style.StyleType.TEXT_UPPER_LOWER_CASE -> return mrow(content)
         }
-        return "<mstyle$attr>$content</mstyle>"
+        val styled = "<mstyle$attr>$content</mstyle>"
+        return if (legacyTextStyle != null) "<mstyle$defaultTextFont>$styled</mstyle>" else styled
     }
 
     override fun visitMathClass(node: LatexNode.MathClass): String {
@@ -476,7 +493,9 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
 
     override fun visitTextMode(node: LatexNode.TextMode): String {
         return if (node.content.isEmpty()) textElement(node.text)
-            else mrow(node.content.joinToString("") { visit(it) })
+            else withTextStyle(active = true, caps = smallCaps, sloped = slopedShape) {
+                mrow(node.content.joinToString("") { visit(it) })
+            }
     }
 
     private fun textElement(text: String): String {

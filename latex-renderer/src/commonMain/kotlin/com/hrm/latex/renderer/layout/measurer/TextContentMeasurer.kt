@@ -76,7 +76,8 @@ internal class TextContentMeasurer : NodeMeasurer {
             is LatexNode.TextMode -> if (node.content.isEmpty()) measureTextMode(node.text, context, measurer)
                 else measureGroup(node.content, context.copy(
                     fontStyle = context.fontStyle ?: FontStyle.Normal,
-                    fontFamily = context.fontFamily ?: context.fontFamilies?.main
+                    fontFamily = context.fontFamily ?: context.fontFamilies?.main,
+                    inTextMode = true
                 ))
             is LatexNode.Symbol -> measureSymbol(node, context, measurer, density)
             is LatexNode.Operator -> {

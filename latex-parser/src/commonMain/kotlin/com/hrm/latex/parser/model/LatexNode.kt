@@ -512,9 +512,11 @@ sealed class LatexNode {
             BLACKBOARD_BOLD, FRAKTUR, SCRIPT, CALLIGRAPHIC, SMALL_CAPS,
             TEXT_ROMAN, TEXT_SANS_SERIF, TEXT_MONOSPACE, TEXT_BOLD, TEXT_MEDIUM,
             TEXT_ITALIC, TEXT_SLANTED, TEXT_UPRIGHT, TEXT_UPPER_LOWER_CASE,
-            TEXT_NORMAL_SHAPE, TEXT_NORMAL, LEGACY_SMALL_CAPS, TEXT_STRAIGHTEN;
+            TEXT_NORMAL_SHAPE, TEXT_NORMAL, LEGACY_SMALL_CAPS, TEXT_STRAIGHTEN,
+            TEXT_EMPHASIS, TEXT_INHERIT_SLOPE,
+            LEGACY_BOLD, LEGACY_ITALIC, LEGACY_ROMAN, LEGACY_SANS_SERIF, LEGACY_MONOSPACE, LEGACY_SLANTED;
 
-            private enum class Axis { LEGACY, FAMILY, SERIES, SLOPE, CASE, UPRIGHT, SHAPE, FONT }
+            private enum class Axis { LEGACY, FAMILY, SERIES, SLOPE, CASE, UPRIGHT, EMPHASIS, SHAPE, FONT }
 
             private val axis: Axis
                 get() = when (this) {
@@ -522,21 +524,33 @@ sealed class LatexNode {
                     TEXT_BOLD, TEXT_MEDIUM -> Axis.SERIES
                     TEXT_ITALIC, TEXT_SLANTED, TEXT_STRAIGHTEN -> Axis.SLOPE
                     TEXT_UPRIGHT -> Axis.UPRIGHT
+                    TEXT_EMPHASIS, TEXT_INHERIT_SLOPE -> Axis.EMPHASIS
                     SMALL_CAPS, TEXT_UPPER_LOWER_CASE -> Axis.CASE
                     TEXT_NORMAL_SHAPE -> Axis.SHAPE
-                    TEXT_NORMAL, LEGACY_SMALL_CAPS -> Axis.FONT
+                    TEXT_NORMAL, LEGACY_SMALL_CAPS, LEGACY_SLANTED -> Axis.FONT
                     else -> Axis.LEGACY
                 }
 
-            internal val isTextStyle: Boolean get() = axis != Axis.LEGACY
+            val isTextStyle: Boolean get() = axis != Axis.LEGACY
+
+            /** Text-mode equivalents of the legacy switches that also select math alphabets. */
+            val legacyTextStyle: StyleType?
+                get() = when (this) {
+                    LEGACY_BOLD -> TEXT_BOLD
+                    LEGACY_ITALIC -> TEXT_ITALIC
+                    LEGACY_ROMAN -> TEXT_ROMAN
+                    LEGACY_SANS_SERIF -> TEXT_SANS_SERIF
+                    LEGACY_MONOSPACE -> TEXT_MONOSPACE
+                    else -> null
+                }
 
             // Null means the command leaves the incoming slope alone.
             internal val slopedShape: Boolean?
                 get() = when (this) {
-                    ITALIC, TEXT_ITALIC, TEXT_SLANTED -> true
+                    ITALIC, TEXT_ITALIC, TEXT_SLANTED, LEGACY_ITALIC, LEGACY_SLANTED -> true
                     BOLD_SYMBOL -> null
                     else -> when (axis) {
-                        Axis.FAMILY, Axis.SERIES, Axis.CASE -> null
+                        Axis.FAMILY, Axis.SERIES, Axis.CASE, Axis.EMPHASIS -> null
                         else -> false
                     }
                 }
@@ -544,7 +558,7 @@ sealed class LatexNode {
             internal fun supersedes(previous: StyleType): Boolean = when (axis) {
                 Axis.LEGACY, Axis.FONT -> true
                 Axis.SHAPE -> when (previous.axis) {
-                    Axis.SLOPE, Axis.CASE, Axis.UPRIGHT, Axis.SHAPE -> true
+                    Axis.SLOPE, Axis.CASE, Axis.UPRIGHT, Axis.EMPHASIS, Axis.SHAPE -> true
                     else -> false
                 }
                 else -> axis == previous.axis

@@ -198,6 +198,73 @@ class LatexSvgExporterTest {
     }
 
     @Test
+    fun emphasisTogglesTheCurrentSlopeWithoutChangingOtherAttributes() {
+        val exporter = createExporter()
+        fun svg(source: String) = assertNotNull(exporter.exportSvg(source)).svg
+
+        assertEquals(
+            svg("""\textsf{\textit{Abc \textup{Def} Ghi}}"""),
+            svg("""\textsf{\emph{Abc \emph{Def} Ghi}}""")
+        )
+        assertEquals(
+            svg("""\textsf{\textbf{\textsc{\textit{Abc}}}}"""),
+            svg("""{\sffamily\bfseries\scshape\em Abc}""")
+        )
+        assertEquals(
+            svg("""\textsf{\textbf{\textsc{Abc}}}"""),
+            svg("""{\sffamily\bfseries\scshape\itshape\em Abc}""")
+        )
+        assertEquals(
+            svg("""\textit{\textsc{Abc}}"""),
+            svg("""\textit{\textsc{\em\em Abc}}""")
+        )
+        assertEquals(
+            svg("""\textsf{Abc}"""),
+            svg("""{\sffamily\scshape\em\em\upshape Abc}""")
+        )
+    }
+
+    @Test
+    fun legacyTextFontSwitchesResetAndRestoreTheFont() {
+        val exporter = createExporter()
+        fun svg(source: String) = assertNotNull(exporter.exportSvg(source)).svg
+
+        val equivalents = mapOf(
+            "bf" to """\textbf{Abc}""",
+            "it" to """\textit{Abc}""",
+            "rm" to """\textrm{Abc}""",
+            "sf" to """\textsf{Abc}""",
+            "tt" to """\texttt{Abc}""",
+            "sl" to """\textsl{Abc}"""
+        )
+        for ((legacy, modern) in equivalents) {
+            assertEquals(
+                svg("""\textsf{\textbf{\textsc{\textnormal{$modern}}}}"""),
+                svg("""\textsf{\textbf{\textsc{{\$legacy Abc}}}}"""),
+                legacy
+            )
+        }
+        assertEquals(
+            svg("""\textsc{Abc \textnormal{\textbf{Def}} Ghi}"""),
+            svg("""\textsc{Abc {\bf Def} Ghi}""")
+        )
+        assertEquals(svg("""\mathbf{x}"""), svg("""{\bf x}"""))
+    }
+
+    @Test
+    fun swashAndSpacedSmallCapsUseTheBundledFontFallbacks() {
+        val exporter = createExporter()
+        fun svg(source: String) = assertNotNull(exporter.exportSvg(source)).svg
+
+        val italic = svg("""\textsf{\textit{Abc}}""")
+        assertEquals(italic, svg("""\textsf{\textsw{Abc}}"""))
+        assertEquals(italic, svg("""{\sffamily\swshape Abc}"""))
+        val smallCaps = svg("""\textsf{\textsc{Abc}}""")
+        assertEquals(smallCaps, svg("""\textsf{\textssc{Abc}}"""))
+        assertEquals(smallCaps, svg("""{\sffamily\sscshape Abc}"""))
+    }
+
+    @Test
     fun arraySpacingAndDashRulesAffectExportedLayout() {
         val exporter = createExporter()
         val body = "\\begin{array}{cc}a&b\\\\\\hline c&d\\end{array}"

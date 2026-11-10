@@ -302,6 +302,8 @@
 - ✅ `\rmfamily` / `\sffamily` / `\ttfamily`、`\bfseries` / `\mdseries`、`\itshape` / `\slshape` / `\upshape` 按属性叠加。
 - ✅ `\textulc{...}` / `\ulcshape` 恢复正常大小写，`\normalshape` 恢复默认字形，`\textnormal{...}` / `\normalfont` 恢复默认字体。
 - ✅ `\textup{...}` / `\upshape` 取消直立小型大写，或先将倾斜的小型大写切换为直立小型大写。
+- ✅ `\emph{...}` / `\em` 支持默认嵌套强调。旧式字体声明在文本模式先恢复默认字体，再应用各自属性。
+- ✅ `\textsw{...}` / `\swshape` 与 `\textssc{...}` / `\sscshape` 支持语法和字体回退，分别使用斜体和普通小型大写。
 - ✅ `\tiny` / `\scriptsize` / `\footnotesize` / `\small` / `\normalsize`
 - ✅ `\large` / `\Large` / `\LARGE` / `\huge` / `\Huge`
 

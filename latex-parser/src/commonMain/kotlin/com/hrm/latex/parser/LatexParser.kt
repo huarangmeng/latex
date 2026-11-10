@@ -576,19 +576,7 @@ internal class ParseSession(
 
     private fun updateActiveDeclaration(activeDeclarations: MutableList<LatexNode>, declaration: LatexNode) {
         if (declaration is LatexNode.Style) {
-            val type = if (declaration.styleType == StyleType.TEXT_UPRIGHT) {
-                // Resolve a locally known slope before deduplication drops its declaration.
-                val previousSlope = activeDeclarations.asReversed().firstNotNullOfOrNull {
-                    (it as? LatexNode.Style)?.styleType?.slopedShape
-                }
-                when (previousSlope) {
-                    true -> StyleType.TEXT_STRAIGHTEN
-                    false -> StyleType.TEXT_NORMAL_SHAPE
-                    null -> StyleType.TEXT_UPRIGHT
-                }
-            } else {
-                declaration.styleType
-            }
+            val type = resolveShapeDeclaration(declaration.styleType, activeDeclarations)
             activeDeclarations.removeAll { it is LatexNode.Style && type.supersedes(it.styleType) }
             activeDeclarations.add(if (type == declaration.styleType) declaration else declaration.copy(styleType = type))
             return
@@ -602,6 +590,21 @@ internal class ParseSession(
             activeDeclarations[existingIndex] = declaration
         } else {
             activeDeclarations.add(declaration)
+        }
+    }
+
+    private fun resolveShapeDeclaration(type: StyleType, declarations: List<LatexNode>): StyleType {
+        if (type != StyleType.TEXT_UPRIGHT && type != StyleType.TEXT_EMPHASIS) return type
+        // Resolve a locally known slope before deduplication drops its declaration.
+        val previousSlope = declarations.asReversed().firstNotNullOfOrNull {
+            (it as? LatexNode.Style)?.styleType?.slopedShape
+        }
+        return when (previousSlope) {
+            true -> StyleType.TEXT_STRAIGHTEN
+            false -> if (type == StyleType.TEXT_UPRIGHT) StyleType.TEXT_NORMAL_SHAPE else StyleType.TEXT_ITALIC
+            null -> if (type == StyleType.TEXT_EMPHASIS &&
+                declarations.any { it is LatexNode.Style && it.styleType == StyleType.TEXT_EMPHASIS }
+            ) StyleType.TEXT_INHERIT_SLOPE else type
         }
     }
 
