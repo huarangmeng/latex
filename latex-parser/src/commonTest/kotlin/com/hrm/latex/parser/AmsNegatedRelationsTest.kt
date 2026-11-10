@@ -32,132 +32,60 @@ class AmsNegatedRelationsTest {
 
     private val parser = LatexParser()
 
-    private fun parseSymbol(command: String, expectedUnicode: String) {
-        val result = parser.parse("\\$command")
-        val children = result.children
-        assertEquals(1, children.size, "\\$command should parse to exactly 1 node")
-        val node = children[0]
-        assertIs<LatexNode.Symbol>(node, "\\$command should parse as Symbol node")
-        assertEquals(expectedUnicode, node.unicode, "\\$command should have unicode '$expectedUnicode'")
+    private fun parseSymbols(vararg cases: Pair<String, String>) {
+        for ((command, expectedUnicode) in cases) {
+            val children = parser.parse("\\$command").children
+            assertEquals(1, children.size, "\\$command should parse to exactly 1 node")
+            val node = assertIs<LatexNode.Symbol>(children[0], "\\$command should parse as Symbol node")
+            assertEquals(expectedUnicode, node.unicode, "\\$command should have unicode '$expectedUnicode'")
+        }
     }
 
-    // === AMS 否定关系符号 ===
+    @Test
+    fun parsesNegatedRelations() = parseSymbols(
+        "nless" to "≮",
+        "ngtr" to "≯",
+        "nleq" to "≰",
+        "ngeq" to "≱",
+        "nleqslant" to "≰",
+        "ngeqslant" to "≱",
+        "nsubseteq" to "⊈",
+        "nsupseteq" to "⊉",
+        "nprec" to "⊀",
+        "nsucc" to "⊁",
+        "ncong" to "≇",
+        "nsim" to "≁",
+        "nmid" to "∤",
+        "nparallel" to "∦",
+        "nvdash" to "⊬",
+        "nvDash" to "⊭",
+        "nVdash" to "⊮",
+        "nVDash" to "⊯",
+        "ntriangleleft" to "⋪",
+        "ntriangleright" to "⋫",
+        "ntrianglelefteq" to "⋬",
+        "ntrianglerighteq" to "⋭",
+        "lneq" to "⪇",
+        "gneq" to "⪈",
+        "subsetneq" to "⊊",
+        "supsetneq" to "⊋"
+    )
 
     @Test
-    fun should_parse_nless() = parseSymbol("nless", "≮")
-
-    @Test
-    fun should_parse_ngtr() = parseSymbol("ngtr", "≯")
-
-    @Test
-    fun should_parse_nleq() = parseSymbol("nleq", "≰")
-
-    @Test
-    fun should_parse_ngeq() = parseSymbol("ngeq", "≱")
-
-    @Test
-    fun should_parse_nleqslant() = parseSymbol("nleqslant", "≰")
-
-    @Test
-    fun should_parse_ngeqslant() = parseSymbol("ngeqslant", "≱")
-
-    @Test
-    fun should_parse_nsubseteq() = parseSymbol("nsubseteq", "⊈")
-
-    @Test
-    fun should_parse_nsupseteq() = parseSymbol("nsupseteq", "⊉")
-
-    @Test
-    fun should_parse_nprec() = parseSymbol("nprec", "⊀")
-
-    @Test
-    fun should_parse_nsucc() = parseSymbol("nsucc", "⊁")
-
-    @Test
-    fun should_parse_ncong() = parseSymbol("ncong", "≇")
-
-    @Test
-    fun should_parse_nsim() = parseSymbol("nsim", "≁")
-
-    @Test
-    fun should_parse_nmid() = parseSymbol("nmid", "∤")
-
-    @Test
-    fun should_parse_nparallel() = parseSymbol("nparallel", "∦")
-
-    @Test
-    fun should_parse_nvdash() = parseSymbol("nvdash", "⊬")
-
-    @Test
-    fun should_parse_nvDash() = parseSymbol("nvDash", "⊭")
-
-    @Test
-    fun should_parse_nVdash() = parseSymbol("nVdash", "⊮")
-
-    @Test
-    fun should_parse_nVDash() = parseSymbol("nVDash", "⊯")
-
-    @Test
-    fun should_parse_ntriangleleft() = parseSymbol("ntriangleleft", "⋪")
-
-    @Test
-    fun should_parse_ntriangleright() = parseSymbol("ntriangleright", "⋫")
-
-    @Test
-    fun should_parse_ntrianglelefteq() = parseSymbol("ntrianglelefteq", "⋬")
-
-    @Test
-    fun should_parse_ntrianglerighteq() = parseSymbol("ntrianglerighteq", "⋭")
-
-    @Test
-    fun should_parse_lneq() = parseSymbol("lneq", "⪇")
-
-    @Test
-    fun should_parse_gneq() = parseSymbol("gneq", "⪈")
-
-    @Test
-    fun should_parse_subsetneq() = parseSymbol("subsetneq", "⊊")
-
-    @Test
-    fun should_parse_supsetneq() = parseSymbol("supsetneq", "⊋")
-
-    // === AMS 额外关系符号 ===
-
-    @Test
-    fun should_parse_leqslant() = parseSymbol("leqslant", "⩽")
-
-    @Test
-    fun should_parse_geqslant() = parseSymbol("geqslant", "⩾")
-
-    @Test
-    fun should_parse_lessgtr() = parseSymbol("lessgtr", "≶")
-
-    @Test
-    fun should_parse_gtrless() = parseSymbol("gtrless", "≷")
-
-    @Test
-    fun should_parse_lesssim() = parseSymbol("lesssim", "≲")
-
-    @Test
-    fun should_parse_gtrsim() = parseSymbol("gtrsim", "≳")
-
-    @Test
-    fun should_parse_trianglelefteq() = parseSymbol("trianglelefteq", "⊴")
-
-    @Test
-    fun should_parse_trianglerighteq() = parseSymbol("trianglerighteq", "⊵")
-
-    @Test
-    fun should_parse_vDash() = parseSymbol("vDash", "⊨")
-
-    @Test
-    fun should_parse_Vdash() = parseSymbol("Vdash", "⊩")
-
-    @Test
-    fun should_parse_Vvdash() = parseSymbol("Vvdash", "⊪")
-
-    @Test
-    fun should_parse_models() = parseSymbol("models", "⊧")
+    fun parsesAdditionalRelations() = parseSymbols(
+        "leqslant" to "⩽",
+        "geqslant" to "⩾",
+        "lessgtr" to "≶",
+        "gtrless" to "≷",
+        "lesssim" to "≲",
+        "gtrsim" to "≳",
+        "trianglelefteq" to "⊴",
+        "trianglerighteq" to "⊵",
+        "vDash" to "⊨",
+        "Vdash" to "⊩",
+        "Vvdash" to "⊪",
+        "models" to "⊧"
+    )
 
     // === 可访问名称测试 ===
 
