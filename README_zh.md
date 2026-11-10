@@ -97,6 +97,8 @@
 分组内可以叠加字体声明，例如 `{\sffamily\bfseries\scshape Abc}`。`\rmfamily`、`\sffamily`、`\ttfamily` 切换字族，`\bfseries`、`\mdseries` 切换粗细，`\itshape`、`\slshape`、`\upshape` 切换斜度。Compose 对 slanted 文本使用斜体字形。
 
 `\textulc{...}` 和 `\ulcshape` 恢复正常大小写并保留其他字体属性。`\normalshape` 恢复默认斜度和大小写，`\textnormal{...}` 和 `\normalfont` 同时恢复默认字族和粗细。
+
+`\textup{...}` 和 `\upshape` 遵循 LaTeX 的兼容规则。当前字形为直立小型大写时，它们恢复正常大小写。当前字形为倾斜的小型大写时，第一次切换恢复直立字形，第二次切换恢复正常大小写。两种命令都保留字族和粗细。
 </details>
 
 <details>

@@ -177,6 +177,27 @@ class LatexSvgExporterTest {
     }
 
     @Test
+    fun uprightCommandsUseTheCurrentShapeAndKeepFamilyAndWeight() {
+        val exporter = createExporter()
+        fun svg(source: String) = assertNotNull(exporter.exportSvg(source)).svg
+
+        val upright = svg("""{\sffamily\bfseries Abc}""")
+        val smallCaps = svg("""{\sffamily\bfseries\scshape Abc}""")
+        assertEquals(upright, svg("""{\sffamily\bfseries\scshape\upshape Abc}"""))
+        assertEquals(upright, svg("""{\sffamily\bfseries\scshape \textup{Abc}}"""))
+        assertEquals(smallCaps, svg("""{\sffamily\bfseries\itshape\scshape\upshape Abc}"""))
+        assertEquals(upright, svg("""{\sffamily\bfseries\itshape\scshape\upshape\upshape Abc}"""))
+        assertEquals(upright, svg("""{\sffamily\bfseries\upshape\scshape\upshape Abc}"""))
+        assertEquals(smallCaps, svg("""\textit{\textsf{\textbf{\scshape\upshape Abc}}}"""))
+        assertEquals(
+            svg("""{\sffamily\bfseries\itshape\scshape Abc}"""),
+            svg("""\textit{\textsf{\textbf{\scshape\upshape\itshape Abc}}}""")
+        )
+        assertEquals(svg("""\textbf{\textsc{Abc}}"""), svg("""{\sffamily\bfseries\scshape \textrm{Abc}}"""))
+        assertNotEquals(upright, svg("""{\sffamily\bfseries\scshape \textrm{Abc}}"""))
+    }
+
+    @Test
     fun arraySpacingAndDashRulesAffectExportedLayout() {
         val exporter = createExporter()
         val body = "\\begin{array}{cc}a&b\\\\\\hline c&d\\end{array}"

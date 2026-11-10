@@ -61,6 +61,19 @@ class MathMLVisitorTest {
     }
 
     @Test
+    fun uprightCommandsRemoveSmallCapsOnceTheShapeIsUpright() {
+        val mathml = MathMLVisitor.convert(parser.parse(
+            """\textsc{Abc \textup{Def} Ghi}{\itshape\scshape\upshape Jkl\upshape Mno}"""
+        ))
+        for (text in listOf("Abc", "Ghi", "Jkl")) {
+            assertTrue(mathml.contains("""<mtext style="font-variant-caps: small-caps">$text</mtext>"""), mathml)
+        }
+        for (text in listOf("Def", "Mno")) {
+            assertTrue(mathml.contains("<mtext>$text</mtext>"), mathml)
+        }
+    }
+
+    @Test
     fun testDisplayMode() {
         val doc = parser.parse("x")
         val block = MathMLVisitor.convert(doc, displayMode = true)

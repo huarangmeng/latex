@@ -767,7 +767,7 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("30", "Array spacing and dashed lines", "\\def\\arraystretch{1.5}\\setlength{\\arraycolsep}{8pt}\\begin{array}{cc}a&b\\\\\\hdashline c&d\\end{array}"),
             PreviewItem(
                 "31",
-                "Issue #57: small caps and group scope",
+                "Small caps and group scope",
                 "\\textrm{Abc123}\\quad\\textsc{Abc123}\\quad{\\sc Abc}\\quad{\\scshape Abc}\\quad\\text{outside}"
             ),
             PreviewItem(
@@ -779,6 +779,16 @@ val basicLatexPreviewGroups = listOf(
                 "33",
                 "Combine font declarations and reset shape",
                 "\\textnormal{Abc}\\quad{\\sffamily\\bfseries\\scshape Abc}\\quad{\\sffamily\\bfseries\\scshape\\normalshape Abc}"
+            ),
+            PreviewItem(
+                "34",
+                "Upright shape and roman family inside small caps",
+                "\\textsf{\\textsc{Abc \\textup{Def} Ghi \\textrm{Jkl}}}"
+            ),
+            PreviewItem(
+                "35",
+                "Two upright switches from italic small caps",
+                "{\\sffamily\\itshape\\scshape Abc \\upshape Def \\upshape Ghi}"
             ),
         )
     ),

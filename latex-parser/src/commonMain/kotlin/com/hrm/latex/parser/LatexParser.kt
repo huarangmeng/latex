@@ -33,6 +33,7 @@ import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.component.handler.ParseUtils
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.LatexNode.Style.StyleType
 import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
 import com.hrm.latex.parser.tokenizer.LatexTokenizer
@@ -575,9 +576,21 @@ internal class ParseSession(
 
     private fun updateActiveDeclaration(activeDeclarations: MutableList<LatexNode>, declaration: LatexNode) {
         if (declaration is LatexNode.Style) {
-            activeDeclarations.removeAll { it is LatexNode.Style && declaration.styleType.supersedes(it.styleType) }
-            // Apply declarations in order so resets precede later changes to individual attributes.
-            activeDeclarations.add(declaration)
+            val type = if (declaration.styleType == StyleType.TEXT_UPRIGHT) {
+                // Resolve a locally known slope before deduplication drops its declaration.
+                val previousSlope = activeDeclarations.asReversed().firstNotNullOfOrNull {
+                    (it as? LatexNode.Style)?.styleType?.slopedShape
+                }
+                when (previousSlope) {
+                    true -> StyleType.TEXT_STRAIGHTEN
+                    false -> StyleType.TEXT_NORMAL_SHAPE
+                    null -> StyleType.TEXT_UPRIGHT
+                }
+            } else {
+                declaration.styleType
+            }
+            activeDeclarations.removeAll { it is LatexNode.Style && type.supersedes(it.styleType) }
+            activeDeclarations.add(if (type == declaration.styleType) declaration else declaration.copy(styleType = type))
             return
         }
         val existingIndex = activeDeclarations.indexOfLast { existing ->

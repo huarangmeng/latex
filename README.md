@@ -97,6 +97,8 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 Font declarations can be combined within a group, as in `{\sffamily\bfseries\scshape Abc}`. Use `\rmfamily`, `\sffamily`, or `\ttfamily` for the family, `\bfseries` or `\mdseries` for weight, and `\itshape`, `\slshape`, or `\upshape` for slope. Compose uses the italic face for slanted text.
 
 `\textulc{...}` and `\ulcshape` restore ordinary letter case while preserving the other font attributes. `\normalshape` resets slope and small caps. `\textnormal{...}` and `\normalfont` also restore the default family and weight.
+
+`\textup{...}` and `\upshape` follow LaTeX's compatibility rule. On upright small caps they restore ordinary case. On italic or slanted small caps the first switch removes the slant, and a second switch restores ordinary case. Both preserve the current family and weight.
 </details>
 
 <details>

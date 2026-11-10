@@ -301,6 +301,7 @@
 - ✅ `\textsc{...}` 对参数应用小型大写样式；`\sc` / `\scshape` 在当前分组内声明该样式。
 - ✅ `\rmfamily` / `\sffamily` / `\ttfamily`、`\bfseries` / `\mdseries`、`\itshape` / `\slshape` / `\upshape` 按属性叠加。
 - ✅ `\textulc{...}` / `\ulcshape` 恢复正常大小写，`\normalshape` 恢复默认字形，`\textnormal{...}` / `\normalfont` 恢复默认字体。
+- ✅ `\textup{...}` / `\upshape` 取消直立小型大写，或先将倾斜的小型大写切换为直立小型大写。
 - ✅ `\tiny` / `\scriptsize` / `\footnotesize` / `\small` / `\normalsize`
 - ✅ `\large` / `\Large` / `\LARGE` / `\huge` / `\Huge`
 

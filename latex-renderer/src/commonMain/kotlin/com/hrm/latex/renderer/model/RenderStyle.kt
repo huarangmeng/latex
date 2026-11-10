@@ -503,7 +503,11 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         LatexNode.Style.StyleType.TEXT_MEDIUM -> copy(fontWeight = FontWeight.Normal, fontStyle = fontStyle ?: FontStyle.Normal)
         LatexNode.Style.StyleType.TEXT_ITALIC,
         LatexNode.Style.StyleType.TEXT_SLANTED -> copy(fontStyle = FontStyle.Italic)
-        LatexNode.Style.StyleType.TEXT_UPRIGHT -> copy(fontStyle = FontStyle.Normal)
+        LatexNode.Style.StyleType.TEXT_UPRIGHT -> copy(
+            fontStyle = FontStyle.Normal,
+            smallCaps = smallCaps && fontStyle == FontStyle.Italic
+        )
+        LatexNode.Style.StyleType.TEXT_STRAIGHTEN -> copy(fontStyle = FontStyle.Normal)
         LatexNode.Style.StyleType.SMALL_CAPS -> copy(smallCaps = true)
         LatexNode.Style.StyleType.TEXT_UPPER_LOWER_CASE -> copy(smallCaps = false, fontStyle = fontStyle ?: FontStyle.Normal)
         LatexNode.Style.StyleType.TEXT_NORMAL_SHAPE -> copy(fontStyle = FontStyle.Normal, smallCaps = false)

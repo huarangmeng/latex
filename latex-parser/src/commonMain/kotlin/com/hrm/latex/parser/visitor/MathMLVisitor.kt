@@ -59,6 +59,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     private var currentFontScale: Float = 1.0f
     private var textStyleActive = false
     private var smallCaps = false
+    private var slopedShape = false
 
     companion object {
         /**
@@ -105,21 +106,24 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitInlineMath(node: LatexNode.InlineMath): String =
-        withTextStyle(active = false, caps = false) { mrow(node.children.joinToString("") { visit(it) }) }
+        withTextStyle(active = false, caps = false, sloped = false) { mrow(node.children.joinToString("") { visit(it) }) }
 
     override fun visitDisplayMath(node: LatexNode.DisplayMath): String =
-        withTextStyle(active = false, caps = false) { mrow(node.children.joinToString("") { visit(it) }) }
+        withTextStyle(active = false, caps = false, sloped = slopedShape) { mrow(node.children.joinToString("") { visit(it) }) }
 
-    private inline fun withTextStyle(active: Boolean, caps: Boolean, content: () -> String): String {
+    private inline fun withTextStyle(active: Boolean, caps: Boolean, sloped: Boolean, content: () -> String): String {
         val previousActive = textStyleActive
         val previousCaps = smallCaps
+        val previousSlope = slopedShape
         textStyleActive = active
         smallCaps = caps
+        slopedShape = sloped
         return try {
             content()
         } finally {
             textStyleActive = previousActive
             smallCaps = previousCaps
+            slopedShape = previousSlope
         }
     }
 
@@ -313,12 +317,17 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     override fun visitStyle(node: LatexNode.Style): String {
         val caps = when (node.styleType) {
             LatexNode.Style.StyleType.SMALL_CAPS, LatexNode.Style.StyleType.LEGACY_SMALL_CAPS -> true
+            LatexNode.Style.StyleType.TEXT_UPRIGHT -> smallCaps && slopedShape
             LatexNode.Style.StyleType.TEXT_UPPER_LOWER_CASE,
             LatexNode.Style.StyleType.TEXT_NORMAL_SHAPE,
             LatexNode.Style.StyleType.TEXT_NORMAL -> false
             else -> smallCaps
         }
-        val content = withTextStyle(textStyleActive || node.styleType.isTextStyle, caps) {
+        val content = withTextStyle(
+            active = textStyleActive || node.styleType.isTextStyle,
+            caps = caps,
+            sloped = node.styleType.slopedShape ?: slopedShape
+        ) {
             node.content.joinToString("") { visit(it) }
         }
         val attr = when (node.styleType) {
@@ -340,6 +349,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Style.StyleType.TEXT_ITALIC -> " style=\"font-style: italic\""
             LatexNode.Style.StyleType.TEXT_SLANTED -> " style=\"font-style: oblique\""
             LatexNode.Style.StyleType.TEXT_UPRIGHT,
+            LatexNode.Style.StyleType.TEXT_STRAIGHTEN,
             LatexNode.Style.StyleType.TEXT_NORMAL_SHAPE -> " style=\"font-style: normal\""
             LatexNode.Style.StyleType.TEXT_NORMAL,
             LatexNode.Style.StyleType.LEGACY_SMALL_CAPS ->
