@@ -499,6 +499,8 @@ Choose the variant matching your Kotlin version:
 Replace `<version>` with a published release and use the same version for all
 LaTeX modules. KaTeX fonts require a release containing `latex-fonts-katex`.
 
+Published JVM libraries target Java 11 bytecode and JDK APIs. Building this repository still uses JDK 21.
+
 Add to `gradle/libs.versions.toml`:
 
 ```toml

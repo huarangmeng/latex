@@ -492,6 +492,8 @@ Kotlin 2.1 项目请固定使用最后的兼容版本，或升级工具链后跟
 将 `<version>` 替换为已发布版本，所有 LaTeX 模块使用相同版本号。
 使用 KaTeX 字体时，需选择包含 `latex-fonts-katex` 的发布版本。
 
+发布的 JVM 库以 Java 11 字节码和 JDK API 为目标；构建本仓库仍使用 JDK 21。
+
 在 `gradle/libs.versions.toml` 中添加：
 
 ```toml
