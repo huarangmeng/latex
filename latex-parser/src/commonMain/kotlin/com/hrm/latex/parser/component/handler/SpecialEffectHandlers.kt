@@ -129,7 +129,7 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
     // 否定修饰 \not
     register("not") { _, ctx, stream ->
         val next = if (!stream.isEOF()) {
-            ctx.parseFactor() ?: LatexNode.Text("")
+            ctx.parseArgument() ?: LatexNode.Text("")
         } else {
             LatexNode.Text("")
         }

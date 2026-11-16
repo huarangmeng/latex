@@ -55,7 +55,6 @@ import com.hrm.latex.renderer.model.applyStyle
 import com.hrm.latex.renderer.model.withColor
 import com.hrm.latex.renderer.utils.lineSpacingPx
 import com.hrm.latex.renderer.utils.parseDimension
-import com.hrm.latex.renderer.utils.splitLines
 import kotlin.reflect.KClass
 
 /**
@@ -295,47 +294,43 @@ internal fun measureNode(
  */
 internal fun measureGroup(
     inputNodes: List<LatexNode>, context: RenderContext, measurer: TextMeasurer, density: Density,
-    layoutMap: LayoutMap? = null, cache: LayoutCache? = null
+    layoutMap: LayoutMap? = null, cache: LayoutCache? = null,
+    preparedMathList: InlineMathList? = null,
 ): NodeLayout {
-    val styleIndex = when (context.mathStyle) {
-        MathStyle.DISPLAY -> 0
-        MathStyle.TEXT -> 1
-        MathStyle.SCRIPT -> 2
-        MathStyle.SCRIPT_SCRIPT -> 3
-    }
-    fun resolveChoices(node: LatexNode): List<LatexNode> {
-        if (node !is LatexNode.MathChoice) return listOf(node)
-        val branch = node.branch(styleIndex)
-        return (if (branch is LatexNode.Group) branch.children else listOf(branch)).flatMap(::resolveChoices)
-    }
-    val nodes = if (inputNodes.any { it is LatexNode.MathChoice }) inputNodes.flatMap(::resolveChoices) else inputNodes
+    val mathList = preparedMathList ?: InlineMathList.prepare(inputNodes, context)
     // 显式换行分成逻辑行，每行仍可继续自动换行。
-    val lines = splitLines(nodes)
-    if (lines.size > 1) {
+    val lines = mathList.lines()
+    if (lines.singleOrNull() !== mathList) {
         return stackLines(lines, context, density, layoutMap) { line, lineMap ->
-            measureGroup(line, context, measurer, density, lineMap, cache)
+            measureGroup(line.nodes, context, measurer, density, lineMap, cache, line)
         }
     }
 
+    val nodes = mathList.nodes
+
     // 节点只测量一次。分行阶段只读取尺寸，不能再次测量或推进公式编号。
-    val hasIntegrals = context.mathStyle == MathStyle.DISPLAY &&
-            nodes.any { it is LatexNode.BigOperator && it.operator.contains("int") }
-    val initialLayouts = nodes.map { node ->
-        if (hasIntegrals && node is LatexNode.BigOperator && node.operator.contains("int")) {
+    val hasIntegrals = nodes.indices.any { index ->
+        val node = nodes[index]
+        (mathList.contexts?.get(index) ?: context).mathStyle == MathStyle.DISPLAY &&
+            node is LatexNode.BigOperator && node.operator.contains("int")
+    }
+    val initialLayouts = nodes.mapIndexed { index, node ->
+        if (hasIntegrals && (mathList.contexts?.get(index) ?: context).mathStyle == MathStyle.DISPLAY &&
+            node is LatexNode.BigOperator && node.operator.contains("int")) {
             null
         } else {
-            measureNode(node, context, measurer, density, cache)
+            measureNode(node, mathList.contexts?.get(index) ?: context, measurer, density, cache)
         }
     }
     val layouts = if (hasIntegrals) {
         GroupLayoutPostProcessor.fillDeferredIntegrals(
-            nodes, initialLayouts, context, measurer, density, cache
+            nodes, initialLayouts, context, measurer, density, cache, mathList.contexts
         )
     } else {
         @Suppress("UNCHECKED_CAST")
         initialLayouts as List<NodeLayout>
     }
-    val metrics = InlineRowMetrics(nodes, layouts, context, density)
+    val metrics = InlineRowMetrics(nodes, layouts, mathList.glueContext, density, mathList.contexts)
     val maxWidth = context.layoutHints.maxLineWidth
     if (context.layoutHints.lineBreakingEnabled && maxWidth != null && nodes.isNotEmpty() &&
         metrics.width(0, nodes.size) > maxWidth
@@ -345,17 +340,17 @@ internal fun measureGroup(
         )
         if (ranges.size > 1) {
             return stackLines(ranges, context, density, layoutMap) { range, lineMap ->
-                assembleInlineRow(nodes, layouts, metrics, range.first, range.last + 1, context, lineMap)
+                assembleInlineRow(nodes, layouts, metrics, range.first, range.last + 1, context, lineMap, mathList.owners)
             }
         }
     }
-    return assembleInlineRow(nodes, layouts, metrics, 0, nodes.size, context, layoutMap)
+    return assembleInlineRow(nodes, layouts, metrics, 0, nodes.size, context, layoutMap, mathList.owners)
 }
 
 /** 从现成的节点尺寸装配一行，不执行任何测量。绘制和编辑器坐标共用定位规则。 */
 private fun assembleInlineRow(
     nodes: List<LatexNode>, layouts: List<NodeLayout>, metrics: InlineRowMetrics,
-    start: Int, end: Int, context: RenderContext, layoutMap: LayoutMap?
+    start: Int, end: Int, context: RenderContext, layoutMap: LayoutMap?, owners: List<LatexNode>? = null
 ): NodeLayout {
     val width = metrics.width(start, end)
     var ascent = 0f
@@ -367,10 +362,32 @@ private fun assembleInlineRow(
     val rowAscent = ascent
     val isRtl = context.textDirection == TextDirection.RTL
     if (layoutMap != null) {
+        var owner: LatexNode? = null
+        var left = 0f
+        var top = 0f
+        var right = 0f
+        var bottom = 0f
+        fun flushOwner() {
+            owner?.let { layoutMap.add(it, left, top, right - left, bottom - top, rowAscent - top) }
+        }
         forEachInlinePlacement(layouts, metrics, start, end, width, rowAscent, isRtl) { index, x, y ->
             val child = layouts[index]
-            layoutMap.add(nodes[index], x, y, child.width, child.height, child.baseline)
+            val origin = owners?.get(index) ?: nodes[index]
+            if (origin !== owner) {
+                flushOwner()
+                owner = origin
+                left = x
+                top = y
+                right = x + child.width
+                bottom = y + child.height
+            } else {
+                left = minOf(left, x)
+                top = minOf(top, y)
+                right = maxOf(right, x + child.width)
+                bottom = maxOf(bottom, y + child.height)
+            }
         }
+        flushOwner()
     }
     return NodeLayout(width, rowAscent + descent, rowAscent) { originX, originY ->
         forEachInlinePlacement(layouts, metrics, start, end, width, rowAscent, isRtl) { index, x, y ->

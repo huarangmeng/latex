@@ -300,10 +300,10 @@ internal class MatrixMeasurer : NodeMeasurer {
             context
         }
 
-        val rows = node.cases.map { listOf(it.second, LatexNode.Text(" if "), it.first) }
+        val rows = node.cases.map { (expression, condition) -> listOf(expression, condition) }
         val matrixLayout = measureMatrixLike(
             rows, contentContext, measurer, density, measureNode,
-            alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.CENTER, ColumnAlignment.LEFT)
+            alignments = listOf(ColumnAlignment.LEFT, ColumnAlignment.LEFT)
         )
 
         val axisHeight = LayoutUtils.getAxisHeight(density, context, measurer)

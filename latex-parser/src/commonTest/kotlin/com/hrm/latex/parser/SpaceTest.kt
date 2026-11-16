@@ -33,6 +33,27 @@ import kotlin.test.assertTrue
 class SpaceTest {
 
     @Test
+    fun sourceWhitespaceIsDistinctFromExplicitMathSpaces() {
+        val spaces = LatexParser().parse("a b\\ c~d\\,e").children.filterIsInstance<LatexNode.Space>()
+        assertEquals(listOf(
+            LatexNode.Space.SpaceType.SOURCE, LatexNode.Space.SpaceType.NORMAL,
+            LatexNode.Space.SpaceType.NON_BREAKING, LatexNode.Space.SpaceType.THIN,
+        ), spaces.map { it.type })
+    }
+
+    @Test
+    fun declarationsPreserveExplicitGlueWithoutIntroducingAnOrdinaryGroup() {
+        val parser = LatexParser()
+        val style = assertIs<LatexNode.MathStyle>(parser.parse("\\displaystyle\\quad a+b").children.single())
+        assertEquals(LatexNode.Space.SpaceType.QUAD, assertIs<LatexNode.Space>(style.content.first()).type)
+        assertTrue(style.content.none { it is LatexNode.Group })
+        val scoped = assertIs<LatexNode.MathStyle>(parser.parse("\\displaystyle{a+b}").children.single())
+        assertIs<LatexNode.Group>(scoped.content.single())
+        val size = assertIs<LatexNode.FontSize>(parser.parse("\\small\\,a+b").children.single())
+        assertEquals(LatexNode.Space.SpaceType.THIN, assertIs<LatexNode.Space>(size.content.first()).type)
+    }
+
+    @Test
     fun should_parse_negative_thin_space_correctly() {
         // Arrange
         val input = "a \\! b"

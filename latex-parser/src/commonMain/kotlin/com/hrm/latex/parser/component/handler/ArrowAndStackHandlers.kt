@@ -71,10 +71,11 @@ internal fun CommandRegistry.installArrowAndStackHandlers() {
     }
 
     // 堆叠：\overset, \stackrel
-    register("overset", "stackrel") { _, ctx, _ ->
+    register("overset", "stackrel") { command, ctx, _ ->
         val firstArg = ctx.parseArgument() ?: LatexNode.Text("")
         val base = ctx.parseArgument() ?: LatexNode.Text("")
-        LatexNode.Stack(base = base, above = firstArg, below = null)
+        val stack = LatexNode.Stack(base = base, above = firstArg, below = null)
+        if (command == "stackrel") LatexNode.MathClass(listOf(stack), LatexNode.MathClass.AtomClass.REL) else stack
     }
 
     // 堆叠：\underset

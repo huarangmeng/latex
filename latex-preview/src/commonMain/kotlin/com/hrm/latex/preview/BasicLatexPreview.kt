@@ -66,6 +66,23 @@ import kotlinx.coroutines.delay
 
 val basicLatexPreviewGroups = listOf(
     PreviewGroup(
+        id = "math_spacing_audit",
+        title = "Math spacing audit",
+        description = "Source whitespace, explicit glue, atom classes, wrappers, scripts, and grouping",
+        items = listOf(
+            PreviewItem("1", "Source whitespace does not change math spacing", """a-b \qquad a - b \qquad \text{well-known}"""),
+            PreviewItem("2", "Unary signs and consecutive binary operators", """{-x}\quad{a=-x}\quad{a--b}\quad{a+-b}\quad{a+++b}"""),
+            PreviewItem("3", "Explicit spaces add to automatic spacing", """a+b\qquad a\,+\,b\qquad a\!+b"""),
+            PreviewItem("4", "Named operators and parentheses", """\sin x\quad\sin(x)\quad\log_b x\quad a\sum_i b"""),
+            PreviewItem("5", "Relations, punctuation, and Unicode symbols", """a=b\quad a:b\quad a,=b\quad a≤b\quad a\ntrianglelefteq b"""),
+            PreviewItem("6", "Color and font wrappers preserve atom classes", """a+b\quad a\textcolor{red}{+b}\quad a\mathbf{+}b\quad a{+}b"""),
+            PreviewItem("7", "Script spacing around punctuation and operators", """x^{a+b}\quad x^{a,b}\quad x^{a\sin b}\quad x^{\frac{a}{b}c}"""),
+            PreviewItem("8", "Quad keeps one math list; braces start a subformula", """a-b\quad -x\qquad a-b\quad {-x}"""),
+            PreviewItem("9", "Fractions, matrices, and scalable delimiters", """a\frac{x}{y}b\quad a\begin{matrix}1\end{matrix}b\quad a\left(x\right)b"""),
+            PreviewItem("10", "Explicit glue after a style declaration", """{\displaystyle\quad a+b}\qquad{\scriptstyle\,a+b}"""),
+        )
+    ),
+    PreviewGroup(
         id = "basic",
         title = "1. Basic notation",
         description = "Text, superscripts, subscripts, and fractions",
@@ -890,6 +907,9 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("26", "Superscript and subscript expressions", "x_{a^2}^{a^2} \\quad \\sum_{a^2}^{a^2}"),
             PreviewItem("27", "Explicit cramped math styles", "\\crampeddisplaystyle x^2 \\quad \\crampedtextstyle x^2 \\quad \\crampedscriptstyle x^2 \\quad \\crampedscriptscriptstyle x^2"),
             PreviewItem("28", "Optional mathtools styles", "\\cramped{x^2} \\quad \\cramped[\\scriptstyle]{x^2}"),
+            PreviewItem("29", "Math minus in a binary expression", "(140 - \\text{age}) \\times \\text{weight}"),
+            PreviewItem("30", "Math minus in a superscript", "\\mathrm{pH} = \\mathrm{p}K_a + \\log_{10}\\frac{[A^-]}{[HA]}"),
+            PreviewItem("31", "Binary minus, unary minus, and text hyphens", "a-b \\quad {-x} \\quad A^- \\quad \\text{well-known}"),
         )
     ),
     PreviewGroup(
@@ -954,6 +974,21 @@ val basicLatexPreviewGroups = listOf(
                 "11c",
                 "Piecewise function with one brace",
                 "f(x)=\\left\\{\\begin{array}{l}-x^2-2ax-a, x<0\\\\\\epsilon^x+\\ln(x+1), x\\ge 0\\end{array}\\right."
+            ),
+            PreviewItem(
+                "11d",
+                "Cases preserve values and explicit condition labels",
+                "S = \\begin{cases} 0.85 & \\text{if Female,} \\\\ 1.0 & \\text{Male} \\end{cases}"
+            ),
+            PreviewItem(
+                "11e",
+                "Cases with text and math conditions",
+                "f(x) = \\begin{cases} 4x & \\text{if } 0 \\le x \\le 10, \\\\ 60 + (x-20) & \\text{if } x > 20 \\end{cases}"
+            ),
+            PreviewItem(
+                "11f",
+                "Cases with empty conditions",
+                "\\begin{cases} a \\\\ b \\end{cases} \\quad \\begin{rcases} a \\\\ b \\end{rcases}"
             ),
             PreviewItem(
                 "12",

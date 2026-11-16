@@ -81,8 +81,6 @@ internal class TextContentMeasurer : NodeMeasurer {
                 ))
             is LatexNode.Symbol -> measureSymbol(node, context, measurer, density)
             is LatexNode.Operator -> {
-                val operatorGap =
-                    with(density) { (context.fontSize * MathConstants.OPERATOR_RIGHT_GAP).toPx() }
                 val layout = measureText(
                     node.op,
                     context.copy(
@@ -92,7 +90,7 @@ internal class TextContentMeasurer : NodeMeasurer {
                     measurer,
                     density
                 )
-                NodeLayout(layout.width + operatorGap, layout.height, layout.baseline, draw = layout.draw)
+                layout
             }
 
             is LatexNode.Command -> {
@@ -101,8 +99,6 @@ internal class TextContentMeasurer : NodeMeasurer {
                 measureText("\\${node.name}", errorContext, measurer, density)
             }
             is LatexNode.OperatorName -> {
-                val operatorGap =
-                    with(density) { (context.fontSize * MathConstants.OPERATOR_RIGHT_GAP).toPx() }
                 val layout = measureText(
                     node.name,
                     context.copy(
@@ -112,7 +108,7 @@ internal class TextContentMeasurer : NodeMeasurer {
                     measurer,
                     density
                 )
-                NodeLayout(layout.width + operatorGap, layout.height, layout.baseline, draw = layout.draw)
+                layout
             }
             is LatexNode.ModOperator -> measureModOperator(node, context, measurer, density)
             is LatexNode.Space -> measureSpace(node.type, context, density)

@@ -57,18 +57,20 @@ internal object GroupLayoutPostProcessor {
         context: RenderContext,
         measurer: TextMeasurer,
         density: Density,
-        cache: LayoutCache? = null
+        cache: LayoutCache? = null,
+        contexts: List<RenderContext>? = null,
     ): List<NodeLayout> {
         return nodes.mapIndexed { index, node ->
             layouts[index] ?: run {
                 // 此节点是延迟测量的积分
                 val rightContentHeight = computeRightContentHeight(nodes, layouts, index)
+                val nodeContext = contexts?.get(index) ?: context
                 val hintedContext = if (rightContentHeight > 0f) {
-                    context.copy(
-                        layoutHints = context.layoutHints.copy(bigOpHeightHint = rightContentHeight)
+                    nodeContext.copy(
+                        layoutHints = nodeContext.layoutHints.copy(bigOpHeightHint = rightContentHeight)
                     )
                 } else {
-                    context
+                    nodeContext
                 }
                 measureNode(node, hintedContext, measurer, density, cache)
             }

@@ -188,7 +188,7 @@ class NewCommandTest {
         val result = LatexParser().parse("\\newcommand{\\C}[2]{\\binom{#1}{#2}} \\C{n+1}{k-1}")
         val binomial = assertIs<LatexNode.Binomial>(result.children.last())
         assertEquals("n+1", AccessibilityVisitor.describe(binomial.top).replace(" ", ""))
-        assertEquals("k-1", AccessibilityVisitor.describe(binomial.bottom).replace(" ", ""))
+        assertEquals("kminus1", AccessibilityVisitor.describe(binomial.bottom).replace(" ", ""))
     }
 
     @Test

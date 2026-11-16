@@ -119,6 +119,8 @@ The renderer uses LaTeX's fallback shapes for `\textsw{...}` / `\swshape` (itali
 <summary><b>Math Mode Switching</b></summary>
 
 `\displaystyle`, `\textstyle`, `\scriptstyle`, `\scriptscriptstyle`, `$...$` (inline), `$$...$$` (display). Denominators, radicals, and subscripts use cramped style automatically. Manual controls include `\cramped{...}`, `\cramped[\scriptstyle]{...}`, and LuaTeX's four `\cramped...style` commands.
+
+In math mode, `-` produces the minus sign (−, U+2212), including in scripts. Binary and unary minus use the corresponding TeX spacing. Text commands such as `\text{well-known}` keep literal hyphens.
 </details>
 
 <details>
@@ -131,12 +133,16 @@ The renderer uses LaTeX's fallback shapes for `\textsw{...}` / `\swshape` (itali
 - **Multi-line/splitting**: `split`, `multline(*)`
 - **Others**: `eqnarray(*)`, `subequations`, `tabular` (l/c/r column alignment)
 - **Row controls and numbering**: `\\`, `\cr`, `\intertext`, `\shortintertext`, `\notag`, `\nonumber`, `\tag`/`\tag*`, `\label`/`\ref`/`\eqref`
+
+Cases environments preserve the input order `value & condition`, with both columns left aligned. Write any condition labels explicitly, for example `0.85 & \text{if Female,}`; the renderer adds no words.
 </details>
 
 <details>
 <summary><b>Spacing</b></summary>
 
 `\ `, named math spaces, `\hspace{...}`, `\kern`, `\mkern`, and `\allowbreak`. Escaped special characters such as `\{`, `\}`, `\$`, `\%`, `\#`, `\&`, and `\_` are also supported. `\|` produces a double vertical bar, equivalent to `\Vert`.
+
+Ordinary source spaces, tabs, and newlines do not add width in math mode; text commands preserve text spaces. Explicit spacing adds to automatic atom spacing. `\quad` keeps the surrounding math list, so `a\quad-x` still uses a binary minus; `a\quad{-x}` starts a grouped unary expression. Consecutive operators, relations, punctuation, named operators, color/style declarations, and scripts share the same spacing rules during measurement, drawing, and line wrapping. Font commands preserve the argument's math class; a real group such as `{+}` remains an ordinary atom.
 </details>
 
 <details>

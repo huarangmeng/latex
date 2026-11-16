@@ -1,12 +1,24 @@
 package com.hrm.latex.renderer.layout
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.LatexParser
 import com.hrm.latex.renderer.utils.AtomType
 import com.hrm.latex.renderer.utils.MathSpacing
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class MathSpacingTest {
+
+    @Test
+    fun parsedMinusUsesBinarySpacingBetweenOperandsAndUnarySpacingAtTheStart() {
+        val parser = LatexParser()
+        val binary = parser.parse("a-b").children
+        val unary = parser.parse("-b").children
+        assertEquals(AtomType.BIN, MathSpacing.effectiveAtomType(binary, 1))
+        assertEquals(AtomType.ORD, MathSpacing.effectiveAtomType(unary, 0))
+        val exponent = (parser.parse("A^-").children.single() as LatexNode.Superscript).exponent
+        assertEquals(AtomType.ORD, MathSpacing.effectiveAtomType(listOf(exponent), 0))
+    }
 
     @Test
     fun should_treat_leading_minus_as_unary_ord() {

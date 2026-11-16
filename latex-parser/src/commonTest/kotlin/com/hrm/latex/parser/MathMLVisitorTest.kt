@@ -31,6 +31,25 @@ class MathMLVisitorTest {
     private val parser = LatexParser()
 
     @Test
+    fun sourceWhitespaceDoesNotCreateMathMlGlue() {
+        assertTrue(MathMLVisitor.convert(parser.parse(" a - b ")).contains("<mo>−</mo>"))
+        kotlin.test.assertEquals(
+            MathMLVisitor.convert(parser.parse("a-b")), MathMLVisitor.convert(parser.parse(" a \n -\t b "))
+        )
+        assertTrue(MathMLVisitor.convert(parser.parse("a\\,b")).contains("thinmathspace"))
+        assertTrue(MathMLVisitor.convert(parser.parse("\\text{a b}")).contains("<mtext>a b</mtext>"))
+    }
+
+    @Test
+    fun asciiMinusIsAnOperatorAndTextHyphensArePreserved() {
+        val result = MathMLVisitor.convert(parser.parse("""a-b + A^- + \text{well-known}"""))
+        assertTrue(result.contains("<mo>−</mo>"), result)
+        assertTrue(result.contains("<msup><mi>A</mi><mo>−</mo></msup>"), result)
+        assertTrue(result.contains("<mtext>well-known</mtext>"), result)
+        assertTrue(!result.contains("<mo>-</mo>"), result)
+    }
+
+    @Test
     fun testMathMLWrapper() {
         val doc = parser.parse("x")
         val result = MathMLVisitor.convert(doc)

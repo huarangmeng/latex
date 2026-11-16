@@ -205,6 +205,8 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitSpace(node: LatexNode.Space): String {
+        if (node.type == LatexNode.Space.SpaceType.SOURCE) return if (textStyleActive) "<mtext> </mtext>" else ""
+        if (node.type == LatexNode.Space.SpaceType.NON_BREAKING) return "<mspace width=\"0.25em\" linebreak=\"nobreak\"/>"
         val width = when (node.type) {
             LatexNode.Space.SpaceType.THIN -> "thinmathspace"
             LatexNode.Space.SpaceType.MEDIUM -> "mediummathspace"
@@ -212,7 +214,8 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Space.SpaceType.QUAD -> "1em"
             LatexNode.Space.SpaceType.QQUAD -> "2em"
             LatexNode.Space.SpaceType.NEGATIVE_THIN -> "negativethinmathspace"
-            LatexNode.Space.SpaceType.NORMAL -> "0.25em"
+            LatexNode.Space.SpaceType.NORMAL, LatexNode.Space.SpaceType.NON_BREAKING -> "0.25em"
+            LatexNode.Space.SpaceType.SOURCE -> "0em"
         }
         return "<mspace width=\"$width\"/>"
     }

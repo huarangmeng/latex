@@ -251,8 +251,8 @@ data class LineBreakingConfig(
  *
  * 影响字号缩放和间距行为：
  * - DISPLAY/TEXT: 全尺寸，MEDIUM/THICK 间距生效
- * - SCRIPT: 0.7x 缩放，MEDIUM/THICK 间距降为 0
- * - SCRIPT_SCRIPT: 0.5x 缩放，MEDIUM/THICK 间距降为 0
+ * - SCRIPT: 0.7x 缩放，仅保留与 Op 相邻的指定薄间距
+ * - SCRIPT_SCRIPT: 0.5x 缩放，使用同一紧间距表
  */
 enum class MathStyle(val scriptLevel: Int) {
     DISPLAY(0),

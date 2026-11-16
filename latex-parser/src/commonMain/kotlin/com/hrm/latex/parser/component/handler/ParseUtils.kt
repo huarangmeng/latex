@@ -49,7 +49,12 @@ internal object ParseUtils {
                 is LatexNode.TextMode -> if (node.content.isEmpty()) node.text else extractText(node.content)
                 is LatexNode.Group -> extractText(node.children)
                 is LatexNode.Space -> " "
-                is LatexNode.Symbol -> if (node.symbol == "prime") "'" else node.unicode
+                // Reconstruct command arguments (dimensions, ranges, keys) using source punctuation.
+                is LatexNode.Symbol -> when (node.symbol) {
+                    "prime" -> "'"
+                    "minus" -> "-"
+                    else -> node.unicode
+                }
                 is LatexNode.Superscript -> {
                     val primes = node.exponent.primeCount()
                     if (primes == null) "" else extractText(listOf(node.base)) + "'".repeat(primes)
