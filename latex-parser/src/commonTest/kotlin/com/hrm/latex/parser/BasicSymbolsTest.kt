@@ -24,8 +24,10 @@
 package com.hrm.latex.parser
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.SourceRange
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
@@ -40,6 +42,8 @@ import kotlin.test.assertTrue
 class BasicSymbolsTest {
     
     private val parser = LatexParser()
+
+    private fun LatexNode.descendants(): List<LatexNode> = listOf(this) + children().flatMap { it.descendants() }
     
     // ========== 纯文本测试 ==========
     
@@ -90,6 +94,56 @@ class BasicSymbolsTest {
     }
     
     // ========== 运算符测试 ==========
+
+    @Test
+    fun asciiMinusUsesMathSymbolInBinaryUnaryAndScriptPositions() {
+        val source = "-x + [A^-] - \\mathrm{-}"
+        val result = parser.parseWithDiagnostics(source)
+        assertTrue(result.errors.isEmpty(), result.errors.toString())
+        val minusNodes = result.document.descendants().filterIsInstance<LatexNode.Symbol>()
+        assertEquals(4, minusNodes.size)
+        assertTrue(minusNodes.all { it.symbol == "minus" && it.unicode == "−" })
+        assertEquals(source.indices.filter { source[it] == '-' }.map { SourceRange(it, it + 1) },
+            minusNodes.map { it.sourceRange })
+    }
+
+    @Test
+    fun textAndVerbatimHyphensStayLiteralWhileNestedMathUsesMinus() {
+        val result = parser.parseWithDiagnostics(
+            """\text{well-known \textbf{a-b} ${'$'}x-y${'$'}} \mbox{a-b} \verb|a-b|"""
+        )
+        assertTrue(result.errors.isEmpty(), result.errors.toString())
+        val nodes = result.document.descendants()
+        val text = nodes.filterIsInstance<LatexNode.TextMode>().joinToString("") { it.text }
+        assertTrue(text.startsWith("well-known a-b "), text)
+        assertEquals(4, text.count { it == '-' })
+        assertEquals("−", nodes.filterIsInstance<LatexNode.Symbol>().single().unicode)
+    }
+
+    @Test
+    fun explicitMathcodeOverridesTheDefaultMinusMappingOnlyInItsScope() {
+        val doc = parser.parse("""{\mathcode`-="002D -} -""")
+        val custom = doc.descendants().filterIsInstance<LatexNode.MathClass>().single()
+        assertEquals(LatexNode.MathClass.AtomClass.ORD, custom.atomClass)
+        assertEquals("-", assertIs<LatexNode.Text>(custom.content.single()).content)
+        assertEquals("−", doc.descendants().filterIsInstance<LatexNode.Symbol>().single().unicode)
+    }
+
+    @Test
+    fun minusMappingPreservesSyntaxInDimensionsRangesKeysAndUrls() {
+        val result = parser.parseWithDiagnostics(
+            """\hspace{-5mm}\kern{-2pt}\cline{1-3}\label{eq-a}\ref{eq-a}\url{https://example.com/a-b}"""
+        )
+        assertTrue(result.errors.isEmpty(), result.errors.toString())
+        val nodes = result.document.children
+        assertEquals(listOf("-5mm", "-2pt"), nodes.filterIsInstance<LatexNode.HSpace>().map { it.dimension })
+        val line = nodes.filterIsInstance<LatexNode.CLine>().single()
+        assertEquals(1, line.startCol)
+        assertEquals(3, line.endCol)
+        assertEquals("eq-a", nodes.filterIsInstance<LatexNode.Label>().single().key)
+        assertEquals("eq-a", nodes.filterIsInstance<LatexNode.Ref>().single().key)
+        assertEquals("https://example.com/a-b", nodes.filterIsInstance<LatexNode.Hyperlink>().single().url)
+    }
     
     @Test
     fun testPlusMinus() {

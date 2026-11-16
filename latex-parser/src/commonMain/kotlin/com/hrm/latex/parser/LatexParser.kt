@@ -325,7 +325,9 @@ internal class ParseSession(
 
             is LatexToken.Whitespace -> {
                 tokenStream.advance()
-                return LatexNode.Space(LatexNode.Space.SpaceType.NORMAL, sourceRange = token.range)
+                val type = if (token.content == "\u00A0") LatexNode.Space.SpaceType.NON_BREAKING
+                    else LatexNode.Space.SpaceType.SOURCE
+                return LatexNode.Space(type, sourceRange = token.range)
             }
 
             is LatexToken.NewLine -> {
@@ -526,6 +528,10 @@ internal class ParseSession(
         val code = if (inTextMode) null else mathCodeValues?.let { codes ->
             token.content.singleOrNull()?.let(codes::get)
         }
+        // TeX's math hyphen uses the minus glyph; text and explicit mathcodes keep their meaning.
+        if (!inTextMode && code == null && token.content == "-") {
+            return LatexNode.Symbol("minus", "−", sourceRange = token.range)
+        }
         if (code == null || code == ACTIVE_MATH_CODE) return LatexNode.Text(token.content, token.range)
         val family = code shr 8 and 0xf
         val slot = code and 0xff
@@ -614,7 +620,7 @@ internal class ParseSession(
                 flushSegment()
                 updateActiveDeclaration(activeDeclarations, node)
                 index++
-                while (index < nodes.size && nodes[index] is LatexNode.Space) {
+                while (index < nodes.size && (nodes[index] as? LatexNode.Space)?.type == LatexNode.Space.SpaceType.SOURCE) {
                     index++
                 }
             } else {
@@ -669,29 +675,31 @@ internal class ParseSession(
     }
 
     private fun wrapWithDeclarations(content: List<LatexNode>, declarations: List<LatexNode>): LatexNode {
-        var node: LatexNode = if (content.size == 1) content[0] else LatexNode.Group(content, mergeRange(content))
+        var body = content
         for (declaration in declarations.asReversed()) {
-            node = when (declaration) {
+            val range = mergeRange(body)
+            val node = when (declaration) {
                 is LatexNode.Color -> declaration.copy(
-                    content = listOf(node), isDeclaration = false,
-                    sourceRange = declaration.sourceRange.mergeWith(node.sourceRange)
+                    content = body, isDeclaration = false,
+                    sourceRange = declaration.sourceRange.mergeWith(range)
                 )
                 is LatexNode.Style -> declaration.copy(
-                    content = listOf(node),
-                    sourceRange = declaration.sourceRange.mergeWith(node.sourceRange)
+                    content = listOf(if (body.size == 1) body[0] else LatexNode.Group(body, range)),
+                    sourceRange = declaration.sourceRange.mergeWith(range)
                 )
                 is LatexNode.MathStyle -> declaration.copy(
-                    content = listOf(node),
-                    sourceRange = declaration.sourceRange.mergeWith(node.sourceRange)
+                    content = body,
+                    sourceRange = declaration.sourceRange.mergeWith(range)
                 )
                 is LatexNode.FontSize -> declaration.copy(
-                    content = listOf(node),
-                    sourceRange = declaration.sourceRange.mergeWith(node.sourceRange)
+                    content = body,
+                    sourceRange = declaration.sourceRange.mergeWith(range)
                 )
-                else -> node
+                else -> if (body.size == 1) body[0] else LatexNode.Group(body, range)
             }
+            body = listOf(node)
         }
-        return node
+        return body.single()
     }
 
     private fun mergeRange(nodes: List<LatexNode>): SourceRange? {

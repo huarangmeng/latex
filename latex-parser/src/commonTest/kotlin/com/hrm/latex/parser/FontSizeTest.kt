@@ -64,8 +64,8 @@ class FontSizeTest {
 
         assertEquals(LatexNode.FontSize.SizeType.SMALL, fontSize.sizeType)
         assertTrue(fontSize.content.isNotEmpty())
-        val content = assertIs<LatexNode.Group>(fontSize.content[0])
-        assertEquals("x", (content.children[0] as LatexNode.Text).content)
+        assertEquals("x", assertIs<LatexNode.Text>(fontSize.content[0]).content)
+        assertEquals("y", assertIs<LatexNode.Text>(fontSize.content.last()).content)
     }
 
     @Test
@@ -82,12 +82,12 @@ class FontSizeTest {
         val doc = parser.parse("{\\small{x} y}")
         val group = assertIs<LatexNode.Group>(doc.children[0])
         val fontSize = assertIs<LatexNode.FontSize>(group.children[0])
-        val content = assertIs<LatexNode.Group>(fontSize.content[0])
+        val content = fontSize.content
 
         assertEquals(LatexNode.FontSize.SizeType.SMALL, fontSize.sizeType)
-        assertEquals(3, content.children.size)
-        assertIs<LatexNode.Group>(content.children[0])
-        assertEquals("y", (content.children[2] as LatexNode.Text).content)
+        assertEquals(3, content.size)
+        assertIs<LatexNode.Group>(content[0])
+        assertEquals("y", (content[2] as LatexNode.Text).content)
     }
 
     @Test
@@ -122,8 +122,7 @@ class FontSizeTest {
         val fontSize = assertIs<LatexNode.FontSize>(firstCell.children[0])
 
         assertEquals(LatexNode.FontSize.SizeType.SMALL, fontSize.sizeType)
-        val content = assertIs<LatexNode.Group>(fontSize.content[0])
-        assertEquals("x", (content.children[0] as LatexNode.Text).content)
+        assertEquals("x", assertIs<LatexNode.Text>(fontSize.content[0]).content)
     }
 
     @Test
@@ -134,7 +133,6 @@ class FontSizeTest {
         val fontSize = assertIs<LatexNode.FontSize>(expression.children[0])
 
         assertEquals(LatexNode.FontSize.SizeType.SMALL, fontSize.sizeType)
-        val content = assertIs<LatexNode.Group>(fontSize.content[0])
-        assertEquals("x", (content.children[0] as LatexNode.Text).content)
+        assertEquals("x", assertIs<LatexNode.Text>(fontSize.content[0]).content)
     }
 }

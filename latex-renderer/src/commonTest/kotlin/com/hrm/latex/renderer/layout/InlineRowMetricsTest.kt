@@ -52,12 +52,10 @@ class InlineRowMetricsTest {
                             var expectedWidth = layouts.subList(start, end).sumOf { it.width.toDouble() }
                             for (index in 0 until row.size - 1) {
                                 // 每个候选子行独立调用原始间距规则，不复刻前缀和或边界修正算法。
-                                val left = row[index]
                                 val right = row[index + 1]
-                                val explicitSpace = left is LatexNode.Space || left is LatexNode.HSpace ||
-                                    right is LatexNode.Space || right is LatexNode.HSpace
-                                val expectedSpacing = if (explicitSpace) 0f else MathSpacing.spaceBetween(
-                                    MathSpacing.effectiveAtomType(row, index),
+                                val leftIndex = (index downTo 0).firstOrNull { !MathSpacing.isNonAtom(row[it]) }
+                                val expectedSpacing = if (leftIndex == null || MathSpacing.isNonAtom(right)) 0f else MathSpacing.spaceBetween(
+                                    MathSpacing.effectiveAtomType(row, leftIndex),
                                     MathSpacing.effectiveAtomType(row, index + 1),
                                     isScript,
                                 ) * fontSizePx

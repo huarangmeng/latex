@@ -36,8 +36,8 @@ enum class AtomType {
     REL,    // 关系符号：=, <, >, \leq, \geq, \approx
     OPEN,   // 开定界符：(, [, {
     CLOSE,  // 闭定界符：), ], }
-    PUNCT,  // 标点：, ; :
-    INNER   // 内部结构：\frac 等
+    PUNCT,  // 标点：, ; （普通冒号是关系符）
+    INNER   // 内部结构：\left ... \right、点列等
 }
 
 /**
@@ -63,7 +63,7 @@ object MathSpacing {
     private const val THICK = 5f / 18f     // \; = 5mu ≈ 0.278em
 
     /**
-     * TeX 标准间距表 (简化版)
+     * TeX 的 display/text 间距表；script 使用独立的紧间距规则。
      *
      * 行 = 左原子类型，列 = 右原子类型
      * null 表示该组合不应出现（按 NONE 处理）
@@ -140,7 +140,7 @@ object MathSpacing {
             SpaceRule.THIN,
             SpaceRule.THIN,
             null,
-            SpaceRule.THIN,
+            SpaceRule.THICK,
             SpaceRule.THIN,
             SpaceRule.THIN,
             SpaceRule.THIN,
@@ -165,6 +165,10 @@ object MathSpacing {
      * @return fontSize 的比例系数（乘以 fontSizePx 得到像素值）
      */
     fun spaceBetween(left: AtomType, right: AtomType, isScript: Boolean): Float {
+        if (isScript) return if (
+            right == AtomType.OP && (left == AtomType.ORD || left == AtomType.OP || left == AtomType.CLOSE || left == AtomType.INNER) ||
+            left == AtomType.OP && right == AtomType.ORD
+        ) THIN else 0f
         val rule = SPACING_TABLE[left.ordinal][right.ordinal] ?: return 0f
         return when (rule) {
             SpaceRule.NONE -> 0f
@@ -175,59 +179,13 @@ object MathSpacing {
     }
 
     fun effectiveAtomType(nodes: List<LatexNode>, index: Int): AtomType {
-        val type = classifyNode(nodes[index])
-        if (type != AtomType.BIN) return type
-
-        val prevType = previousNonSpaceAtomType(nodes, index)
-        val nextType = nextNonSpaceAtomType(nodes, index)
-
-        when (prevType) {
-            null, AtomType.BIN, AtomType.OP, AtomType.REL, AtomType.OPEN, AtomType.PUNCT -> return AtomType.ORD
-            else -> Unit
-        }
-
-        when (nextType) {
-            null, AtomType.BIN, AtomType.REL, AtomType.CLOSE, AtomType.PUNCT -> return AtomType.ORD
-            else -> Unit
-        }
-
-        return AtomType.BIN
+        return MathAtomSequence(nodes).typeAt(index, 0, nodes.size)
     }
-
-    /**
-     * 已知的二元运算符符号名
-     */
-    private val BINARY_OPERATORS = setOf(
-        "plus", "minus", "times", "div", "cdot",
-        "pm", "mp", "ast", "star", "circ",
-        "oplus", "ominus", "otimes", "oslash",
-        "cup", "cap", "setminus", "wedge", "vee"
-    )
-
-    /**
-     * 已知的关系符号名
-     */
-    private val RELATION_SYMBOLS = setOf(
-        "equals", "neq", "approx", "equiv", "sim", "simeq", "cong",
-        "leq", "geq", "ll", "gg", "le", "ge",
-        "subset", "supset", "subseteq", "supseteq",
-        "in", "ni", "notin",
-        "rightarrow", "leftarrow", "leftrightarrow",
-        "Rightarrow", "Leftarrow", "Leftrightarrow",
-        "longrightarrow", "longleftarrow", "longleftrightarrow",
-        "Longleftarrow", "Longrightarrow", "Longleftrightarrow",
-        "implies", "iff",
-        "mapsto", "to", "longmapsto",
-        "propto", "varpropto", "perp", "parallel", "mid",
-        "prec", "succ", "preceq", "succeq",
-        "vdash", "dashv", "leqq", "gtreqless", "backepsilon", "lvertneqq", "npreceq", "upuparrows",
-        "coloneqq", "coloneq", "eqqcolon", "eqcolon", "dblcolon"
-    )
 
     /**
      * 标点符号的 Unicode
      */
-    private val PUNCTUATION_CHARS = setOf(',', ';', ':')
+    private val PUNCTUATION_CHARS = setOf(',', ';')
 
     /**
      * 开定界符
@@ -252,19 +210,36 @@ object MathSpacing {
             is LatexNode.Symbol -> classifySymbol(node.symbol, node.unicode)
             is LatexNode.Operator -> classifyOperatorText()
             is LatexNode.BigOperator -> AtomType.OP
-            is LatexNode.Fraction, is LatexNode.Binomial -> AtomType.INNER
+            is LatexNode.Fraction, is LatexNode.Binomial -> AtomType.ORD
             is LatexNode.Root -> AtomType.ORD
-            is LatexNode.Superscript, is LatexNode.Subscript -> AtomType.ORD
+            is LatexNode.Superscript -> classifyNode(node.base)
+            is LatexNode.Subscript -> classifyNode(node.base)
+            is LatexNode.Style -> {
+                if (node.styleType.isTextStyle) AtomType.ORD else {
+                    var content = node.content.filterNot(::isNonAtom)
+                    if (content.size == 1 && content[0] is LatexNode.Group) {
+                        content = (content[0] as LatexNode.Group).children.filterNot(::isNonAtom)
+                    }
+                    if (node.styleType == LatexNode.Style.StyleType.BOLD_SYMBOL) {
+                        content.firstOrNull()?.let(::classifyNode)?.takeIf { it == AtomType.BIN || it == AtomType.REL } ?: AtomType.ORD
+                    } else content.singleOrNull()?.let(::classifyNode) ?: AtomType.ORD
+                }
+            }
             is LatexNode.Delimited -> AtomType.INNER
             is LatexNode.ManualSizedDelimiter -> classifyDelimiterString(node.delimiter)
             is LatexNode.Space, is LatexNode.HSpace -> AtomType.ORD
             is LatexNode.Group -> AtomType.ORD
             is LatexNode.Accent -> AtomType.ORD
-            is LatexNode.Stack -> AtomType.ORD
+            is LatexNode.Stack -> {
+                val base = (node.base as? LatexNode.Group)?.children?.firstOrNull() ?: node.base
+                classifyNode(base).takeIf { it == AtomType.BIN || it == AtomType.REL } ?: AtomType.ORD
+            }
             is LatexNode.ExtensibleArrow -> AtomType.REL
+            is LatexNode.Negation -> AtomType.REL
             is LatexNode.TextMode -> AtomType.ORD
-            is LatexNode.Boxed -> AtomType.INNER
-            is LatexNode.Matrix -> AtomType.INNER
+            is LatexNode.Boxed -> AtomType.ORD
+            is LatexNode.Cases -> AtomType.INNER
+            is LatexNode.Matrix -> if (node.type == LatexNode.Matrix.MatrixType.PLAIN) AtomType.ORD else AtomType.INNER
             is LatexNode.OperatorName -> AtomType.OP
             is LatexNode.ModOperator -> AtomType.BIN
             else -> AtomType.ORD
@@ -276,26 +251,17 @@ object MathSpacing {
             val ch = content[0]
             if (ch in PUNCTUATION_CHARS) return AtomType.PUNCT
             if (ch == '(' || ch == '[') return AtomType.OPEN
-            if (ch == ')' || ch == ']') return AtomType.CLOSE
+            if (ch == ')' || ch == ']' || ch == '!') return AtomType.CLOSE
             if (ch == '+' || ch == '-' || ch == '*') return AtomType.BIN
-            if (ch == '=' || ch == '<' || ch == '>') return AtomType.REL
+            if (ch == '=' || ch == '<' || ch == '>' || ch == ':') return AtomType.REL
+            if (ch == '.') return AtomType.ORD
+            return MathAtomSymbols.classify("", content)
         }
         return AtomType.ORD
     }
 
-    private fun classifySymbol(symbol: String, unicode: String): AtomType {
-        if (symbol in BINARY_OPERATORS) return AtomType.BIN
-        if (symbol in RELATION_SYMBOLS) return AtomType.REL
-        if (unicode.length == 1) {
-            val ch = unicode[0]
-            if (ch == '+' || ch == '-' || ch == '×' || ch == '÷' || ch == '·') return AtomType.BIN
-            if (ch == '=' || ch == '<' || ch == '>' || ch == '≤' || ch == '≥' || ch == '≈' ||
-                ch == '≡' || ch == '≠' || ch == '≔' || ch == '≕' || ch == '∷'
-            ) return AtomType.REL
-            if (ch in PUNCTUATION_CHARS) return AtomType.PUNCT
-        }
-        return AtomType.ORD
-    }
+    private fun classifySymbol(symbol: String, unicode: String): AtomType =
+        MathAtomSymbols.classify(symbol, unicode)
 
     private fun classifyOperatorText(): AtomType {
         // Operator node 通常是命名运算符如 sin, cos, lim 等
@@ -317,25 +283,14 @@ object MathSpacing {
         return when {
             delimiter in OPEN_DELIMITERS || delimiter.length == 1 && delimiter[0] in "([{" -> AtomType.OPEN
             delimiter in CLOSE_DELIMITERS || delimiter.length == 1 && delimiter[0] in ")]}" -> AtomType.CLOSE
-            else -> AtomType.ORD
+            else -> MathAtomSymbols.classify("", delimiter)
         }
     }
 
-    private fun previousNonSpaceAtomType(nodes: List<LatexNode>, index: Int): AtomType? {
-        for (i in index - 1 downTo 0) {
-            val node = nodes[i]
-            if (node is LatexNode.Space || node is LatexNode.HSpace) continue
-            return classifyNode(node)
-        }
-        return null
-    }
-
-    private fun nextNonSpaceAtomType(nodes: List<LatexNode>, index: Int): AtomType? {
-        for (i in index + 1 until nodes.size) {
-            val node = nodes[i]
-            if (node is LatexNode.Space || node is LatexNode.HSpace) continue
-            return classifyNode(node)
-        }
-        return null
+    internal fun isNonAtom(node: LatexNode): Boolean = when (node) {
+        is LatexNode.Space, is LatexNode.HSpace, is LatexNode.Label,
+        is LatexNode.NewCommand, is LatexNode.NewEnvironment -> true
+        is LatexNode.Text -> node.content.isEmpty()
+        else -> false
     }
 }

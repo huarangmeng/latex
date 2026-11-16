@@ -247,17 +247,17 @@ class SimpleFormulaTest {
     @Test
     fun testSuperscriptShouldNotSwallowFollowingMinusTerm() {
         val doc = parser.parse("-x^2-2ax")
-        // Expect tree: "-", Superscript(x,2), "-", "2ax"
-        assertTrue(doc.children[0] is LatexNode.Text)
-        assertEquals("-", (doc.children[0] as LatexNode.Text).content)
+        // Expect tree: minus, Superscript(x,2), minus, "2ax"
+        assertTrue(doc.children[0] is LatexNode.Symbol)
+        assertEquals("−", (doc.children[0] as LatexNode.Symbol).unicode)
         assertTrue(doc.children[1] is LatexNode.Superscript)
         val sup = doc.children[1] as LatexNode.Superscript
         assertTrue(sup.base is LatexNode.Text)
         assertEquals("x", (sup.base as LatexNode.Text).content)
         assertTrue(sup.exponent is LatexNode.Text)
         assertEquals("2", (sup.exponent as LatexNode.Text).content)
-        assertTrue(doc.children[2] is LatexNode.Text)
-        assertEquals("-", (doc.children[2] as LatexNode.Text).content)
+        assertTrue(doc.children[2] is LatexNode.Symbol)
+        assertEquals("−", (doc.children[2] as LatexNode.Symbol).unicode)
         assertTrue(doc.children[3] is LatexNode.Text)
         assertEquals("2ax", (doc.children[3] as LatexNode.Text).content)
     }
@@ -474,7 +474,9 @@ class SimpleFormulaTest {
     @Test
     fun testStackrel() {
         val doc = parser.parse("\\stackrel{def}{=}")
-        val stack = doc.children[0] as LatexNode.Stack
+        val relation = doc.children[0] as LatexNode.MathClass
+        assertEquals(LatexNode.MathClass.AtomClass.REL, relation.atomClass)
+        val stack = relation.content.single() as LatexNode.Stack
         assertNotNull(stack.above, "Above content should not be null for stackrel")
         assertNull(stack.below, "Below content should be null for stackrel")
     }

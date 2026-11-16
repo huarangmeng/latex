@@ -119,6 +119,8 @@
 <summary><b>数学模式切换</b></summary>
 
 `\displaystyle`, `\textstyle`, `\scriptstyle`, `\scriptscriptstyle`, `$...$`（行内）, `$$...$$`（展示）。分母、根式、下标等位置会自动使用 cramped 样式；也支持 `\cramped{...}`、`\cramped[\scriptstyle]{...}` 和 LuaTeX 的四个 `\cramped...style` 命令。
+
+数学模式中的 `-` 使用减号字形（−，U+2212），上下标中也一样；二元减法和一元负号遵循各自的 TeX 间距规则。`\text{well-known}` 等文本命令保留原始连字符。
 </details>
 
 <details>
@@ -131,12 +133,16 @@
 - **多行/分割**：`split`, `multline(*)`
 - **其他**：`eqnarray(*)`, `subequations`, `tabular`（l/c/r 列对齐）
 - **行控制与编号**：`\\`, `\cr`, `\intertext`, `\shortintertext`, `\notag`, `\nonumber`, `\tag`/`\tag*`, `\label`/`\ref`/`\eqref`
+
+分段函数环境按输入的 `表达式 & 条件` 顺序绘制，两列均左对齐。条件文字需显式输入，例如 `0.85 & \text{if Female,}`；渲染器不会自动添加 `if` 等文字。
 </details>
 
 <details>
 <summary><b>空格控制</b></summary>
 
 支持原有命名数学空格、`\hspace{...}`，并新增 `\kern`, `\mkern`, `\allowbreak`；同时支持常用特殊字符转义。
+
+数学模式忽略源码中的普通空格、制表符和换行；文本命令保留文本空格。显式间距会叠加到数学原子间的自动间距上。`\quad` 不会重置数学列表，因此 `a\quad-x` 中的减号仍是二元运算符；`a\quad{-x}` 则将一元负号表达式单独分组。连续运算符、关系符、标点、命名运算符、颜色/样式声明和上下标在测量、绘制与换行时共用间距规则。字体命令保留参数的数学类别；真正的 `{+}` 分组仍是普通原子。
 </details>
 
 <details>

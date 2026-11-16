@@ -317,7 +317,11 @@ sealed class LatexNode {
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
         enum class SpaceType {
-            THIN, MEDIUM, THICK, QUAD, QQUAD, NORMAL, NEGATIVE_THIN
+            THIN, MEDIUM, THICK, QUAD, QQUAD, NORMAL, NEGATIVE_THIN,
+            /** Source whitespace: ignored in math mode, preserved in text mode. */
+            SOURCE,
+            /** Explicit nonbreaking space (~). */
+            NON_BREAKING
         }
 
         override fun children() = emptyList<LatexNode>()

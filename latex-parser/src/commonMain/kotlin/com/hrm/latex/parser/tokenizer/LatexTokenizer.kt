@@ -24,6 +24,7 @@
 package com.hrm.latex.parser.tokenizer
 
 import com.hrm.latex.base.log.HLog
+import com.hrm.latex.parser.SymbolMap
 import com.hrm.latex.parser.model.SourceRange
 
 /**
@@ -49,17 +50,21 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
             for (ch in charArrayOf(
                 '\\', '{', '}', '[', ']', '^', '\'', '_', '&',
                 '\n', '\r', '(', ')', '|', '.', '~', '%', '$',
-                ' ', '\t', '+', '-', '=', '<', '>', ',', ';', ':'
+                ' ', '\t', '+', '-', '*', '!', '=', '<', '>', ',', ';', ':'
             )) {
                 this[ch.code] = true
             }
         }
 
+        private val MATH_SYMBOL_CHARS = SymbolMap.getAllSymbols().values
+            .mapNotNull { it.singleOrNull() }
+            .filter { it.code > 127 && !it.isLetterOrDigit() }.toSet()
+
         /** 判断字符是否为 text token 的停止字符 */
         @Suppress("NOTHING_TO_INLINE")
         private inline fun isTextStopChar(ch: Char): Boolean {
             val code = ch.code
-            return code < 128 && TEXT_STOP_CHARS[code]
+            return if (code < 128) TEXT_STOP_CHARS[code] else ch in MATH_SYMBOL_CHARS
         }
 
         /**
@@ -135,7 +140,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                 }
                 
                 '$' -> handleMathShift()
-                '+', '-', '=', '<', '>', ',', ';', ':' -> {
+                '+', '-', '*', '!', '=', '<', '>', ',', ';', ':' -> {
                     val start = position
                     tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
                     advance()
@@ -148,7 +153,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
 
                 '\n', '\r' -> handleNewLine()
                 ' ', '\t' -> handleWhitespace()
-                else -> handleText()
+                else -> handleTextOrMathSymbol()
             }
         }
 
@@ -289,6 +294,15 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
         if (position > start) {
             tokens.add(LatexToken.Text(input.substring(start, position), SourceRange(start, position)))
         }
+    }
+
+    private fun handleTextOrMathSymbol() {
+        val char = peek()
+        if (char != null && char in MATH_SYMBOL_CHARS) {
+            val start = position
+            advance()
+            tokens.add(LatexToken.Text(char.toString(), SourceRange(start, position)))
+        } else handleText()
     }
 
     /**
@@ -453,7 +467,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                 tokens.add(LatexToken.Ampersand(SourceRange(start, position)))
             }
             '$' -> handleMathShift()
-            '+', '-', '=', '<', '>', ',', ';', ':' -> {
+            '+', '-', '*', '!', '=', '<', '>', ',', ';', ':' -> {
                 val start = position
                 tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
                 advance()
@@ -465,7 +479,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
             }
             '\n', '\r' -> handleNewLine()
             ' ', '\t' -> handleWhitespace()
-            else -> handleText()
+            else -> handleTextOrMathSymbol()
         }
 
         // handleComment 不产生 token（注释被吞掉），需要递归处理

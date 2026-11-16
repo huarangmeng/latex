@@ -69,13 +69,14 @@ internal fun lineSpacingPx(context: RenderContext, density: Density): Float =
  */
 internal fun spaceWidthPx(context: RenderContext, type: SpaceType, density: Density): Float {
     val factor = when (type) {
-        SpaceType.THIN -> 0.166f
-        SpaceType.MEDIUM -> 0.222f
-        SpaceType.THICK -> 0.277f
+        SpaceType.THIN -> 3f / 18f
+        SpaceType.MEDIUM -> 4f / 18f
+        SpaceType.THICK -> 5f / 18f
         SpaceType.QUAD -> 1f
         SpaceType.QQUAD -> 2f
-        SpaceType.NORMAL -> 0.25f
-        SpaceType.NEGATIVE_THIN -> -0.166f
+        SpaceType.NORMAL, SpaceType.NON_BREAKING -> 0.25f
+        SpaceType.NEGATIVE_THIN -> -3f / 18f
+        SpaceType.SOURCE -> if (context.inTextMode) 0.25f else 0f
     }
     return with(density) { (context.fontSize * factor).toPx() }
 }

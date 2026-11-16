@@ -127,6 +127,7 @@ internal class LineBreaker(private val maxWidth: Float) {
         var binding = false
         for ((index, node) in nodes.withIndex()) {
             if ((node as? LatexNode.HSpace)?.breakHint == LatexNode.HSpace.BreakHint.FORBID) binding = true
+            if ((node as? LatexNode.Space)?.type == LatexNode.Space.SpaceType.NON_BREAKING) binding = true
             if (node is LatexNode.Space || node is LatexNode.HSpace) continue
             if (binding && previousAtom >= 0) {
                 if (forbidden == null) forbidden = BooleanArray(nodes.size)
@@ -160,7 +161,7 @@ internal class LineBreaker(private val maxWidth: Float) {
             is LatexNode.Operator -> getOperatorPenalty(node.op)
             is LatexNode.Symbol -> getSymbolPenalty(node.unicode)
             is LatexNode.Text -> getTextPenalty(node.content)
-            is LatexNode.Space -> PENALTY_SPACE
+            is LatexNode.Space -> if (node.type == LatexNode.Space.SpaceType.SOURCE || node.type == LatexNode.Space.SpaceType.NON_BREAKING) NOBREAK else PENALTY_SPACE
             is LatexNode.HSpace -> if (node.breakHint == LatexNode.HSpace.BreakHint.ALLOW) PENALTY_SPACE else NOBREAK
 
             is LatexNode.Fraction,

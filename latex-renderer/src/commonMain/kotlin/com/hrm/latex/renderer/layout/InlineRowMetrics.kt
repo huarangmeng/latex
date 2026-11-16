@@ -26,101 +26,59 @@ import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
-import com.hrm.latex.renderer.utils.AtomType
+import com.hrm.latex.renderer.utils.MathAtomSequence
 import com.hrm.latex.renderer.utils.MathSpacing
 
-/**
- * 行宽与原子间距的共享度量。
- *
- * 完整行只计算间距与总宽度；首次查询子行时才创建前缀和与边界索引。
- * 子行查询为 O(1)，首尾二元符号重分类最多修正两个相邻间距。
- */
+/** Shared drawing, hit-testing and wrapping metrics. Range queries remain O(1). */
 internal class InlineRowMetrics(
-    private val nodes: List<LatexNode>, private val layouts: List<NodeLayout>,
-    context: RenderContext, density: Density
+    private val nodes: List<LatexNode>, layouts: List<NodeLayout>,
+    private val context: RenderContext, density: Density,
+    private val nodeContexts: List<RenderContext>? = null,
 ) {
-    private val isScript = context.mathStyle == MathStyle.SCRIPT || context.mathStyle == MathStyle.SCRIPT_SCRIPT
+    private val atoms = MathAtomSequence(nodes)
     private val fontSizePx = with(density) { context.fontSize.toPx() }
     private val spacings = FloatArray(nodes.size)
-    private val fullWidth: Float
-    private var rangeMetrics: RangeMetrics? = null
+    private val widthPrefix = DoubleArray(nodes.size + 1)
+    private val spacingPrefix = DoubleArray(nodes.size + 1)
 
     init {
-        var width = 0.0
-        var spacing = 0.0
-        var leftType = if (nodes.isNotEmpty()) MathSpacing.effectiveAtomType(nodes, 0) else AtomType.ORD
         for (i in nodes.indices) {
-            width += layouts[i].width
-            if (i + 1 < nodes.size) {
-                val rightType = MathSpacing.effectiveAtomType(nodes, i + 1)
-                spacings[i] = pairSpacing(i, leftType, rightType)
-                spacing += spacings[i]
-                leftType = rightType
-            }
+            spacings[i] = spacing(i, 0, nodes.size)
+            widthPrefix[i + 1] = widthPrefix[i] + layouts[i].width
+            spacingPrefix[i + 1] = spacingPrefix[i] + spacings[i]
         }
-        fullWidth = (width + spacing).toFloat()
     }
 
     fun width(start: Int, end: Int): Float {
         if (start >= end) return 0f
-        if (start == 0 && end == nodes.size) return fullWidth
-        val range = subrowMetrics()
-        var width = range.widthPrefix[end] - range.widthPrefix[start] +
-            range.spacingPrefix[end - 1] - range.spacingPrefix[start]
-        val first = range.firstNonSpace[start]
-        val last = range.lastNonSpace[end]
-        // 首符号右侧、末符号左侧是仅有可能变化的两条边。带显式空白的边本来就是零。
-        if (first < end - 1 && first >= start && range.types[first] == AtomType.BIN) {
-            width += spacing(first, start, end) - spacings[first]
-        }
-        val lastEdge = last - 1
-        if (lastEdge >= start && range.types[last] == AtomType.BIN &&
-            !(lastEdge == first && range.types[first] == AtomType.BIN)
-        ) {
-            width += spacing(lastEdge, start, end) - spacings[lastEdge]
-        }
-        return width.toFloat()
+        var result = widthPrefix[end] - widthPrefix[start] + spacingPrefix[end - 1] - spacingPrefix[start]
+        if (start == 0 && end == nodes.size) return result.toFloat()
+        val first = atoms.first(start)
+        val last = atoms.last(end)
+        if (first > last) return result.toFloat()
+        // Internal alternating bin edges stay 4mu; only these three edges change.
+        val firstEdge = atoms.indices[first] - 1
+        val afterRun = atoms.afterLeadingBins(start)
+        val runEdge = if (atoms.isBin(first) && afterRun <= last) atoms.indices[afterRun] - 1 else -1
+        val lastEdge = if (atoms.isBin(last)) atoms.indices[last] - 1 else -1
+        fun correction(edge: Int): Double = if (edge >= start && edge < end - 1)
+            (spacing(edge, start, end) - spacings[edge]).toDouble() else 0.0
+        result += correction(firstEdge)
+        if (runEdge != firstEdge) result += correction(runEdge)
+        if (lastEdge != firstEdge && lastEdge != runEdge) result += correction(lastEdge)
+        return result.toFloat()
     }
 
     fun spacing(index: Int, start: Int, end: Int): Float {
-        if (start == 0 && end == nodes.size) return spacings[index]
-        val range = subrowMetrics()
-        val first = range.firstNonSpace[start]
-        val last = range.lastNonSpace[end]
-        fun type(i: Int): AtomType =
-            if (range.types[i] == AtomType.BIN && (i == first || i == last)) AtomType.ORD else range.types[i]
-        return pairSpacing(index, type(index), type(index + 1))
+        if (context.inTextMode || index + 1 >= end) return 0f
+        val right = atoms.ordinalAt[index + 1]
+        if (right <= 0 || right == atoms.first(start)) return 0f
+        val leftIndex = atoms.indices[right - 1]
+        if (leftIndex < start) return 0f
+        val rightContext = nodeContexts?.get(index + 1) ?: context
+        val isScript = rightContext.mathStyle == MathStyle.SCRIPT || rightContext.mathStyle == MathStyle.SCRIPT_SCRIPT
+        return MathSpacing.spaceBetween(
+            atoms.typeAt(leftIndex, start, end), atoms.typeAt(index + 1, start, end), isScript
+        ) * fontSizePx
     }
-
-    private fun subrowMetrics(): RangeMetrics {
-        rangeMetrics?.let { return it }
-        // Double 前缀和避免长公式相减时的 Float 消减误差改变临界断点。
-        val widthPrefix = DoubleArray(nodes.size + 1)
-        val spacingPrefix = DoubleArray(nodes.size + 1)
-        val firstNonSpace = IntArray(nodes.size + 1) { nodes.size }
-        val lastNonSpace = IntArray(nodes.size + 1) { -1 }
-        for (i in nodes.indices) {
-            widthPrefix[i + 1] = widthPrefix[i] + layouts[i].width
-            spacingPrefix[i + 1] = spacingPrefix[i] + spacings[i]
-            lastNonSpace[i + 1] = if (isSpace(nodes[i])) lastNonSpace[i] else i
-        }
-        for (i in nodes.indices.reversed()) {
-            firstNonSpace[i] = if (isSpace(nodes[i])) firstNonSpace[i + 1] else i
-        }
-        return RangeMetrics(
-            Array(nodes.size) { MathSpacing.effectiveAtomType(nodes, it) },
-            widthPrefix, spacingPrefix, firstNonSpace, lastNonSpace
-        ).also { rangeMetrics = it }
-    }
-
-    private fun pairSpacing(index: Int, left: AtomType, right: AtomType): Float =
-        if (isSpace(nodes[index]) || isSpace(nodes[index + 1])) 0f
-        else MathSpacing.spaceBetween(left, right, isScript) * fontSizePx
-
-    private fun isSpace(node: LatexNode): Boolean = node is LatexNode.Space || node is LatexNode.HSpace
-
-    private class RangeMetrics(
-        val types: Array<AtomType>, val widthPrefix: DoubleArray, val spacingPrefix: DoubleArray,
-        val firstNonSpace: IntArray, val lastNonSpace: IntArray
-    )
 }
