@@ -46,6 +46,7 @@ import com.hrm.latex.renderer.layout.measurer.StackMeasurer
 import com.hrm.latex.renderer.layout.measurer.SubstackMeasurer
 import com.hrm.latex.renderer.layout.measurer.TagMeasurer
 import com.hrm.latex.renderer.layout.measurer.TextContentMeasurer
+import com.hrm.latex.renderer.layout.measurer.TextAccentMeasurer
 import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.TextDirection
@@ -73,6 +74,7 @@ private object MeasurerRegistry {
         BinomialMeasurer(),
         MatrixMeasurer(),
         AccentMeasurer(),
+        TextAccentMeasurer(),
         DelimiterMeasurer(),
         ExtensibleArrowMeasurer(),
         StackMeasurer(),

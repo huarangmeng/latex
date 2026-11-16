@@ -49,6 +49,7 @@ interface LatexVisitor<T> {
     fun visitDelimited(node: LatexNode.Delimited): T
     fun visitManualSizedDelimiter(node: LatexNode.ManualSizedDelimiter): T
     fun visitAccent(node: LatexNode.Accent): T
+    fun visitTextAccent(node: LatexNode.TextAccent): T
     fun visitExtensibleArrow(node: LatexNode.ExtensibleArrow): T
     fun visitStack(node: LatexNode.Stack): T
     fun visitStyle(node: LatexNode.Style): T
@@ -190,6 +191,11 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
     override fun visitManualSizedDelimiter(node: LatexNode.ManualSizedDelimiter): T = defaultVisit(node)
     
     override fun visitAccent(node: LatexNode.Accent): T {
+        visit(node.content)
+        return defaultVisit(node)
+    }
+
+    override fun visitTextAccent(node: LatexNode.TextAccent): T {
         visit(node.content)
         return defaultVisit(node)
     }
@@ -532,6 +538,7 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
     override fun visitDelimited(node: LatexNode.Delimited): T = visitChildren(node)
     override fun visitManualSizedDelimiter(node: LatexNode.ManualSizedDelimiter): T = visitChildren(node)
     override fun visitAccent(node: LatexNode.Accent): T = visitChildren(node)
+    override fun visitTextAccent(node: LatexNode.TextAccent): T = visitChildren(node)
     override fun visitExtensibleArrow(node: LatexNode.ExtensibleArrow): T = visitChildren(node)
     override fun visitStack(node: LatexNode.Stack): T = visitChildren(node)
     override fun visitStyle(node: LatexNode.Style): T = visitChildren(node)

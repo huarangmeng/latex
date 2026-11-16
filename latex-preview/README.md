@@ -24,6 +24,7 @@
 
 ## 注意事项
 
+- Plain TeX 示例按功能融入现有分组：`1. Basic notation` 展示上下标别名与文本特殊字符，`4. Advanced formulas` 展示中缀方括号/花括号，`9. Accents and decorations` 展示长箭头拼接、重音偏移与文本重音，`18. Math styles and metrics` 展示积分尺寸与上下限，`Math atom classes` 展示数学符号及其间距。
 - 此模块仅用于开发测试，不会被包含在 `latex-sdk` 的发布版本中
 - 通过 `composeApp` 支持 Desktop、Android、iOS 和 Web（Wasm/JS）预览
 - 预览界面、分组、样例说明及操作提示统一使用英文，不使用 emoji；Web 首页不需要下载额外的中文或 emoji 字体，数学公式渲染时再加载 KaTeX 字体
@@ -32,7 +33,7 @@
 - `BasicLatexPreview` 的 `24. 主题模式` 分组覆盖主题配置，以及通过 `LatexConfig.fontFamilies` 显式选择系统字体和等宽字体的示例
 - `数学模式切换` 分组包含 KaTeX 字体路由、Rule 15/18、积分上下限、重音符号和定界符数学轴回归样例
 - `数学模式切换` 的 29–31 号样例覆盖二元减号、上标负号及文本连字符；`数学环境` 的 11d–11f 号样例覆盖分段函数列顺序、显式条件文字和空条件。
-- `Math formulas` 的首个分组 **Math spacing audit** 集中展示源码空白、显式间距叠加、连续正负号、关系与标点、命名运算符、颜色/字体包装、上下标，以及 `\quad` 与真实分组的区别。
+- 间距示例按功能融入 `17. Spacing`、`Math atom classes`、`2. Elementary formulas` 和 `18. Math styles and metrics`，覆盖源码空白、显式间距叠加、连续正负号、关系与标点、命名运算符、颜色/字体包装、上下标，以及 `\quad` 与真实分组的区别。
 - `基础 LaTeX → 18. 数学模式切换` 的 23–28 号样例对照普通与 cramped 上标、分母、根式、重音、上下限和手动命令
 - `physics / siunitx 常用子集` 分组覆盖导数、狄拉克符号、对易子、向量和现代 SI 单位排版
 - `数学类代码` 分组演示 `\mathord/\mathbin/\mathrel/\mathopen/\mathclose/\mathpunct/\mathinner` 对原子间距的影响

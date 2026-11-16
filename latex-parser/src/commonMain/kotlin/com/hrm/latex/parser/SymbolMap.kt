@@ -28,6 +28,9 @@ package com.hrm.latex.parser
  */
 object SymbolMap {
     private val symbols = mapOf(
+        // Plain TeX math characters; atom classes are resolved by the renderer.
+        "surd" to "√", "ldotp" to ".", "colon" to ":", "doteq" to "≐",
+        "relbar" to "−", "Relbar" to "=",
         // 希腊字母（小写）
         "alpha" to "α",
         "beta" to "β",

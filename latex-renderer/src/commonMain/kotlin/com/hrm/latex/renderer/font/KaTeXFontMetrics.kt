@@ -57,6 +57,9 @@ internal object KaTeXFontMetrics {
     fun integralItalicCorrection(displayStyle: Boolean): Float =
         if (displayStyle) 0.44445f else 0.19445f
 
+    /** Main-Regular small integral, from its own glyph metrics rather than Size1/Size2. */
+    const val SMALL_INTEGRAL_ITALIC_CORRECTION = 0.11111f
+
     /** KaTeX `Math-Italic` accent skew in em units. */
     fun skew(codePoint: Int): Float = when (codePoint) {
         65 -> 0.13889f

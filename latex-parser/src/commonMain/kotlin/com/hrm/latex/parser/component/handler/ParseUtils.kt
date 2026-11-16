@@ -47,7 +47,13 @@ internal object ParseUtils {
             when (node) {
                 is LatexNode.Text -> node.content
                 is LatexNode.TextMode -> if (node.content.isEmpty()) node.text else extractText(node.content)
+                is LatexNode.TextAccent -> {
+                    val text = extractText(listOf(node.content))
+                    if (text.isEmpty()) "" else text.take(1).replace('ı', 'i').replace('ȷ', 'j') +
+                        node.accent.combining + text.drop(1)
+                }
                 is LatexNode.Group -> extractText(node.children)
+                is LatexNode.Style -> extractText(node.content)
                 is LatexNode.Space -> " "
                 // Reconstruct command arguments (dimensions, ranges, keys) using source punctuation.
                 is LatexNode.Symbol -> when (node.symbol) {

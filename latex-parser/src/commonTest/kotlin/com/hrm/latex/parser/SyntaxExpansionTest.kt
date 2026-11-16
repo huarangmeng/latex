@@ -23,6 +23,7 @@
 package com.hrm.latex.parser
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.component.handler.ParseUtils
 import com.hrm.latex.parser.model.LatexNode.Style.StyleType
 import com.hrm.latex.parser.visitor.MathMLVisitor
 import kotlin.test.Test
@@ -56,7 +57,7 @@ class SyntaxExpansionTest {
         val text = assertIs<LatexNode.TextMode>(parser.parse(
             """\text{\AA\textdegree\textemdash\textbackslash\'{e}\c{c}}"""
         ).children.single())
-        assertEquals("Å°—\\e\u0301c\u0327", text.text)
+        assertEquals("Å°—\\e\u0301c\u0327", ParseUtils.extractText(listOf(text)))
     }
 
     @Test
@@ -64,7 +65,7 @@ class SyntaxExpansionTest {
         val text = assertIs<LatexNode.TextMode>(parser.parse(
             """\text{\AA ngstr\"{o}m \AA\ B \AA~C}"""
         ).children.single())
-        assertEquals("Ångstro\u0308m Å B Å C", text.text)
+        assertEquals("Ångstro\u0308m Å B Å C", ParseUtils.extractText(listOf(text)))
     }
 
     @Test

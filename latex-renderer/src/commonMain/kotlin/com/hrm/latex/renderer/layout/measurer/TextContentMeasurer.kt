@@ -24,6 +24,7 @@
 package com.hrm.latex.renderer.layout.measurer
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
@@ -43,6 +44,7 @@ import com.hrm.latex.renderer.utils.MathConstants
 import com.hrm.latex.renderer.utils.MathFontUtils
 import com.hrm.latex.renderer.utils.parseDimension
 import com.hrm.latex.renderer.utils.spaceWidthPx
+import kotlin.math.max
 import kotlin.reflect.KClass
 
 /**
@@ -71,9 +73,9 @@ internal class TextContentMeasurer : NodeMeasurer {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         return when (node) {
-            is LatexNode.Text -> if (context.smallCaps) measureTextMode(node.content, context, measurer)
+            is LatexNode.Text -> if (context.smallCaps) measureTextMode(node.content, context, measurer, density)
                 else measureText(node.content, context, measurer, density)
-            is LatexNode.TextMode -> if (node.content.isEmpty()) measureTextMode(node.text, context, measurer)
+            is LatexNode.TextMode -> if (node.content.isEmpty()) measureTextMode(node.text, context, measurer, density)
                 else measureGroup(node.content, context.copy(
                     fontStyle = context.fontStyle ?: FontStyle.Normal,
                     fontFamily = context.fontFamily ?: context.fontFamilies?.main,
@@ -336,8 +338,12 @@ internal class TextContentMeasurer : NodeMeasurer {
     }
 
     private fun measureTextMode(
-        text: String, context: RenderContext, measurer: TextMeasurer
+        text: String, context: RenderContext, measurer: TextMeasurer, density: Density
     ): NodeLayout {
+        // KaTeX lacks stroked-L glyphs; compose them to avoid missing glyphs in the Web renderer.
+        if (text.any { it == 'ł' || it == 'Ł' }) {
+            return measureStrokedLText(text, context, measurer, density)
+        }
         val textStyle = context.copy(
             fontStyle = context.fontStyle ?: FontStyle.Normal,
             fontFamily = context.fontFamily ?: context.fontFamilies?.main,
@@ -352,6 +358,39 @@ internal class TextContentMeasurer : NodeMeasurer {
             result.firstBaseline
         ) { x, y ->
             drawText(result, topLeft = Offset(x, y))
+        }
+    }
+
+    private fun measureStrokedLText(
+        text: String, context: RenderContext, measurer: TextMeasurer, density: Density
+    ): NodeLayout {
+        val em = with(density) { context.fontSize.toPx() }
+        val parts = mutableListOf<NodeLayout>()
+        var runStart = 0
+        for ((index, character) in text.withIndex()) {
+            if (character != 'ł' && character != 'Ł') continue
+            if (runStart < index) parts += measureTextMode(text.substring(runStart, index), context, measurer, density)
+            val base = measureTextMode(if (character == 'ł') "l" else "L", context, measurer, density)
+            val stroke = max(0.6f, em * 0.04f)
+            val slashWidth = em * 0.32f
+            parts += NodeLayout(max(base.width, slashWidth + stroke), base.height, base.baseline) { x, y ->
+                base.draw(this, x, y)
+                drawLine(context.color,
+                    Offset(x + stroke / 2f, y + base.baseline - em * 0.28f),
+                    Offset(x + slashWidth, y + base.baseline - em * 0.45f),
+                    strokeWidth = stroke, cap = StrokeCap.Round)
+            }
+            runStart = index + 1
+        }
+        if (runStart < text.length) parts += measureTextMode(text.substring(runStart), context, measurer, density)
+        val baseline = parts.maxOf { it.baseline }
+        val descent = parts.maxOf { it.height - it.baseline }
+        return NodeLayout(parts.sumOf { it.width.toDouble() }.toFloat(), baseline + descent, baseline) { x, y ->
+            var currentX = x
+            for (part in parts) {
+                part.draw(this, currentX, y + baseline - part.baseline)
+                currentX += part.width
+            }
         }
     }
 

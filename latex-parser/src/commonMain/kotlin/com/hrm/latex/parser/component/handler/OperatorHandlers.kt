@@ -29,6 +29,11 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  * 数学算子 & 运算符名称命令：\sin, \cos, \operatorname, \mathop, \bmod, \pmod, \mod, \dots
  */
 internal fun CommandRegistry.installOperatorHandlers() {
+    register("joinrel") { _, _, _ ->
+        LatexNode.MathClass(
+            listOf(LatexNode.HSpace("-3mu")), LatexNode.MathClass.AtomClass.REL
+        )
+    }
     fun normalizeMathOpArgument(node: LatexNode): LatexNode {
         if (node is LatexNode.Group) {
             val significant = node.children.filter {

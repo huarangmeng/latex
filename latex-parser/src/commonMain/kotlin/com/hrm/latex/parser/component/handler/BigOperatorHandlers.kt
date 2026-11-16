@@ -43,13 +43,16 @@ internal fun CommandRegistry.installBigOperatorHandlers() {
             },
             subscript = sub,
             superscript = sup,
-            limitsMode = limitsMode,
+            limitsMode = if (limitsMode == LatexNode.BigOperator.LimitsMode.AUTO &&
+                cmdName in setOf("smallint", "intop", "ointop")) {
+                LatexNode.BigOperator.LimitsMode.LIMITS
+            } else limitsMode,
             limitsInDisplay = cmdName in displayLimitOperators
         )
     }
 
     register(
-        "sum", "prod", "int", "oint", "iint", "iiint",
+        "sum", "prod", "int", "oint", "iint", "iiint", "smallint", "intop", "ointop",
         "bigcup", "bigcap", "bigvee", "bigwedge",
         "coprod", "bigoplus", "bigotimes", "bigsqcup", "bigodot", "biguplus",
         "lim", "max", "min", "sup", "inf", "limsup", "liminf",

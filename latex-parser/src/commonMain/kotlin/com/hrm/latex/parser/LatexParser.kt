@@ -103,6 +103,7 @@ internal class ParseSession(
 
     companion object {
         private const val TAG = "ParseSession"
+        private val infixCommands = setOf("over", "atop", "choose", "brack", "brace", "above")
     }
 
     override val tokenStream = LatexTokenStream(tokens)
@@ -440,7 +441,7 @@ internal class ParseSession(
         while (!tokenStream.isEOF() && !isTerminator(tokenStream.peek())) {
             val token = tokenStream.peek()
             if (token is LatexToken.Command &&
-                (token.name == "over" || token.name == "atop" || token.name == "choose" || token.name == "above") &&
+                token.name in infixCommands &&
                 infixNumerator == null
             ) {
                 tokenStream.advance()
@@ -473,6 +474,14 @@ internal class ParseSession(
             )
             val combinedRange = SourceRange(listStart, listEnd)
             val combined = when (infixCommand) {
+                "brack", "brace" -> LatexNode.Delimited(
+                    left = if (infixCommand == "brack") "[" else "{",
+                    right = if (infixCommand == "brack") "]" else "}",
+                    content = listOf(LatexNode.Fraction(
+                        top, bottom, style = LatexNode.Fraction.FractionStyle.RULELESS, sourceRange = combinedRange
+                    )),
+                    sourceRange = combinedRange
+                )
                 "choose" -> LatexNode.Binomial(
                     top = top,
                     bottom = bottom,

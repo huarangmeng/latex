@@ -2,6 +2,13 @@
 
 ## 公式兼容性补充
 
+- Plain TeX 数学字符：`\surd` 为普通原子，`\ldotp`/`\colon` 为标点，`\doteq`、`\relbar`、`\Relbar` 为关系原子。`\joinrel` 为 `-3mu` 的关系间距，可用于 `\relbar\joinrel\rightarrow` 等箭头拼接。
+- `\smallint` 使用固定的小型积分字形；`\intop`/`\ointop` 使用普通积分/环路积分字形。这三个命令默认上下限布局，可由 `\limits`/`\nolimits` 覆盖。
+- `\skew{3}\hat{A}` 将重音向右移动 `1.5mu`，支持带正负号的分组参数；`\skew3\hat A` 也可用。`{n\brack k}` / `{n\brace k}` 为方括号/花括号包围的无横线分数。
+- `\sp`/`\sb` 是上下标别名，支持宏展开和 `\let`；`\lq`/`\rq`、`\l`/`\L`、`\dag`/`\ddag` 同时可用于文本参数和独立字符。
+- 文本重音 `\'`、`\``、`\^`、`\~`、`\=`、`\u`、`\.`、`\"`、`\r`、`\H`、`\v`、`\c`、`\t`、`\d`、`\b` 保留为 `TextAccent` 节点，支持访问者与 MathML，并复用 KaTeX 字体的独立重音字形排版，避免 Web 字体缺少组合字符时错位。
+- 字体覆盖例外：KaTeX 未包含 U+0361 连音符及 `ł/Ł`；`\t` 采用字体内 `⌢` 字形按参数宽度缩放，`\l`/`\L` 采用字母加斜杠的组合回退。
+- AST 兼容性：文本重音由组合字符文本改为 `TextAccent`；直接实现 `LatexVisitor` 的调用方需实现 `visitTextAccent`，继承基础访问者的调用方仍可自动遍历其内容。数学重音新增 `skewMu` 字段。
 - AMS 符号补充 `\leqq`、`\gtreqless`、`\backepsilon`、`\lvertneqq`、`\npreceq`、`\upuparrows`。`\llbracket` 与 `\rrbracket` 可独立使用，也可随 `\left` / `\right` 或手动尺寸命令使用。
 - `\dotsb`、`\dotsc`、`\dotsi`、`\dotsm`、`\dotso` 区分居中和基线省略号。`\argmax`、`\argmin` 在展示公式中默认使用上下限布局。
 - 带标注的箭头包括 `\xrightleftharpoons`、`\xleftrightharpoons`、上下半箭头和双头箭头。参数格式为 `[下方]{上方}`。

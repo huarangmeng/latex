@@ -226,7 +226,10 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.HSpace.BreakHint.FORBID -> return "<mspace width=\"0em\" linebreak=\"nobreak\"/>"
             null -> Unit
         }
-        return "<mspace width=\"${escapeXml(node.dimension)}\"/>"
+        val width = node.dimension.removeSuffix("mu").toFloatOrNull()
+            ?.takeIf { node.dimension.endsWith("mu") }
+            ?.let { "${it / 18f}em" } ?: node.dimension
+        return "<mspace width=\"${escapeXml(width)}\"/>"
     }
 
     override fun visitNewLine(node: LatexNode.NewLine): String = "<mspace linebreak=\"newline\"/>"
@@ -246,20 +249,26 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
 
     override fun visitAccent(node: LatexNode.Accent): String {
         val content = visit(node.content)
+        fun over(mark: String): String {
+            val operator = "<mo>$mark</mo>"
+            val shifted = if (node.skewMu == 0f) operator else
+                "<mpadded lspace=\"${node.skewMu / 18f}em\" width=\"+0em\">$operator</mpadded>"
+            return "<mover>$content$shifted</mover>"
+        }
         return when (node.accentType) {
-            LatexNode.Accent.AccentType.HAT -> "<mover>$content<mo>^</mo></mover>"
-            LatexNode.Accent.AccentType.TILDE -> "<mover>$content<mo>~</mo></mover>"
-            LatexNode.Accent.AccentType.BAR -> "<mover>$content<mo>¯</mo></mover>"
-            LatexNode.Accent.AccentType.DOT -> "<mover>$content<mo>˙</mo></mover>"
-            LatexNode.Accent.AccentType.DDOT -> "<mover>$content<mo>¨</mo></mover>"
-            LatexNode.Accent.AccentType.VEC -> "<mover>$content<mo>→</mo></mover>"
-            LatexNode.Accent.AccentType.OVERLINE -> "<mover>$content<mo>¯</mo></mover>"
+            LatexNode.Accent.AccentType.HAT -> over("^")
+            LatexNode.Accent.AccentType.TILDE -> over("~")
+            LatexNode.Accent.AccentType.BAR -> over("¯")
+            LatexNode.Accent.AccentType.DOT -> over("˙")
+            LatexNode.Accent.AccentType.DDOT -> over("¨")
+            LatexNode.Accent.AccentType.VEC -> over("→")
+            LatexNode.Accent.AccentType.OVERLINE -> over("¯")
             LatexNode.Accent.AccentType.UNDERLINE -> "<munder>$content<mo>_</mo></munder>"
-            LatexNode.Accent.AccentType.OVERBRACE -> "<mover>$content<mo>⏞</mo></mover>"
+            LatexNode.Accent.AccentType.OVERBRACE -> over("⏞")
             LatexNode.Accent.AccentType.UNDERBRACE -> "<munder>$content<mo>⏟</mo></munder>"
-            LatexNode.Accent.AccentType.WIDEHAT -> "<mover>$content<mo>^</mo></mover>"
-            LatexNode.Accent.AccentType.OVERRIGHTARROW -> "<mover>$content<mo>→</mo></mover>"
-            LatexNode.Accent.AccentType.OVERLEFTARROW -> "<mover>$content<mo>←</mo></mover>"
+            LatexNode.Accent.AccentType.WIDEHAT -> over("^")
+            LatexNode.Accent.AccentType.OVERRIGHTARROW -> over("→")
+            LatexNode.Accent.AccentType.OVERLEFTARROW -> over("←")
             LatexNode.Accent.AccentType.CANCEL -> renderMenclose(content, listOf(LatexNode.Enclose.Notation.UPDIAGONALSTRIKE))
             LatexNode.Accent.AccentType.BCANCEL -> renderMenclose(content, listOf(LatexNode.Enclose.Notation.DOWNDIAGONALSTRIKE))
             LatexNode.Accent.AccentType.XCANCEL -> renderMenclose(
@@ -269,22 +278,22 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
                     LatexNode.Enclose.Notation.DOWNDIAGONALSTRIKE
                 )
             )
-            LatexNode.Accent.AccentType.DDDOT -> "<mover>$content<mo>\u20DB</mo></mover>"
-            LatexNode.Accent.AccentType.GRAVE -> "<mover>$content<mo>`</mo></mover>"
-            LatexNode.Accent.AccentType.ACUTE -> "<mover>$content<mo>´</mo></mover>"
-            LatexNode.Accent.AccentType.CHECK -> "<mover>$content<mo>ˇ</mo></mover>"
-            LatexNode.Accent.AccentType.BREVE -> "<mover>$content<mo>˘</mo></mover>"
-            LatexNode.Accent.AccentType.RING -> "<mover>$content<mo>˚</mo></mover>"
-            LatexNode.Accent.AccentType.OVERBRACKET -> "<mover>$content<mo>⎴</mo></mover>"
+            LatexNode.Accent.AccentType.DDDOT -> over("\u20DB")
+            LatexNode.Accent.AccentType.GRAVE -> over("`")
+            LatexNode.Accent.AccentType.ACUTE -> over("´")
+            LatexNode.Accent.AccentType.CHECK -> over("ˇ")
+            LatexNode.Accent.AccentType.BREVE -> over("˘")
+            LatexNode.Accent.AccentType.RING -> over("˚")
+            LatexNode.Accent.AccentType.OVERBRACKET -> over("⎴")
             LatexNode.Accent.AccentType.UNDERBRACKET -> "<munder>$content<mo>⎵</mo></munder>"
-            LatexNode.Accent.AccentType.WIDECHECK -> "<mover>$content<mo>ˇ</mo></mover>"
+            LatexNode.Accent.AccentType.WIDECHECK -> over("ˇ")
             LatexNode.Accent.AccentType.OVERLEFTRIGHTARROW ->
-                "<mover>$content<mo>↔</mo></mover>"
+                over("↔")
             LatexNode.Accent.AccentType.UNDERLEFTARROW ->
                 "<munder>$content<mo>←</mo></munder>"
             LatexNode.Accent.AccentType.UNDERRIGHTARROW ->
                 "<munder>$content<mo>→</mo></munder>"
-            LatexNode.Accent.AccentType.OVERPAREN -> "<mover>$content<mo>⏜</mo></mover>"
+            LatexNode.Accent.AccentType.OVERPAREN -> over("⏜")
             LatexNode.Accent.AccentType.UNDERPAREN -> "<munder>$content<mo>⏝</mo></munder>"
         }
     }
@@ -465,10 +474,33 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         }
     }
 
+    override fun visitTextAccent(node: LatexNode.TextAccent): String {
+        val under = node.accent in setOf(LatexNode.TextAccent.Kind.CEDILLA,
+            LatexNode.TextAccent.Kind.DOT_BELOW, LatexNode.TextAccent.Kind.BAR_BELOW)
+        val tag = if (under) "munder" else "mover"
+        val attribute = if (under) "accentunder" else "accent"
+        return "<$tag $attribute=\"true\">${visit(node.content)}<mo>${node.accent.combining}</mo></$tag>"
+    }
+
     override fun visitBigOperator(node: LatexNode.BigOperator): String {
-        val op = "<mo>${escapeXml(node.operator)}</mo>"
+        val symbol = when (node.operator) {
+            "smallint", "intop" -> "∫"
+            "ointop" -> "∮"
+            else -> node.operator
+        }
+        val attrs = if (node.operator == "smallint") " largeop=\"false\"" else ""
+        val op = "<mo$attrs>${escapeXml(symbol)}</mo>"
         val sub = node.subscript?.let { visit(it) }
         val sup = node.superscript?.let { visit(it) }
+        if (node.operator in setOf("smallint", "intop", "ointop") &&
+            node.limitsMode == LatexNode.BigOperator.LimitsMode.NOLIMITS) {
+            return when {
+                sub != null && sup != null -> "<msubsup>$op${mrow(sub)}${mrow(sup)}</msubsup>"
+                sub != null -> "<msub>$op${mrow(sub)}</msub>"
+                sup != null -> "<msup>$op${mrow(sup)}</msup>"
+                else -> op
+            }
+        }
         return when {
             sub != null && sup != null -> "<munderover>$op${mrow(sub)}${mrow(sup)}</munderover>"
             sub != null -> "<munder>$op${mrow(sub)}</munder>"

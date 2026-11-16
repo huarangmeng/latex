@@ -253,6 +253,9 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return node.content.joinToString(" ") { visit(it) }.collapseSpaces()
     }
 
+    override fun visitTextAccent(node: LatexNode.TextAccent): String =
+        "${visit(node.content)} with ${node.accent.name.lowercase().replace('_', ' ')}"
+
     override fun visitBigOperator(node: LatexNode.BigOperator): String {
         val op = bigOperatorName(node.operator)
         val sub = node.subscript?.let { "from ${visit(it)}" }
@@ -463,8 +466,8 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return when (operator) {
             "∑", "\\sum", "sum" -> "sum"
             "∏", "\\prod", "prod" -> "product"
-            "∫", "\\int", "int" -> "integral"
-            "∮", "\\oint", "oint" -> "contour integral"
+            "∫", "\\int", "int", "intop", "smallint" -> "integral"
+            "∮", "\\oint", "oint", "ointop" -> "contour integral"
             "∬", "\\iint", "iint" -> "double integral"
             "∭", "\\iiint", "iiint" -> "triple integral"
             "⋃", "\\bigcup", "bigcup" -> "union"

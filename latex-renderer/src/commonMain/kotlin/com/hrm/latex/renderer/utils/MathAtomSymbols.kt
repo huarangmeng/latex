@@ -27,12 +27,12 @@ internal object MathAtomSymbols {
             "varPhi", "varPi", "varPsi", "varSigma", "varTheta", "varUpsilon",
             "varXi", "varepsilon", "varkappa", "varnothing", "varphi", "varpi",
             "varrho", "varsigma", "vartheta", "vdots", "vert", "wp",
-            "xi", "zeta",
+            "xi", "zeta", "surd",
         ).forEach { put(it, AtomType.ORD) }
         listOf(
             "bigcap", "bigcup", "bigodot", "bigoplus", "bigotimes", "bigsqcup",
             "biguplus", "bigvee", "bigwedge", "coprod", "iiint", "iint",
-            "int", "oiiint", "oiint", "oint", "prod", "sum",
+            "int", "oiiint", "oiint", "oint", "prod", "sum", "smallint", "intop", "ointop",
         ).forEach { put(it, AtomType.OP) }
         listOf(
             "Cap", "Cup", "amalg", "ast", "barwedge", "bigcirc",
@@ -82,6 +82,7 @@ internal object MathAtomSymbols {
             "trianglerighteq", "twoheadleftarrow", "twoheadrightarrow", "uparrow", "updownarrow", "upharpoonleft",
             "upharpoonright", "upuparrows", "vDash", "varpropto", "varsubsetneq", "varsubsetneqq",
             "varsupsetneq", "varsupsetneqq", "vartriangleleft", "vartriangleright", "vdash",
+            "doteq", "relbar", "Relbar",
         ).forEach { put(it, AtomType.REL) }
         listOf(
             "lVert", "langle", "lbrace", "lbrack", "lceil", "lfloor",
@@ -92,7 +93,7 @@ internal object MathAtomSymbols {
             "rgroup", "rmoustache", "rrbracket", "rvert",
         ).forEach { put(it, AtomType.CLOSE) }
         listOf(
-            "cdotp",
+            "cdotp", "ldotp", "colon",
         ).forEach { put(it, AtomType.PUNCT) }
         listOf(
             "cdots", "ddots", "dots", "ldots",
