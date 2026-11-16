@@ -76,6 +76,7 @@ internal class BigOperatorMeasurer : NodeMeasurer {
     ): NodeLayout {
         node as LatexNode.BigOperator
         val symbol = mapBigOp(node.operator)
+        val isSmallIntegral = node.operator == "smallint"
         val isIntegral = node.operator.contains("int")
         val isNamedOperator = symbol == node.operator && symbol.all { it.isLetter() || it.isWhitespace() }
 
@@ -86,7 +87,7 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         val lowerLimitStyle = context.toLimitStyle(isLowerLimit = true)
 
         val provider = context.mathFontProvider
-        val useKaTeXSizeFont = !isNamedOperator
+        val useKaTeXSizeFont = !isNamedOperator && !isSmallIntegral
         val opStyle = buildOperatorStyle(
             context, isNamedOperator, useKaTeXSizeFont
         )
@@ -104,6 +105,8 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         }
         val baseFontBytes = when {
             isNamedOperator -> context.fontFamilies?.mainBytes
+                ?: provider?.fontBytes(MathFontRole.ROMAN)
+            isSmallIntegral -> context.fontFamilies?.mainBytes
                 ?: provider?.fontBytes(MathFontRole.ROMAN)
             useKaTeXSizeFont && context.mathStyle == MathStyle.DISPLAY ->
                 context.fontFamilies?.size2Bytes
@@ -128,7 +131,7 @@ internal class BigOperatorMeasurer : NodeMeasurer {
 
         // 2. 计算总需要的垂直拉伸倍数（相对于基础墨水高度）
         var totalVerticalScale = 1.0f
-        if (isIntegral && context.mathStyle == MathStyle.DISPLAY && !useKaTeXSizeFont) {
+        if (isIntegral && !isSmallIntegral && context.mathStyle == MathStyle.DISPLAY && !useKaTeXSizeFont) {
             if (context.layoutHints.bigOpHeightHint != null) {
                 val targetHeight =
                     context.layoutHints.bigOpHeightHint * MathConstants.INTEGRAL_HEIGHT_HINT_OVERSHOOT
@@ -195,11 +198,13 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         // KaTeX Size1/Size2 integral glyphs have a substantial right italic
         // correction. It is part of the base advance for superscripts; subscripts
         // cancel it again according to TeX Rule 18.
-        val opItalicCorrection = if (useKaTeXSizeFont && isIntegral) {
-            finalFontSizePx * KaTeXFontMetrics.integralItalicCorrection(
+        val opItalicCorrection = when {
+            isSmallIntegral -> finalFontSizePx * KaTeXFontMetrics.SMALL_INTEGRAL_ITALIC_CORRECTION
+            useKaTeXSizeFont && isIntegral -> finalFontSizePx * KaTeXFontMetrics.integralItalicCorrection(
                 context.mathStyle == MathStyle.DISPLAY
             )
-        } else 0f
+            else -> 0f
+        }
         val opLayout = NodeLayout(
             opWidth + opItalicCorrection,
             opInkHeight,
@@ -253,7 +258,7 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         useKaTeXSizeFont: Boolean
     ): RenderContext {
         // 命名运算符使用 Main，符号运算符使用 KaTeX Size1/Size2。
-        val role = if (isNamedOperator) MathFontRole.ROMAN else MathFontRole.LARGE_OPERATOR
+        val role = if (isNamedOperator || !useKaTeXSizeFont) MathFontRole.ROMAN else MathFontRole.LARGE_OPERATOR
         val fontFamily = when {
             useKaTeXSizeFont && context.mathStyle == MathStyle.DISPLAY -> context.fontFamilies?.size2
             useKaTeXSizeFont -> context.fontFamilies?.size1
@@ -475,17 +480,22 @@ internal class BigOperatorMeasurer : NodeMeasurer {
 
         // 基础宽度：基于 op/super/sub 报告的 width
         val baseMaxWidth = max(opLayout.width, max(superLayout?.width ?: 0f, subLayout?.width ?: 0f))
+        // TeX Rule 13: centered limits follow the operator's slant, by half its italic correction.
+        val superX = (baseMaxWidth - (superLayout?.width ?: 0f)) / 2f + opLayout.italicCorrection / 2f
+        val subX = (baseMaxWidth - (subLayout?.width ?: 0f)) / 2f - opLayout.italicCorrection / 2f
 
         // 处理 MathLap（\mathclap 等）溢出：
         // MathLap 报告 width=0，但内容基于运算符中心绘制（CLAP 居中/LLAP 向左/RLAP 向右），
         // 可能向左右两侧溢出。需要计算溢出范围并扩展总宽度。
         val opCenter = baseMaxWidth / 2f
-        val (subLeft, subRight) = lapBounds(subOverflow, opCenter)
-        val (superLeft, superRight) = lapBounds(superOverflow, opCenter)
+        val (subLeft, subRight) = lapBounds(subOverflow, opCenter - opLayout.italicCorrection / 2f)
+        val (superLeft, superRight) = lapBounds(superOverflow, opCenter + opLayout.italicCorrection / 2f)
 
         // 合并所有溢出的左右边界
-        val overflowLeft = min(0f, min(subLeft, superLeft))
-        val overflowRight = max(baseMaxWidth, max(subRight, superRight))
+        val overflowLeft = minOf(0f, subLeft, superLeft,
+            if (subLayout != null) subX else 0f, if (superLayout != null) superX else 0f)
+        val overflowRight = maxOf(baseMaxWidth, subRight, superRight,
+            subLayout?.let { subX + it.width } ?: 0f, superLayout?.let { superX + it.width } ?: 0f)
 
         // 需要的左移量，确保所有内容在正坐标区域
         val leftShift = if (overflowLeft < 0f) -overflowLeft else 0f
@@ -510,8 +520,8 @@ internal class BigOperatorMeasurer : NodeMeasurer {
         return NodeLayout(maxWidth, totalHeight, baseline) { x, y ->
             // leftShift 确保溢出内容不在负坐标区域
             opLayout.draw(this, x + leftShift + (baseMaxWidth - opLayout.width) / 2, y + opDrawY)
-            superLayout?.draw(this, x + leftShift + (baseMaxWidth - superLayout.width) / 2, y + superDrawY)
-            subLayout?.draw(this, x + leftShift + (baseMaxWidth - subLayout.width) / 2, y + subDrawY)
+            superLayout?.draw(this, x + leftShift + superX, y + superDrawY)
+            subLayout?.draw(this, x + leftShift + subX, y + subDrawY)
         }
     }
 }

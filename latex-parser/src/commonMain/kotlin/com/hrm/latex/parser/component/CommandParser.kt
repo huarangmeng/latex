@@ -56,7 +56,7 @@ internal class CommandParser(
 
     companion object {
         private val expansionCommands = setOf(
-        "expandafter", "noexpand", "csname", "endcsname", "ifdefined", "ifx", "else", "fi", "mathpalette"
+        "expandafter", "noexpand", "csname", "endcsname", "ifdefined", "ifx", "else", "fi", "mathpalette", "sp", "sb"
     )
 
         private const val TAG = "CommandParser"
@@ -258,6 +258,11 @@ internal class CommandParser(
             return true
         }
         when (token.name) {
+            "sp", "sb" -> {
+                stream.advance()
+                emit(listOf(if (token.name == "sp") LatexToken.Superscript(token.range)
+                    else LatexToken.Subscript(token.range)), token.range)
+            }
             "noexpand" -> {
                 stream.advance()
                 val next = stream.readAtom()

@@ -57,7 +57,7 @@ actual fun measureGlyphBounds(
                 if (glyphBoundsArray.isEmpty()) return@use null
 
                 var minTop = Float.MAX_VALUE
-                var maxBottom = Float.MIN_VALUE
+                var maxBottom = Float.NEGATIVE_INFINITY
 
                 for (rect in glyphBoundsArray) {
                     if (rect.width > 0 || rect.height > 0) {
@@ -72,7 +72,7 @@ actual fun measureGlyphBounds(
                 val descentPx = maxBottom.coerceAtLeast(0f)
                 val inkWidth = font.measureTextWidth(text)
 
-                GlyphBounds(ascentPx, descentPx, inkWidth)
+                GlyphBounds(ascentPx, descentPx, inkWidth, inkTopPx = minTop, inkBottomPx = maxBottom)
             }
         }
     } catch (e: Exception) {

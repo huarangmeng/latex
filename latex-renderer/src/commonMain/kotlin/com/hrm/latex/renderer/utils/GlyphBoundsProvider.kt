@@ -41,8 +41,14 @@ package com.hrm.latex.renderer.utils
 class GlyphBounds(
     val ascentPx: Float,
     val descentPx: Float,
-    val inkWidth: Float
+    val inkWidth: Float,
+    /** Signed outline bounds relative to the baseline; accents can sit entirely above it. */
+    val inkTopPx: Float,
+    val inkBottomPx: Float
 ) {
+    constructor(ascentPx: Float, descentPx: Float, inkWidth: Float) :
+        this(ascentPx, descentPx, inkWidth, -ascentPx, descentPx)
+
     val inkHeight: Float get() = ascentPx + descentPx
 }
 

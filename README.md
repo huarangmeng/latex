@@ -35,6 +35,8 @@ A high-performance LaTeX mathematical formula parsing and rendering library deve
 
 KaTeX and LaTeX compatibility includes additional AMS relations, double brackets, annotated harpoons, text accents, explicit line-break hints, repeated array columns, and selected mathtools, siunitx and xcolor syntax. See the [syntax coverage guide](latex-parser/PARSER_COVERAGE_ANALYSIS.md#公式兼容性补充) for examples and scope.
 
+Plain TeX support includes `\surd`, `\smallint`, `\intop`, `\ointop`, `\ldotp`, `\colon`, `\doteq`, arrow construction with `\relbar\joinrel\rightarrow`, accent shifts with `\skew`, infix `\brack`/`\brace`, and `\sp`/`\sb`. Text accents (including `\t`, `\d`, `\b`) use separately positioned font glyphs without requiring combining characters; `\l`, `\L`, `\dag`, `\ddag`, `\lq`, and `\rq` are also supported.
+
 <details>
 <summary><b>Math Formulas</b> — fractions, roots, binomials, scripts</summary>
 

@@ -174,7 +174,8 @@ internal fun CommandRegistry.installStyleHandlers() {
     val textSymbols = mapOf(
         "AA" to "Å", "aa" to "å", "AE" to "Æ", "ae" to "æ",
         "OE" to "Œ", "oe" to "œ", "O" to "Ø", "o" to "ø", "ss" to "ß",
-        "i" to "ı", "j" to "ȷ",
+        "i" to "ı", "j" to "ȷ", "l" to "ł", "L" to "Ł",
+        "lq" to "‘", "rq" to "’", "dag" to "†", "ddag" to "‡",
         "textdegree" to "°", "textemdash" to "—", "textendash" to "–",
         "textbackslash" to "\\", "textasciitilde" to "~", "textasciicircum" to "^",
         "textbraceleft" to "{", "textbraceright" to "}", "textbar" to "|",
@@ -194,21 +195,10 @@ internal fun CommandRegistry.installStyleHandlers() {
         }
     }
 
-    val textAccents = mapOf(
-        "'" to '\u0301', "`" to '\u0300', "^" to '\u0302', "~" to '\u0303',
-        "=" to '\u0304', "u" to '\u0306', "." to '\u0307', "\"" to '\u0308',
-        "r" to '\u030A', "H" to '\u030B', "v" to '\u030C', "c" to '\u0327'
-    )
-    for ((name, accent) in textAccents) {
-        register(name) { _, ctx, _ ->
+    for (accent in LatexNode.TextAccent.Kind.entries) {
+        register(accent.command) { _, ctx, _ ->
             val argument = ctx.parseTextArgument() ?: LatexNode.Text("")
-            val text = ParseUtils.extractText(listOf(argument))
-            val base = when (text.firstOrNull()) {
-                'ı' -> 'i'
-                'ȷ' -> 'j'
-                else -> text.firstOrNull()
-            }
-            LatexNode.TextMode(if (base == null) "" else "$base$accent" + text.drop(1))
+            accentTextContent(asTextContent(argument), accent)
         }
     }
 
@@ -220,6 +210,27 @@ internal fun CommandRegistry.installStyleHandlers() {
         if (plain) LatexNode.TextMode(content.joinToString("") { (it as LatexNode.TextMode).text })
         else LatexNode.TextMode("", content = content)
     }
+}
+
+/** TeX text accents attach to the first character; a tie spans its two-letter argument. */
+private fun accentTextContent(node: LatexNode, accent: LatexNode.TextAccent.Kind): LatexNode {
+    if (accent == LatexNode.TextAccent.Kind.TIE || node is LatexNode.TextAccent) {
+        return LatexNode.TextAccent(node, accent, node.sourceRange)
+    }
+    if (node is LatexNode.TextMode && node.content.isEmpty() && node.text.length > 1) {
+        val size = if (node.text[0].isHighSurrogate() && node.text[1].isLowSurrogate()) 2 else 1
+        val firstRange = node.sourceRange?.let { it.copy(end = minOf(it.end, it.start + size)) }
+        val restRange = node.sourceRange?.let { it.copy(start = minOf(it.end, it.start + size)) }
+        return LatexNode.Group(listOf(
+            LatexNode.TextAccent(node.copy(text = node.text.take(size), sourceRange = firstRange), accent, firstRange),
+            node.copy(text = node.text.drop(size), sourceRange = restRange)
+        ), node.sourceRange)
+    }
+    val children = node.children()
+    if (children.isNotEmpty()) {
+        return node.withChildren(listOf(accentTextContent(children.first(), accent)) + children.drop(1))
+    }
+    return LatexNode.TextAccent(node, accent, node.sourceRange)
 }
 
 private fun asTextContent(node: LatexNode): LatexNode = when (node) {

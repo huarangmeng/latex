@@ -90,7 +90,7 @@ internal class AccentMeasurer : NodeMeasurer {
         // a normal text baseline, so clipping its line box makes it sink into
         // the accented glyph. Draw the compact arrow independently instead.
         if (node.accentType == AccentType.VEC) {
-            return measureVectorAccent(node.content, contentLayout, context, density)
+            return measureVectorAccent(node.content, contentLayout, context, density, node.skewMu)
         }
 
         // 普通字符装饰
@@ -137,7 +137,7 @@ internal class AccentMeasurer : NodeMeasurer {
         } else {
             contentLayout.width / 2f
         }
-        val rawAccentLeft = attachment - accentLayout.width / 2f
+        val rawAccentLeft = attachment - accentLayout.width / 2f + fontSizePx * node.skewMu / 18f
         val left = min(0f, rawAccentLeft)
         val right = max(contentLayout.width, rawAccentLeft + accentLayout.width)
         val width = right - left
@@ -165,7 +165,8 @@ internal class AccentMeasurer : NodeMeasurer {
         contentNode: LatexNode,
         contentLayout: NodeLayout,
         context: RenderContext,
-        density: Density
+        density: Density,
+        skewMu: Float
     ): NodeLayout {
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val strokeWidth = max(with(density) { 1f.dp.toPx() }, fontSizePx * 0.04f)
@@ -182,7 +183,7 @@ internal class AccentMeasurer : NodeMeasurer {
                 ?.takeIf { value -> value >= 0f }
         } ?: glyphAdvance / 2f
 
-        val rawArrowLeft = attachment - arrowWidth / 2f
+        val rawArrowLeft = attachment - arrowWidth / 2f + fontSizePx * skewMu / 18f
         val left = min(0f, rawArrowLeft - strokeHalf)
         val right = max(contentLayout.width, rawArrowLeft + arrowWidth + strokeHalf)
         val width = right - left
@@ -469,11 +470,14 @@ internal class AccentMeasurer : NodeMeasurer {
             else -> null
         }
 
+        val skew = with(density) { context.fontSize.toPx() } * node.skewMu / 18f
         return NodeLayout(
-            width,
+            width + kotlin.math.abs(skew),
             totalHeight,
             contentLayout.baseline + (if (isUnder) 0f else accentHeight + gap)
-        ) { x, y ->
+        ) { originX, y ->
+            val x = originX + max(0f, skew)
+            val contentX = originX + max(0f, -skew)
             val accentY = if (isUnder) y + contentLayout.height + gap else y
             val contentY = if (isUnder) y else y + accentHeight + gap
 
@@ -556,7 +560,7 @@ internal class AccentMeasurer : NodeMeasurer {
                 else -> {}
             }
 
-            contentLayout.draw(this, x, contentY)
+            contentLayout.draw(this, contentX, contentY)
         }
     }
 }

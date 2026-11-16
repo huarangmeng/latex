@@ -90,7 +90,7 @@ internal class GlyphTypefaceCache(
 
             // 合并多字符边界；坐标原点为基线左端，top 在基线上方为负值。
             var minTop = Float.MAX_VALUE
-            var maxBottom = Float.MIN_VALUE
+            var maxBottom = Float.NEGATIVE_INFINITY
             for (rect in glyphBoundsArray) {
                 if (rect.width > 0 || rect.height > 0) {
                     minTop = minOf(minTop, rect.top)
@@ -102,7 +102,7 @@ internal class GlyphTypefaceCache(
             val ascentPx = (-minTop).coerceAtLeast(0f)
             val descentPx = maxBottom.coerceAtLeast(0f)
             val inkWidth = font.measureTextWidth(text)
-            GlyphBounds(ascentPx, descentPx, inkWidth)
+            GlyphBounds(ascentPx, descentPx, inkWidth, inkTopPx = minTop, inkBottomPx = maxBottom)
         }
     }
 

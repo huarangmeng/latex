@@ -66,23 +66,6 @@ import kotlinx.coroutines.delay
 
 val basicLatexPreviewGroups = listOf(
     PreviewGroup(
-        id = "math_spacing_audit",
-        title = "Math spacing audit",
-        description = "Source whitespace, explicit glue, atom classes, wrappers, scripts, and grouping",
-        items = listOf(
-            PreviewItem("1", "Source whitespace does not change math spacing", """a-b \qquad a - b \qquad \text{well-known}"""),
-            PreviewItem("2", "Unary signs and consecutive binary operators", """{-x}\quad{a=-x}\quad{a--b}\quad{a+-b}\quad{a+++b}"""),
-            PreviewItem("3", "Explicit spaces add to automatic spacing", """a+b\qquad a\,+\,b\qquad a\!+b"""),
-            PreviewItem("4", "Named operators and parentheses", """\sin x\quad\sin(x)\quad\log_b x\quad a\sum_i b"""),
-            PreviewItem("5", "Relations, punctuation, and Unicode symbols", """a=b\quad a:b\quad a,=b\quad a≤b\quad a\ntrianglelefteq b"""),
-            PreviewItem("6", "Color and font wrappers preserve atom classes", """a+b\quad a\textcolor{red}{+b}\quad a\mathbf{+}b\quad a{+}b"""),
-            PreviewItem("7", "Script spacing around punctuation and operators", """x^{a+b}\quad x^{a,b}\quad x^{a\sin b}\quad x^{\frac{a}{b}c}"""),
-            PreviewItem("8", "Quad keeps one math list; braces start a subformula", """a-b\quad -x\qquad a-b\quad {-x}"""),
-            PreviewItem("9", "Fractions, matrices, and scalable delimiters", """a\frac{x}{y}b\quad a\begin{matrix}1\end{matrix}b\quad a\left(x\right)b"""),
-            PreviewItem("10", "Explicit glue after a style declaration", """{\displaystyle\quad a+b}\qquad{\scriptstyle\,a+b}"""),
-        )
-    ),
-    PreviewGroup(
         id = "basic",
         title = "1. Basic notation",
         description = "Text, superscripts, subscripts, and fractions",
@@ -97,6 +80,10 @@ val basicLatexPreviewGroups = listOf(
                 "Issue #41: unbraced single-token arguments",
                 "\\frac12 \\quad \\binom12 \\quad \\int_12"
             ),
+            PreviewItem("7", "Script command aliases",
+                """x\sb i\sp2\quad\sum\sb{n=1}\sp\infty a_n"""),
+            PreviewItem("8", "Quotes and special text characters",
+                """\text{\lq\L\'odz\rq\ \dag\ \ddag}"""),
         )
     ),
     PreviewGroup(
@@ -111,6 +98,7 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("5", "Integral", "\\int_0^1 x dx"),
             PreviewItem("6", "dots (ldots)", "a_1, a_2, \\dots, a_n"),
             PreviewItem("7", "dots (cdots)", "a_1 + a_2 + \\dots + a_n"),
+            PreviewItem("8", "Named operators and parentheses", """\sin x\quad\sin(x)\quad\log_b x\quad a\sum_i b"""),
         )
     ),
     PreviewGroup(
@@ -186,6 +174,8 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("15", "Font size scopes", "{\\small a + b} \\quad {\\Huge c + d}"),
             PreviewItem("16", "Generalized and infix fractions", "\\genfrac{(}{)}{0pt}{0}{a+b}{c} \\quad {n \\choose k}"),
             PreviewItem("17", "Split fractions", "\\splitdfrac{a+b+c}{d+e}"),
+            PreviewItem("18", "Infix bracket and brace forms",
+                """{n\choose k}\quad{n\brack k}\quad{n\brace k}\quad{n+1\brack k_2}"""),
         )
     ),
     PreviewGroup(
@@ -408,7 +398,7 @@ val basicLatexPreviewGroups = listOf(
     PreviewGroup(
         id = "accents",
         title = "9. Accents and decorations",
-        description = "Accents, arrows, braces, stacking, and strike-throughs",
+        description = "Math and text accents, arrows, braces, stacking, and strike-throughs",
         items = listOf(
             PreviewItem("1", "Hat accent", "\\hat{x}"),
             PreviewItem("2", "Tilde accent", "\\tilde{y}"),
@@ -469,6 +459,14 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("41", "Double arrow with a lower label", "A \\xRightarrow[below]{above} B"),
             PreviewItem("42", "Extensible arrow comparison", "\\xrightarrow{f} \\quad \\xRightarrow{f} \\quad \\xmapsto{f}"),
             PreviewItem("43", "Wide accents and arrow decorations", "\\widecheck{ABC} \\quad \\overleftrightarrow{AB} \\quad \\underparen{xy}"),
+            PreviewItem("44", "Constructed long arrows",
+                """A\relbar\joinrel\rightarrow B\quad A\Relbar\joinrel\Rightarrow B\quad A\leftarrow\joinrel\relbar B"""),
+            PreviewItem("45", "Normal and shifted accents",
+                """\hat A\quad\skew3\hat A\quad\skew{-3}\hat A\quad\skew4\vec x\quad\skew4\widehat{AB}"""),
+            PreviewItem("46", "Text accents above the baseline",
+                """\text{\'{e} \`{a} \^{o} \~{n} \={a} \u{a} \.{z} \"{o} \r{a} \H{o} \v{c} \t{oo}}"""),
+            PreviewItem("47", "Text accents below, dotless bases, and styles",
+                """\text{\d{a}\ \b{b}\ \c{c}\ \'{\i}\ \textbf{\'{E}}\ \textit{\v{S}}\ \l\L}"""),
         )
     ),
     PreviewGroup(
@@ -827,7 +825,7 @@ val basicLatexPreviewGroups = listOf(
     PreviewGroup(
         id = "spaces",
         title = "17. Spacing",
-        description = "Negative spaces, custom lengths, and horizontal spacing",
+        description = "Source whitespace, automatic spacing, explicit spaces, and custom lengths",
         items = listOf(
             PreviewItem("1", "Standard spacing comparison", "a \\, b \\: c \\; d \\quad e \\qquad f"),
             PreviewItem("2", "Negative spacing", "a \\! b (tight)"),
@@ -840,6 +838,10 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("9", "Escaped special characters", "\\{ \\} \\$ \\% \\# \\& \\_"),
             PreviewItem("10", "Double vertical bar command", "\\| \\quad \\left\\| x \\right\\| \\quad \\big\\|"),
             PreviewItem("11", "Text and math kerning", "a\\kern1em b \\quad x\\mkern6mu y"),
+            PreviewItem("12", "Source whitespace does not change math spacing", """a-b \qquad a - b \qquad \text{well-known}"""),
+            PreviewItem("13", "Explicit spaces add to automatic spacing", """a+b\qquad a\,+\,b\qquad a\!+b"""),
+            PreviewItem("14", "Quad keeps one math list; braces start a subformula", """a-b\quad -x\qquad a-b\quad {-x}"""),
+            PreviewItem("15", "Explicit glue after a style declaration", """{\displaystyle\quad a+b}\qquad{\scriptstyle\,a+b}"""),
         )
     ),
     PreviewGroup(
@@ -910,6 +912,9 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("29", "Math minus in a binary expression", "(140 - \\text{age}) \\times \\text{weight}"),
             PreviewItem("30", "Math minus in a superscript", "\\mathrm{pH} = \\mathrm{p}K_a + \\log_{10}\\frac{[A^-]}{[HA]}"),
             PreviewItem("31", "Binary minus, unary minus, and text hyphens", "a-b \\quad {-x} \\quad A^- \\quad \\text{well-known}"),
+            PreviewItem("32", "Small integral and default limits",
+                """\smallint_a^b f(x)\,dx\quad\intop_a^b f(x)\,dx\quad\ointop_C f(z)\,dz\quad\intop\nolimits_a^b"""),
+            PreviewItem("33", "Script spacing around punctuation and operators", """x^{a+b}\quad x^{a,b}\quad x^{a\sin b}\quad x^{\frac{a}{b}c}"""),
         )
     ),
     PreviewGroup(
@@ -1459,6 +1464,12 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("7", "Inner atom spacing", "a + \\mathinner{x} + b"),
             PreviewItem("8", "Remove operator spacing with an ordinary atom", "a \\mathord{+} b"),
             PreviewItem("9", "Combined example", "f \\mathrel{:=} \\mathopen{\\langle} x, y \\mathclose{\\rangle}"),
+            PreviewItem("10", "Ordinary, punctuation, and relation symbols",
+                """\surd x\quad a\ldotp b\quad f\colon A\to B\quad a\doteq b"""),
+            PreviewItem("11", "Unary signs and consecutive binary operators", """{-x}\quad{a=-x}\quad{a--b}\quad{a+-b}\quad{a+++b}"""),
+            PreviewItem("12", "Relations, punctuation, and Unicode symbols", """a=b\quad a:b\quad a,=b\quad a≤b\quad a\ntrianglelefteq b"""),
+            PreviewItem("13", "Color and font wrappers preserve atom classes", """a+b\quad a\textcolor{red}{+b}\quad a\mathbf{+}b\quad a{+}b"""),
+            PreviewItem("14", "Fractions, matrices, and scalable delimiters", """a\frac{x}{y}b\quad a\begin{matrix}1\end{matrix}b\quad a\left(x\right)b"""),
         )
     ),
     PreviewGroup(

@@ -443,7 +443,9 @@ sealed class LatexNode {
     data class Accent(
         val content: LatexNode,
         val accentType: AccentType,
-        override val sourceRange: SourceRange? = null
+        override val sourceRange: SourceRange? = null,
+        /** Horizontal accent displacement; Plain TeX's \skew moves by half its argument. */
+        val skewMu: Float = 0f
     ) : LatexNode() {
         enum class AccentType {
             HAT, TILDE, BAR, DOT, DDOT, DDDOT, VEC, OVERLINE, UNDERLINE, OVERBRACE, UNDERBRACE,
@@ -458,6 +460,26 @@ sealed class LatexNode {
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
         override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren[0])
         override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitAccent(this)
+    }
+
+    /** A text accent kept separate from its base so fonts need no combining-mark support. */
+    data class TextAccent(
+        val content: LatexNode,
+        val accent: Kind,
+        override val sourceRange: SourceRange? = null
+    ) : LatexNode() {
+        enum class Kind(val command: String, val combining: Char) {
+            ACUTE("'", '\u0301'), GRAVE("`", '\u0300'), CIRCUMFLEX("^", '\u0302'),
+            TILDE("~", '\u0303'), MACRON("=", '\u0304'), BREVE("u", '\u0306'),
+            DOT(".", '\u0307'), DIAERESIS("\"", '\u0308'), RING("r", '\u030A'),
+            DOUBLE_ACUTE("H", '\u030B'), CARON("v", '\u030C'), CEDILLA("c", '\u0327'),
+            DOT_BELOW("d", '\u0323'), BAR_BELOW("b", '\u0331'), TIE("t", '\u0361')
+        }
+
+        override fun children() = listOf(content)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren[0])
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitTextAccent(this)
     }
 
     /**

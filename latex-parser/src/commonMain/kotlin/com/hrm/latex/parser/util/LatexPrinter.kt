@@ -161,6 +161,20 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         return ""
     }
     
+    override fun visitAccent(node: LatexNode.Accent): String {
+        output.append("Accent(${node.accentType}, skewMu=${node.skewMu})[")
+        visit(node.content)
+        output.append("]")
+        return ""
+    }
+
+    override fun visitTextAccent(node: LatexNode.TextAccent): String {
+        output.append("TextAccent(${node.accent})[")
+        visit(node.content)
+        output.append("]")
+        return ""
+    }
+
     override fun visitBigOperator(node: LatexNode.BigOperator): String {
         output.append("BigOperator(${node.operator})")
         if (node.subscript != null || node.superscript != null) {

@@ -35,6 +35,8 @@
 
 支持更多 AMS 关系符号、双括号、带标注的鱼叉箭头、文本重音、显式断行、数组列重复，以及 mathtools、siunitx 和 xcolor 的常用子集。 示例和具体范围见[语法覆盖说明](latex-parser/PARSER_COVERAGE_ANALYSIS.md#公式兼容性补充)。
 
+支持 Plain TeX 的 `\surd`、`\smallint`、`\intop`、`\ointop`、`\ldotp`、`\colon`、`\doteq`，通过 `\relbar\joinrel\rightarrow` 拼接箭头，通过 `\skew` 调整重音，以及中缀 `\brack`/`\brace` 和 `\sp`/`\sb` 别名。文本重音（含 `\t`、`\d`、`\b`）通过字体字形单独排版，无需字体支持组合字符；同时支持 `\l`、`\L`、`\dag`、`\ddag`、`\lq`、`\rq`。
+
 <details>
 <summary><b>数学公式</b> — 分数、根号、二项式、上下标</summary>
 

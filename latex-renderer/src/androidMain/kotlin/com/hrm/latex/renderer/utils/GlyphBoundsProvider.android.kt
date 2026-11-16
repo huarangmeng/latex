@@ -71,7 +71,7 @@ actual fun measureGlyphBounds(
         val descentPx = rect.bottom.toFloat().coerceAtLeast(0f)
         val inkWidth = rect.width().toFloat().coerceAtLeast(0f)
 
-        GlyphBounds(ascentPx, descentPx, inkWidth)
+        GlyphBounds(ascentPx, descentPx, inkWidth, inkTopPx = rect.top.toFloat(), inkBottomPx = rect.bottom.toFloat())
     } catch (e: Exception) {
         null
     }

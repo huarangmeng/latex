@@ -23,6 +23,7 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.tokenizer.LatexToken
 
 /**
  * 装饰命令：\hat, \vec, \overline, \cancel, 等
@@ -63,6 +64,19 @@ internal fun CommandRegistry.installAccentHandlers() {
         "underparen" to LatexNode.Accent.AccentType.UNDERPAREN,
     )
 
+    register("skew") { _, ctx, stream ->
+        val amount = ctx.parseArgument()?.let { ParseUtils.extractText(listOf(it)).toFloatOrNull() }
+            ?.takeIf { it.isFinite() }
+            ?: 0f
+        // Keep both arguments as tokens so aliases and user-defined accent macros work too.
+        val command = stream.readArgumentTokens()
+        val argument = stream.readArgumentTokens()
+        val range = stream.peek(-1)?.range ?: return@register LatexNode.Text("")
+        stream.insert(command + LatexToken.LeftBrace(range) + argument + LatexToken.RightBrace(range))
+        val accented = ctx.parseArgument() ?: LatexNode.Text("")
+        if (accented is LatexNode.Accent) accented.copy(skewMu = accented.skewMu + amount / 2f)
+        else accented
+    }
     for ((cmd, accentType) in accentMapping) {
         register(cmd) { _, ctx, _ ->
             val content = ctx.parseArgument() ?: LatexNode.Text("")
