@@ -25,6 +25,7 @@ package com.hrm.latex.parser.component
 
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.ParseDiagnostic
+import com.hrm.latex.parser.ParseSession
 import com.hrm.latex.parser.SymbolMap
 import com.hrm.latex.parser.component.handler.*
 import com.hrm.latex.parser.model.LatexNode
@@ -92,6 +93,8 @@ internal class CommandParser(
             installTextDirectionHandlers()
             installPackageCommandHandlers()
         }
+
+        internal fun registeredCommands(): Set<String> = registry.registeredCommands()
     }
 
     /**
@@ -381,7 +384,7 @@ internal class CommandParser(
     }
 
     private fun rejectNestedExpansion(range: SourceRange): Boolean {
-        if (context.scopeDepth < 128) return false
+        if (context.scopeDepth <= ParseSession.MAX_MACRO_GROUP_DEPTH) return false
         macroError(range, "Macro expansion group nesting limit exceeded")
         return true
     }

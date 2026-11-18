@@ -90,4 +90,7 @@ internal interface LatexParserContext {
     /** Opening command has already been consumed by CommandParser. */
     fun parseCommandGroup(command: String): LatexNode.Group
     fun normalizeStyleDeclarations(nodes: List<LatexNode>): List<LatexNode>
+
+    /** Records a script wrapped around an already parsed node, one tree level deeper without recursing. */
+    fun noteScriptWrap()
 }

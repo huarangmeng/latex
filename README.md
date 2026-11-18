@@ -222,6 +222,7 @@ TeX extensions include scoped groups (`{...}`, `\begingroup/\endgroup`, `\bgroup
 <summary><b>Error Handling</b></summary>
 
 - Unrecognized commands rendered in error color instead of silent failure
+- Formulas nested too deep to render safely show their source in error color
 - `parseWithDiagnostics()` provides structured diagnostics (8 categories, filter by severity)
 </details>
 

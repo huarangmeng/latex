@@ -453,7 +453,7 @@ class IncrementalLatexParser {
             val tokens = tokenizer.getCurrentTokens()
             val text = tokenizer.getCurrentText()
             if (tokens.isNotEmpty() && text.isNotEmpty()) {
-                baseParser.parse(tokens, text.length)
+                baseParser.parse(tokens, text.length, text)
             } else {
                 null
             }
