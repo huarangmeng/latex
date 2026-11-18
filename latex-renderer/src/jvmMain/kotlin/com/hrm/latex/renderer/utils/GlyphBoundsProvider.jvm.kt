@@ -69,7 +69,7 @@ internal class GlyphTypefaceCache(
 
     @Synchronized
     fun measure(text: String, fontSizePx: Float, fontBytes: ByteArray): GlyphBounds? {
-        if (text.isEmpty()) return null
+        if (text.isEmpty() || text.hasLoneSurrogate()) return null
         val typeface = typefaces[fontBytes] ?: (createTypeface(fontBytes) ?: return null).also {
             typefaces[fontBytes] = it
             if (typefaces.size > maxSize) {

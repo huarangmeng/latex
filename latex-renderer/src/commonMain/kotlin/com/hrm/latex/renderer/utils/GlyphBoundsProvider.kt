@@ -73,3 +73,14 @@ expect fun measureGlyphBounds(
     fontBytes: ByteArray,
     fontWeightValue: Int = 400
 ): GlyphBounds?
+
+/** Skia's glyph lookup can crash the process on an unpaired UTF-16 surrogate (FreeType does); skip measuring it. */
+internal fun String.hasLoneSurrogate(): Boolean {
+    var index = 0
+    while (index < length) {
+        val char = this[index++]
+        if (char.isLowSurrogate()) return true
+        if (char.isHighSurrogate() && (index == length || !this[index++].isLowSurrogate())) return true
+    }
+    return false
+}

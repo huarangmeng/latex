@@ -49,7 +49,7 @@ actual fun measureGlyphBounds(
     fontBytes: ByteArray,
     fontWeightValue: Int
 ): GlyphBounds? {
-    if (text.isEmpty()) return null
+    if (text.isEmpty() || text.hasLoneSurrogate()) return null
 
     return try {
         glyphTypefaceLock.lock()

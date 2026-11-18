@@ -28,6 +28,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** Runs the same byte-font, glyph and export contracts on JVM and Apple Native. */
@@ -87,6 +88,27 @@ class SkiaPlatformRenderingTest {
                 assertEquals(result.height, image.height)
                 assertFormulaPixels(image)
             }
+        }
+    }
+
+    @Test
+    fun unpairedSurrogatesMeasureAndRenderWithoutCrashing() = runTest {
+        val fonts = loadKatexFonts { readResourceBytes(it) }
+        val bytes = assertNotNull(fonts.mainBytes)
+        // Skia's FreeType glyph lookup aborts the process on an unpaired UTF-16 surrogate.
+        for (text in listOf("\uD835", "\uDD04", "a\uD835b", "a\uDD04\uD835")) {
+            assertNull(measureGlyphBounds(text, 24f, bytes), text)
+        }
+        // A streamed formula can end between the two halves of a pair.
+        val density = Density(1f)
+        val exporter = LatexExporterState(
+            density,
+            TextMeasurer(createFontFamilyResolver(), density, LayoutDirection.Ltr),
+            fonts,
+        )
+        for (formula in listOf("x\uD835", "x^{\uDD04}", "\\frac{\uD835}{y}")) {
+            assertNotNull(exporter.export(formula, LatexConfig(fontSize = 24.sp)), formula)
+            assertNotNull(exporter.exportSvg(formula, LatexConfig(fontSize = 24.sp)), formula)
         }
     }
 
