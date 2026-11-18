@@ -110,4 +110,18 @@ class ArgumentAtomTest {
         assertEquals("2", assertIs<LatexNode.Text>(integral.subscript).content)
         assertEquals("z", assertIs<LatexNode.Text>(document.children[3]).content)
     }
+
+    @Test
+    fun unbracedVerbArgumentIsOneAtom() {
+        for (verb in listOf("", "a", "ab")) {
+            val fraction = assertIs<LatexNode.Fraction>(parser.parse("\\frac\\verb|$verb|c").children.single())
+            assertEquals(verb, assertIs<LatexNode.TextMode>(fraction.numerator).text)
+            assertEquals("c", assertIs<LatexNode.Text>(fraction.denominator).content)
+            val script = assertIs<LatexNode.Superscript>(parser.parse("x^\\verb|$verb|").children.single())
+            assertEquals(verb, assertIs<LatexNode.TextMode>(script.exponent).text)
+        }
+        // The parser runs an unterminated \verb to the end of the input.
+        val accent = assertIs<LatexNode.Accent>(parser.parse("\\hat\\verb|ab").children.single())
+        assertEquals("ab", assertIs<LatexNode.TextMode>(accent.content).text)
+    }
 }
