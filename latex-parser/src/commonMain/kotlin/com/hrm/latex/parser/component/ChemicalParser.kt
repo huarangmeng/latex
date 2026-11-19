@@ -397,7 +397,7 @@ internal class ChemicalParser(private val context: LatexParserContext) {
             // 这是合理的嵌套顺序。
 
             // 这里的 Subscript 构造函数参数顺序：base, index
-            context.noteScriptWrap()
+            context.noteScriptWrap(last)
             nodes.add(LatexNode.Subscript(last, index))
         } else {
             // 没有 Base，可能是前置下标（如同位素）
@@ -428,7 +428,7 @@ internal class ChemicalParser(private val context: LatexParserContext) {
     private fun attachSuperscript(nodes: MutableList<LatexNode>, exponent: LatexNode) {
         if (nodes.isNotEmpty()) {
             val last = nodes.removeAt(nodes.lastIndex)
-            context.noteScriptWrap()
+            context.noteScriptWrap(last)
             nodes.add(LatexNode.Superscript(last, exponent))
         } else {
             nodes.add(LatexNode.Superscript(LatexNode.Text(""), exponent))

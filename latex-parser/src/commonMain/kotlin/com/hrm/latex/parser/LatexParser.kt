@@ -358,7 +358,17 @@ internal class ParseSession(
         if (wraps > 1) deepestLevel++
     }
 
-    override fun noteScriptWrap() {
+    override fun noteScriptWrap(base: LatexNode) {
+        var node = base
+        var wraps = 1
+        while (true) {
+            node = when (node) {
+                is LatexNode.Subscript -> node.base
+                is LatexNode.Superscript -> node.base
+                else -> break
+            }
+            if (++wraps > MAX_TREE_DEPTH) throw NestingTooDeep()
+        }
         deepestLevel++
     }
 

@@ -91,6 +91,9 @@ internal interface LatexParserContext {
     fun parseCommandGroup(command: String): LatexNode.Group
     fun normalizeStyleDeclarations(nodes: List<LatexNode>): List<LatexNode>
 
-    /** Records a script wrapped around an already parsed node, one tree level deeper without recursing. */
-    fun noteScriptWrap()
+    /**
+     * Records a script about to wrap [base], one tree level deeper without recursing. Rejects the
+     * formula once the chain of scripts is longer than the tree limit, before anything walks it.
+     */
+    fun noteScriptWrap(base: LatexNode)
 }

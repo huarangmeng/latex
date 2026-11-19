@@ -51,6 +51,9 @@ class NestingDepthTest {
         "\\ce{H" + "_1".repeat(10_000) + "}",
         "\\ce{A" + "^+".repeat(10_000) + "}",
         wrap("{\\rm\\color{red}\\displaystyle\\large ", "}", 10_000),
+        // Commands that convert their argument while parsing, before the final depth check.
+        "\\text{\\ce{H" + "_1".repeat(10_000) + "}}",
+        "\\SI{\\ce{H" + "_1".repeat(10_000) + "}}{m}",
     )
 
     @Test
@@ -59,7 +62,15 @@ class NestingDepthTest {
             val result = LatexParser().parseWithDiagnostics(input)
             val error = assertIs<LatexNode.Error>(result.document.children.single(), input.take(40))
             assertEquals(listOf(LatexNode.TextMode(input, sourceRange = SourceRange(0, input.length))), error.recovered)
-            assertTrue(result.errors.isNotEmpty())
+            assertTrue(result.errors.any { it.message.startsWith("Nesting deeper") }, input.take(40))
+        }
+    }
+
+    @Test
+    fun should_reject_a_chemical_chain_before_any_command_walks_it() {
+        val chain = "\\ce{H" + "_1".repeat(10_000) + "}"
+        for (command in CommandParser.registeredCommands()) {
+            LatexParser().parse("\\$command{$chain}{$chain}")
         }
     }
 
