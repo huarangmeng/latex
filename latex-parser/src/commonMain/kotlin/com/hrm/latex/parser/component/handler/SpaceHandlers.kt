@@ -47,11 +47,7 @@ internal fun CommandRegistry.installSpaceHandlers() {
     register("negthickspace") { _, _, _ -> LatexNode.HSpace("-0.277em") }
 
     register("hspace") { _, ctx, _ ->
-        val dimension = when (val arg = ctx.parseArgument()) {
-            is LatexNode.Text -> arg.content
-            is LatexNode.Group -> ParseUtils.extractText(arg.children)
-            else -> "0pt"
-        }
+        val dimension = ctx.parseArgument()?.let(ParseUtils::extractArgumentText) ?: "0pt"
         LatexNode.HSpace(dimension)
     }
 

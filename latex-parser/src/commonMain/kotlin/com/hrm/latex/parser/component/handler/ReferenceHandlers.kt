@@ -31,31 +31,19 @@ import com.hrm.latex.parser.tokenizer.LatexToken
 internal fun CommandRegistry.installReferenceHandlers() {
     register("label") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\label")
-        val key = when (arg) {
-            is LatexNode.Text -> arg.content
-            is LatexNode.Group -> ParseUtils.extractText(arg.children)
-            else -> ""
-        }
+        val key = ParseUtils.extractArgumentText(arg) ?: ""
         LatexNode.Label(key)
     }
 
     register("ref") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\ref")
-        val key = when (arg) {
-            is LatexNode.Text -> arg.content
-            is LatexNode.Group -> ParseUtils.extractText(arg.children)
-            else -> ""
-        }
+        val key = ParseUtils.extractArgumentText(arg) ?: ""
         LatexNode.Ref(key)
     }
 
     register("eqref") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\eqref")
-        val key = when (arg) {
-            is LatexNode.Text -> arg.content
-            is LatexNode.Group -> ParseUtils.extractText(arg.children)
-            else -> ""
-        }
+        val key = ParseUtils.extractArgumentText(arg) ?: ""
         LatexNode.EqRef(key)
     }
 

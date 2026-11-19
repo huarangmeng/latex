@@ -49,11 +49,7 @@ internal fun CommandRegistry.installTableHandlers() {
 
     register("cline") { _, ctx, _ ->
         val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\cline")
-        val rangeStr = when (arg) {
-            is LatexNode.Text -> arg.content
-            is LatexNode.Group -> ParseUtils.extractText(arg.children)
-            else -> ""
-        }
+        val rangeStr = ParseUtils.extractArgumentText(arg) ?: ""
         val parts = rangeStr.split("-")
         val startCol = parts.getOrNull(0)?.trim()?.toIntOrNull() ?: 1
         val endCol = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: startCol
@@ -63,20 +59,12 @@ internal fun CommandRegistry.installTableHandlers() {
     register("multicolumn") { _, ctx, _ ->
         // 第一个参数：列数
         val numArg = ctx.parseArgument() ?: return@register LatexNode.Text("\\multicolumn")
-        val numStr = when (numArg) {
-            is LatexNode.Text -> numArg.content
-            is LatexNode.Group -> ParseUtils.extractText(numArg.children)
-            else -> "1"
-        }
+        val numStr = ParseUtils.extractArgumentText(numArg) ?: "1"
         val columnCount = numStr.trim().toIntOrNull() ?: 1
 
         // 第二个参数：对齐方式
         val alignArg = ctx.parseArgument() ?: return@register LatexNode.Text("\\multicolumn")
-        val alignment = when (alignArg) {
-            is LatexNode.Text -> alignArg.content
-            is LatexNode.Group -> ParseUtils.extractText(alignArg.children)
-            else -> "c"
-        }
+        val alignment = ParseUtils.extractArgumentText(alignArg) ?: "c"
 
         // 第三个参数：内容
         val contentArg = ctx.parseArgument() ?: return@register LatexNode.Text("\\multicolumn")
