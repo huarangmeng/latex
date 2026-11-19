@@ -741,8 +741,9 @@ internal class ParseSession(
         }
     }
 
+    /** A braced script recurses through one [parseExpression] per level, so it counts a second frame here. */
     private fun parseScriptContent(): LatexNode {
-        return parseArgument() ?: LatexNode.Text("")
+        return nested { parseArgument() } ?: LatexNode.Text("")
     }
 
     override fun normalizeStyleDeclarations(nodes: List<LatexNode>): List<LatexNode> {

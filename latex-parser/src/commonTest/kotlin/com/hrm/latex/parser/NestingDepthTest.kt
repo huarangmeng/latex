@@ -117,8 +117,11 @@ class NestingDepthTest {
     @Test
     fun should_bound_the_tree_depth_while_parsing() {
         val declarations = listOf("", "\\rm\\color{red}\\displaystyle\\large ", "\\bf\\it\\sf\\tt\\color{red}\\Huge\\em ")
-        val opens = listOf("{%", "\\sqrt{%", "x^{%", "x_{%", "\\begin{matrix}%", "\\frac{%", "\\left(%", "{a\\over %", "\\overbrace{%")
-        val closes = listOf("}", "}", "}", "}", "\\end{matrix}", "}{y}", "\\right)", "}", "}^{n}")
+        val opens = listOf(
+            "{%", "\\sqrt{%", "x^{%", "x_{%", "\\begin{matrix}%", "\\frac{%", "\\left(%", "{a\\over %", "\\overbrace{%",
+            "x'^{%", "x''^{%", "x'^{x_{%",
+        )
+        val closes = listOf("}", "}", "}", "}", "\\end{matrix}", "}{y}", "\\right)", "}", "}^{n}", "}", "}", "}}")
         for (depth in 1..60) {
             for (chain in listOf("\\ce{H" + "_1".repeat(depth) + "}", "\\ce{A" + "^+_2".repeat(depth) + "}")) {
                 assertDepthBound(chain)
