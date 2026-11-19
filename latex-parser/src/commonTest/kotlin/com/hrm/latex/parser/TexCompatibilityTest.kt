@@ -181,6 +181,18 @@ class TexCompatibilityTest {
         assertIs<LatexNode.Text>(result.document.children.last())
     }
 
+    @Test fun nonRecursiveMacrosExpandInsideDeepGroups() {
+        val deep = """\def\A{m}""" + "{".repeat(43) + """\A""" + "}".repeat(43) + "+y"
+        assertTrue(parser.parseWithDiagnostics(deep).errors.isEmpty())
+        assertEquals("m+y", visible(deep))
+        val nested = """\def\A{m}""" + """{\A""".repeat(60) + "}".repeat(60)
+        assertTrue(parser.parseWithDiagnostics(nested).errors.isEmpty())
+        assertEquals("m".repeat(60), visible(nested))
+        val environment = """\newenvironment{e}{[}{]}""" + "{".repeat(43) + """\begin{e}x\end{e}""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(environment).errors.isEmpty())
+        assertEquals("[x]", visible(environment))
+    }
+
     @Test fun invalidGlobalPrefixCannotLeakToALaterAssignment() {
         val result = parser.parseWithDiagnostics("""{\global x\def\a{y}}\ifdefined\a bad\else ok\fi""")
         assertTrue(result.errors.any { it.category == ParseDiagnostic.Category.MACRO_ERROR })

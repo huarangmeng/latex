@@ -125,9 +125,9 @@ internal class ParseSession(
         private const val LEVELS_PER_FRAME = 2
 
         /**
-         * Groups a macro may expand inside. Low enough that a macro recursing through groups
-         * (`\def\loop{\frac{1}{\loop}}`) stops with a macro error, which keeps the rest of the
-         * formula, before [MAX_TREE_DEPTH] rejects the whole formula.
+         * Groups a macro may expand inside its own expansion. Low enough that a macro recursing
+         * through groups (`\def\loop{\frac{1}{\loop}}`) stops with a macro error, which keeps the
+         * rest of the formula, before [MAX_TREE_DEPTH] rejects the whole formula.
          */
         internal const val MAX_MACRO_GROUP_DEPTH = MAX_TREE_DEPTH / 3
 

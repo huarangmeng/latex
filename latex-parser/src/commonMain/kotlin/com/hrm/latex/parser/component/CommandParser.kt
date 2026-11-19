@@ -169,7 +169,7 @@ internal class CommandParser(
         if (token is LatexToken.BeginEnvironment) {
             val environment = context.customEnvironments[token.name] ?: return false
             stream.advance()
-            if (rejectNestedExpansion(token.range)) return true
+            if (rejectRecursiveExpansion(environmentStarts, token.name, token.range)) return true
             val args = readArguments(environment.numArgs, environment.defaultTokens)
             val body = mutableListOf<LatexToken>()
             var depth = 1
@@ -215,7 +215,7 @@ internal class CommandParser(
         }
         if (macro != null) {
             if (activeCharacter) stream.readAtom() else stream.advance()
-            if (rejectNestedExpansion(token.range)) return true
+            if (rejectRecursiveExpansion(macroStarts, token.name, token.range)) return true
             val paired = macro.pairedDelimiters
             if (paired != null) {
                 stream.skipWhitespace()
@@ -383,8 +383,16 @@ internal class CommandParser(
         return true
     }
 
-    private fun rejectNestedExpansion(range: SourceRange): Boolean {
-        if (context.scopeDepth <= ParseSession.MAX_MACRO_GROUP_DEPTH) return false
+    /**
+     * Where each macro and environment was last expanded. Every token of an expansion carries the
+     * start of its call, so a macro expanding at its own start again is expanding inside itself.
+     */
+    private val macroStarts = HashMap<String, SourceRange>()
+    private val environmentStarts = HashMap<String, SourceRange>()
+
+    private fun rejectRecursiveExpansion(starts: MutableMap<String, SourceRange>, name: String, range: SourceRange): Boolean {
+        val recursive = starts.put(name, range)?.start == range.start
+        if (!recursive || context.scopeDepth <= ParseSession.MAX_MACRO_GROUP_DEPTH) return false
         macroError(range, "Macro expansion group nesting limit exceeded")
         return true
     }
