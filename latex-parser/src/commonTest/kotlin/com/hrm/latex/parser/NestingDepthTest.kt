@@ -75,6 +75,26 @@ class NestingDepthTest {
     }
 
     @Test
+    fun should_reject_the_whole_formula_when_an_edit_nests_too_deep() {
+        val deep = wrap("{", "}", 130)
+        val source = "a+b + $deep"
+        val streamed = IncrementalLatexParser().apply {
+            append("a+b")
+            append(" + $deep")
+        }.getCurrentDocument()
+        val edited = IncrementalLatexParser().apply {
+            append("a+b + c")
+            setInput(source)
+        }.getCurrentDocument()
+        for (document in listOf(streamed, edited)) {
+            val error = assertIs<LatexNode.Error>(document.children.single())
+            assertEquals(SourceRange(0, source.length), error.sourceRange)
+            assertEquals(listOf(LatexNode.TextMode(source, sourceRange = SourceRange(0, source.length))), error.recovered)
+            assertEquals(LatexParser().parse(source), document)
+        }
+    }
+
+    @Test
     fun should_reject_overflowing_nesting_when_streamed() {
         val input = wrap("\\sqrt{", "}", 300)
         val parser = IncrementalLatexParser()
