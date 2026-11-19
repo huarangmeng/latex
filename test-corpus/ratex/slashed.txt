@@ -1,0 +1,23 @@
+\slashed{p}
+\slashed{D}
+\slashed{\partial}
+\slashed p
+\slashed\partial
+\slashed{p}_\mu
+\slashed{p}^{\,2}
+\slashed{\mathbf{p}}
+\frac{1}{\slashed{p}-m}
+(i\slashed{\partial}-m)\psi=0
+\slashed{A}\quad\slashed{k}\quad\slashed{f}
+\scriptstyle\slashed{p}\quad\slashed{D}\quad\slashed{\partial}
+\scriptscriptstyle\slashed{p}\quad\slashed{D}\quad\slashed{\partial}
+x_{\slashed{p}}\quad x_{y_{\slashed{p}}}
+\slashed1
+\slashed{i}
+\mathbf{\slashed{p}}
+\boldsymbol{\slashed{p}}
+\mathit{\slashed{D}}
+\slashed{f}_i
+\slashed{D}x
+\left(\slashed{\partial}\right)
+\slashed{p+q}

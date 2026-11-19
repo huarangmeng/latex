@@ -1,0 +1,41 @@
+1 \over
+1 \over x
+1+2i \over 3+4i
+5 % comment\n
+\\
+\alpha%skip\n\beta
+\def\foo{1 %}\n2}\n\foo
+\def\foo{1\n2}\nx %\foo\n
+\href{http://example.org/~bar/#top?foo=$foo&bar=ba^r_boo%20baz}{\alpha}
+\int\limits_2^2
+\int\limits_2^2 3
+\int\nolimits\limits_2^2
+\int_2^2\limits
+\kern1 %kern\nem
+\kern{1 %kern\nem}
+\lim\limits_x
+\lim\nolimits_x
+\operatorname*{asin}\limits_y x
+\sum\nolimits_3^4 4
+\text{hello% comment 1\nworld}
+\text{hello% comment\n\nworld}
+a \bmod b
+a%comment
+a%comment\nb
+a+b \brace c+d
+a+b \brack c+d
+a\space b
+a^2 + b^2 = c^2 % Pythagoras' Theorem\n
+hello% comment 1\nworld
+hello% comment\n\nworld
+x + \verb|y| + z
+x \above 1pt y
+x \atop y
+x \choose y
+x%y
+x^ %comment\n\frac{1}{2}
+x^ %comment\n{2}
+x_1 + \dots + x_n
+x_3 %comment\n^2
+{1 \over 2} \over 3
+{\textstyle 1} \over 2

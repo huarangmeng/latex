@@ -72,6 +72,13 @@ kotlin {
 }
 
 tasks.withType<Test>().configureEach {
+    // CorpusTest reads these; declared so that changing one reruns the task.
+    inputs.dir(rootProject.file("test-corpus")).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.property("updateCorpusBaseline", providers.environmentVariable("UPDATE_CORPUS_BASELINE").orElse(""))
+    // Rewriting a baseline must run the test even when its inputs are unchanged.
+    val updatingBaselines = providers.environmentVariable("UPDATE_CORPUS_BASELINE").map { it == "1" }.orElse(false)
+    outputs.upToDateWhen { !updatingBaselines.get() }
+    outputs.doNotCacheIf("UPDATE_CORPUS_BASELINE=1 rewrites the corpus baselines") { updatingBaselines.get() }
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = true
