@@ -110,4 +110,53 @@ class ArgumentAtomTest {
         assertEquals("2", assertIs<LatexNode.Text>(integral.subscript).content)
         assertEquals("z", assertIs<LatexNode.Text>(document.children[3]).content)
     }
+
+    @Test
+    fun unbracedVerbArgumentIsOneAtom() {
+        for (verb in listOf("", "a", "ab")) {
+            val fraction = assertIs<LatexNode.Fraction>(parser.parse("\\frac\\verb|$verb|c").children.single())
+            assertEquals(verb, assertIs<LatexNode.TextMode>(fraction.numerator).text)
+            assertEquals("c", assertIs<LatexNode.Text>(fraction.denominator).content)
+            val script = assertIs<LatexNode.Superscript>(parser.parse("x^\\verb|$verb|").children.single())
+            assertEquals(verb, assertIs<LatexNode.TextMode>(script.exponent).text)
+        }
+        // The parser runs an unterminated \verb to the end of the input.
+        val accent = assertIs<LatexNode.Accent>(parser.parse("\\hat\\verb|ab").children.single())
+        assertEquals("ab", assertIs<LatexNode.TextMode>(accent.content).text)
+    }
+
+    @Test
+    fun unbracedVerbArgumentReadsLikeItsBracedForm() {
+        assertEquals("x", assertIs<LatexNode.Text>(parser.parse("\\operatorname\\verb|P|x").children.last()).content)
+        for (verb in listOf("", "P", "ab")) {
+            assertEquals(
+                only<LatexNode.OperatorName>("\\operatorname{$verb}x")?.name,
+                only<LatexNode.OperatorName>("\\operatorname\\verb|$verb|x")?.name,
+            )
+        }
+        assertEquals("P", only<LatexNode.OperatorName>("\\operatorname\\verb|P|x")?.name)
+
+        val multicolumn = only<LatexNode.Multicolumn>("\\multicolumn\\verb|2|\\verb|l|x")!!
+        assertEquals(2 to "l", multicolumn.columnCount to multicolumn.alignment)
+        for ((verb, columns) in listOf("2" to (2 to 2), "2-3" to (2 to 3))) {
+            val braced = only<LatexNode.CLine>("\\cline{$verb}")!!
+            val cline = only<LatexNode.CLine>("\\cline\\verb|$verb|")!!
+            assertEquals(columns, braced.startCol to braced.endCol)
+            assertEquals(columns, cline.startCol to cline.endCol)
+        }
+
+        val red = "\\definecolor{r}{HTML}{ff0000}"
+        val braced = only<LatexNode.ColorBox>("$red\\colorbox{r}x")!!
+        assertEquals(braced.backgroundColor, only<LatexNode.ColorBox>("$red\\colorbox\\verb|r|x")!!.backgroundColor)
+        val framed = only<LatexNode.ColorBox>("$red\\fcolorbox\\verb|r|\\verb|r|x")!!
+        assertEquals(braced.backgroundColor to braced.backgroundColor, framed.borderColor to framed.backgroundColor)
+
+        assertEquals("ab", only<LatexNode.Label>("\\label\\verb|ab|")?.key)
+        assertEquals("ab", only<LatexNode.Ref>("\\ref\\verb|ab|")?.key)
+        assertEquals("ab", only<LatexNode.EqRef>("\\eqref\\verb|ab|")?.key)
+        assertEquals("2em", only<LatexNode.HSpace>("\\hspace\\verb|2em|")?.dimension)
+    }
+
+    private inline fun <reified T : LatexNode> only(input: String): T? =
+        parser.parse(input).children.filterIsInstance<T>().singleOrNull()
 }

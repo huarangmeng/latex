@@ -74,11 +74,7 @@ internal fun CommandRegistry.installOperatorHandlers() {
         if (starred) stream.advance()
 
         val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\operatorname")
-        val name = when (arg) {
-            is LatexNode.Text -> arg.content
-            is LatexNode.Group -> ParseUtils.extractText(arg.children)
-            else -> ""
-        }
+        val name = ParseUtils.extractArgumentText(arg) ?: ""
         if (name.isEmpty()) return@register LatexNode.Text("\\operatorname")
 
         val (sub, sup, limitsMode) = ParseUtils.parseScriptsAndLimits(ctx, stream)

@@ -81,12 +81,14 @@ internal object ParseUtils {
     /**
      * 从节点中提取颜色名称字符串
      */
-    fun extractColorName(node: LatexNode): String {
-        return when (node) {
-            is LatexNode.Text -> node.content
-            is LatexNode.Group -> extractText(node.children)
-            else -> "black"
-        }
+    fun extractColorName(node: LatexNode): String = extractArgumentText(node) ?: "black"
+
+    /** Text of a plain-text command argument: one character, a braced group or a `\verb` atom. */
+    fun extractArgumentText(node: LatexNode): String? = when (node) {
+        is LatexNode.Text -> node.content
+        is LatexNode.Group -> extractText(node.children)
+        is LatexNode.TextMode -> extractText(listOf(node))
+        else -> null
     }
 
     /**

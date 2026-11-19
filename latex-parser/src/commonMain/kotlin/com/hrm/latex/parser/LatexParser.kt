@@ -523,11 +523,12 @@ internal class ParseSession(
         while (tokenStream.peek() is LatexToken.Whitespace) {
             tokenStream.advance()
         }
-        return when (tokenStream.peek()) {
+        return when (val token = tokenStream.peek()) {
             is LatexToken.LeftBrace -> parseGroup()
             is LatexToken.Text -> {
-                val token = tokenStream.consumeTextAtom() ?: return null
-                mathText(token)
+                // A literal (`\verb`) token is one atom, never split into characters.
+                if (token.literal) return parseFactor()
+                mathText(tokenStream.consumeTextAtom() ?: return null)
             }
             else -> parseFactor()
         }
