@@ -51,6 +51,19 @@ class SyntaxCoverageTest {
     }
 
     @Test
+    fun completeExamplesReplaceThePreviousPreview() {
+        val parser = LatexParser()
+        forEachCase { case ->
+            if (case.error == null) {
+                val incremental = IncrementalLatexParser()
+                incremental.setInput("a+b")
+                incremental.setInput(case.source)
+                assertEquals(parser.parse(case.source), incremental.getPreviewDocument())
+            }
+        }
+    }
+
+    @Test
     fun streamingAndEditsPreserveTheAstOfEveryExample() {
         val parser = LatexParser()
         forEachCase { case ->

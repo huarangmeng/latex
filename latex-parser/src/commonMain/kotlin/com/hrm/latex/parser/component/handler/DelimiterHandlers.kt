@@ -23,6 +23,7 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.component.LatexTokenStream
+import com.hrm.latex.parser.component.isScopeCloser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
@@ -73,7 +74,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
         }
 
         val content = mutableListOf<LatexNode>()
-        while (!stream.isEOF()) {
+        while (!stream.isEOF() && !stream.peek().isScopeCloser()) {
             if (stream.peek() is LatexToken.Command && (stream.peek() as LatexToken.Command).name == "right") {
                 break
             }
@@ -83,11 +84,9 @@ internal fun CommandRegistry.installDelimiterHandlers() {
             }
         }
 
-        if (stream.peek() is LatexToken.Command && (stream.peek() as LatexToken.Command).name == "right") {
-            stream.advance()
-        }
-
-        val rightToken = stream.consumeDelimiterToken()
+        val closed = stream.consumeClosing { it is LatexToken.Command && it.name == "right" }
+        val rightToken = if (closed) stream.consumeDelimiterToken() else null
+        if (rightToken == null) stream.hasIncompleteStructure = true
         val right = when (rightToken) {
             null -> ")"
             is LatexToken.Text -> if (rightToken.content == ".") "" else rightToken.content

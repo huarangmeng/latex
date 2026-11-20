@@ -23,8 +23,10 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.SymbolMap
+import com.hrm.latex.parser.ParseDiagnostic
 import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
+import com.hrm.latex.parser.component.isScopeCloser
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
@@ -270,20 +272,19 @@ internal object ParseUtils {
         return Triple(subscript, superscript, limitsMode)
     }
 
-    /**
-     * 解析直到条件满足的节点列表
-     */
-    fun parseUntil(ctx: LatexParserContext, stream: LatexTokenStream, condition: (LatexToken) -> Boolean): List<LatexNode> {
+    /** 方括号只在调用方需要可选参数时打开结构，普通数学列表的方括号仍是符号。 */
+    fun parseBracketedArgument(ctx: LatexParserContext, stream: LatexTokenStream): List<LatexNode>? {
+        val opening = stream.peek() as? LatexToken.LeftBracket ?: return null
+        stream.advance()
         val nodes = mutableListOf<LatexNode>()
-        while (!stream.isEOF()) {
-            val token = stream.peek()
-            if (token != null && condition(token)) {
-                break
-            }
-            val node = ctx.parseExpression()
-            if (node != null) {
-                nodes.add(node)
-            }
+        while (!stream.isEOF() && stream.peek().let { it !is LatexToken.RightBracket && !it.isScopeCloser() }) {
+            ctx.parseExpression()?.let(nodes::add)
+        }
+        if (!stream.consumeClosing { it is LatexToken.RightBracket }) {
+            ctx.diagnostics.add(ParseDiagnostic(
+                opening.range, "Missing ] in optional argument",
+                ParseDiagnostic.Severity.ERROR, ParseDiagnostic.Category.MISSING_BRACKET
+            ))
         }
         return nodes
     }

@@ -292,6 +292,20 @@ class IncrementalTokenizerTest {
         }
     }
 
+    @Test
+    fun editsAtTheEndOfUrlCommentsRestartAtTheCommand() {
+        for ((before, after) in listOf(
+            "\\href%old" to "\\href%new",
+            "\\href%old" to "\\href%old{a%20b}",
+            "\\href%old\nx" to "\\href%old\n{a%20b}{label}",
+            "\\includegraphics[alt=icon]%old\r\nx" to "\\includegraphics[alt=icon]%old\r\n{a%20b.png}",
+        )) {
+            val incremental = IncrementalTokenizer()
+            incremental.tokenize(before)
+            assertEquals(LatexTokenizer(after).tokenize(), incremental.update(after, TextEdit.diff(before, after)), after)
+        }
+    }
+
     private fun assertTokensEquivalent(expected: List<LatexToken>, actual: List<LatexToken>) {
         assertEquals(
             expected.size, actual.size,

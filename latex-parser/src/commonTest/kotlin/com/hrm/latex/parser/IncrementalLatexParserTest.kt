@@ -23,6 +23,7 @@
 package com.hrm.latex.parser
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.SourceRange
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -502,6 +503,116 @@ class IncrementalLatexParserTest {
         incremental.append("}{b}")
         assertEquals(LatexParser().parse(incomplete + "}{b}"), incremental.getCurrentDocument())
         assertEquals(incremental.getCurrentDocument(), incremental.getPreviewDocument())
+    }
+
+    @Test
+    fun previewWaitsForTheClosingSyntaxRecognizedByTheParser() {
+        val batch = LatexParser()
+        val incompleteInputs = listOf(
+            """\left(x""" to """\right)""",
+            """\left(x\right""" to ")",
+            """\sqrt[3""" to "]{x}",
+            """\xrightarrow[below""" to "]{above}",
+            """\smash[t""" to "]{x}",
+            """\begingroup x""" to """\endgroup""",
+            """\ifdefined\alpha x""" to """\fi""",
+            """\begin{matrix}\begin{matrix}x\end{matrix}""" to """\end{matrix}""",
+            """\begin{matrix""" to """}x\end{matrix}""",
+            "\\def\\f#1{#1}\\f{x" to "}",
+            "\$x" to "\$",
+            "\$\$x" to "\$\$",
+            """\verb""" to "|a|",
+            """\verb*|a b""" to "|",
+            "\\" to "alpha",
+        )
+        for ((incomplete, closer) in incompleteInputs) {
+            val parser = IncrementalLatexParser()
+            parser.setInput("a+")
+            val previous = parser.getPreviewDocument()
+            val input = "a+$incomplete"
+            parser.setInput(input)
+            assertEquals(batch.parse(input), parser.getCurrentDocument(), input)
+            assertSame(previous, parser.getPreviewDocument(), input)
+
+            parser.append(closer)
+            val complete = input + closer
+            assertEquals(batch.parse(complete), parser.getPreviewDocument(), complete)
+        }
+    }
+
+    @Test
+    fun previewCanUseAClosedPrefixFromTheFirstIncompleteInput() {
+        val parser = IncrementalLatexParser()
+        val prefix = "a+"
+        val openDelimiter = """\left(x"""
+        parser.append(prefix + openDelimiter)
+        assertEquals(LatexParser().parse(prefix), parser.getPreviewDocument())
+        assertEquals(openDelimiter, parser.getUnparsedContent())
+    }
+
+    @Test
+    fun previewDoesNotCountBracesUsedAsDelimiters() {
+        val parser = IncrementalLatexParser()
+        val complete = """a+\left{x\right."""
+        parser.setInput("a")
+        parser.setInput(complete)
+        assertEquals(LatexParser().parse(complete), parser.getPreviewDocument())
+    }
+
+    @Test
+    fun editingBeforeAnUnfinishedLiteralDoesNotPublishIt() {
+        val parser = IncrementalLatexParser()
+        val literal = """\verb|a{b"""
+        parser.setInput("x")
+        val previous = parser.getPreviewDocument()
+        parser.setInput("x+$literal")
+        parser.setInput("longer+$literal")
+        val source = "longer+$literal"
+        assertSame(previous, parser.getPreviewDocument())
+        assertEquals(LatexParser().parse(source), parser.getCurrentDocument())
+        parser.append("|")
+        assertEquals(LatexParser().parse("$source|"), parser.getPreviewDocument())
+    }
+
+    @Test
+    fun aDifferentEnvironmentCloserReportsItsRangeAndPreservesThePreview() {
+        val batch = LatexParser()
+        val parser = IncrementalLatexParser()
+        val opening = """a+\begin{matrix}x"""
+        val wrongEnd = """\end{matriX}"""
+        val input = opening + wrongEnd
+        parser.append("a")
+        val preview = parser.getPreviewDocument()
+        parser.setInput(input)
+        val result = batch.parseWithDiagnostics(input)
+        val mismatch = result.errors.single { it.category == ParseDiagnostic.Category.MISMATCHED_ENVIRONMENT }
+        assertEquals(SourceRange(opening.length, input.length), mismatch.range)
+        assertEquals(result.document, parser.getCurrentDocument())
+        assertSame(preview, parser.getPreviewDocument())
+
+        val corrected = opening + """\end{matrix}"""
+        parser.setInput(corrected)
+        assertEquals(batch.parse(corrected), parser.getPreviewDocument())
+    }
+
+    @Test
+    fun unfinishedInnerStructuresLeaveTheOuterCloserAndFollowingContent() {
+        val parser = LatexParser()
+        for (wrapped in listOf(
+            """{\sqrt[3}""",
+            """{\left(x}""",
+            "{\$x}",
+            """{\begin{matrix}x}""",
+        )) {
+            val result = parser.parse(wrapped + "+z")
+            assertEquals(SourceRange(0, wrapped.length), result.children.first().sourceRange, wrapped)
+            assertEquals("z", (result.children.last() as LatexNode.Text).content, wrapped)
+        }
+        val outer = """\begin{align}\begin{matrix}x\end{align}"""
+        val result = parser.parseWithDiagnostics(outer + "+z")
+        assertEquals(SourceRange(0, outer.length), result.document.children.first().sourceRange)
+        assertEquals("z", (result.document.children.last() as LatexNode.Text).content)
+        assertEquals(1, result.errors.count { it.category == ParseDiagnostic.Category.MISMATCHED_ENVIRONMENT })
     }
 
     // ========== 核心场景：不完整输入保留旧结果（无异常闪烁） ==========

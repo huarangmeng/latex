@@ -27,6 +27,12 @@ import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.ParseDiagnostic
 import com.hrm.latex.parser.tokenizer.LatexToken
 import com.hrm.latex.parser.tokenizer.inheritExpansion
+import com.hrm.latex.parser.util.codePointWidthAt
+
+/** 内容读到外层作用域的结束标记时停止，由拥有该标记的解析器消费。 */
+internal fun LatexToken?.isScopeCloser(): Boolean =
+    this is LatexToken.RightBrace || this is LatexToken.EndEnvironment ||
+        this is LatexToken.Command && (name == "endgroup" || name == "egroup")
 
 /**
  * 封装 Token 流的操作，如 peek, advance, expect
@@ -46,6 +52,7 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
     internal var trackLookahead = false
     internal var observedThrough = -1
         private set
+    internal var hasIncompleteStructure = false
     internal val sourceIndex get() = position
     internal val hasPendingTokens get() = pending?.isNotEmpty() == true
     internal val previousToken get() = previous
@@ -86,6 +93,16 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         while (peek() is LatexToken.Whitespace) advance()
     }
 
+    /** 语法解析器已经消费起始标记时，统一确认结束标记；不匹配的 token 留给外层处理。 */
+    internal inline fun consumeClosing(matches: (LatexToken?) -> Boolean): Boolean {
+        if (matches(peek())) {
+            advance()
+            return true
+        }
+        hasIncompleteStructure = true
+        return false
+    }
+
     /** 控制词后的源码空白仅用于终止名称，显式间距仍留在 token 流中。 */
     internal fun skipControlWordWhitespace() = raw {
         while ((peek() as? LatexToken.Whitespace)?.content == " ") advance()
@@ -118,7 +135,10 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
             if (depth == 0) break
             appendReplacementToken(result, token)
         }
-        if (depth != 0) reportMissing("Missing } in macro argument", ParseDiagnostic.Category.MISSING_BRACE)
+        if (depth != 0) {
+            hasIncompleteStructure = true
+            reportMissing("Missing } in macro argument", ParseDiagnostic.Category.MISSING_BRACE)
+        }
         result
     }
 
@@ -136,7 +156,10 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
             if (token is LatexToken.RightBrace) depth--
             appendReplacementToken(result, token)
         }
-        if (!closed) reportMissing("Missing ] in macro argument", ParseDiagnostic.Category.MISSING_BRACKET)
+        if (!closed) {
+            hasIncompleteStructure = true
+            reportMissing("Missing ] in macro argument", ParseDiagnostic.Category.MISSING_BRACKET)
+        }
         result
     }
 
@@ -147,8 +170,7 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         }
         var index = 0
         while (index < token.content.length) {
-            val length = if (token.content[index].isHighSurrogate() &&
-                index + 1 < token.content.length && token.content[index + 1].isLowSurrogate()) 2 else 1
+            val length = token.content.codePointWidthAt(index)
             result.add(LatexToken.Text(token.content.substring(index, index + length), token.range))
             index += length
         }
@@ -216,11 +238,12 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
     }
 
     fun advance(): LatexToken? {
-        val token = peek()
+        // 流耗尽后的空读不消费源码，也不能抹掉最后一个已消费 token 的位置。
+        val token = peek() ?: return null
         val queue = pending
         if (queue != null && queue.isNotEmpty()) queue.removeFirst() else position++
         head = queue?.firstOrNull() ?: initialTokens.getOrNull(position)
-        if (token != null) consumed?.add(token)
+        consumed?.add(token)
         previous = token
         invalidateExpansion()
         return token
@@ -234,16 +257,7 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
      */
     internal fun consumeTextAtom(): LatexToken.Text? {
         val token = peek() as? LatexToken.Text ?: return null
-        val atomLength = if (
-            token.content.length > 1 &&
-            token.content[0].isHighSurrogate() &&
-            token.content[1].isLowSurrogate()
-        ) {
-            2
-        } else {
-            1
-        }
-        return consumeTextPrefix(token, atomLength)
+        return consumeTextPrefix(token, token.content.codePointWidthAt(0))
     }
 
     internal fun consumeTextPrefix(token: LatexToken.Text, length: Int): LatexToken.Text {
@@ -298,10 +312,9 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
     }
     
     fun reset() {
-        position = 0
         pending = null
         consumed = null
-        previous = null
-        invalidateExpansion()
+        hasIncompleteStructure = false
+        resumeAt(0, null, -1)
     }
 }

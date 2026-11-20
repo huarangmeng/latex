@@ -24,6 +24,7 @@ package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
+import com.hrm.latex.parser.util.codePointWidthAt
 
 /**
  * 字体样式 & 数学模式切换命令
@@ -160,10 +161,8 @@ internal fun CommandRegistry.installStyleHandlers() {
     }
 
     register("cramped") { _, ctx, stream ->
-        val style = if (stream.peek() is LatexToken.LeftBracket) {
-            stream.advance()
-            val option = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
-            if (stream.peek() is LatexToken.RightBracket) stream.advance()
+        val option = ParseUtils.parseBracketedArgument(ctx, stream)
+        val style = if (option != null) {
             when ((option.singleOrNull() as? LatexNode.MathStyle)?.mathStyleType) {
                 LatexNode.MathStyle.MathStyleType.DISPLAY -> LatexNode.MathStyle.MathStyleType.CRAMPED_DISPLAY
                 LatexNode.MathStyle.MathStyleType.TEXT -> LatexNode.MathStyle.MathStyleType.CRAMPED_TEXT
@@ -260,7 +259,7 @@ private fun accentTextContent(node: LatexNode, accent: LatexNode.TextAccent.Kind
         return LatexNode.TextAccent(node, accent, node.sourceRange)
     }
     if (node is LatexNode.TextMode && node.content.isEmpty() && node.text.length > 1) {
-        val size = if (node.text[0].isHighSurrogate() && node.text[1].isLowSurrogate()) 2 else 1
+        val size = node.text.codePointWidthAt(0)
         val firstRange = node.sourceRange?.let { it.copy(end = minOf(it.end, it.start + size)) }
         val restRange = node.sourceRange?.let { it.copy(start = minOf(it.end, it.start + size)) }
         return LatexNode.Group(listOf(

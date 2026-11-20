@@ -308,13 +308,8 @@ private fun replaceUnitSeparators(text: String): String = buildString(text.lengt
     }
 }
 
-private fun parseOptionalNode(ctx: LatexParserContext, stream: LatexTokenStream): LatexNode? {
-    if (stream.peek() !is LatexToken.LeftBracket) return null
-    stream.advance()
-    val nodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
-    if (stream.peek() is LatexToken.RightBracket) stream.advance()
-    return nodes.takeIf { it.isNotEmpty() }?.let(LatexNode::Group)
-}
+private fun parseOptionalNode(ctx: LatexParserContext, stream: LatexTokenStream): LatexNode? =
+    ParseUtils.parseBracketedArgument(ctx, stream)?.takeIf { it.isNotEmpty() }?.let(LatexNode::Group)
 
 private fun unwrap(node: LatexNode): List<LatexNode> =
     if (node is LatexNode.Group) node.children else listOf(node)

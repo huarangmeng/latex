@@ -25,8 +25,15 @@ package com.hrm.latex.parser
 import com.hrm.latex.parser.incremental.IncrementalTokenizer
 import com.hrm.latex.parser.incremental.TextEdit
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.SourceRange
+import com.hrm.latex.parser.tokenizer.LatexToken
 import com.hrm.latex.parser.tokenizer.LatexTokenizer
+import com.hrm.latex.parser.visitor.MathMLVisitor
 import java.io.File
+import java.io.StringReader
+import javax.xml.stream.XMLInputFactory
+import javax.xml.stream.XMLStreamException
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -102,6 +109,133 @@ class CorpusTest {
             }
         }
         assertTrue(failures.isEmpty(), "${failures.size} 条编辑结果与整式解析不同\n" + failures.take(25).joinToString("\n"))
+    }
+
+    @Test
+    fun everyStreamingPrefixMatchesBatchTokenizationAndParsing() {
+        val failures = mutableListOf<String>()
+        var checked = 0
+        for (formula in stabilityFormulas()) {
+            val parser = IncrementalLatexParser()
+            val tokenizer = IncrementalTokenizer()
+            for (index in formula.indices) {
+                val chunk = formula.substring(index, index + 1)
+                val end = tokenizer.appendText(chunk)
+                val source = tokenizer.getCurrentText()
+                val tokens = tokenizer.update(source, TextEdit.fromAppend(index, end))
+                parser.append(chunk)
+                checked++
+                val mismatch = compareWithBatch(source, tokens, parser)
+                if (mismatch != null) {
+                    failures.add("append($index) $mismatch in ${formula.quote()}")
+                    break
+                }
+            }
+        }
+        println("流式中间状态检查 $checked 次")
+        assertAuditPassed(failures)
+    }
+
+    @Test
+    fun seededEditSequencesMatchBatchTokenizationAndParsing() {
+        val failures = mutableListOf<String>()
+        val random = Random(817)
+        val insertions = listOf(
+            "", "x", "{}", "\\", "\\left(", "\\right)", "\\verb|", """\href{a%20b}""",
+            "$", "%r", "\r", "\n", "\r\n", "&", "_", "^", "'", "α", "中", "😀", "\uD800",
+        )
+        var checked = 0
+        for (formula in stabilityFormulas()) {
+            val parser = IncrementalLatexParser()
+            val tokenizer = IncrementalTokenizer()
+            var previous = formula
+            parser.setInput(previous)
+            tokenizer.tokenize(previous)
+            repeat(32) { step ->
+                val start = random.nextInt(previous.length + 1)
+                val end = random.nextInt(start, minOf(start + 6, previous.length) + 1)
+                // 定期还原完整公式，保留对词法边界和已有语法的反复编辑。
+                val source = when (step % 8) {
+                    0 -> formula
+                    1 -> if (start == previous.length) previous + "x" else previous.replaceRange(start, start + 1, "x")
+                    2 -> previous.removeRange(start, end)
+                    3 -> previous.replaceRange(start, start, insertions.random(random))
+                    else -> previous.replaceRange(start, end, insertions.random(random))
+                }
+                val tokens = tokenizer.update(source, TextEdit.diff(previous, source))
+                parser.setInput(source)
+                checked++
+                val mismatch = compareWithBatch(source, tokens, parser)
+                if (mismatch != null && failures.size < 40) {
+                    failures.add("edit($step) ${previous.quote()} → $mismatch")
+                }
+                previous = source
+            }
+        }
+        println("确定性编辑状态检查 $checked 次")
+        assertAuditPassed(failures)
+    }
+
+    @Test
+    fun corpusMathMlIsWellFormedXml() {
+        val parser = LatexParser()
+        val xml = XMLInputFactory.newFactory().apply {
+            setProperty(XMLInputFactory.SUPPORT_DTD, false)
+        }
+        val sources = stabilityFormulas() + listOf(
+            "😀\uD800\u0000\\text{🙂\uDC00}",
+            "\\text{标题 😀}\r\n\\href{a%20b}{🙂}",
+        )
+        for (formula in sources) {
+            try {
+                val reader = xml.createXMLStreamReader(StringReader(MathMLVisitor.convert(parser.parse(formula))))
+                try {
+                    while (reader.hasNext()) reader.next()
+                } finally {
+                    reader.close()
+                }
+            } catch (error: XMLStreamException) {
+                throw AssertionError("MathML 导出无法作为 XML 读取 @ ${formula.quote()}", error)
+            }
+        }
+    }
+
+    private fun compareWithBatch(
+        source: String,
+        tokens: List<LatexToken>,
+        parser: IncrementalLatexParser,
+    ): String? {
+        val expectedTokens = LatexTokenizer(source).tokenize()
+        if (expectedTokens != tokens) {
+            val index = expectedTokens.indices.firstOrNull { expectedTokens[it] != tokens.getOrNull(it) } ?: expectedTokens.size
+            return "token[$index] ${expectedTokens.getOrNull(index)} != ${tokens.getOrNull(index)} @ ${source.quote()}"
+        }
+        val session = ParseSession(expectedTokens, source.length, source)
+        val expected = session.parse()
+        val actual = parser.getCurrentDocument()
+        if (expected != actual) {
+            val index = expected.children.indices.firstOrNull { expected.children[it] != actual.children.getOrNull(it) }
+                ?: expected.children.size
+            return "AST[$index] ${expected.children.getOrNull(index)?.toString()?.take(440)} != " +
+                "${actual.children.getOrNull(index)?.toString()?.take(440)} @ ${source.quote()}"
+        }
+        val badRange = actual.fold<LatexNode?>(null) { found, node ->
+            found ?: node.takeIf { it.sourceRange?.isWithin(source.length) == false }
+        }
+        if (badRange != null) return "${badRange::class.simpleName} 的范围 ${badRange.sourceRange} @ ${source.quote()}"
+        val badDiagnostic = session.diagnostics.firstOrNull { !it.range.isWithin(source.length) }
+        if (badDiagnostic != null) return "诊断范围无效 $badDiagnostic @ ${source.quote()}"
+        return null
+    }
+
+    private fun SourceRange.isWithin(length: Int): Boolean = start in 0..end && end <= length
+
+    private fun stabilityFormulas() = (formulas + syntaxCoverageCases().map { it.source }).distinct()
+
+    private fun String.quote() = replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t")
+
+    private fun assertAuditPassed(failures: List<String>) {
+        assertTrue(failures.isEmpty(), failures.take(25).joinToString("\n"))
     }
 
     @Test

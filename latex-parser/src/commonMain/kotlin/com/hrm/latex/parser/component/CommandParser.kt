@@ -33,6 +33,7 @@ import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.Expansion
 import com.hrm.latex.parser.tokenizer.LatexToken
 import com.hrm.latex.parser.tokenizer.inheritExpansion
+import com.hrm.latex.parser.util.codePointWidthAt
 
 internal class CommandParser(
     private val context: LatexParserContext,
@@ -196,7 +197,10 @@ internal class CommandParser(
                 if (depth == 0) break
                 body.add(next)
             }
-            if (depth != 0) macroError(token.range, "Missing \\end{${token.name}}")
+            if (depth != 0) {
+                stream.hasIncompleteStructure = true
+                macroError(token.range, "Missing \\end{${token.name}}")
+            }
             emit(listOf(LatexToken.LeftBrace(token.range)) +
                 substitute(environment.beginTokens, args, token.range, origin) + body +
                 substitute(environment.endTokens, args, token.range, origin) +
@@ -341,7 +345,10 @@ internal class CommandParser(
                         else -> macroError(next.range, "Expected character in \\csname")
                     }
                 }
-                if (!closed) macroError(token.range, "Missing \\endcsname")
+                if (!closed) {
+                    stream.hasIncompleteStructure = true
+                    macroError(token.range, "Missing \\endcsname")
+                }
                 val commandName = name.toString()
                 if (!context.isCommandDefined(commandName)) {
                     context.defineCommand(CustomCommand(commandName, 0, listOf(LatexToken.Command("relax", builtin = true)), isAlias = true))
@@ -373,7 +380,10 @@ internal class CommandParser(
                     }
                     if (condition == inTrueBranch) selected.add(next)
                 }
-                if (!closed) macroError(token.range, "Missing \\fi")
+                if (!closed) {
+                    stream.hasIncompleteStructure = true
+                    macroError(token.range, "Missing \\fi")
+                }
                 emit(selected, token.range)
             }
             "mathpalette" -> {
@@ -491,8 +501,7 @@ internal class CommandParser(
                     var offset = 0
                     do {
                         val next = if (text != null) {
-                            val end = offset + if (text[offset].isHighSurrogate() &&
-                                offset + 1 < text.length && text[offset + 1].isLowSurrogate()) 2 else 1
+                            val end = offset + text.codePointWidthAt(offset)
                             LatexToken.Text(text.substring(offset, end), token.range).inheritExpansion(token).also { offset = end }
                         } else token
                         argument.add(next)
@@ -508,7 +517,10 @@ internal class CommandParser(
                         }
                     } while (!found && text != null && offset < text.length)
                 }
-                if (!found) macroError(range, "Missing macro argument delimiter")
+                if (!found) {
+                    tokenStream.hasIncompleteStructure = true
+                    macroError(range, "Missing macro argument delimiter")
+                }
                 args[number - 1] = if (argument.firstOrNull() is LatexToken.LeftBrace &&
                     argument.lastOrNull() is LatexToken.RightBrace && balancedOuterGroup(argument)) argument.drop(1).dropLast(1) else argument
             }

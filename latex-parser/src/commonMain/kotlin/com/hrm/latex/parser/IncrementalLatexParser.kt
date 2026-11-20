@@ -26,7 +26,6 @@ import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.incremental.IncrementalTokenizer
 import com.hrm.latex.parser.incremental.TextEdit
 import com.hrm.latex.parser.model.LatexNode
-import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
 
 /**
@@ -35,6 +34,7 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  * 追加和编辑共用 [LatexParser] 的分词与数学列表规则。分词器先重新扫描受编辑影响的区间。
  * 解析器仅复用已消费和已前瞻的 token 都保持相同的顶层表达式，从最后一个有效检查点
  * 继续解析。等长编辑的后缀若在原检查点重新对齐，也可以复用。
+ * 预览的闭合状态来自词法单元和解析规则，当前 AST 仍保留未闭合输入的容错结果。
  * [getCurrentDocument] 返回当前源码的解析结果，[getPreviewDocument] 在结构未闭合时
  * 保留上一次完整的预览。
  */
@@ -72,15 +72,19 @@ class IncrementalLatexParser {
 
     private fun updateDocument(source: String, tokens: List<LatexToken>) {
         cachedDocument = null
-        val complete = completeTokenCount(tokens)
-        if (complete == tokens.lastIndex) {
-            cachedDocument = parse(source, tokens)
-            cachedDocument?.let { updatePreview(it, source.length) }
-        } else if (previewDocument == null && complete > 0) {
-            // 首次收到不完整输入时，使用已闭合的前缀作为预览。
-            val end = tokens[complete - 1].range.end
-            val prefix = tokens.take(complete) + LatexToken.EOF(SourceRange(end, end))
-            parse(source.substring(0, end), prefix)?.let { updatePreview(it, end) }
+        val unfinishedLexeme = tokenizer.unfinishedUnitStart
+        // 词法单元在文件末尾尚未结束，已有预览可以直接保留，当前 AST 按需解析。
+        if (unfinishedLexeme != null && previewDocument != null) return
+
+        val parsed = parse(source, tokens)
+        cachedDocument = parsed?.document
+        if (parsed == null) return
+        if (!parsed.incomplete && unfinishedLexeme == null) {
+            updatePreview(parsed.document, source.length)
+        } else if (previewDocument == null) {
+            // 首个不完整结果只预览解析器确认闭合的前缀，当前输入的检查点仍供后续编辑使用。
+            val end = minOf(parsed.completePrefixEnd, unfinishedLexeme ?: source.length)
+            if (end > 0) parseSafely { LatexParser().parse(source.substring(0, end)) }?.let { updatePreview(it, end) }
         }
     }
 
@@ -89,7 +93,9 @@ class IncrementalLatexParser {
         lastSuccessfulPosition = end
     }
 
-    private fun parse(source: String, tokens: List<LatexToken>): LatexNode.Document? {
+    private data class ParsedDocument(val document: LatexNode.Document, val incomplete: Boolean, val completePrefixEnd: Int)
+
+    private fun parse(source: String, tokens: List<LatexToken>): ParsedDocument? {
         var unchanged = 0
         if (checkpoints.isNotEmpty()) {
             val limit = minOf(parsedTokens.size, tokens.size)
@@ -104,16 +110,22 @@ class IncrementalLatexParser {
         }
 
         val suffix = reusableSuffix(tokens, unchanged)
-        return try {
-            val document = ParseSession(tokens, source.length, source, reused, suffix).parse()
+        return parseSafely {
+            val session = ParseSession(tokens, source.length, source, reused, suffix)
+            val document = session.parse()
             parsedTokens = tokens
             checkpoints = if (document.children.singleOrNull() is LatexNode.Error) emptyList() else reused
-            document
+            ParsedDocument(document, session.hasIncompleteStructure, session.completePrefixEnd)
+        }
+    }
+
+    private inline fun <T> parseSafely(parse: () -> T): T? =
+        try {
+            parse()
         } catch (error: Exception) {
             HLog.w("IncrementalLatexParser") { "解析失败: ${error.message}" }
             null
         }
-    }
 
     private fun reusableSuffix(tokens: List<LatexToken>, unchanged: Int): List<ExpressionCheckpoint> {
         if (checkpoints.isEmpty() || parsedTokens.size != tokens.size || parsedTokens.last() != tokens.last()) {
@@ -123,28 +135,6 @@ class IncrementalLatexParser {
         while (start > unchanged && parsedTokens[start - 1] == tokens[start - 1]) start--
         val first = checkpoints.indexOfFirst { it.startIndex >= start }
         return if (first >= 0) checkpoints.subList(first, checkpoints.size) else emptyList()
-    }
-
-    /** 使用分词结果定位最后一个结构闭合的位置，字面参数中的符号不会干扰判断。 */
-    private fun completeTokenCount(tokens: List<LatexToken>): Int {
-        var braces = 0
-        var environments = 0
-        var inlineMath = false
-        var displayMath = false
-        var lastComplete = 0
-        for (index in 0 until tokens.lastIndex) {
-            when (val token = tokens[index]) {
-                is LatexToken.LeftBrace -> braces++
-                is LatexToken.RightBrace -> braces = (braces - 1).coerceAtLeast(0)
-                is LatexToken.BeginEnvironment -> environments++
-                is LatexToken.EndEnvironment -> environments = (environments - 1).coerceAtLeast(0)
-                is LatexToken.MathShift -> if (token.count == 1) inlineMath = !inlineMath else displayMath = !displayMath
-                is LatexToken.Command -> if (token.name.isEmpty()) break
-                else -> Unit
-            }
-            if (braces == 0 && environments == 0 && !inlineMath && !displayMath) lastComplete = index + 1
-        }
-        return lastComplete
     }
 
     fun clear() {
@@ -159,7 +149,7 @@ class IncrementalLatexParser {
     /** 返回当前缓冲区的 AST，未闭合输入也使用与 [LatexParser] 相同的容错规则。 */
     fun getCurrentDocument(): LatexNode.Document {
         cachedDocument?.let { return it }
-        val document = parse(tokenizer.getCurrentText(), tokenizer.getCurrentTokens())
+        val document = parse(tokenizer.getCurrentText(), tokenizer.getCurrentTokens())?.document
         cachedDocument = document
         return document ?: LatexNode.Document(emptyList())
     }

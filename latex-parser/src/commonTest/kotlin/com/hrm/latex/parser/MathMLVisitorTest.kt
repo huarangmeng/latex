@@ -31,6 +31,22 @@ class MathMLVisitorTest {
     private val parser = LatexParser()
 
     @Test
+    fun supplementaryCharactersAndIncompleteUtf16ProduceWellFormedMathMl() {
+        // 运行时构造单个 UTF-16 单元，避免 JS 编译阶段改写字符串字面量。
+        val source = buildString {
+            append("😀")
+            append(0xD800.toChar())
+            append(0.toChar())
+            append("\\text{🙂")
+            append(0xDC00.toChar())
+            append('}')
+        }
+        val mathMl = MathMLVisitor.convert(parser.parse(source))
+        assertTrue("<mo>😀</mo><mo>�</mo><mo>�</mo>" in mathMl, mathMl)
+        assertTrue("🙂�" in mathMl, mathMl)
+    }
+
+    @Test
     fun htmlAttributesAndImagesSurviveMathMlWithoutUntrustedAttributes() {
         val source = """\htmlId{element}{\htmlClass{label}{\htmlData{entry=a&b}{\htmlStyle{color: red;}{x}}}}""" +
             """\includegraphics[width=1em,height=.8em,totalheight=1em,alt={a, b}]{https://example.test/a%20b.png?x=1&y=2}"""

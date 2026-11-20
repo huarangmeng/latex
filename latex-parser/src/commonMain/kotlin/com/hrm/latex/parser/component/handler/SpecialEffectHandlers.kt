@@ -132,9 +132,7 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
                 }
                 stream.advance()
             }
-            if (stream.peek() is LatexToken.RightBracket) {
-                stream.advance() // consume ]
-            }
+            stream.consumeClosing { it is LatexToken.RightBracket }
             when (typeStr.toString().trim()) {
                 "t" -> LatexNode.Smash.SmashType.TOP
                 "b" -> LatexNode.Smash.SmashType.BOTTOM
@@ -196,13 +194,7 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
         val shift = ParseUtils.extractText(
             listOf(ctx.parseArgument() ?: LatexNode.Text("0pt"))
         ).trim()
-        repeat(2) {
-            if (stream.peek() is LatexToken.LeftBracket) {
-                stream.advance()
-                ParseUtils.parseUntil(ctx, stream) { token -> token is LatexToken.RightBracket }
-                if (stream.peek() is LatexToken.RightBracket) stream.advance()
-            }
-        }
+        repeat(2) { ParseUtils.parseBracketedArgument(ctx, stream) }
         val arg = ctx.parseArgument() ?: LatexNode.Text("")
         LatexNode.Layout(
             layoutType = LatexNode.Layout.LayoutType.RAISE_BOX,
@@ -212,12 +204,8 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
     }
 
     register("rule") { _, ctx, stream ->
-        val raise = if (stream.peek() is LatexToken.LeftBracket) {
-            stream.advance()
-            val nodes = ParseUtils.parseUntil(ctx, stream) { token -> token is LatexToken.RightBracket }
-            if (stream.peek() is LatexToken.RightBracket) stream.advance()
-            ParseUtils.extractText(nodes).trim()
-        } else "0pt"
+        val raise = ParseUtils.parseBracketedArgument(ctx, stream)
+            ?.let { ParseUtils.extractText(it).trim() } ?: "0pt"
         val width = ParseUtils.extractText(
             listOf(ctx.parseArgument() ?: LatexNode.Text("0pt"))
         ).trim()
@@ -234,12 +222,8 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
 
     // mathtools alignment helper: default shift is two ems to the left.
     register("MoveEqLeft") { _, ctx, stream ->
-        val amount = if (stream.peek() is LatexToken.LeftBracket) {
-            stream.advance()
-            val nodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
-            if (stream.peek() is LatexToken.RightBracket) stream.advance()
-            ParseUtils.extractText(nodes).trim().toFloatOrNull() ?: 2f
-        } else 2f
+        val amount = ParseUtils.parseBracketedArgument(ctx, stream)
+            ?.let { ParseUtils.extractText(it).trim().toFloatOrNull() } ?: 2f
         LatexNode.HSpace("${-amount}em")
     }
 }
@@ -275,9 +259,7 @@ private fun parseOptionalBracketText(stream: com.hrm.latex.parser.component.Late
         }
         stream.advance()
     }
-    if (stream.peek() is LatexToken.RightBracket) {
-        stream.advance()
-    }
+    stream.consumeClosing { it is LatexToken.RightBracket }
     return builder.toString().trim().ifEmpty { null }
 }
 

@@ -32,6 +32,7 @@ import com.hrm.latex.parser.component.CustomEnvironment
 import com.hrm.latex.parser.component.EnvironmentParser
 import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
+import com.hrm.latex.parser.component.isScopeCloser
 import com.hrm.latex.parser.component.handler.ParseUtils
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.LatexNode.Style.StyleType
@@ -176,6 +177,9 @@ internal class ParseSession(
     }
 
     override val tokenStream = LatexTokenStream(tokens)
+    internal val hasIncompleteStructure: Boolean get() = tokenStream.hasIncompleteStructure
+    internal var completePrefixEnd = 0
+        private set
     private var commandValues: MutableMap<String, CustomCommand>? = null
     override val customCommands: Map<String, CustomCommand> get() = commandValues ?: emptyMap()
     private var environmentValues: MutableMap<String, CustomEnvironment>? = null
@@ -287,6 +291,8 @@ internal class ParseSession(
      * text in the error colour. Never a partial tree, which would silently drop input.
      */
     private fun tooDeep(): LatexNode.Document {
+        // 深度上限是确定的错误，当前输入作为一个整体展示错误结果。
+        tokenStream.hasIncompleteStructure = false
         val range = SourceRange(0, inputLength)
         val message = "Nesting deeper than $MAX_TREE_DEPTH levels"
         diagnostics.add(ParseDiagnostic(range, message, ParseDiagnostic.Severity.ERROR))
@@ -562,24 +568,16 @@ internal class ParseSession(
     override fun parseCommandGroup(command: String): LatexNode.Group =
         parseScopedGroup(requireNotNull(tokenStream.peek(-1)), explicit = command == "begingroup")
 
-    private fun LatexToken?.isGroupCloser(): Boolean =
-        this is LatexToken.RightBrace ||
-            this is LatexToken.Command && (name == "endgroup" || name == "egroup")
-
     /** All group spellings share declaration normalization and local definition lifetime. */
     private fun parseScopedGroup(opening: LatexToken, explicit: Boolean): LatexNode.Group {
         pushScope()
         try {
-            val children = parseMathList { it.isGroupCloser() }
-            val closing = tokenStream.peek()
-            val matches = if (explicit) {
-                closing is LatexToken.Command && closing.name == "endgroup"
-            } else {
-                closing is LatexToken.RightBrace || closing is LatexToken.Command && closing.name == "egroup"
+            val children = parseMathList { it.isScopeCloser() }
+            val closed = tokenStream.consumeClosing { closing ->
+                if (explicit) closing is LatexToken.Command && closing.name == "endgroup"
+                else closing is LatexToken.RightBrace || closing is LatexToken.Command && closing.name == "egroup"
             }
-            if (matches) {
-                tokenStream.advance()
-            } else {
+            if (!closed) {
                 // Leave a mismatched closer for the enclosing group (or top-level recovery).
                 diagnostics.add(
                     ParseDiagnostic(
@@ -607,6 +605,7 @@ internal class ParseSession(
             for (checkpoint in checkpoints) checkpoint.node?.let(children::add)
             tokenStream.resumeAt(last.nextIndex, last.previous, last.observedThrough)
             deepestLevel = last.deepestLevel
+            completePrefixEnd = tokenStream.previousEndOffset()
         }
         var infixNumerator: List<LatexNode>? = null
         var infixRange: SourceRange? = null
@@ -653,6 +652,7 @@ internal class ParseSession(
                     val last = preservedSuffix.last()
                     tokenStream.resumeAt(last.nextIndex, last.previous, maxOf(last.observedThrough, tokenStream.observedThrough))
                     deepestLevel = maxOf(last.deepestLevel, deepestLevel)
+                    recordCompletePrefix()
                     suffixIndex = preservedSuffix.size
                     continue
                 }
@@ -660,6 +660,7 @@ internal class ParseSession(
 
             val node = parseExpression()
             if (node != null) children.add(node)
+            if (checkpoints != null) recordCompletePrefix()
             if (checkpoints != null && tokenStream.trackLookahead) {
                 // 检查点只保存可独立复用的顶层表达式。出现宏展开、定义或尚未消费的
                 // 插入 token 时停止记录，避免复用时漏掉这些状态。外层数学列表仍负责
@@ -737,14 +738,23 @@ internal class ParseSession(
     private fun canSaveCheckpoint(): Boolean =
         !commandParser.hasExpanded && commandValues == null && environmentValues == null &&
             colorValues == null && lengthValues == null && mathCodeValues == null &&
-            !tokenStream.hasPendingTokens && !globalAssignment && scopeDepth == 0 && !inTextMode
+            !tokenStream.hasPendingTokens && !globalAssignment && scopeDepth == 0 && !inTextMode &&
+            !hasIncompleteStructure
+
+    private fun recordCompletePrefix() {
+        if (!hasIncompleteStructure && !tokenStream.hasPendingTokens) {
+            completePrefixEnd = maxOf(completePrefixEnd, tokenStream.previousEndOffset())
+        }
+    }
 
 
     override fun parseArgument(): LatexNode? {
         while (tokenStream.peek() is LatexToken.Whitespace) {
             tokenStream.advance()
         }
-        return when (val token = tokenStream.peek()) {
+        val token = tokenStream.peek()
+        if (token.isScopeCloser()) return null
+        return when (token) {
             is LatexToken.LeftBrace -> parseGroup()
             is LatexToken.Text -> {
                 // A literal (`\verb`) token is one atom, never split into characters.
@@ -807,14 +817,11 @@ internal class ParseSession(
         val previous = inTextMode
         inTextMode = false
         val children = try {
-            parseMathList { token -> token is LatexToken.MathShift && token.count == count }
+            parseMathList { token -> token.isScopeCloser() || token is LatexToken.MathShift && token.count == count }
         } finally {
             inTextMode = previous
         }
-        val closingToken = tokenStream.peek()
-        if (closingToken is LatexToken.MathShift && closingToken.count == count) {
-            tokenStream.advance()
-        }
+        tokenStream.consumeClosing { it is LatexToken.MathShift && it.count == count }
 
         val range = tokenStream.rangeFrom(startOffset)
         return if (count == 2) {

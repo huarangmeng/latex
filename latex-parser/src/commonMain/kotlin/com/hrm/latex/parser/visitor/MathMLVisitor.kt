@@ -24,6 +24,7 @@ package com.hrm.latex.parser.visitor
 
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.component.handler.isImageSource
+import com.hrm.latex.parser.util.codePointWidthAt
 import kotlin.math.round
 
 private val bboxMathMlDimensionPattern =
@@ -97,17 +98,24 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
 
     override fun visitText(node: LatexNode.Text): String {
         if (textStyleActive) return textElement(node.content)
-        return node.content.map { ch ->
-            when {
-                ch.isDigit() -> "<mn>$ch</mn>"
-                ch.isLetter() -> "<mi>${escapeXml(ch.toString())}</mi>"
-                ch == '+' || ch == '-' || ch == '=' || ch == '<' || ch == '>' ||
-                    ch == ',' || ch == '.' || ch == '!' || ch == ':' || ch == ';' ->
-                    "<mo>${escapeXml(ch.toString())}</mo>"
-                ch == ' ' -> ""
-                else -> "<mo>${escapeXml(ch.toString())}</mo>"
+        return buildString {
+            var offset = 0
+            while (offset < node.content.length) {
+                val char = node.content[offset]
+                val end = offset + node.content.codePointWidthAt(offset)
+                if (char != ' ') {
+                    val element = when {
+                        char.isDigit() -> "mn"
+                        char.isLetter() -> "mi"
+                        else -> "mo"
+                    }
+                    append('<').append(element).append('>')
+                    append(escapeXml(node.content.substring(offset, end)))
+                    append("</").append(element).append('>')
+                }
+                offset = end
             }
-        }.joinToString("")
+        }
     }
 
     override fun visitInlineMath(node: LatexNode.InlineMath): String =
@@ -904,27 +912,31 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     private fun escapeXml(text: String): String {
-        // 快速路径：大多数字符串不含特殊字符，直接返回
-        var needsEscape = false
-        for (ch in text) {
-            if (ch == '&' || ch == '<' || ch == '>' || ch == '"') {
-                needsEscape = true
-                break
+        // 按码点扫描，保留完整代理对；在首次遇到需要转义的字符后再分配缓冲区。
+        var escaped: StringBuilder? = null
+        var offset = 0
+        while (offset < text.length) {
+            val char = text[offset]
+            val width = text.codePointWidthAt(offset)
+            val replacement = when (char) {
+                '&' -> "&amp;"
+                '<' -> "&lt;"
+                '>' -> "&gt;"
+                '"' -> "&quot;"
+                else -> if (width == 1 && !isXmlCharacter(char)) "\uFFFD" else null
             }
-        }
-        if (!needsEscape) return text
-
-        // 慢路径：单遍扫描构建结果
-        val sb = StringBuilder(text.length + 8)
-        for (ch in text) {
-            when (ch) {
-                '&' -> sb.append("&amp;")
-                '<' -> sb.append("&lt;")
-                '>' -> sb.append("&gt;")
-                '"' -> sb.append("&quot;")
-                else -> sb.append(ch)
+            if (replacement != null) {
+                val output = escaped ?: StringBuilder(text.length + 8).append(text, 0, offset).also { escaped = it }
+                output.append(replacement)
+            } else {
+                escaped?.append(text, offset, offset + width)
             }
+            offset += width
         }
-        return sb.toString()
+        return escaped?.toString() ?: text
     }
+
+    private fun isXmlCharacter(char: Char): Boolean =
+        char == '\t' || char == '\n' || char == '\r' ||
+            char in '\u0020'..'\uD7FF' || char in '\uE000'..'\uFFFD'
 }
