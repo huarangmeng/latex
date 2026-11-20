@@ -178,10 +178,15 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
         val start = position
         advance() // 跳过 \
 
-        if (peek() == '[' || peek() == ']') {
-            // \[ ... \] 是 display math 定界符，语义上等价于 $$ ... $$
+        val mathShift = when (peek()) {
+            '[', ']' -> 2
+            '(', ')' -> 1
+            else -> 0
+        }
+        if (mathShift != 0) {
+            // \[…\] 与 \(…\) 分别进入展示和行内数学模式。
             advance()
-            tokens.add(LatexToken.MathShift(2, SourceRange(start, position)))
+            tokens.add(LatexToken.MathShift(mathShift, SourceRange(start, position)))
             return
         }
 

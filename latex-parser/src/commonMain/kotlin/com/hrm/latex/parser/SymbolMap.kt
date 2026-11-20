@@ -251,6 +251,7 @@ object SymbolMap {
         "wedge" to "∧",
         "vee" to "∨",
         "implies" to "⟹",
+        "impliedby" to "⟸",
         "iff" to "⟺",
 
         // 微积分符号
@@ -280,6 +281,11 @@ object SymbolMap {
         "Im" to "ℑ",
         "aleph" to "ℵ",
         "triangle" to "△",
+        "triangledown" to "▽",
+        "circledR" to "®",
+        "yen" to "¥",
+        "pounds" to "£",
+        "maltese" to "✠",
         "imath" to "ı",
         "jmath" to "ȷ",
         "flat" to "♭",
@@ -313,6 +319,14 @@ object SymbolMap {
         "rbrace" to "}",
         "lbrack" to "[",
         "rbrack" to "]",
+        "lparen" to "(",
+        "rparen" to ")",
+        "lBrace" to "⦃",
+        "rBrace" to "⦄",
+        "ulcorner" to "⌜",
+        "urcorner" to "⌝",
+        "llcorner" to "⌞",
+        "lrcorner" to "⌟",
 
         // TeX special characters written as control symbols
         "{" to "{",
@@ -510,6 +524,19 @@ object SymbolMap {
         "circledS" to "Ⓢ",
         "measuredangle" to "∡",
         "sphericalangle" to "∢",
+
+        // 同一字形可能有不同的数学原子类型，例如 \vartriangle 和 \triangle。
+        "And" to "&",
+        "lhd" to "⊲", "rhd" to "⊳", "unlhd" to "⊴", "unrhd" to "⊵",
+        "lt" to "<", "gt" to ">", "eqsim" to "≂", "approxeq" to "≊",
+        "geqq" to "≧", "gneqq" to "≩", "lneqq" to "≨", "gvertneqq" to "≩︀",
+        "lnapprox" to "⪉", "gnapprox" to "⪊", "precnapprox" to "⪹", "precneqq" to "⪵",
+        "nsucceq" to "⋡", "lesseqgtr" to "⋚", "lesseqqgtr" to "⪋", "gtreqqless" to "⪌",
+        "subseteqq" to "⫅", "curlyeqprec" to "⋞", "curlyeqsucc" to "⋟", "preccurlyeq" to "≼",
+        "shortmid" to "∣", "shortparallel" to "∥", "nshortmid" to "∤", "nshortparallel" to "∦",
+        "ngeqq" to "≧̸", "nleqq" to "≦̸", "notni" to "∌", "vartriangle" to "△",
+        "origof" to "⊶", "imageof" to "⊷", "downdownarrows" to "⇊",
+        "minuso" to "⦵",
         "backprime" to "‵",
         "Finv" to "Ⅎ",
         "Game" to "⅁",
@@ -608,6 +635,7 @@ object SymbolMap {
         "land" to "and", "lor" to "or",
         "wedge" to "and", "vee" to "or",
         "implies" to "implies", "iff" to "if and only if",
+        "impliedby" to "is implied by",
         // 其他
         "therefore" to "therefore", "because" to "because",
         "angle" to "angle", "degree" to "degree", "prime" to "prime",
@@ -671,14 +699,43 @@ object SymbolMap {
         }
     }
 
-    fun getSymbol(name: String): String? = symbols[name]
+    // 同义命令共用原命令的字体、数学间距和无障碍读法。
+    private val aliases = mapOf(
+        "alef" to "aleph", "alefsym" to "aleph", "bull" to "bullet", "Dagger" to "ddagger",
+        "clubs" to "clubsuit", "diamonds" to "diamondsuit", "hearts" to "heartsuit", "spades" to "spadesuit",
+        "empty" to "emptyset", "exist" to "exists", "infin" to "infty", "isin" to "in",
+        "image" to "Im", "real" to "Re", "weierp" to "wp", "sect" to "S",
+        "plusmn" to "pm", "sdot" to "cdot", "sub" to "subset", "sube" to "subseteq", "supe" to "supseteq",
+        "thetasym" to "vartheta", "Box" to "square", "Diamond" to "lozenge", "Join" to "bowtie",
+        "Doteq" to "doteqdot", "doublecap" to "Cap", "doublecup" to "Cup",
+        "llless" to "lll", "gggtr" to "ggg", "leadsto" to "rightsquigarrow", "restriction" to "upharpoonright",
+        "darr" to "downarrow", "dArr" to "Downarrow", "Darr" to "Downarrow",
+        "uarr" to "uparrow", "uArr" to "Uparrow", "Uarr" to "Uparrow",
+        "larr" to "leftarrow", "lArr" to "Leftarrow", "Larr" to "Leftarrow",
+        "rarr" to "rightarrow", "rArr" to "Rightarrow", "Rarr" to "Rightarrow",
+        "harr" to "leftrightarrow", "hArr" to "Leftrightarrow", "Harr" to "Leftrightarrow",
+        "lrarr" to "leftrightarrow", "lrArr" to "Leftrightarrow", "Lrarr" to "Leftrightarrow",
+        "lang" to "langle", "rang" to "rangle",
+        "mathellipsis" to "ldots",
+        "fCenter" to "Rightarrow",
+        "colonequals" to "coloneqq", "equalscolon" to "eqqcolon", "coloncolon" to "dblcolon",
+        "colonminus" to "coloneq", "minuscolon" to "eqcolon",
+    )
 
-    fun getAllSymbols(): Map<String, String> = symbols
+    internal fun canonicalName(name: String): String = aliases[name] ?: name
+
+    fun getSymbol(name: String): String? = symbols[canonicalName(name)]
+
+    private val symbolsWithAliases by lazy {
+        symbols + aliases.mapValues { (_, target) -> symbols.getValue(target) }
+    }
+
+    fun getAllSymbols(): Map<String, String> = symbolsWithAliases
 
     /**
      * 根据 LaTeX 命令名获取英文可读名称（用于无障碍文本）
      */
-    fun getAccessibleName(commandName: String): String? = accessibleNames[commandName]
+    fun getAccessibleName(commandName: String): String? = accessibleNames[canonicalName(commandName)]
 
     /**
      * 根据 Unicode 字符获取英文可读名称（用于无障碍文本）

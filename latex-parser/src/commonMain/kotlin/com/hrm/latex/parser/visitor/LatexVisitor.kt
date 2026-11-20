@@ -34,6 +34,7 @@ interface LatexVisitor<T> {
     fun visitText(node: LatexNode.Text): T
     fun visitCommand(node: LatexNode.Command): T
     fun visitEnvironment(node: LatexNode.Environment): T
+    fun visitProofTree(node: LatexNode.ProofTree): T = visitGroup(LatexNode.Group(node.children(), node.sourceRange))
     fun visitGroup(node: LatexNode.Group): T
     fun visitSuperscript(node: LatexNode.Superscript): T
     fun visitSubscript(node: LatexNode.Subscript): T
@@ -127,6 +128,11 @@ abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
     
     override fun visitEnvironment(node: LatexNode.Environment): T {
         node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
+    override fun visitProofTree(node: LatexNode.ProofTree): T {
+        node.children().forEach { visit(it) }
         return defaultVisit(node)
     }
     
@@ -523,6 +529,7 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
     override fun visitText(node: LatexNode.Text): T = visitChildren(node)
     override fun visitCommand(node: LatexNode.Command): T = visitChildren(node)
     override fun visitEnvironment(node: LatexNode.Environment): T = visitChildren(node)
+    override fun visitProofTree(node: LatexNode.ProofTree): T = visitChildren(node)
     override fun visitGroup(node: LatexNode.Group): T = visitChildren(node)
     override fun visitSuperscript(node: LatexNode.Superscript): T = visitChildren(node)
     override fun visitSubscript(node: LatexNode.Subscript): T = visitChildren(node)

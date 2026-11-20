@@ -200,6 +200,19 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         }
     }
 
+    override fun visitProofTree(node: LatexNode.ProofTree): String {
+        val conclusion = visit(node.conclusion)
+        if (node.premises.isEmpty()) return conclusion
+        val premises = node.premises.joinToString("<mspace width=\"1em\"/>") { visit(it) }
+        val upper = if (node.rootAtTop) conclusion else premises
+        val lower = if (node.rootAtTop) premises else conclusion
+        val rule = node.rule.name.lowercase()
+        val thickness = if (node.rule == LatexNode.ProofTree.Rule.NONE) " linethickness=\"0\"" else ""
+        val left = node.leftLabel?.let { "<mspace width=\"0.3em\"/>${visit(it)}<mspace width=\"0.3em\"/>" }.orEmpty()
+        val right = node.rightLabel?.let { "<mspace width=\"0.3em\"/>${visit(it)}" }.orEmpty()
+        return "<mrow>$left<mfrac$thickness data-inference-rule=\"$rule\"><mrow>$upper</mrow><mrow>$lower</mrow></mfrac>$right</mrow>"
+    }
+
     override fun visitOperator(node: LatexNode.Operator): String {
         return "<mo>${escapeXml(node.op)}</mo>"
     }
@@ -279,6 +292,9 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
                 )
             )
             LatexNode.Accent.AccentType.DDDOT -> over("\u20DB")
+            LatexNode.Accent.AccentType.DDDDOT -> over("\u20DC")
+            LatexNode.Accent.AccentType.CENTER_NOT, LatexNode.Accent.AccentType.SLASHED ->
+                renderMenclose(content, listOf(LatexNode.Enclose.Notation.UPDIAGONALSTRIKE))
             LatexNode.Accent.AccentType.GRAVE -> over("`")
             LatexNode.Accent.AccentType.ACUTE -> over("´")
             LatexNode.Accent.AccentType.CHECK -> over("ˇ")
@@ -715,6 +731,10 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         }
         LatexNode.Layout.LayoutType.RULE ->
             "<mspace width=\"${escapeXml(node.width.orEmpty())}\" height=\"${escapeXml(node.height.orEmpty())}\" mathbackground=\"currentColor\"/>"
+        LatexNode.Layout.LayoutType.V_CENTER -> {
+            val content = node.content.joinToString("") { visit(it) }
+            "<mtable align=\"center\"><mtr><mtd><mrow>$content</mrow></mtd></mtr></mtable>"
+        }
     }
 
     override fun visitNewEnvironment(node: LatexNode.NewEnvironment): String = ""
@@ -742,6 +762,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         return when (node.modStyle) {
             LatexNode.ModOperator.ModStyle.BMOD -> "<mo>mod</mo>"
             LatexNode.ModOperator.ModStyle.PMOD -> mrow("<mo>(</mo><mo>mod</mo><mspace width=\"mediummathspace\"/>${arg}<mo>)</mo>")
+            LatexNode.ModOperator.ModStyle.POD -> mrow("<mo>(</mo>$arg<mo>)</mo>")
             LatexNode.ModOperator.ModStyle.MOD -> mrow("<mo>mod</mo><mspace width=\"mediummathspace\"/>${arg}")
         }
     }

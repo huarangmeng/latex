@@ -36,6 +36,7 @@ import com.hrm.latex.renderer.layout.measurer.ExtensibleArrowMeasurer
 import com.hrm.latex.renderer.layout.measurer.FractionMeasurer
 import com.hrm.latex.renderer.layout.measurer.MatrixMeasurer
 import com.hrm.latex.renderer.layout.measurer.NodeMeasurer
+import com.hrm.latex.renderer.layout.measurer.ProofTreeMeasurer
 import com.hrm.latex.renderer.layout.measurer.RootMeasurer
 import com.hrm.latex.renderer.layout.measurer.ScriptMeasurer
 import com.hrm.latex.renderer.layout.measurer.BoxedPhantomMeasurer
@@ -51,6 +52,7 @@ import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.TextDirection
 import com.hrm.latex.renderer.model.applyFontSize
+import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.model.applyMathStyle
 import com.hrm.latex.renderer.model.applyStyle
 import com.hrm.latex.renderer.model.withColor
@@ -73,6 +75,7 @@ private object MeasurerRegistry {
         BigOperatorMeasurer(),
         BinomialMeasurer(),
         MatrixMeasurer(),
+        ProofTreeMeasurer(),
         AccentMeasurer(),
         TextAccentMeasurer(),
         DelimiterMeasurer(),
@@ -248,6 +251,12 @@ internal fun measureNode(
         }
 
         is LatexNode.Layout -> when (node.layoutType) {
+            LatexNode.Layout.LayoutType.V_CENTER -> {
+                // 让内容几何中心落在周围数学列表的轴线上。
+                val content = measureGroup(node.content, context.withoutAutomaticLineBreaking(), measurer, density, cache = cache)
+                val baseline = content.height / 2f + LayoutUtils.getAxisHeight(density, context, measurer)
+                NodeLayout(content.width, maxOf(content.height, baseline), baseline, draw = content.draw)
+            }
             LatexNode.Layout.LayoutType.RAISE_BOX -> {
                 val content = measureGroup(node.content, context.withoutAutomaticLineBreaking(), measurer, density, cache = cache)
                 val shift = parseDimension(node.shift.orEmpty(), context, density)

@@ -27,6 +27,8 @@ import com.hrm.latex.parser.model.LatexNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -35,6 +37,29 @@ import kotlin.test.assertTrue
  */
 class EnvironmentExtensionTest {
     private val parser = LatexParser()
+
+    @Test
+    fun proofTreeKeepsPremiseOrderLabelsAndRuleDefaults() {
+        val source = """\begin{prooftree}\alwaysDashedLine\AXC{A}\AXC{B}\LL{left}\noLine\BIC{C}\rootAtTop\UIC{D}\end{prooftree}"""
+        val tree = assertIs<LatexNode.ProofTree>(parser.parse(source).children.single())
+        assertEquals(LatexNode.ProofTree.Rule.DASHED, tree.rule)
+        assertTrue(tree.rootAtTop)
+        val first = assertIs<LatexNode.ProofTree>(tree.premises.single())
+        assertEquals(LatexNode.ProofTree.Rule.NONE, first.rule)
+        assertEquals(2, first.premises.size)
+        assertNotNull(first.leftLabel)
+        assertNull(tree.leftLabel)
+        assertEquals(source.length, tree.sourceRange?.end)
+        assertTrue(parser.parseWithDiagnostics(source).errors.isEmpty())
+    }
+
+    @Test
+    fun malformedAndOverdeepProofTreesReportErrors() {
+        val missingPremise = """\begin{prooftree}\AXC{A}\BIC{B}\end{prooftree}"""
+        assertTrue(parser.parseWithDiagnostics(missingPremise).errors.isNotEmpty())
+        val deep = """\begin{prooftree}\AXC{A}""" + """\UIC{A}""".repeat(140) + """\end{prooftree}"""
+        assertIs<LatexNode.Error>(parser.parse(deep).children.single())
+    }
 
     // ========== Split 环境测试 ==========
 

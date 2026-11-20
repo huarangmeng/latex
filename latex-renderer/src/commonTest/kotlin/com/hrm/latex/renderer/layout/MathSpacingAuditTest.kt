@@ -59,6 +59,15 @@ class MathSpacingAuditTest {
     }
 
     @Test
+    fun compatibilitySymbolsKeepCommandSpecificAtomTypes() {
+        val source = """a \lhd b \vartriangleleft c \vartriangle d \triangle e"""
+        val context = RenderContext(fontSize = 18.sp, color = Color.Black)
+        val list = InlineMathList.prepare(LatexParser().parse(source).children, context)
+        val sequence = MathAtomSequence(list.nodes)
+        assertEquals("ORD BIN ORD REL ORD REL ORD ORD ORD", sequence.indices.joinToString(" ") { sequence.typeAt(it).name })
+    }
+
+    @Test
     fun referenceListsHaveExpectedImplicitAndExplicitGlue() {
         val context = RenderContext(fontSize = 18.sp, color = Color.Black)
         for ((source, _, mu) in mathSpacingReference) {

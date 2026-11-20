@@ -39,6 +39,9 @@ internal fun CommandRegistry.installAccentHandlers() {
         "dot" to LatexNode.Accent.AccentType.DOT,
         "ddot" to LatexNode.Accent.AccentType.DDOT,
         "dddot" to LatexNode.Accent.AccentType.DDDOT,
+        "ddddot" to LatexNode.Accent.AccentType.DDDDOT,
+        "centernot" to LatexNode.Accent.AccentType.CENTER_NOT,
+        "slashed" to LatexNode.Accent.AccentType.SLASHED,
         "vec" to LatexNode.Accent.AccentType.VEC,
         "overbrace" to LatexNode.Accent.AccentType.OVERBRACE,
         "underbrace" to LatexNode.Accent.AccentType.UNDERBRACE,
@@ -82,5 +85,8 @@ internal fun CommandRegistry.installAccentHandlers() {
             val content = ctx.parseArgument() ?: LatexNode.Text("")
             LatexNode.Accent(content, accentType)
         }
+    }
+    register("underbar") { _, ctx, _ ->
+        LatexNode.Accent(ctx.parseTextArgument() ?: LatexNode.Text(""), LatexNode.Accent.AccentType.UNDERLINE)
     }
 }

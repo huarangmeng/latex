@@ -134,6 +134,15 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return symbolName(node.symbol, node.unicode)
     }
 
+    override fun visitProofTree(node: LatexNode.ProofTree): String {
+        val conclusion = visit(node.conclusion)
+        if (node.premises.isEmpty()) return conclusion
+        val premises = node.premises.joinToString(" and ") { visit(it) }
+        val labels = listOfNotNull(node.leftLabel, node.rightLabel).joinToString(" and ") { visit(it) }
+        return if (labels.isEmpty()) "given $premises, therefore $conclusion"
+        else "given $premises, by $labels, therefore $conclusion"
+    }
+
     override fun visitOperator(node: LatexNode.Operator): String = node.op
 
     override fun visitSpace(node: LatexNode.Space): String = " "
@@ -173,6 +182,9 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             LatexNode.Accent.AccentType.BCANCEL -> "back-canceled"
             LatexNode.Accent.AccentType.XCANCEL -> "cross-canceled"
             LatexNode.Accent.AccentType.DDDOT -> "triple dot"
+            LatexNode.Accent.AccentType.DDDDOT -> "quadruple dot"
+            LatexNode.Accent.AccentType.CENTER_NOT -> "not"
+            LatexNode.Accent.AccentType.SLASHED -> "slashed"
             LatexNode.Accent.AccentType.GRAVE -> "grave"
             LatexNode.Accent.AccentType.ACUTE -> "acute"
             LatexNode.Accent.AccentType.CHECK -> "check"
@@ -377,6 +389,7 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
         return when (node.modStyle) {
             LatexNode.ModOperator.ModStyle.BMOD -> "mod"
             LatexNode.ModOperator.ModStyle.PMOD -> if (arg != null) "(mod $arg)" else "(mod)"
+            LatexNode.ModOperator.ModStyle.POD -> "(${arg.orEmpty()})"
             LatexNode.ModOperator.ModStyle.MOD -> if (arg != null) "mod $arg" else "mod"
         }
     }
@@ -426,7 +439,7 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitLayout(node: LatexNode.Layout): String = when (node.layoutType) {
-        LatexNode.Layout.LayoutType.RAISE_BOX ->
+        LatexNode.Layout.LayoutType.RAISE_BOX, LatexNode.Layout.LayoutType.V_CENTER ->
             node.content.joinToString(" ") { visit(it) }.collapseSpaces()
         LatexNode.Layout.LayoutType.RULE -> "rule"
     }

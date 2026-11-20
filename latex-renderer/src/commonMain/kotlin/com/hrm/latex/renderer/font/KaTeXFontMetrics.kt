@@ -29,7 +29,7 @@ internal object KaTeXFontMetrics {
         713 -> VerticalMetrics(depth = 0f, height = 0.56778f) // ˉ
         714, 715, 728, 730 -> VerticalMetrics(depth = 0f, height = 0.69444f)
         729 -> VerticalMetrics(depth = 0f, height = 0.66786f) // ˙
-        8403 -> VerticalMetrics(depth = 0f, height = 0.66786f) // U+20DB
+        8403, 8404 -> VerticalMetrics(depth = 0f, height = 0.66786f) // U+20DB、U+20DC
         else -> VerticalMetrics(depth = 0f, height = 0.69444f)
     }
 

@@ -41,6 +41,38 @@ internal fun LatexToken.mathCharacter(): Char? = when (this) {
 }
 
 internal fun CommandRegistry.installMathCodeHandlers() {
+    register("char") { _, ctx, stream -> stream.raw {
+        stream.skipWhitespace()
+        val codePoint = if (stream.startsWith('`')) {
+            stream.readAtom()
+            when (val atom = stream.readAtom()) {
+                is LatexToken.Command -> atom.name.singleOrNull()?.code
+                is LatexToken.Text -> atom.content.singleOrNull()?.code
+                else -> atom?.mathCharacter()?.code
+            }
+        } else {
+            stream.readMathInteger(0x10FFFF)
+        }
+        // Unicode 码点可以跨两个 UTF-16 单元，代理区本身不能用作字符。
+        val character = when (codePoint) {
+            null, in 0xD800..0xDFFF -> null
+            in 0..0xFFFF -> codePoint.toChar().toString()
+            else -> {
+                val offset = codePoint - 0x10000
+                "${(0xD800 + (offset shr 10)).toChar()}${(0xDC00 + (offset and 0x3FF)).toChar()}"
+            }
+        }
+        if (character == null) {
+            ctx.diagnostics.add(ParseDiagnostic(
+                stream.peek(-1)?.range ?: SourceRange.EMPTY, "Invalid \\char code point",
+                ParseDiagnostic.Severity.ERROR, ParseDiagnostic.Category.INVALID_ARGUMENT
+            ))
+        } else {
+            stream.skipWhitespace()
+        }
+        LatexNode.TextMode(character.orEmpty())
+    } }
+
     register("mathcode") { _, ctx, stream -> stream.raw {
         stream.skipWhitespace()
         val character = if (stream.startsWith('\u0060')) {

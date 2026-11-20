@@ -41,6 +41,32 @@ import kotlin.test.assertNotNull
 
 class LatexSvgExporterTest {
     @Test
+    fun proofDirectionAndLineStyleAffectTheExportedDiagram() {
+        val exporter = createExporter()
+        fun export(modifiers: String) = assertNotNull(exporter.exportSvg(
+            """\begin{prooftree}\AXC{P}\AXC{Q}\RightLabel{R}$modifiers\BIC{S}\end{prooftree}"""
+        ))
+
+        val solid = export("")
+        val noLine = export("""\noLine""")
+        val reversed = export("""\rootAtTop""")
+        assertEquals(solid.width, noLine.width)
+        assertNotEquals(solid.svg, noLine.svg)
+        assertNotEquals(solid.svg, reversed.svg)
+    }
+
+    @Test
+    fun overlaysChangeInkWhilePreservingTheWidthOfWideRelations() {
+        val exporter = createExporter()
+        val plain = assertNotNull(exporter.exportSvg("""\xrightarrow{long label}"""))
+        val negated = assertNotNull(exporter.exportSvg("""\centernot{\xrightarrow{long label}}"""))
+        assertEquals(plain.width, negated.width)
+        assertNotEquals(plain.svg, negated.svg)
+        val slashed = assertNotNull(exporter.exportSvg("""\slashed{\partial}"""))
+        assertNotEquals(assertNotNull(exporter.exportSvg("""\partial""")).svg, slashed.svg)
+    }
+
+    @Test
     fun exportsMeasuredFormulaAsPortablePaths() {
         val exporter = createExporter()
         val result = assertNotNull(

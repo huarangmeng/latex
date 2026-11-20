@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.Density
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.FontVariant
+import com.hrm.latex.renderer.model.MathStyle
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
 import com.hrm.latex.renderer.utils.FontResolver
@@ -450,18 +451,21 @@ internal class TextContentMeasurer : NodeMeasurer {
                     modLayout.draw(this, x + gap, y)
                 }
             }
-            LatexNode.ModOperator.ModStyle.PMOD -> {
+            LatexNode.ModOperator.ModStyle.PMOD, LatexNode.ModOperator.ModStyle.POD -> {
+                val withMod = node.modStyle == LatexNode.ModOperator.ModStyle.PMOD
                 // \pmod{n} → " (mod n)"
-                val thinGap = fontSizePx * MathConstants.THIN_SPACE
+                val thinGap = if (withMod) fontSizePx * MathConstants.THIN_SPACE else 0f
                 val leftParenLayout = measureAnnotatedText("(", romanContext, measurer, density)
-                val modLayout = measureAnnotatedText("mod", romanContext, measurer, density)
+                val modLayout = if (withMod) measureAnnotatedText("mod", romanContext, measurer, density) else NodeLayout.EMPTY
                 val rightParenLayout = measureAnnotatedText(")", romanContext, measurer, density)
 
                 val contentLayout = if (node.content != null) {
                     measureGlobalRef(node.content!!, context, measurer, density)
                 } else null
 
-                val spaceBeforeMod = fontSizePx * MathConstants.QUAD_SPACE
+                val spaceBeforeMod = if (withMod || context.mathStyle == MathStyle.DISPLAY) {
+                    fontSizePx * MathConstants.QUAD_SPACE
+                } else fontSizePx * (8f / 18f)
                 var totalWidth = spaceBeforeMod + leftParenLayout.width + modLayout.width
                 if (contentLayout != null) {
                     totalWidth += thinGap + contentLayout.width

@@ -22,7 +22,9 @@
 
 package com.hrm.latex.parser.component.handler
 
+import com.hrm.latex.parser.ParseDiagnostic
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
 
 private val bboxDimensionPattern =
@@ -50,6 +52,36 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
             content = unwrapContent(arg),
             notations = listOf(LatexNode.Enclose.Notation.CIRCLE)
         )
+    }
+
+    register("textcircled") { _, ctx, _ ->
+        val content = ctx.parseTextArgument() ?: LatexNode.Text("")
+        LatexNode.Enclose(unwrapContent(content), listOf(LatexNode.Enclose.Notation.CIRCLE))
+    }
+
+    register("sout") { _, ctx, _ ->
+        val content = ctx.parseArgument() ?: LatexNode.Text("")
+        LatexNode.Enclose(unwrapContent(content), listOf(LatexNode.Enclose.Notation.HORIZONTALSTRIKE))
+    }
+
+    register("vcenter") { _, ctx, _ ->
+        val argument = ctx.parseArgument() ?: LatexNode.Text("")
+        LatexNode.Layout(content = unwrapContent(argument), layoutType = LatexNode.Layout.LayoutType.V_CENTER)
+    }
+
+    register("angl", "angln", "phase") { command, ctx, stream ->
+        val argument = if (command == "angln") LatexNode.Text("n") else ctx.parseArgument()
+        if (argument == null) {
+            ctx.diagnostics.add(ParseDiagnostic(
+                stream.peek(-1)?.range ?: SourceRange.EMPTY, "Missing \\$command argument",
+                ParseDiagnostic.Severity.ERROR, ParseDiagnostic.Category.INVALID_ARGUMENT
+            ))
+            LatexNode.Text("")
+        } else {
+            val notation = if (command == "phase") LatexNode.Enclose.Notation.PHASORANGLE
+                else LatexNode.Enclose.Notation.ACTUARIAL
+            LatexNode.Enclose(unwrapContent(argument), listOf(notation))
+        }
     }
 
     register("boxed", "Aboxed") { _, ctx, _ ->

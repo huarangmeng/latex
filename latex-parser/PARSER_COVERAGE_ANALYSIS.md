@@ -309,6 +309,11 @@
 - ✅ `\mathsf{x}` 无衬线体
 - ✅ `\mathtt{x}` 等宽体
 - ✅ `\mathbb{R}` 黑板粗体 ℝ
+- ✅ 数集简写 `\N`、`\Z`、`\R`、`\Complex` 及 `\natnums`、`\reals`、`\Reals`、`\cnums`
+- ✅ `\char` 支持十进制、八进制、十六进制和反引号字符编码；`\hbox`、`\hskip`、`\mskip`、`\nobreakspace` 复用文本和间距节点
+- ✅ `\centernot`、`\slashed`、`\ddddot`、`\textcircled`、`\sout` 支持叠加斜线、四点重音、圈注和删除线
+- ✅ `prooftree` 支持公理、一至五前提的推理、左右标签、结论方向及推理线样式
+- ✅ `\set`、`\Set` 只替换第一个集合条件分隔符，`\vcenter` 以数学轴居中，`\angl` 和 `\phase` 绘制专用边框
 - ✅ `\mathfrak{g}` 哥特体
 - ✅ `\mathcal{F}` 花体
 - ✅ `\mathscr{L}` 手写体

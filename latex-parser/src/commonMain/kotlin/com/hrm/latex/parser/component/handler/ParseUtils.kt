@@ -22,6 +22,7 @@
 
 package com.hrm.latex.parser.component.handler
 
+import com.hrm.latex.parser.SymbolMap
 import com.hrm.latex.parser.component.LatexParserContext
 import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
@@ -126,10 +127,18 @@ internal object ParseUtils {
         return delimiterFromName(raw)
     }
 
-    fun delimiterFromName(raw: String): String = when (raw.removePrefix("\\")) {
+    fun delimiterFromName(raw: String): String = when (SymbolMap.canonicalName(raw.removePrefix("\\"))) {
         "." -> ""
-        "langle" -> "⟨"
-        "rangle" -> "⟩"
+        "langle", "lt" -> "⟨"
+        "rangle", "gt" -> "⟩"
+        "lparen" -> "("
+        "rparen" -> ")"
+        "lBrace" -> "⦃"
+        "rBrace" -> "⦄"
+        "ulcorner" -> "⌜"
+        "urcorner" -> "⌝"
+        "llcorner" -> "⌞"
+        "lrcorner" -> "⌟"
         "lfloor" -> "⌊"
         "rfloor" -> "⌋"
         "lceil" -> "⌈"
@@ -153,12 +162,12 @@ internal object ParseUtils {
      * unbraced form (`1.2em`). Leading whitespace is ignored.
      */
     fun parseDimension(ctx: LatexParserContext, stream: LatexTokenStream): String {
+        stream.skipWhitespace()
         if (stream.peek() is LatexToken.LeftBrace) {
             val arg = ctx.parseArgument() ?: return "0pt"
             return extractText(listOf(arg)).trim().ifEmpty { "0pt" }
         }
 
-        while (stream.peek() is LatexToken.Whitespace) stream.advance()
         val raw = buildString {
             while (true) {
                 val token = stream.peek()

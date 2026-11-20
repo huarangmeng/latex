@@ -136,7 +136,10 @@ internal class BoxedPhantomMeasurer : NodeMeasurer {
                 strokeWidth
             }
 
-        val totalWidth = contentLayout.width + 2 * padding
+        val slantWidth = if (LatexNode.Enclose.Notation.PHASORANGLE in node.notations) {
+            with(density) { (context.fontSize * 0.4f).toPx() }
+        } else 0f
+        val totalWidth = contentLayout.width + 2 * padding + slantWidth
         val totalHeight = contentLayout.height + 2 * padding
         val baseline = contentLayout.baseline + padding
         val strokeColor = node.attributes["mathcolor"]?.let { parseColor(it) } ?: context.color
@@ -151,7 +154,7 @@ internal class BoxedPhantomMeasurer : NodeMeasurer {
                 )
             }
 
-            contentLayout.draw(this, x + padding, y + padding)
+            contentLayout.draw(this, x + padding + slantWidth, y + padding)
 
             val topLeft = Offset(x, y)
             val size = Size(totalWidth, totalHeight)
@@ -244,6 +247,18 @@ internal class BoxedPhantomMeasurer : NodeMeasurer {
                         end = Offset(x + totalWidth - inset, centerY),
                         strokeWidth = strokeWidth
                     )
+
+                    LatexNode.Enclose.Notation.ACTUARIAL -> {
+                        drawLine(strokeColor, Offset(x, y + inset), Offset(x + totalWidth, y + inset), strokeWidth)
+                        drawLine(strokeColor, Offset(x + totalWidth - inset, y),
+                            Offset(x + totalWidth - inset, y + totalHeight), strokeWidth)
+                    }
+
+                    LatexNode.Enclose.Notation.PHASORANGLE -> {
+                        val bottom = y + totalHeight - inset
+                        drawLine(strokeColor, Offset(x + inset, bottom), Offset(x + slantWidth, y + inset), strokeWidth)
+                        drawLine(strokeColor, Offset(x, bottom), Offset(x + totalWidth, bottom), strokeWidth)
+                    }
 
                     else -> Unit
                 }

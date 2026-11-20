@@ -41,6 +41,7 @@ import com.hrm.latex.renderer.font.KaTeXFontMetrics
 import com.hrm.latex.renderer.layout.NodeLayout
 import com.hrm.latex.renderer.model.RenderContext
 import com.hrm.latex.renderer.model.textStyle
+import com.hrm.latex.renderer.utils.LayoutUtils
 import com.hrm.latex.renderer.utils.MathConstants
 import kotlin.math.max
 import kotlin.math.min
@@ -66,6 +67,39 @@ internal class AccentMeasurer : NodeMeasurer {
         measureGroup: (List<LatexNode>, RenderContext) -> NodeLayout
     ): NodeLayout {
         node as LatexNode.Accent
+        if (node.accentType == AccentType.CENTER_NOT || node.accentType == AccentType.SLASHED) {
+            val body = measureNode(node.content, context)
+            val fontSize = with(density) { context.fontSize.toPx() }
+            if (node.accentType == AccentType.CENTER_NOT) {
+                val axis = body.baseline - LayoutUtils.getAxisHeight(density, context, measurer)
+                val halfHeight = 0.32f * fontSize
+                val halfWidth = 0.14f * fontSize
+                val top = min(0f, axis - halfHeight)
+                val bottom = max(body.height, axis + halfHeight)
+                // 否定斜线以数学轴为中心，保留原关系式的排版宽度。
+                return NodeLayout(body.width, bottom - top, body.baseline - top, body.italicCorrection) { x, y ->
+                    body.draw(this, x, y - top)
+                    val middle = x + body.width / 2f
+                    val center = y + axis - top
+                    drawLine(context.color, Offset(middle - halfWidth, center + halfHeight),
+                        Offset(middle + halfWidth, center - halfHeight), fontSize * 0.04f)
+                }
+            }
+            // Feynman 斜线和底字符的排版盒居中叠加，突出部分计入高度和深度。
+            val upright = context.copy(
+                fontFamily = context.fontFamilies?.main ?: context.fontFamily,
+                fontStyle = FontStyle.Normal,
+                fontWeight = FontWeight.Normal,
+            )
+            val slash = measureNode(LatexNode.Symbol("/", "/"), upright)
+            val width = max(body.width, slash.width)
+            val height = max(body.height, slash.height)
+            val bodyY = (height - body.height) / 2f
+            return NodeLayout(width, height, bodyY + body.baseline) { x, y ->
+                body.draw(this, x + (width - body.width) / 2f, y + bodyY)
+                slash.draw(this, x + (width - slash.width) / 2f, y + (height - slash.height) / 2f)
+            }
+        }
         val contentLayout = measureGroup(listOf(node.content), context.copy(isCramped = true))
 
         // 判断是否是宽装饰（需要横向拉伸）
@@ -101,6 +135,7 @@ internal class AccentMeasurer : NodeMeasurer {
             AccentType.DOT -> "˙"
             AccentType.DDOT -> "¨"
             AccentType.DDDOT -> "⃛"
+            AccentType.DDDDOT -> "⃜"
             AccentType.GRAVE -> "ˋ"
             AccentType.ACUTE -> "ˊ"
             AccentType.CHECK -> "ˇ"

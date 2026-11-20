@@ -31,7 +31,8 @@ internal fun CommandRegistry.installBigOperatorHandlers() {
     val displayLimitOperators = setOf(
         "sum", "prod", "bigcup", "bigcap", "bigvee", "bigwedge",
         "coprod", "bigoplus", "bigotimes", "bigsqcup", "bigodot", "biguplus",
-        "lim", "max", "min", "sup", "inf", "limsup", "liminf", "det", "gcd", "argmax", "argmin"
+        "lim", "max", "min", "sup", "inf", "limsup", "liminf", "det", "gcd", "argmax", "argmin",
+        "Pr", "injlim", "projlim", "plim"
     )
     val bigOpHandler = CommandHandler { cmdName, ctx, stream ->
         val (sub, sup, limitsMode) = ParseUtils.parseScriptsAndLimits(ctx, stream)
@@ -39,12 +40,14 @@ internal fun CommandRegistry.installBigOperatorHandlers() {
             operator = when (cmdName) {
                 "argmax" -> "arg max"
                 "argmin" -> "arg min"
+                "injlim" -> "inj lim"
+                "projlim" -> "proj lim"
                 else -> cmdName
             },
             subscript = sub,
             superscript = sup,
             limitsMode = if (limitsMode == LatexNode.BigOperator.LimitsMode.AUTO &&
-                cmdName in setOf("smallint", "intop", "ointop")) {
+                cmdName in setOf("smallint", "intop", "ointop", "plim")) {
                 LatexNode.BigOperator.LimitsMode.LIMITS
             } else limitsMode,
             limitsInDisplay = cmdName in displayLimitOperators
@@ -57,6 +60,7 @@ internal fun CommandRegistry.installBigOperatorHandlers() {
         "coprod", "bigoplus", "bigotimes", "bigsqcup", "bigodot", "biguplus",
         "lim", "max", "min", "sup", "inf", "limsup", "liminf",
         "det", "gcd", "argmax", "argmin", "deg", "dim", "ker", "arg", "hom",
+        "Pr", "injlim", "projlim", "plim",
         handler = bigOpHandler
     )
 }

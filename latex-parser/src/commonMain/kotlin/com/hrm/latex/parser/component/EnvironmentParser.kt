@@ -69,6 +69,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
                 "flalign", "flalign*" -> parseAligned(envName)
                 "alignat", "alignat*", "alignedat" -> parseAlignat(envName)
                 "split" -> parseSplit()
+                "prooftree" -> parseProofTree(context).withSourceRange(tokenStream.rangeFrom(startOffset))
                 "multline", "multline*", "multlined" -> parseMultline(envName)
                 "eqnarray", "eqnarray*" -> parseEqnarray(envName)
                 "subequations" -> parseSubequations()
