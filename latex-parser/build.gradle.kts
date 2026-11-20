@@ -8,8 +8,6 @@ plugins {
     alias(libs.plugins.mavenPublish)
 }
 
-val karmaConfig = layout.projectDirectory.dir("karma.config.d")
-
 kotlin {
     jvmToolchain(21)
 
@@ -53,21 +51,13 @@ kotlin {
     }
 
     js {
-        browser {
-            testTask {
-                inputs.dir(karmaConfig).withPathSensitivity(PathSensitivity.RELATIVE)
-            }
-        }
+        browser()
         binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        browser {
-            testTask {
-                inputs.dir(karmaConfig).withPathSensitivity(PathSensitivity.RELATIVE)
-            }
-        }
+        browser()
         binaries.executable()
     }
 
@@ -79,6 +69,11 @@ kotlin {
             implementation(libs.kotlin.test)
         }
     }
+}
+
+tasks.matching { it.name == "jsBrowserTest" || it.name == "wasmJsBrowserTest" }.configureEach {
+    // Karma 配置变化时重新生成浏览器启动配置并执行测试。
+    inputs.dir("karma.config.d").withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 tasks.named<Test>("jvmTest") {
