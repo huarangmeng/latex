@@ -54,7 +54,16 @@ class NestingDepthTest {
         // Commands that convert their argument while parsing, before the final depth check.
         "\\text{\\ce{H" + "_1".repeat(10_000) + "}}",
         "\\SI{\\ce{H" + "_1".repeat(10_000) + "}}{m}",
+        "\\text{${nestedChains("\\ce{H_{", "}}")}}",
+        "\\text{$${nestedChains("x_{", "}")}$}",
+        "\\SI{${nestedChains("x_{", "}")}}{m}",
     )
+
+    /** Script chains within the tree limit, nested through their own scripts until far past it. */
+    private fun nestedChains(open: String, close: String): String {
+        val tail = close.dropLast(1)
+        return open.repeat(60) + "x" + ("}" + "_1".repeat(120) + tail).repeat(60)
+    }
 
     @Test
     fun should_reject_overflowing_nesting_and_keep_the_source() {
@@ -67,10 +76,14 @@ class NestingDepthTest {
     }
 
     @Test
-    fun should_reject_a_chemical_chain_before_any_command_walks_it() {
-        val chain = "\\ce{H" + "_1".repeat(10_000) + "}"
-        for (command in CommandParser.registeredCommands()) {
-            LatexParser().parse("\\$command{$chain}{$chain}")
+    fun should_not_overflow_when_a_command_walks_a_deep_argument() {
+        val arguments = listOf(
+            "\\ce{H" + "_1".repeat(10_000) + "}",
+            nestedChains("\\ce{H_{", "}}"),
+            nestedChains("x_{", "}"),
+        )
+        for (command in CommandParser.registeredCommands()) for (argument in arguments) {
+            LatexParser().parse("\\$command{$argument}{$argument}")
         }
     }
 
@@ -96,10 +109,12 @@ class NestingDepthTest {
 
     @Test
     fun should_reject_overflowing_nesting_when_streamed() {
-        val input = wrap("\\sqrt{", "}", 300)
-        val parser = IncrementalLatexParser()
-        input.chunked(7).forEach { parser.append(it) }
-        assertIs<LatexNode.Error>(parser.getCurrentDocument().children.single())
+        for (input in listOf(wrap("\\sqrt{", "}", 300), "\\text{${nestedChains("\\ce{H_{", "}}")}}")) {
+            val parser = IncrementalLatexParser()
+            input.chunked(7).forEach { parser.append(it) }
+            assertEquals(LatexParser().parse(input), parser.getCurrentDocument())
+            assertIs<LatexNode.Error>(parser.getCurrentDocument().children.single())
+        }
     }
 
     @Test

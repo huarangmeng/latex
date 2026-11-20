@@ -346,6 +346,7 @@ internal class ParseSession(
                 break
             }
         }
+        if (wraps > 1) requireShallow(node)
         return node
     }
 
@@ -370,6 +371,18 @@ internal class ParseSession(
             if (++wraps > MAX_TREE_DEPTH) throw NestingTooDeep()
         }
         deepestLevel++
+        if (wraps > 1) requireShallow(base)
+    }
+
+    /**
+     * A chain of scripts adds levels without recursing, over arguments that may hold chains too,
+     * so once [deepestLevel] allows a tree that deep, the chain is checked before a command walks
+     * it. A single script needs no check: its frame's levels cover it.
+     */
+    private fun requireShallow(node: LatexNode) {
+        if (deepestLevel + UNCOUNTED_LEVELS > MAX_TREE_DEPTH && treeDepthExceeds(node, MAX_TREE_DEPTH)) {
+            throw NestingTooDeep()
+        }
     }
 
     private fun LatexNode.hasSuperscript(): Boolean =
