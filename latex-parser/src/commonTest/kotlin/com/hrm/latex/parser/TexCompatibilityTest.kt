@@ -191,6 +191,16 @@ class TexCompatibilityTest {
         val environment = """\newenvironment{e}{[}{]}""" + "{".repeat(43) + """\begin{e}x\end{e}""" + "}".repeat(43)
         assertTrue(parser.parseWithDiagnostics(environment).errors.isEmpty())
         assertEquals("[x]", visible(environment))
+        val siblings = """\def\A{m}\def\B{\A\A}""" + "{".repeat(43) + """\B""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(siblings).errors.isEmpty())
+        assertEquals("mm", visible(siblings))
+        val inItsArgument = """\def\B#1{(#1)}""" + "{".repeat(43) + """\B{\B{x}}""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(inItsArgument).errors.isEmpty())
+        assertEquals("((x))", visible(inItsArgument))
+        val nestedEnvironments = """\newenvironment{e}{[}{]}""" + "{".repeat(43) +
+            """\begin{e}\begin{e}x\end{e}\end{e}""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(nestedEnvironments).errors.isEmpty())
+        assertEquals("[[x]]", visible(nestedEnvironments))
     }
 
     @Test fun invalidGlobalPrefixCannotLeakToALaterAssignment() {

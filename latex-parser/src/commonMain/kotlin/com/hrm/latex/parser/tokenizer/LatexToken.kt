@@ -33,6 +33,12 @@ import com.hrm.latex.parser.model.SourceRange
 sealed class LatexToken {
     abstract val range: SourceRange
 
+    /**
+     * The macro and environment expansions this token was copied out of, innermost first; null
+     * for a source token. Outside equality, and not carried by copies such as [withRange].
+     */
+    internal var expansion: Expansion? = null
+
     /** 创建带有新 SourceRange 的副本（消除 shiftToken 中的 when 分派） */
     abstract fun withRange(newRange: SourceRange): LatexToken
 
@@ -87,3 +93,6 @@ sealed class LatexToken {
         override fun withRange(newRange: SourceRange) = copy(range = newRange)
     }
 }
+
+/** One macro or environment expansion: the definition expanded and the expansion its call came from. */
+internal class Expansion(val definition: Any, val parent: Expansion?)
