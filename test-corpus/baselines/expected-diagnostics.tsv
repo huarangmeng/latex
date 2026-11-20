@@ -1,0 +1,22 @@
+UNKNOWN_COMMAND	\
+UNKNOWN_COMMAND	\ \t\r \n \t\r
+INVALID_ARGUMENT	\@ifstar
+INVALID_ARGUMENT	\angl
+MISMATCHED_ENVIRONMENT	\begin
+MISSING_BRACE	\color{#f00%red\n}
+MISSING_BRACE	\def\foo{1 %}\n2}\n\foo
+UNKNOWN_COMMAND	\def\foo{1\n2}\nx %\foo\n
+MISMATCHED_ENVIRONMENT	\end
+GENERAL	\errmessage{Hello, world}
+UNKNOWN_COMMAND	\expandafter\foo\bar
+UNKNOWN_COMMAND	\foo@bar
+UNKNOWN_COMMAND	\fracx
+MISSING_BRACE	\kern{1 %kern\nem}
+UNKNOWN_COMMAND	\n\n
+UNKNOWN_COMMAND	\redx
+UNKNOWN_COMMAND	\text{\ \t\r \n \t\r  }
+MISSING_BRACE	\text{hello% comment 1\nworld}
+MISSING_BRACE	\text{hello% comment\n\nworld}
+UNKNOWN_COMMAND	a\mkern\t-\r1  \n mu\nb
+UNKNOWN_COMMAND	a\nb
+UNKNOWN_COMMAND	a\tb

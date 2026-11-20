@@ -22,6 +22,7 @@
 
 package com.hrm.latex.renderer.utils
 
+import com.hrm.latex.parser.MathAtomSymbols
 import com.hrm.latex.parser.model.LatexNode
 
 /**
@@ -230,6 +231,7 @@ object MathSpacing {
             is LatexNode.Space, is LatexNode.HSpace -> AtomType.ORD
             is LatexNode.Group -> AtomType.ORD
             is LatexNode.Accent -> if (node.accentType == LatexNode.Accent.AccentType.CENTER_NOT) AtomType.REL else AtomType.ORD
+            is LatexNode.Html -> node.content.singleOrNull()?.let(::classifyNode) ?: AtomType.ORD
             is LatexNode.Stack -> {
                 val base = (node.base as? LatexNode.Group)?.children?.firstOrNull() ?: node.base
                 classifyNode(base).takeIf { it == AtomType.BIN || it == AtomType.REL } ?: AtomType.ORD
@@ -255,13 +257,13 @@ object MathSpacing {
             if (ch == '+' || ch == '-' || ch == '*') return AtomType.BIN
             if (ch == '=' || ch == '<' || ch == '>' || ch == ':') return AtomType.REL
             if (ch == '.') return AtomType.ORD
-            return MathAtomSymbols.classify("", content)
+            return mapMathClass(MathAtomSymbols.classify("", content))
         }
         return AtomType.ORD
     }
 
     private fun classifySymbol(symbol: String, unicode: String): AtomType =
-        MathAtomSymbols.classify(symbol, unicode)
+        mapMathClass(MathAtomSymbols.classify(symbol, unicode))
 
     private fun classifyOperatorText(): AtomType {
         // Operator node 通常是命名运算符如 sin, cos, lim 等
@@ -283,7 +285,7 @@ object MathSpacing {
         return when {
             delimiter in OPEN_DELIMITERS || delimiter.length == 1 && delimiter[0] in "([{" -> AtomType.OPEN
             delimiter in CLOSE_DELIMITERS || delimiter.length == 1 && delimiter[0] in ")]}" -> AtomType.CLOSE
-            else -> MathAtomSymbols.classify("", delimiter)
+            else -> mapMathClass(MathAtomSymbols.classify("", delimiter))
         }
     }
 

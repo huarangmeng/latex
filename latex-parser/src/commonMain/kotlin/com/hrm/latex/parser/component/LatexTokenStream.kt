@@ -86,6 +86,11 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         while (peek() is LatexToken.Whitespace) advance()
     }
 
+    /** 控制词后的源码空白仅用于终止名称，显式间距仍留在 token 流中。 */
+    internal fun skipControlWordWhitespace() = raw {
+        while ((peek() as? LatexToken.Whitespace)?.content == " ") advance()
+    }
+
     /** Read one unexpanded TeX token, splitting the tokenizer's coalesced text. */
     internal fun readAtom(): LatexToken? = raw {
         if (isEOF()) null

@@ -101,9 +101,19 @@ class CorpusTest {
     @Test
     fun formulasThatParseCleanlyKeepParsingCleanly() {
         val parser = LatexParser()
-        val unsupported = formulas.filterNot { parsesCleanly(parser, it) }
-        println("RaTeX corpus: ${formulas.size - unsupported.size}/${formulas.size} formulas parse cleanly")
+        val unsupported = formulas.filter { it !in expectedDiagnostics && !parsesCleanly(parser, it) }
+        println("RaTeX corpus: ${formulas.size - unsupported.size - expectedDiagnostics.size}/${formulas.size} formulas parse cleanly")
         checkBaseline("unsupported.txt", unsupported, added = "fail to parse cleanly", resolved = "parse cleanly")
+    }
+
+    @Test
+    fun expectedErrorsKeepTheirDiagnostics() {
+        val parser = LatexParser()
+        for ((formula, category) in expectedDiagnostics) {
+            assertTrue(formula in formulas, "诊断基线包含未知语料 $formula")
+            val errors = parser.parseWithDiagnostics(formula).errors
+            assertTrue(errors.any { it.category == category }, "$formula 缺少 $category 诊断，实际为 $errors")
+        }
     }
 
     /** No error diagnostic, no error node and no unrecognized command (drawn as red `\name`). */
@@ -122,7 +132,7 @@ class CorpusTest {
     private fun checkBaseline(name: String, actual: List<String>, added: String, resolved: String) {
         val file = File(CORPUS, "baselines/$name")
         if (System.getenv("UPDATE_CORPUS_BASELINE") == "1") {
-            file.writeText(actual.sorted().joinToString("\n", postfix = "\n"))
+            file.writeText(actual.sorted().joinToString("\n", postfix = if (actual.isEmpty()) "" else "\n"))
             return
         }
         if (!file.exists()) fail("Missing ${file.path}; create it with UPDATE_CORPUS_BASELINE=1")
@@ -157,6 +167,14 @@ class CorpusTest {
                     line.isNotEmpty() && line[0] != '#'
                 }
             }.distinct()
+        }
+
+        val expectedDiagnostics: Map<String, ParseDiagnostic.Category> by lazy {
+            val rows = File(CORPUS, "baselines/expected-diagnostics.tsv").readLines().filter { it.isNotBlank() }
+            rows.associate { row ->
+                val (category, formula) = row.split('\t', limit = 2)
+                formula to ParseDiagnostic.Category.valueOf(category)
+            }.also { require(it.size == rows.size) { "诊断基线包含重复公式" } }
         }
     }
 }

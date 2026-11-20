@@ -23,12 +23,15 @@
 package com.hrm.latex.parser.visitor
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.component.handler.isImageSource
 import kotlin.math.round
 
 private val bboxMathMlDimensionPattern =
     Regex("""(-?\d+(?:\.\d+)?)(px|pt|em|ex|mm|cm|in)""", RegexOption.IGNORE_CASE)
 
 private const val defaultTextFont = " style=\"font-family: serif; font-weight: normal; font-style: normal\""
+private val htmlAttribute = Regex("(?:id|class|data-[A-Za-z0-9_-]+)")
+private val htmlColor = Regex("[A-Za-z]+|#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}")
 
 /**
  * LaTeX AST → MathML 转换访问者
@@ -200,6 +203,23 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
         }
     }
 
+    override fun visitHtml(node: LatexNode.Html): String {
+        val attributes = buildString {
+            for ((key, value) in node.attributes) {
+                if (htmlAttribute.matches(key)) append(" $key=\"${escapeXml(value)}\"")
+            }
+            node.color?.takeIf(htmlColor::matches)?.let { append(" style=\"color: $it;\"") }
+        }
+        return "<mrow$attributes>${node.content.joinToString("") { visit(it) }}</mrow>"
+    }
+
+    override fun visitInlineImage(node: LatexNode.InlineImage): String {
+        if (!isImageSource(node.source)) return "<mtext>${escapeXml(node.alt)}</mtext>"
+        val width = node.width?.let { " width=\"${escapeXml(it)}\"" }.orEmpty()
+        val height = escapeXml(node.totalHeight ?: node.height)
+        return "<mi><mglyph src=\"${escapeXml(node.source)}\" alt=\"${escapeXml(node.alt)}\" height=\"$height\"$width/></mi>"
+    }
+
     override fun visitProofTree(node: LatexNode.ProofTree): String {
         val conclusion = visit(node.conclusion)
         if (node.premises.isEmpty()) return conclusion
@@ -311,6 +331,15 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
                 "<munder>$content<mo>→</mo></munder>"
             LatexNode.Accent.AccentType.OVERPAREN -> over("⏜")
             LatexNode.Accent.AccentType.UNDERPAREN -> "<munder>$content<mo>⏝</mo></munder>"
+            LatexNode.Accent.AccentType.OVER_RIGHT_DOUBLE -> over("⇒")
+            LatexNode.Accent.AccentType.OVER_LEFT_HARPOON -> over("↼")
+            LatexNode.Accent.AccentType.OVER_RIGHT_HARPOON -> over("⇀")
+            LatexNode.Accent.AccentType.UNDER_BOTH_ARROWS -> "<munder>$content<mo stretchy=\"true\">↔</mo></munder>"
+            LatexNode.Accent.AccentType.OVER_GROUP -> over("⏠")
+            LatexNode.Accent.AccentType.UNDER_GROUP -> "<munder>$content<mo stretchy=\"true\">⏡</mo></munder>"
+            LatexNode.Accent.AccentType.OVER_SEGMENT -> over("⎴")
+            LatexNode.Accent.AccentType.UNDER_SEGMENT -> "<munder>$content<mo stretchy=\"true\">⎵</mo></munder>"
+            LatexNode.Accent.AccentType.UNDER_TILDE -> "<munder>$content<mo stretchy=\"true\">~</mo></munder>"
         }
     }
 
@@ -332,6 +361,8 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.ExtensibleArrow.Direction.LEFT_HARPOON_DOWN -> "↽"
             LatexNode.ExtensibleArrow.Direction.RIGHT_LEFT_HARPOONS -> "⇌"
             LatexNode.ExtensibleArrow.Direction.LEFT_RIGHT_HARPOONS -> "⇋"
+            LatexNode.ExtensibleArrow.Direction.RIGHT_LEFT_ARROWS,
+            LatexNode.ExtensibleArrow.Direction.TO_FROM -> "⇄"
             LatexNode.ExtensibleArrow.Direction.TWO_HEAD_RIGHT -> "↠"
             LatexNode.ExtensibleArrow.Direction.TWO_HEAD_LEFT -> "↞"
         }
@@ -385,6 +416,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
             LatexNode.Style.StyleType.LEGACY_BOLD ->
                 " mathvariant=\"bold\""
             LatexNode.Style.StyleType.ITALIC, LatexNode.Style.StyleType.LEGACY_ITALIC -> " mathvariant=\"italic\""
+            LatexNode.Style.StyleType.MATH_NORMAL -> return mrow(content)
             LatexNode.Style.StyleType.ROMAN, LatexNode.Style.StyleType.LEGACY_ROMAN -> " mathvariant=\"normal\""
             LatexNode.Style.StyleType.SANS_SERIF, LatexNode.Style.StyleType.LEGACY_SANS_SERIF -> " mathvariant=\"sans-serif\""
             LatexNode.Style.StyleType.MONOSPACE, LatexNode.Style.StyleType.LEGACY_MONOSPACE -> " mathvariant=\"monospace\""
@@ -470,6 +502,7 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
 
     private fun LatexNode.FontSize.SizeType.scaleFactor(): Float = when (this) {
         LatexNode.FontSize.SizeType.TINY -> 0.5f
+        LatexNode.FontSize.SizeType.SIX_POINT -> 0.6f
         LatexNode.FontSize.SizeType.SCRIPT_SIZE -> 0.7f
         LatexNode.FontSize.SizeType.FOOTNOTE_SIZE -> 0.8f
         LatexNode.FontSize.SizeType.SMALL -> 0.9f
@@ -725,6 +758,8 @@ class MathMLVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitLayout(node: LatexNode.Layout): String = when (node.layoutType) {
+        LatexNode.Layout.LayoutType.POOR_MANS_BOLD ->
+            "<mstyle mathvariant=\"bold\">${node.content.joinToString("") { visit(it) }}</mstyle>"
         LatexNode.Layout.LayoutType.RAISE_BOX -> {
             val content = node.content.joinToString("") { visit(it) }
             "<mpadded voffset=\"${escapeXml(node.shift.orEmpty())}\">$content</mpadded>"

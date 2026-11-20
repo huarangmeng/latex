@@ -23,6 +23,7 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.MathAtomSymbols
 
 /**
  * 数学类代码命令：\mathord, \mathbin, \mathrel, \mathopen, \mathclose,
@@ -35,6 +36,39 @@ import com.hrm.latex.parser.model.LatexNode
  * 以保留大型运算符的上下标（limits）渲染行为。
  */
 internal fun CommandRegistry.installMathClassHandlers() {
+    register("@binrel", "pmb") { name, ctx, _ ->
+        val sample = ctx.parseArgument() ?: LatexNode.Text("")
+        val type = binOrRelClass(sample)
+        val content = if (name == "pmb") {
+            LatexNode.Layout(LatexNode.Layout.LayoutType.POOR_MANS_BOLD, listOf(sample))
+        } else ctx.parseArgument() ?: LatexNode.Text("")
+        LatexNode.MathClass(listOf(content), type)
+    }
+
+    register("ordinarycolon", "vcentcolon", "ratio") { name, _, _ ->
+        LatexNode.MathClass(listOf(LatexNode.Text(if (name == "ordinarycolon") ":" else "∶")),
+            LatexNode.MathClass.AtomClass.REL)
+    }
+
+    register("thickapprox", "thicksim") { name, _, _ ->
+        val symbol = if (name == "thickapprox") LatexNode.Symbol("approx", "≈") else LatexNode.Symbol("sim", "∼")
+        LatexNode.MathClass(listOf(LatexNode.Style(listOf(symbol), LatexNode.Style.StyleType.BOLD_SYMBOL)),
+            LatexNode.MathClass.AtomClass.REL)
+    }
+
+    val colonRelations = mapOf(
+        "Coloneqq" to "∷=", "coloncolonequals" to "∷=", "Coloneq" to "∷−", "coloncolonminus" to "∷−",
+        "Eqqcolon" to "=∷", "equalscoloncolon" to "=∷", "Eqcolon" to "−∷", "minuscoloncolon" to "−∷",
+        "colonapprox" to "∶≈", "Colonapprox" to "∷≈", "coloncolonapprox" to "∷≈",
+        "colonsim" to "∶∼", "Colonsim" to "∷∼", "coloncolonsim" to "∷∼",
+        "approxcolon" to "≈∶", "approxcoloncolon" to "≈∷", "simcolon" to "∼∶", "simcoloncolon" to "∼∷",
+    )
+    register(*colonRelations.keys.toTypedArray()) { name, _, _ ->
+        val glyphs = colonRelations.getValue(name)
+        // 运算符内部按字形间距拼接，整个组合在外层只占一个关系原子。
+        val parts = glyphs.map { LatexNode.MathClass(listOf(LatexNode.Text(it.toString())), LatexNode.MathClass.AtomClass.ORD) }
+        LatexNode.MathClass(listOf(parts.first(), LatexNode.HSpace("-1.2mu"), parts.last()), LatexNode.MathClass.AtomClass.REL)
+    }
     val classCommandMapping = mapOf(
         "mathord" to LatexNode.MathClass.AtomClass.ORD,
         "mathbin" to LatexNode.MathClass.AtomClass.BIN,
@@ -54,4 +88,20 @@ internal fun CommandRegistry.installMathClassHandlers() {
             )
         }
     }
+}
+
+private fun binOrRelClass(node: LatexNode): LatexNode.MathClass.AtomClass {
+    val first = if (node is LatexNode.Group) node.children.firstOrNull() else node
+    val type = when (first) {
+        is LatexNode.Symbol -> MathAtomSymbols.classify(first.symbol, first.unicode)
+        is LatexNode.MathClass -> first.atomClass
+        is LatexNode.Text -> when (first.content) {
+            "+", "-", "*" -> LatexNode.MathClass.AtomClass.BIN
+            "=", "<", ">", ":" -> LatexNode.MathClass.AtomClass.REL
+            else -> MathAtomSymbols.classify("", first.content)
+        }
+        else -> LatexNode.MathClass.AtomClass.ORD
+    }
+    return if (type == LatexNode.MathClass.AtomClass.BIN || type == LatexNode.MathClass.AtomClass.REL) type
+        else LatexNode.MathClass.AtomClass.ORD
 }

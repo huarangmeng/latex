@@ -67,13 +67,20 @@ internal fun CommandRegistry.installMacroHandlers() {
         LatexNode.NewCommand(name, numbers.size, body)
     } }
 
-    register("let") { _, ctx, stream -> stream.raw {
+    register("let", "futurelet") { kind, ctx, stream -> stream.raw {
         stream.skipWhitespace()
         val name = (stream.readAtom() as? LatexToken.Command)?.name
-            ?: return@raw invalid(ctx, stream, "Expected a command after \\let")
+            ?: return@raw invalid(ctx, stream, "Expected a command after \\$kind")
         stream.skipWhitespace()
-        if ((stream.peek() as? LatexToken.Text)?.content == "=") { stream.advance(); stream.skipWhitespace() }
-        val value = stream.readAtom() ?: return@raw invalid(ctx, stream, "Missing \\let value")
+        val following = if (kind == "futurelet") stream.readAtom()
+            ?: return@raw invalid(ctx, stream, "Missing \\futurelet continuation") else null
+        if (kind == "let" && (stream.peek() as? LatexToken.Text)?.content == "=") {
+            stream.advance()
+            stream.skipWhitespace()
+        }
+        val value = stream.readAtom()
+        if (following != null) stream.insert(listOfNotNull(following, value))
+        if (value == null) return@raw invalid(ctx, stream, "Missing \\$kind value")
         val existing = (value as? LatexToken.Command)?.let { ctx.customCommands[it.name] }
         val definition = existing?.copy(name = name) ?: CustomCommand(name, 0, listOf(
             if (value is LatexToken.Command) value.copy(builtin = true) else value
@@ -90,6 +97,14 @@ internal fun CommandRegistry.installMacroHandlers() {
         } finally { ctx.globalAssignment = false }
     }
     register("relax") { _, _, _ -> LatexNode.Text("") }
+
+    register("message", "errmessage") { kind, ctx, stream ->
+        val start = stream.peek(-1)?.range?.start ?: 0
+        val message = ctx.expandTokens(stream.readArgumentTokens()).text()
+        val severity = if (kind == "errmessage") ParseDiagnostic.Severity.ERROR else ParseDiagnostic.Severity.INFO
+        ctx.diagnostics.add(ParseDiagnostic(stream.rangeFrom(start), message, severity))
+        LatexNode.Text("")
+    }
 
     register("DeclareMathOperator") { _, ctx, stream -> stream.raw {
         val starred = consumeStar(stream)

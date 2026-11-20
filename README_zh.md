@@ -189,6 +189,7 @@
 <summary><b>高级标注（6）</b> — 超链接、张量、四角标</summary>
 
 - **超链接**：`\href{url}{text}`, `\url{url}`（蓝色下划线，支持点击回调和 `%20` 等 URL 字面字符）
+- **图片和元数据**：`\includegraphics[width=1em,height=.8em,alt=图例]{icon.png}` 按源地址从 `LatexConfig.images` 获取宿主提供的 `ImageBitmap`，图片缺失时显示替代文字。`\htmlClass`、`\htmlId`、`\htmlData` 在 MathML 保留属性，`\htmlStyle` 的 `color` 声明在 Compose 和 MathML 生效。
 - **四角标注**：`\sideset{_a^b}{_c^d}{\sum}`
 - **前置上下标**：`\prescript{A}{Z}{X}`（同位素标记）
 - **张量指标**：`\tensor{T}{^a_b^c}`, `\indices{^a_b}`

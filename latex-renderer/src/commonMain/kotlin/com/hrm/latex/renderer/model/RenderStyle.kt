@@ -27,6 +27,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -233,6 +234,8 @@ data class LatexConfig(
      * 缺失或加载失败时使用系统字体，进程内不再重试。显式传入时不会加载默认字体资源。
      */
     val fontFamilies: LatexFontFamilies? = null,
+    /** 供 \includegraphics 查找的已解码图片。内容变化时传入新的映射。 */
+    val images: Map<String, ImageBitmap> = emptyMap(),
 )
 
 /**
@@ -361,6 +364,7 @@ internal data class RenderContext(
     val equationNumbering: com.hrm.latex.renderer.layout.EquationNumberingState? = null,
     // ── 文本方向 ──
     val textDirection: TextDirection = TextDirection.LTR,
+    val images: Map<String, ImageBitmap> = emptyMap(),
 ) {
     /**
      * 缓存的 TextStyle，避免每次 textStyle() 调用都创建新对象。
@@ -416,7 +420,8 @@ internal fun LatexConfig.toContext(
             maxLineWidth = if (lineBreaking.enabled) lineBreaking.maxWidth else null,
             lineBreakingEnabled = lineBreaking.enabled,
         ),
-        mathFontProvider = resolvedProvider
+        mathFontProvider = resolvedProvider,
+        images = images,
     )
 }
 
@@ -486,6 +491,9 @@ internal fun RenderContext.applyStyle(styleType: LatexNode.Style.StyleType): Ren
         )
 
         LatexNode.Style.StyleType.BOLD_SYMBOL -> copy(fontWeight = FontWeight.Bold)
+
+        LatexNode.Style.StyleType.MATH_NORMAL -> copy(fontWeight = null, fontStyle = null,
+            fontFamily = families?.main ?: fontFamily, fontVariant = FontVariant.NORMAL, isVariantFontFamily = false)
 
         LatexNode.Style.StyleType.ITALIC,
         LatexNode.Style.StyleType.LEGACY_ITALIC -> copy(
@@ -630,6 +638,7 @@ internal fun RenderContext.applyMathStyle(mathStyleType: LatexNode.MathStyle.Mat
 internal fun RenderContext.applyFontSize(sizeType: LatexNode.FontSize.SizeType): RenderContext {
     val scale = when (sizeType) {
         LatexNode.FontSize.SizeType.TINY -> 0.5f
+        LatexNode.FontSize.SizeType.SIX_POINT -> 0.6f
         LatexNode.FontSize.SizeType.SCRIPT_SIZE -> 0.7f
         LatexNode.FontSize.SizeType.FOOTNOTE_SIZE -> 0.8f
         LatexNode.FontSize.SizeType.SMALL -> 0.9f

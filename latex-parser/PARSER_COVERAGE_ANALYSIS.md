@@ -314,6 +314,9 @@
 - ✅ `\centernot`、`\slashed`、`\ddddot`、`\textcircled`、`\sout` 支持叠加斜线、四点重音、圈注和删除线
 - ✅ `prooftree` 支持公理、一至五前提的推理、左右标签、结论方向及推理线样式
 - ✅ `\set`、`\Set` 只替换第一个集合条件分隔符，`\vcenter` 以数学轴居中，`\angl` 和 `\phase` 绘制专用边框
+- ✅ `\mathnormal`、`\sixptsize` 和 `\TeX`、`\LaTeX`、`\KaTeX` 标志，复合冒号关系、成对箭头和带装饰的极限记号
+- ✅ `\futurelet` 和 `\@ifnextchar` 等分词分支控制，`\message`、`\errmessage` 分别产生信息和错误诊断
+- ✅ `\includegraphics` 保留图片尺寸和替代文字，`\htmlClass`、`\htmlId`、`\htmlData` 导出元数据，`\htmlStyle` 处理颜色声明
 - ✅ `\mathfrak{g}` 哥特体
 - ✅ `\mathcal{F}` 花体
 - ✅ `\mathscr{L}` 手写体

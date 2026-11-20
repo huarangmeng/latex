@@ -60,6 +60,34 @@ sealed class LatexNode {
     /** 双分派：将访问者分派到对应的 visit 方法 */
     abstract fun <T> accept(visitor: LatexVisitor<T>): T
 
+    /** 公式主体与导出时使用的 HTML 扩展属性。 */
+    data class Html(
+        val content: List<LatexNode>,
+        val attributes: Map<String, String>,
+        val color: String? = null,
+        override val sourceRange: SourceRange? = null,
+    ) : LatexNode() {
+        override fun children() = content
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = copy(content = newChildren)
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitHtml(this)
+    }
+
+    /** 源地址与原始 TeX 尺寸由宿主决定如何加载和解析。 */
+    data class InlineImage(
+        val source: String,
+        val alt: String,
+        val height: String,
+        val width: String? = null,
+        val totalHeight: String? = null,
+        override val sourceRange: SourceRange? = null,
+    ) : LatexNode() {
+        override fun children() = emptyList<LatexNode>()
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>) = this
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitInlineImage(this)
+    }
+
     /** 由有序前提推导出结论，左右标签贴在本层推理线上。叶子只有结论。 */
     data class ProofTree(
         val conclusion: LatexNode,
@@ -479,7 +507,9 @@ sealed class LatexNode {
             GRAVE, ACUTE, CHECK, BREVE, RING,
             OVERBRACKET, UNDERBRACKET,
             WIDECHECK, OVERLEFTRIGHTARROW, UNDERLEFTARROW, UNDERRIGHTARROW,
-            OVERPAREN, UNDERPAREN, DDDDOT, CENTER_NOT, SLASHED
+            OVERPAREN, UNDERPAREN, DDDDOT, CENTER_NOT, SLASHED,
+            OVER_RIGHT_DOUBLE, OVER_LEFT_HARPOON, OVER_RIGHT_HARPOON, UNDER_BOTH_ARROWS,
+            OVER_GROUP, UNDER_GROUP, OVER_SEGMENT, UNDER_SEGMENT, UNDER_TILDE
         }
 
         override fun children() = listOf(content)
@@ -521,7 +551,8 @@ sealed class LatexNode {
             RIGHT, LEFT, BOTH, HOOK_RIGHT, HOOK_LEFT,
             RIGHT_DOUBLE, LEFT_DOUBLE, BOTH_DOUBLE, MAPSTO, EQUAL,
             RIGHT_HARPOON_UP, RIGHT_HARPOON_DOWN, LEFT_HARPOON_UP, LEFT_HARPOON_DOWN,
-            RIGHT_LEFT_HARPOONS, LEFT_RIGHT_HARPOONS, TWO_HEAD_RIGHT, TWO_HEAD_LEFT
+            RIGHT_LEFT_HARPOONS, LEFT_RIGHT_HARPOONS, TWO_HEAD_RIGHT, TWO_HEAD_LEFT,
+            RIGHT_LEFT_ARROWS, TO_FROM
         }
 
         override fun children() = listOfNotNull(content, below)
@@ -572,7 +603,7 @@ sealed class LatexNode {
             TEXT_ITALIC, TEXT_SLANTED, TEXT_UPRIGHT, TEXT_UPPER_LOWER_CASE,
             TEXT_NORMAL_SHAPE, TEXT_NORMAL, LEGACY_SMALL_CAPS, TEXT_STRAIGHTEN,
             TEXT_EMPHASIS, TEXT_INHERIT_SLOPE,
-            LEGACY_BOLD, LEGACY_ITALIC, LEGACY_ROMAN, LEGACY_SANS_SERIF, LEGACY_MONOSPACE, LEGACY_SLANTED;
+            LEGACY_BOLD, LEGACY_ITALIC, LEGACY_ROMAN, LEGACY_SANS_SERIF, LEGACY_MONOSPACE, LEGACY_SLANTED, MATH_NORMAL;
 
             private enum class Axis { LEGACY, FAMILY, SERIES, SLOPE, CASE, UPRIGHT, EMPHASIS, SHAPE, FONT }
 
@@ -723,7 +754,7 @@ sealed class LatexNode {
     ) : LatexNode() {
         enum class SizeType {
             TINY, SCRIPT_SIZE, FOOTNOTE_SIZE, SMALL, NORMAL_SIZE,
-            LARGE, LARGE_2, LARGE_3, HUGE, HUGE_2
+            LARGE, LARGE_2, LARGE_3, HUGE, HUGE_2, SIX_POINT
         }
 
         override fun children() = content
@@ -1453,7 +1484,7 @@ sealed class LatexNode {
         val shift: String? = null,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        enum class LayoutType { RAISE_BOX, RULE, V_CENTER }
+        enum class LayoutType { RAISE_BOX, RULE, V_CENTER, POOR_MANS_BOLD }
 
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)

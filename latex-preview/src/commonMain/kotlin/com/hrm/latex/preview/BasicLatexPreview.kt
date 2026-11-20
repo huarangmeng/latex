@@ -107,6 +107,10 @@ val basicLatexPreviewGroups = listOf(
                 """\begin{prooftree}\AxiomC{P\Rightarrow Q}\AxiomC{P}\RightLabel{modus ponens}\BinaryInfC{Q}\end{prooftree}"""),
             PreviewItem("12", "Set builder and angle notation",
                 """\Set{x|x<\frac12|S|}\quad a_{\angl n}\quad\phase{-78^\circ}\quad a+\vcenter{\frac{a}{b}}\pod n"""),
+            PreviewItem("13", "Logotypes, relations and decorated limits",
+                """\TeX\quad\LaTeX\quad\KaTeX\qquad x\Coloneqq y\quad a\simcolon b\quad\varlimsup_{n\to\infty}a_n"""),
+            PreviewItem("14", "Image alternative text and HTML color",
+                """\htmlStyle{color: red;}{x+1}\quad\includegraphics[height=1em,width=3em,alt=icon.png]{icon.png}"""),
         )
     ),
     PreviewGroup(

@@ -23,6 +23,10 @@
 package com.hrm.latex.renderer.export
 
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
@@ -40,6 +44,29 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
 class LatexSvgExporterTest {
+    @Test
+    fun exportsInlineImagesFromTheHostImageMap() {
+        val bitmap = ImageBitmap(4, 4)
+        Canvas(bitmap).drawRect(0f, 0f, 4f, 4f, Paint().apply { color = Color.Blue })
+        val source = """a+\includegraphics[height=1em,width=2em,alt=placeholder]{example.png}"""
+        val exporter = createExporter()
+        val withImage = assertNotNull(exporter.exportSvg(source, config = LatexConfig(images = mapOf("example.png" to bitmap))))
+        val fallback = assertNotNull(exporter.exportSvg(source))
+        assertContains(withImage.svg, "data:image/png;base64,")
+        assertFalse("<image" in fallback.svg)
+        assertEquals(withImage.width, fallback.width)
+    }
+
+    @Test
+    fun newDecorationsAndHtmlColorReachTheRenderer() {
+        val exporter = createExporter()
+        fun svg(source: String) = assertNotNull(exporter.exportSvg(source)).svg
+        assertEquals(svg("""a\htmlStyle{color: red;}{+}b"""), svg("""a\textcolor{red}{+}b"""))
+        assertNotEquals(svg("""\overgroup{AB}"""), svg("AB"))
+        assertNotEquals(svg("""\utilde{AB}"""), svg("""\overgroup{AB}"""))
+        assertNotEquals(svg("""\pmb{\frac12}"""), svg("""\frac12"""))
+        assertNotEquals(svg("""\xrightleftarrows{x}"""), svg("""\xtofrom{x}"""))
+    }
     @Test
     fun proofDirectionAndLineStyleAffectTheExportedDiagram() {
         val exporter = createExporter()

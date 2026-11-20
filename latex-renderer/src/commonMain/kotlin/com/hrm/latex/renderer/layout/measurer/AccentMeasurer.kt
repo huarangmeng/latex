@@ -102,6 +102,10 @@ internal class AccentMeasurer : NodeMeasurer {
         }
         val contentLayout = measureGroup(listOf(node.content), context.copy(isCramped = true))
 
+        if (node.accentType in stretchedDecorations) {
+            return measureStretchedDecoration(node, contentLayout, context, density)
+        }
+
         // 判断是否是宽装饰（需要横向拉伸）
         val isWideAccent = when (node.accentType) {
             AccentType.WIDEHAT, AccentType.OVERRIGHTARROW, AccentType.OVERLEFTARROW,
@@ -262,6 +266,81 @@ internal class AccentMeasurer : NodeMeasurer {
         is LatexNode.Symbol -> node.unicode.ifEmpty { node.symbol }.takeIf { it.length == 1 }
         is LatexNode.Group -> node.children.singleOrNull()?.let(::singleBaseCharacter)
         else -> null
+    }
+
+    private fun measureStretchedDecoration(
+        node: LatexNode.Accent, body: NodeLayout, context: RenderContext, density: Density,
+    ): NodeLayout {
+        val type = node.accentType
+        val below = type in underDecorations
+        val em = with(density) { context.fontSize.toPx() }
+        val ink = em * 0.21f
+        val gap = em * 0.07f
+        val stroke = em * 0.04f
+        val width = max(body.width, em * 0.5f)
+        val head = min(em * 0.19f, width / 3f)
+        val path = Path().apply {
+            fun line(y: Float) {
+                moveTo(0f, y)
+                lineTo(width, y)
+            }
+            fun arrowHead(right: Boolean, bothSides: Boolean) {
+                val tip = if (right) width else 0f
+                val base = if (right) width - head else head
+                moveTo(base, 0f)
+                lineTo(tip, ink / 2f)
+                if (bothSides) lineTo(base, ink)
+            }
+            when (type) {
+                AccentType.OVER_RIGHT_DOUBLE -> {
+                    line(ink * .30f)
+                    line(ink * .70f)
+                    arrowHead(right = true, bothSides = true)
+                }
+                AccentType.OVER_LEFT_HARPOON, AccentType.OVER_RIGHT_HARPOON, AccentType.UNDER_BOTH_ARROWS -> {
+                    line(ink / 2f)
+                    if (type != AccentType.OVER_RIGHT_HARPOON) arrowHead(false, below)
+                    if (type != AccentType.OVER_LEFT_HARPOON) arrowHead(true, below)
+                }
+                AccentType.OVER_SEGMENT, AccentType.UNDER_SEGMENT, AccentType.OVER_GROUP, AccentType.UNDER_GROUP -> {
+                    val edge = if (below) ink else 0f
+                    val tip = ink - edge
+                    moveTo(0f, tip)
+                    if (type == AccentType.OVER_GROUP || type == AccentType.UNDER_GROUP) {
+                        quadraticTo(0f, edge, head, edge)
+                        lineTo(width - head, edge)
+                        quadraticTo(width, edge, width, tip)
+                    } else {
+                        lineTo(0f, edge)
+                        lineTo(width, edge)
+                        lineTo(width, tip)
+                    }
+                }
+                AccentType.UNDER_TILDE -> {
+                    moveTo(0f, ink / 2f)
+                    cubicTo(width / 6f, 0f, width / 3f, 0f, width / 2f, ink / 2f)
+                    cubicTo(width * 2f / 3f, ink, width * 5f / 6f, ink, width, ink / 2f)
+                }
+                else -> Unit
+            }
+        }
+        // 将装饰与内容分别居中，装饰区全部计入高度，避免下装饰被下一行遮盖。
+        val extra = ink + gap + stroke
+        val bodyTop = if (below) 0f else extra
+        val accentTop = if (below) body.height + gap else 0f
+        return NodeLayout(width + stroke, body.height + extra, bodyTop + body.baseline) { x, y ->
+            body.draw(this, x + (width + stroke - body.width) / 2f, y + bodyTop)
+            withTransform({ translate(left = x + stroke / 2f, top = y + accentTop + stroke / 2f) }) {
+                drawPath(path, context.color, style = Stroke(stroke))
+            }
+        }
+    }
+
+    private companion object {
+        val underDecorations = setOf(AccentType.UNDER_BOTH_ARROWS, AccentType.UNDER_GROUP,
+            AccentType.UNDER_SEGMENT, AccentType.UNDER_TILDE)
+        val stretchedDecorations = underDecorations + setOf(AccentType.OVER_RIGHT_DOUBLE,
+            AccentType.OVER_LEFT_HARPOON, AccentType.OVER_RIGHT_HARPOON, AccentType.OVER_GROUP, AccentType.OVER_SEGMENT)
     }
 
     /**

@@ -23,6 +23,8 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.ParseDiagnostic
+import com.hrm.latex.parser.model.SourceRange
 
 /**
  * 空格命令：\,  \:  \;  \quad  \qquad  \!  \hspace 及常用别名
@@ -54,6 +56,18 @@ internal fun CommandRegistry.installSpaceHandlers() {
 
     register("kern", "mkern", "hskip", "mskip") { _, ctx, stream ->
         LatexNode.HSpace(ParseUtils.parseDimension(ctx, stream))
+    }
+    register("tmspace") { _, ctx, stream ->
+        val range = stream.peek(-1)?.range ?: SourceRange.EMPTY
+        val sign = stream.readArgumentTokens().text().trim()
+        val mathWidth = stream.readArgumentTokens().text().trim()
+        val textWidth = stream.readArgumentTokens().text().trim()
+        val dimension = if (ctx.inTextMode) textWidth else mathWidth
+        if (sign !in setOf("", "+", "-") || !ParseUtils.isDimension(sign + dimension)) {
+            ctx.diagnostics.add(ParseDiagnostic(range, "Invalid \\tmspace arguments", ParseDiagnostic.Severity.ERROR,
+                ParseDiagnostic.Category.INVALID_ARGUMENT))
+            LatexNode.Text("")
+        } else LatexNode.HSpace(sign + dimension)
     }
     register("allowbreak") { _, _, _ -> LatexNode.HSpace("0pt", breakHint = LatexNode.HSpace.BreakHint.ALLOW) }
     register("nobreak") { _, _, _ -> LatexNode.HSpace("0pt", breakHint = LatexNode.HSpace.BreakHint.FORBID) }

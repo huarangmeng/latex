@@ -23,6 +23,7 @@
 
 package com.hrm.latex.parser.component
 
+import com.hrm.latex.parser.SymbolMap
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
@@ -34,6 +35,9 @@ internal class ChemicalParser(private val context: LatexParserContext) {
 
     companion object {
         private const val TAG = "ChemicalParser"
+
+        // mhchem 专用控制词使用现有数学符号表，普通解析器仍按自己的命令规则分发。
+        private val chemicalSymbolCommands = mapOf("ca" to "sim")
     }
 
     fun parseChemicalArgument(): LatexNode {
@@ -119,10 +123,7 @@ internal class ChemicalParser(private val context: LatexParserContext) {
                 }
 
                 is LatexToken.Command -> {
-                    // 内部命令，如 \frac，转交给 context 处理
-                    // 注意：不要在这里 advance，让 parseExpression 去消费
-                    val node = context.parseExpression()
-                    if (node != null) nodes.add(node)
+                    parseChemicalCommand(token)?.let(nodes::add)
                     expectCoefficient = false
                 }
 
@@ -165,9 +166,14 @@ internal class ChemicalParser(private val context: LatexParserContext) {
         return nodes
     }
 
-    // 特殊处理 Command 的分支逻辑
-    // 上面的 when 分支有点乱，特别是 Command 和 else。
-    // 我们可以简化：优先处理 Text/Space/Sub/Super，其他交给 context.parseExpression
+    private fun parseChemicalCommand(token: LatexToken.Command): LatexNode? {
+        val symbolName = chemicalSymbolCommands[token.name] ?: return context.parseExpression()
+        tokenStream.advance()
+        tokenStream.skipControlWordWhitespace()
+        // 将符号包为一个化学片段，保留控制词的源范围和普通原子的间距。
+        val symbol = LatexNode.Symbol(symbolName, checkNotNull(SymbolMap.getSymbol(symbolName)), token.range)
+        return LatexNode.Group(listOf(symbol), token.range)
+    }
 
     private fun parseChemicalScriptContent(): LatexNode {
         // 化学脚本内容也可能包含化学语法？mhchem 中 ^{2+} 是合法的。

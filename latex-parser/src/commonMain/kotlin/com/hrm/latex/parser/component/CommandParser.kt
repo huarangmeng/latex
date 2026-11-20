@@ -60,7 +60,8 @@ internal class CommandParser(
 
     companion object {
         private val expansionCommands = setOf(
-        "expandafter", "noexpand", "csname", "endcsname", "ifdefined", "ifx", "else", "fi", "mathpalette", "sp", "sb"
+        "expandafter", "noexpand", "csname", "endcsname", "ifdefined", "ifx", "else", "fi", "mathpalette", "sp", "sb",
+        "@firstoftwo", "@secondoftwo", "@ifstar", "@ifnextchar"
     )
 
         private const val TAG = "CommandParser"
@@ -140,6 +141,14 @@ internal class CommandParser(
             return LatexNode.Symbol(SymbolMap.canonicalName(cmdName), unicode)
         }
 
+        val range = tokenStream.peek(-1)?.range ?: SourceRange.EMPTY
+        val message = when (cmdName) {
+            "begin", "end" -> "Expected an environment name after \\$cmdName"
+            else -> "Undefined control sequence \\$cmdName"
+        }
+        context.diagnostics.add(ParseDiagnostic(range, message, ParseDiagnostic.Severity.ERROR,
+            if (cmdName == "begin" || cmdName == "end") ParseDiagnostic.Category.MISMATCHED_ENVIRONMENT
+            else ParseDiagnostic.Category.UNKNOWN_COMMAND))
         val arguments = mutableListOf<LatexNode>()
         while (tokenStream.peek() is LatexToken.LeftBrace) {
             val arg = context.parseArgument()
@@ -290,6 +299,30 @@ internal class CommandParser(
                 val first = stream.readAtom() ?: return true
                 expandNext()
                 emit(listOf(first), token.range)
+            }
+            "@firstoftwo", "@secondoftwo", "@ifstar", "@ifnextchar" -> {
+                stream.advance()
+                val expected = if (token.name == "@ifnextchar") {
+                    stream.readArgumentTokens().singleOrNull().also {
+                        if (it == null) macroError(token.range, "Expected one token to compare")
+                    }
+                } else null
+                val first = stream.readArgumentTokens()
+                val second = stream.readArgumentTokens()
+                val selectFirst = when (token.name) {
+                    "@firstoftwo" -> true
+                    "@secondoftwo" -> false
+                    else -> {
+                        stream.skipWhitespace()
+                        val next = stream.readAtom()
+                        val matches = if (token.name == "@ifstar") (next as? LatexToken.Text)?.content == "*"
+                            else expected != null && sameToken(expected, next)
+                        // \@ifnextchar 只检查，不消耗匹配字符；\@ifstar 吃掉星号。
+                        if (next != null && !(matches && token.name == "@ifstar")) stream.insert(listOf(next))
+                        matches
+                    }
+                }
+                emit(if (selectFirst) first else second, token.range)
             }
             "csname" -> {
                 stream.advance()

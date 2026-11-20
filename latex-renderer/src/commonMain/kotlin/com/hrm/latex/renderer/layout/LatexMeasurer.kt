@@ -25,8 +25,11 @@ package com.hrm.latex.renderer.layout
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.renderer.layout.measurer.AccentMeasurer
 import com.hrm.latex.renderer.layout.measurer.BigOperatorMeasurer
@@ -144,6 +147,24 @@ internal fun measureNode(
 
     // 2. 轻量级节点：直接内联处理（无需独立 Measurer）
     val result = when (node) {
+        is LatexNode.Html -> measureGroup(node.content, node.color?.let(context::withColor) ?: context,
+            measurer, density, cache = cache)
+        is LatexNode.InlineImage -> {
+            val bitmap = context.images[node.source]
+            val alt = if (bitmap == null) measureNode(LatexNode.TextMode(node.alt), context, measurer, density) else null
+            val baseline = parseDimension(node.height, context, density).coerceAtLeast(0f)
+            val height = node.totalHeight?.let { parseDimension(it, context, density) }?.coerceAtLeast(baseline) ?: baseline
+            val intrinsic = if (bitmap != null) height * bitmap.width / bitmap.height.coerceAtLeast(1)
+                else maxOf(height, alt?.width ?: 0f)
+            val width = node.width?.let { parseDimension(it, context, density) }?.takeIf { it > 0f } ?: intrinsic
+            NodeLayout(width, height, baseline) { x, y ->
+                if (bitmap != null && width >= 1f && height >= 1f) {
+                    translate(x, y) { drawImage(bitmap, dstSize = IntSize(width.toInt(), height.toInt())) }
+                } else if (alt != null && width > 0f && height > 0f) {
+                    clipRect(x, y, x + width, y + height) { alt.draw(this, x, y + baseline - alt.baseline) }
+                }
+            }
+        }
         is LatexNode.Label -> NodeLayout(
             width = 0f, height = 0f, baseline = 0f
         ) { _, _ -> /* Label 不渲染 */ }
@@ -251,6 +272,14 @@ internal fun measureNode(
         }
 
         is LatexNode.Layout -> when (node.layoutType) {
+            LatexNode.Layout.LayoutType.POOR_MANS_BOLD -> {
+                val content = measureGroup(node.content, context.withoutAutomaticLineBreaking(), measurer, density, cache = cache)
+                val offset = if (content.width > 0f) with(density) { (context.fontSize * 0.04f).toPx() } else 0f
+                NodeLayout(content.width + offset, content.height, content.baseline, content.italicCorrection) { x, y ->
+                    content.draw(this, x, y)
+                    if (offset != 0f) content.draw(this, x + offset, y)
+                }
+            }
             LatexNode.Layout.LayoutType.V_CENTER -> {
                 // 让内容几何中心落在周围数学列表的轴线上。
                 val content = measureGroup(node.content, context.withoutAutomaticLineBreaking(), measurer, density, cache = cache)

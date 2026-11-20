@@ -110,13 +110,19 @@ internal class DelimiterMeasurer : NodeMeasurer {
             provisionalHeight <= fontSizePx * 2.4f -> 2.4f
             else -> 3.0f
         }
-        val contentLayout = if (node.content.any { it is LatexNode.ManualSizedDelimiter && it.isMiddle }) {
-            measureGroup(
-                node.content.map {
-                    if (it is LatexNode.ManualSizedDelimiter && it.isMiddle) it.copy(size = middleScale) else it
-                },
-                context
-            )
+        // HTML 属性不改变数学分组，包裹的中间分隔符仍匹配外层括号。
+        fun containsMiddle(child: LatexNode): Boolean = when (child) {
+            is LatexNode.ManualSizedDelimiter -> child.isMiddle
+            is LatexNode.Html -> child.content.any(::containsMiddle)
+            else -> false
+        }
+        fun scaleMiddle(child: LatexNode): LatexNode = when (child) {
+            is LatexNode.ManualSizedDelimiter -> if (child.isMiddle) child.copy(size = middleScale) else child
+            is LatexNode.Html -> child.copy(content = child.content.map(::scaleMiddle))
+            else -> child
+        }
+        val contentLayout = if (node.content.any(::containsMiddle)) {
+            measureGroup(node.content.map(::scaleMiddle), context)
         } else provisionalContent
 
         // TeX make_left_right / KaTeX: delimiterFactor=901, shortfall=5pt=.5em.

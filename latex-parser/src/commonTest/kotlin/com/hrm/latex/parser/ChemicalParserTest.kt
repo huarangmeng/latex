@@ -25,11 +25,43 @@ package com.hrm.latex.parser
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.model.SourceRange
 
 class ChemicalParserTest {
+
+    @Test
+    fun chemicalControlWordsUseScopedSymbolsAndKeepExplicitSpace() {
+        val parser = LatexParser()
+        val result = parser.parseWithDiagnostics("""\ce{\ca Fe}\ce{\ca~Fe}""")
+        assertTrue(result.errors.isEmpty(), result.errors.toString())
+        val ordinary = assertIs<LatexNode.Group>(result.document.children[0]).children
+        val approximate = assertIs<LatexNode.Group>(ordinary[0])
+        assertEquals("sim", assertIs<LatexNode.Symbol>(approximate.children.single()).symbol)
+        assertEquals(SourceRange(4, 7), approximate.sourceRange)
+        assertEquals("Fe", assertIs<LatexNode.TextMode>(ordinary[1]).text)
+        val explicit = assertIs<LatexNode.Group>(result.document.children[1]).children
+        assertIs<LatexNode.Space>(explicit[1])
+        assertEquals("Fe", assertIs<LatexNode.TextMode>(explicit[2]).text)
+        assertTrue(parser.parseWithDiagnostics("""\ca""").errors.any { it.category == ParseDiagnostic.Category.UNKNOWN_COMMAND })
+    }
+
+    @Test
+    fun bareChemicalArgumentStopsAfterASymbolCommandAndUserMacrosStillExpand() {
+        val parser = LatexParser()
+        val bare = parser.parseWithDiagnostics("""\ce\ca X""")
+        assertTrue(bare.errors.isEmpty(), bare.errors.toString())
+        assertIs<LatexNode.Group>(bare.document.children[0])
+        assertEquals("X", assertIs<LatexNode.Text>(bare.document.children[1]).content)
+
+        val defined = parser.parseWithDiagnostics("""\def\ca{Z}\ce{\ca}""")
+        assertTrue(defined.errors.isEmpty(), defined.errors.toString())
+        val group = defined.document.children.filterIsInstance<LatexNode.Group>().single()
+        assertEquals("Z", assertIs<LatexNode.TextMode>(group.children.single()).text)
+    }
 
     @Test
     fun should_parse_simple_formula() {

@@ -123,7 +123,7 @@ class NestingDepthTest {
         assertTrue(LatexParser().parseWithDiagnostics(wrap("{", "}", 96)).errors.isEmpty())
         assertTrue(LatexParser().parseWithDiagnostics(wrap("{", "}", 126)).errors.isEmpty())
         assertTrue(LatexParser().parseWithDiagnostics(wrap("{", "}", 127)).errors.isNotEmpty())
-        for (input in listOf(wrap("\\frac{", "}{y}", 32), wrap("x^{", "}", 32), wrap("\\sqrt", "", 32))) {
+        for (input in listOf(wrap("\\frac{", "}{y}", 32), wrap("x^{", "}", 32), wrap("\\sqrt ", "", 32))) {
             assertTrue(LatexParser().parseWithDiagnostics(input).errors.isEmpty(), input)
         }
     }
