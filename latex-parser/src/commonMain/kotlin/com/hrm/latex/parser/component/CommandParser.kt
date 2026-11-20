@@ -186,6 +186,7 @@ internal class CommandParser(
             val environment = context.customEnvironments[token.name] ?: return false
             stream.advance()
             if (rejectRecursiveExpansion(environment, token)) return true
+            stream.requirePreviewCloser { LatexToken.EndEnvironment(token.name) }
             val origin = Expansion(environment, token.expansion, context.scopeDepth)
             val args = readArguments(environment.numArgs, environment.defaultTokens, origin)
             val body = mutableListOf<LatexToken>()

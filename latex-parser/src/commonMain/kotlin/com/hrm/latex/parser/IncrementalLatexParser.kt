@@ -76,10 +76,10 @@ class IncrementalLatexParser {
         // 词法单元在文件末尾尚未结束，已有预览可以直接保留，当前 AST 按需解析。
         if (unfinishedLexeme != null && previewDocument != null) return
 
-        val parsed = parse(source, tokens)
+        val parsed = parse(source, tokens, preview = true)
         cachedDocument = parsed?.document
         if (parsed == null) return
-        if (!parsed.incomplete && unfinishedLexeme == null) {
+        if (parsed.document != null && !parsed.incomplete && unfinishedLexeme == null) {
             updatePreview(parsed.document, source.length)
         } else if (previewDocument == null) {
             // 首个不完整结果只预览解析器确认闭合的前缀，当前输入的检查点仍供后续编辑使用。
@@ -93,9 +93,9 @@ class IncrementalLatexParser {
         lastSuccessfulPosition = end
     }
 
-    private data class ParsedDocument(val document: LatexNode.Document, val incomplete: Boolean, val completePrefixEnd: Int)
+    private data class ParsedDocument(val document: LatexNode.Document?, val incomplete: Boolean, val completePrefixEnd: Int)
 
-    private fun parse(source: String, tokens: List<LatexToken>): ParsedDocument? {
+    private fun parse(source: String, tokens: List<LatexToken>, preview: Boolean = false): ParsedDocument? {
         var unchanged = 0
         if (checkpoints.isNotEmpty()) {
             val limit = minOf(parsedTokens.size, tokens.size)
@@ -112,9 +112,9 @@ class IncrementalLatexParser {
         val suffix = reusableSuffix(tokens, unchanged)
         return parseSafely {
             val session = ParseSession(tokens, source.length, source, reused, suffix)
-            val document = session.parse()
+            val document = if (preview) session.parsePreview() else session.parse()
             parsedTokens = tokens
-            checkpoints = if (document.children.singleOrNull() is LatexNode.Error) emptyList() else reused
+            checkpoints = if (document?.children?.singleOrNull() is LatexNode.Error) emptyList() else reused
             ParsedDocument(document, session.hasIncompleteStructure, session.completePrefixEnd)
         }
     }

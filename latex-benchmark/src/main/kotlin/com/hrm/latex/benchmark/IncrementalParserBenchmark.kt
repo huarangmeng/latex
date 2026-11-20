@@ -112,7 +112,7 @@ open class IncrementalParserBenchmark {
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 open class StreamingParserBenchmark {
-    @Param("medium", "large")
+    @Param("medium", "large", "environment")
     lateinit var input: String
 
     @Param("1", "16")

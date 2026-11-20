@@ -53,6 +53,10 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
     internal var observedThrough = -1
         private set
     internal var hasIncompleteStructure = false
+    internal var canDeferPreview = false
+    private var sourceClosers: Map<LatexToken, Int>? = null
+
+    internal object PreviewDeferred : RuntimeException()
     internal val sourceIndex get() = position
     internal val hasPendingTokens get() = pending?.isNotEmpty() == true
     internal val previousToken get() = previous
@@ -91,6 +95,37 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
 
     internal fun skipWhitespace() {
         while (peek() is LatexToken.Whitespace) advance()
+    }
+
+    /**
+     * 只检查必须来自原始 token 的结束标记。遍历整份源码，宏定义里可被展开的结束标记也算候选。
+     * 找不到候选才暂停预览，找到后由正常解析决定是否真正闭合。
+     */
+    internal inline fun requirePreviewCloser(minimum: Int = 1, closer: () -> LatexToken) {
+        if (canDeferPreview && lacksSourceCloser(closer(), minimum)) throw PreviewDeferred
+    }
+
+    private fun lacksSourceCloser(closer: LatexToken, minimum: Int): Boolean {
+        if (!closer.isSourceBackedCloser()) return false
+        val candidates = sourceClosers ?: buildMap {
+            for (token in initialTokens) {
+                if (token.isSourceBackedCloser()) {
+                    val key = token.withRange(SourceRange.EMPTY)
+                    put(key, (get(key) ?: 0) + 1)
+                }
+            }
+        }.also { sourceClosers = it }
+        return (candidates[closer] ?: 0) < minimum
+    }
+
+    private fun LatexToken.isSourceBackedCloser(): Boolean =
+        this is LatexToken.EndEnvironment || this is LatexToken.RightBracket || this is LatexToken.MathShift
+
+    internal fun openOptionalArgument(): LatexToken.LeftBracket? {
+        val opening = peek() as? LatexToken.LeftBracket ?: return null
+        requirePreviewCloser { LatexToken.RightBracket() }
+        advance()
+        return opening
     }
 
     /** 语法解析器已经消费起始标记时，统一确认结束标记；不匹配的 token 留给外层处理。 */
@@ -144,8 +179,7 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
 
     internal fun readOptionalTokens(): List<LatexToken>? = raw {
         skipWhitespace()
-        if (peek() !is LatexToken.LeftBracket) return@raw null
-        advance()
+        if (openOptionalArgument() == null) return@raw null
         val result = mutableListOf<LatexToken>()
         var depth = 0
         var closed = false

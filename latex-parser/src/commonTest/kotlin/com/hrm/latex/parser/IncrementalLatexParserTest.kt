@@ -560,6 +560,39 @@ class IncrementalLatexParserTest {
     }
 
     @Test
+    fun previewRecognizesClosersExpandedFromMacroDefinitions() {
+        val batch = LatexParser()
+        for (source in listOf(
+            """\def\finish{\end{matrix}}\begin{matrix}x\finish""",
+            """\def\finish{]}\sqrt[3\finish{x}""",
+            "\\def\\shift{\$}\\shift x\\shift",
+        )) {
+            val parser = IncrementalLatexParser()
+            parser.setInput("a")
+            val result = batch.parseWithDiagnostics(source)
+            assertTrue(result.errors.isEmpty(), result.errors.toString())
+            parser.setInput(source)
+            assertEquals(result.document, parser.getPreviewDocument(), source)
+        }
+    }
+
+    @Test
+    fun openEnvironmentKeepsItsPreviewWhileCurrentAstChecksTheDepthLimit() {
+        val parser = IncrementalLatexParser()
+        parser.setInput("a")
+        val preview = parser.getPreviewDocument()
+        val open = """\begin{matrix}""" + "{".repeat(300) + "x" + "}".repeat(300)
+        parser.setInput(open)
+        assertSame(preview, parser.getPreviewDocument())
+        assertEquals(LatexParser().parse(open), parser.getCurrentDocument())
+        assertTrue(parser.getCurrentDocument().children.single() is LatexNode.Error)
+
+        val end = """\end{matrix}"""
+        parser.append(end)
+        assertEquals(LatexParser().parse(open + end), parser.getPreviewDocument())
+    }
+
+    @Test
     fun editingBeforeAnUnfinishedLiteralDoesNotPublishIt() {
         val parser = IncrementalLatexParser()
         val literal = """\verb|a{b"""

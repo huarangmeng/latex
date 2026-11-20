@@ -268,6 +268,17 @@ internal class ParseSession(
         tokenStream.diagnostics = diagnostics
     }
 
+    internal fun parsePreview(): LatexNode.Document? {
+        tokenStream.canDeferPreview = true
+        return try {
+            parse()
+        } catch (_: LatexTokenStream.PreviewDeferred) {
+            null
+        } finally {
+            tokenStream.canDeferPreview = false
+        }
+    }
+
     fun parse(): LatexNode.Document {
         val children = try {
             parseMathList(checkpoints) { false }
@@ -736,10 +747,12 @@ internal class ParseSession(
     }
 
     private fun canSaveCheckpoint(): Boolean =
-        !commandParser.hasExpanded && commandValues == null && environmentValues == null &&
-            colorValues == null && lengthValues == null && mathCodeValues == null &&
-            !tokenStream.hasPendingTokens && !globalAssignment && scopeDepth == 0 && !inTextMode &&
-            !hasIncompleteStructure
+        !hasExpansionState() && colorValues == null && lengthValues == null &&
+            !globalAssignment && scopeDepth == 0 && !inTextMode && !hasIncompleteStructure
+
+    private fun hasExpansionState(): Boolean =
+        commandParser.hasExpanded || commandValues != null || environmentValues != null ||
+            mathCodeValues != null || tokenStream.hasPendingTokens
 
     private fun recordCompletePrefix() {
         if (!hasIncompleteStructure && !tokenStream.hasPendingTokens) {
@@ -812,6 +825,10 @@ internal class ParseSession(
     private fun parseMathMode(openToken: LatexToken.MathShift): LatexNode {
         val startOffset = openToken.range.start
         val count = openToken.count
+        if (tokenStream.canDeferPreview && !hasExpansionState()) {
+            // 起始标记来自源码且没有进入展开，只有另一个同宽度标记才可能关闭它。
+            tokenStream.requirePreviewCloser(minimum = 2) { LatexToken.MathShift(count) }
+        }
         tokenStream.advance()
 
         val previous = inTextMode

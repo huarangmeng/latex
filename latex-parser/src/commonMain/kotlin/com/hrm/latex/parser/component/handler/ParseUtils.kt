@@ -274,8 +274,7 @@ internal object ParseUtils {
 
     /** 方括号只在调用方需要可选参数时打开结构，普通数学列表的方括号仍是符号。 */
     fun parseBracketedArgument(ctx: LatexParserContext, stream: LatexTokenStream): List<LatexNode>? {
-        val opening = stream.peek() as? LatexToken.LeftBracket ?: return null
-        stream.advance()
+        val opening = stream.openOptionalArgument() ?: return null
         val nodes = mutableListOf<LatexNode>()
         while (!stream.isEOF() && stream.peek().let { it !is LatexToken.RightBracket && !it.isScopeCloser() }) {
             ctx.parseExpression()?.let(nodes::add)

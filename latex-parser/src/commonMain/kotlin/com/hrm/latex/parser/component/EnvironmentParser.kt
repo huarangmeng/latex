@@ -82,6 +82,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
         val beginToken = tokenStream.advance() as? LatexToken.BeginEnvironment ?: return null
         val envName = beginToken.name
         val startOffset = beginToken.range.start
+        tokenStream.requirePreviewCloser { LatexToken.EndEnvironment(envName) }
 
         HLog.d(TAG) { "解析环境: $envName" }
 
@@ -557,8 +558,7 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
     }
 
     private fun parseOptionalBracketText(): String? {
-        if (tokenStream.peek() !is LatexToken.LeftBracket) return null
-        tokenStream.advance()
+        if (tokenStream.openOptionalArgument() == null) return null
         val result = StringBuilder()
         while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
             when (val token = tokenStream.advance()) {

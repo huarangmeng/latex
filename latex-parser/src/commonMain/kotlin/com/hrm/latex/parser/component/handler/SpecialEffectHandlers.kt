@@ -122,8 +122,7 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
     }
 
     register("smash") { _, ctx, stream ->
-        val smashType = if (stream.peek() is LatexToken.LeftBracket) {
-            stream.advance() // consume [
+        val smashType = if (stream.openOptionalArgument() != null) {
             val typeStr = StringBuilder()
             while (!stream.isEOF() && stream.peek() !is LatexToken.RightBracket) {
                 val t = stream.peek()
@@ -236,8 +235,7 @@ private fun unwrapContent(arg: LatexNode): List<LatexNode> {
 }
 
 private fun parseOptionalBracketText(stream: com.hrm.latex.parser.component.LatexTokenStream): String? {
-    if (stream.peek() !is LatexToken.LeftBracket) return null
-    stream.advance()
+    if (stream.openOptionalArgument() == null) return null
     val builder = StringBuilder()
     while (!stream.isEOF() && stream.peek() !is LatexToken.RightBracket) {
         val token = stream.peek()
