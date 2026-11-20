@@ -27,6 +27,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class IncrementalLatexParserTest {
@@ -441,6 +442,68 @@ class IncrementalLatexParserTest {
         assertTrue(doc.children.any { it is LatexNode.Fraction })
     }
 
+    @Test
+    fun contextualFormulasKeepTheSameAstWhenStreamedOrEdited() {
+        val cases = listOf(
+            """a \bmod b""", """a\space b""", """1 \over x""", """\int\limits_2^2""",
+            """x_1 + \dots + x_n""", """x + \verb|y| + z""", "a%comment\nb",
+            """\href {https://example.org/a%20b?x=${'$'}v#top}{\alpha}""",
+        )
+        val batch = LatexParser()
+        for (source in cases) {
+            val expected = batch.parse(source)
+            for (size in listOf(1, 2, 3, 5, 8)) {
+                val incremental = IncrementalLatexParser()
+                source.chunked(size).forEach(incremental::append)
+                assertEquals(expected, incremental.getCurrentDocument(), "$source / $size")
+                assertEquals(expected, incremental.getPreviewDocument(), "预览 $source / $size")
+            }
+        }
+        for ((before, after) in listOf(
+            """1 + x""" to """1 \over x""",
+            """\int\limits_2^2""" to """\int\nolimits_2^2""",
+            """a \bm{x} b""" to """a \bmod b""",
+            "a%old\nb" to "a%new b\nc",
+            """\href{x%20y}{z}""" to """\href{x%2Fy}{z}""",
+            """x + \dots + y""" to """x + \dots y""",
+        )) {
+            val incremental = IncrementalLatexParser()
+            incremental.setInput(before)
+            incremental.setInput(after)
+            assertEquals(batch.parse(after), incremental.getCurrentDocument(), "$before → $after")
+        }
+    }
+
+    @Test
+    fun unchangedExpressionsAreReusedAcrossAppendAndSameLengthEdit() {
+        val incremental = IncrementalLatexParser()
+        incremental.append("""a + \frac{1}{2} + z""")
+        val fraction = incremental.getCurrentDocument().children.filterIsInstance<LatexNode.Fraction>().single()
+
+        incremental.append(" + x")
+        assertSame(fraction, incremental.getCurrentDocument().children.filterIsInstance<LatexNode.Fraction>().single())
+
+        val replaced = """b + \frac{1}{2} + z + x"""
+        incremental.setInput(replaced)
+        val edited = incremental.getCurrentDocument()
+        assertEquals(LatexParser().parse(replaced), edited)
+        assertSame(fraction, edited.children.filterIsInstance<LatexNode.Fraction>().single())
+    }
+
+    @Test
+    fun currentDocumentUsesBatchRecoveryWhilePreviewStaysStable() {
+        val incremental = IncrementalLatexParser()
+        incremental.append("x+y")
+        val previous = incremental.getPreviewDocument()
+        val incomplete = "x+y+\\frac{a"
+        incremental.setInput(incomplete)
+        assertEquals(previous, incremental.getPreviewDocument())
+        assertEquals(LatexParser().parse(incomplete), incremental.getCurrentDocument())
+        incremental.append("}{b}")
+        assertEquals(LatexParser().parse(incomplete + "}{b}"), incremental.getCurrentDocument())
+        assertEquals(incremental.getCurrentDocument(), incremental.getPreviewDocument())
+    }
+
     // ========== 核心场景：不完整输入保留旧结果（无异常闪烁） ==========
 
     @Test
@@ -449,14 +512,14 @@ class IncrementalLatexParserTest {
 
         // 第一步：完整输入 x+y → 解析成功
         parser.append("x+y")
-        val doc1 = parser.getCurrentDocument()
+        val doc1 = parser.getPreviewDocument()
         assertTrue(doc1.children.isNotEmpty(), "Complete input should parse")
         val childCount1 = doc1.children.size
 
         // 第二步：追加不完整内容 +\frac{ → 解析失败
         // 期望：保留上次成功的 "x+y" 解析结果，不展示异常
         parser.append("+\\frac{")
-        val doc2 = parser.getCurrentDocument()
+        val doc2 = parser.getPreviewDocument()
         assertEquals(
             childCount1, doc2.children.size,
             "Incomplete input should retain last successful result, not show error"
@@ -469,17 +532,17 @@ class IncrementalLatexParserTest {
 
         // 完整输入 → 成功
         parser.append("x+y")
-        val doc1 = parser.getCurrentDocument()
+        val doc1 = parser.getPreviewDocument()
         assertTrue(doc1.children.isNotEmpty())
 
         // 追加不完整 → 保留旧结果
         parser.append("+\\frac{a")
-        val docMid = parser.getCurrentDocument()
+        val docMid = parser.getPreviewDocument()
         assertNotNull(docMid)
 
         // 补全 → 更新为新结果
         parser.append("}{b}")
-        val doc2 = parser.getCurrentDocument()
+        val doc2 = parser.getPreviewDocument()
         assertTrue(doc2.children.isNotEmpty())
         // 完整输入后应包含 Fraction
         val hasFraction = doc2.children.any { it is LatexNode.Fraction }
@@ -496,7 +559,7 @@ class IncrementalLatexParserTest {
 
         formula.forEach { ch ->
             parser.append(ch.toString())
-            val doc = parser.getCurrentDocument()
+            val doc = parser.getPreviewDocument()
 
             // 核心断言：在整个输入过程中，不应出现包含原始 LaTeX 源码的 Text 节点
             // （如 "\frac{a" 这样的文本）
@@ -521,7 +584,7 @@ class IncrementalLatexParserTest {
         }
 
         // 最终应包含 Fraction
-        val finalDoc = parser.getCurrentDocument()
+        val finalDoc = parser.getPreviewDocument()
         assertTrue(
             finalDoc.children.any { it is LatexNode.Fraction },
             "Final document should contain Fraction"

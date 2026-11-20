@@ -590,6 +590,7 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("1", "Hyperlink", "\\href{https://example.com}{Click here}"),
             PreviewItem("2", "URL", "\\url{https://example.com}"),
             PreviewItem("3", "Linked math", "\\href{https://wiki.org}{E = mc^2}"),
+            PreviewItem("encoded-url", "URL with percent encoding", "\\url{https://example.com/a%20b#top}"),
             PreviewItem(
                 "4", "Hyperlink with click callback", "\\href{https://example.com}{Click here}",
                 content = {

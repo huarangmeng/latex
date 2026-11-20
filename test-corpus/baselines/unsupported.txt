@@ -170,7 +170,6 @@ P\impliedby Q
 \hbox{$x^2$}
 \hbox{text}
 \hearts
-\href{http://example.org/~bar/#top?foo=$foo&bar=ba^r_boo%20baz}{\alpha}
 \href{https://katex.org/}{\KaTeX}
 \hskip1em\relax^2
 \hskip{1em}

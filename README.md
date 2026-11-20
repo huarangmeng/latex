@@ -184,7 +184,7 @@ Ordinary source spaces, tabs, and newlines do not add width in math mode; text c
 <details>
 <summary><b>Advanced Annotations (6)</b> — hyperlinks, tensors, four-corner scripts</summary>
 
-- **Hyperlinks**: `\href{url}{text}`, `\url{url}` (blue underline, click callback)
+- **Hyperlinks**: `\href{url}{text}`, `\url{url}` (blue underline, click callback, literal URL parameters such as `%20`)
 - **Four-corner scripts**: `\sideset{_a^b}{_c^d}{\sum}`
 - **Pre-scripts**: `\prescript{A}{Z}{X}` (isotope notation)
 - **Tensor indices**: `\tensor{T}{^a_b^c}`, `\indices{^a_b}`

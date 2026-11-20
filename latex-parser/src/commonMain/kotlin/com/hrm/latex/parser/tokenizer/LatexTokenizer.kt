@@ -36,7 +36,7 @@ import com.hrm.latex.parser.model.SourceRange
  */
 class LatexTokenizer(private val input: String, startOffset: Int = 0) {
     private var position = startOffset
-    private val tokens = ArrayList<LatexToken>(estimateTokenCount(input.length - startOffset))
+    private var tokens = ArrayList<LatexToken>(estimateTokenCount(input.length - startOffset))
 
     companion object {
         private const val TAG = "LatexTokenizer"
@@ -81,85 +81,86 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
      */
     fun tokenize(): List<LatexToken> {
         HLog.d(TAG) { "开始词法分析，输入长度: ${input.length}" }
-
-        while (position < input.length) {
-            when (val char = peek()) {
-                '\\' -> handleBackslash()
-                '%' -> handleComment()
-                '~' -> {
-                    val start = position
-                    advance()
-                    tokens.add(LatexToken.Whitespace("\u00A0", SourceRange(start, position)))
-                }
-                '{' -> {
-                    val start = position
-                    advance()
-                    tokens.add(LatexToken.LeftBrace(SourceRange(start, position)))
-                }
-
-                '}' -> {
-                    val start = position
-                    advance()
-                    tokens.add(LatexToken.RightBrace(SourceRange(start, position)))
-                }
-
-                '[' -> {
-                    val start = position
-                    advance()
-                    tokens.add(LatexToken.LeftBracket(SourceRange(start, position)))
-                }
-
-                ']' -> {
-                    val start = position
-                    advance()
-                    tokens.add(LatexToken.RightBracket(SourceRange(start, position)))
-                }
-
-                '^' -> {
-                    val start = position
-                    advance()
-                    tokens.add(LatexToken.Superscript(SourceRange(start, position)))
-                }
-
-                '\'' -> {
-                    val start = position
-                    advance()
-                    tokens.add(LatexToken.Prime(SourceRange(start, position)))
-                }
-
-                '_' -> {
-                    val start = position
-                    advance()
-                    tokens.add(LatexToken.Subscript(SourceRange(start, position)))
-                }
-
-                '&' -> {
-                    val start = position
-                    advance()
-                    tokens.add(LatexToken.Ampersand(SourceRange(start, position)))
-                }
-                
-                '$' -> handleMathShift()
-                '+', '-', '*', '!', '=', '<', '>', ',', ';', ':' -> {
-                    val start = position
-                    tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
-                    advance()
-                }
-                '(', ')', '|', '.' -> {
-                    val start = position
-                    tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
-                    advance()
-                }
-
-                '\n', '\r' -> handleNewLine()
-                ' ', '\t' -> handleWhitespace()
-                else -> handleTextOrMathSymbol()
-            }
+        if (readIndex != 0) {
+            tokens = ArrayList(tokens.subList(readIndex, tokens.size))
+            readIndex = 0
         }
+
+        while (position < input.length) scan()
 
         tokens.add(LatexToken.EOF(SourceRange(position, position)))
         HLog.d(TAG) { "词法分析完成，生成 ${tokens.size} 个 token" }
+        readIndex = tokens.size
         return tokens
+    }
+
+    private fun scan() {
+        when (val char = peek()) {
+            '\\' -> handleBackslash()
+            '%' -> handleComment()
+            '~' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Whitespace("\u00A0", SourceRange(start, position)))
+            }
+            '{' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.LeftBrace(SourceRange(start, position)))
+            }
+
+            '}' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.RightBrace(SourceRange(start, position)))
+            }
+
+            '[' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.LeftBracket(SourceRange(start, position)))
+            }
+
+            ']' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.RightBracket(SourceRange(start, position)))
+            }
+
+            '^' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Superscript(SourceRange(start, position)))
+            }
+
+            '\'' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Prime(SourceRange(start, position)))
+            }
+
+            '_' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Subscript(SourceRange(start, position)))
+            }
+
+            '&' -> {
+                val start = position
+                advance()
+                tokens.add(LatexToken.Ampersand(SourceRange(start, position)))
+            }
+
+            '$' -> handleMathShift()
+            '+', '-', '*', '!', '=', '<', '>', ',', ';', ':', '(', ')', '|', '.' -> {
+                val start = position
+                tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
+                advance()
+            }
+            '\n', '\r' -> handleNewLine()
+            ' ', '\t' -> handleWhitespace()
+            else -> handleTextOrMathSymbol()
+        }
     }
 
     private fun peek(offset: Int = 0): Char? {
@@ -173,7 +174,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
         return char
     }
 
-    private fun handleBackslash() {
+    private fun handleBackslash(readUrl: Boolean = true) {
         val start = position
         advance() // 跳过 \
 
@@ -261,8 +262,54 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
 
             else -> {
                 tokens.add(LatexToken.Command(commandName, SourceRange(start, position)))
+                if (readUrl && (commandName == "href" || commandName == "url")) scanUrlArgument()
             }
         }
+    }
+
+    /**
+     * 将超链接命令与第一个花括号参数作为一个词法单元。
+     * 参数里的 %、$、# 等字符按普通文本读取，保留花括号和反斜杠命令供宏替换使用。
+     */
+    private fun scanUrlArgument() {
+        while (position < input.length) {
+            when (peek()) {
+                ' ', '\t' -> handleWhitespace()
+                '\r', '\n' -> handleNewLine()
+                '%' -> handleComment()
+                else -> break
+            }
+        }
+        if (peek() != '{') return
+        var depth = 0
+        do {
+            val start = position
+            when (peek()) {
+                '{' -> {
+                    depth++
+                    advance()
+                    tokens.add(LatexToken.LeftBrace(SourceRange(start, position)))
+                }
+                '}' -> {
+                    depth--
+                    advance()
+                    tokens.add(LatexToken.RightBrace(SourceRange(start, position)))
+                }
+                '\\' -> {
+                    val escaped = peek(1)
+                    if (escaped != null && escaped in "#$%&~_^{}") {
+                        advance(2)
+                        tokens.add(LatexToken.Text(escaped.toString(), SourceRange(start, position), literal = true))
+                    } else {
+                        handleBackslash(readUrl = false)
+                    }
+                }
+                else -> {
+                    while (position < input.length && peek() != '{' && peek() != '}' && peek() != '\\') advance()
+                    tokens.add(LatexToken.Text(input.substring(start, position), SourceRange(start, position)))
+                }
+            }
+        } while (depth > 0 && position < input.length)
     }
 
     private fun Char.isAsciiLetter(): Boolean = this in 'a'..'z' || this in 'A'..'Z'
@@ -403,91 +450,26 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
         }
     }
 
-    // ========== 流式 API（增量分词使用） ==========
+    /** 最近一个 token 所属的扫描单元起点，包括单元前被跳过的源码。 */
+    internal var restartOffset: Int = startOffset
+        private set
 
-    /**
-     * 扫描并返回下一个 token。
-     *
-     * 与 [tokenize] 不同，此方法不将 token 加入内部列表，
-     * 而是直接返回。到达文本末尾时返回 EOF token。
-     * 用于 [IncrementalTokenizer] 的逐 token 收敛分词。
-     */
+    /** 只有单元的首个 token 可以作为复用后缀的边界。 */
+    internal var firstInUnit: Boolean = true
+        private set
+
+    private var readIndex = 0
+
+    /** 与 [tokenize] 共用扫描规则，按需返回本次扫描单元中的 token。 */
     fun nextToken(): LatexToken {
-        if (position >= input.length) {
-            return LatexToken.EOF(SourceRange(position, position))
+        firstInUnit = readIndex == tokens.size
+        if (firstInUnit) {
+            restartOffset = position
+            if (position >= input.length) return LatexToken.EOF(SourceRange(position, position))
+            tokens.clear()
+            readIndex = 0
+            while (position < input.length && tokens.isEmpty()) scan()
         }
-
-        val savedSize = tokens.size
-        when (val char = peek()) {
-            '\\' -> handleBackslash()
-            '%' -> handleComment()
-            '~' -> {
-                val start = position
-                advance()
-                tokens.add(LatexToken.Whitespace("\u00A0", SourceRange(start, position)))
-            }
-            '{' -> {
-                val start = position
-                advance()
-                tokens.add(LatexToken.LeftBrace(SourceRange(start, position)))
-            }
-            '}' -> {
-                val start = position
-                advance()
-                tokens.add(LatexToken.RightBrace(SourceRange(start, position)))
-            }
-            '[' -> {
-                val start = position
-                advance()
-                tokens.add(LatexToken.LeftBracket(SourceRange(start, position)))
-            }
-            ']' -> {
-                val start = position
-                advance()
-                tokens.add(LatexToken.RightBracket(SourceRange(start, position)))
-            }
-            '^' -> {
-                val start = position
-                advance()
-                tokens.add(LatexToken.Superscript(SourceRange(start, position)))
-            }
-            '\'' -> {
-                val start = position
-                advance()
-                tokens.add(LatexToken.Prime(SourceRange(start, position)))
-            }
-            '_' -> {
-                val start = position
-                advance()
-                tokens.add(LatexToken.Subscript(SourceRange(start, position)))
-            }
-            '&' -> {
-                val start = position
-                advance()
-                tokens.add(LatexToken.Ampersand(SourceRange(start, position)))
-            }
-            '$' -> handleMathShift()
-            '+', '-', '*', '!', '=', '<', '>', ',', ';', ':' -> {
-                val start = position
-                tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
-                advance()
-            }
-            '(', ')', '|', '.' -> {
-                val start = position
-                tokens.add(LatexToken.Text(char.toString(), SourceRange(start, start + 1)))
-                advance()
-            }
-            '\n', '\r' -> handleNewLine()
-            ' ', '\t' -> handleWhitespace()
-            else -> handleTextOrMathSymbol()
-        }
-
-        // handleComment 不产生 token（注释被吞掉），需要递归处理
-        return if (tokens.size > savedSize) {
-            tokens.removeAt(tokens.lastIndex)
-        } else {
-            // 注释被跳过了，递归取下一个
-            nextToken()
-        }
+        return if (readIndex == tokens.size) LatexToken.EOF(SourceRange(position, position)) else tokens[readIndex++]
     }
 }

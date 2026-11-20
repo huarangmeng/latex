@@ -30,7 +30,7 @@ import com.hrm.latex.parser.model.LatexNode
 internal fun CommandRegistry.installHyperlinkHandlers() {
     // \href{url}{text}
     register("href") { _, ctx, _ ->
-        val urlArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
+        val urlArg = ctx.parseTextArgument() ?: return@register LatexNode.Text("")
         val url = ParseUtils.extractText(
             when (urlArg) {
                 is LatexNode.Group -> urlArg.children
@@ -49,7 +49,7 @@ internal fun CommandRegistry.installHyperlinkHandlers() {
 
     // \url{url} — 显示 URL 文本本身
     register("url") { _, ctx, _ ->
-        val urlArg = ctx.parseArgument() ?: return@register LatexNode.Text("")
+        val urlArg = ctx.parseTextArgument() ?: return@register LatexNode.Text("")
         val url = ParseUtils.extractText(
             when (urlArg) {
                 is LatexNode.Group -> urlArg.children

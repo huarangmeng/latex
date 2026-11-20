@@ -106,7 +106,7 @@ open class IncrementalParserBenchmark {
 
 /**
  * 每个 op 是从空输入开始、处理全部分块的一整轮流式解析，包含初始化和输入累积。
- * 两条路径对同一前缀序列逐块获取 AST，最终输出一致；不完整前缀的容错策略允许不同。
+ * 两条路径处理相同的分块序列。增量路径读取实时预览，输入补全后的 AST 与整式解析一致。
  */
 @State(Scope.Thread)
 @BenchmarkMode(Mode.AverageTime)
@@ -133,12 +133,12 @@ open class StreamingParserBenchmark {
         val accumulated = StringBuilder(source.length)
         for (chunk in chunks) {
             probe.append(chunk)
-            probe.getCurrentDocument()
+            probe.getPreviewDocument()
             accumulated.append(chunk)
             full.parse(accumulated.toString())
         }
         check(probe.getCurrentInput() == source)
-        checkEquivalent(expected, probe.getCurrentDocument(), "$input/chunkSize=$chunkSize")
+        checkEquivalent(expected, probe.getPreviewDocument(), "$input/chunkSize=$chunkSize")
     }
 
     @Benchmark
@@ -146,7 +146,7 @@ open class StreamingParserBenchmark {
         val parser = IncrementalLatexParser()
         for (chunk in chunks) {
             parser.append(chunk)
-            bh.consume(parser.getCurrentDocument())
+            bh.consume(parser.getPreviewDocument())
         }
     }
 
