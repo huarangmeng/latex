@@ -133,6 +133,7 @@ private class NodeIdentity(private val node: LatexNode) {
 
 /** 仅保存纯布局所需的输入快照，不持有文档编号状态。 */
 private class CacheKey(private val node: LatexNode, context: RenderContext) {
+    private val images = context.images
     private val fontSize = context.fontSize
     private val baseFontSize = context.baseFontSize
     private val color = context.color
@@ -170,6 +171,7 @@ private class CacheKey(private val node: LatexNode, context: RenderContext) {
         result = 31 * result + layoutHints.hashCode()
         result = 31 * result + identityHash(mathFontProvider)
         result = 31 * result + textDirection.hashCode()
+        result = 31 * result + layoutIdentityHashCode(images)
         result
     }
 
@@ -182,7 +184,7 @@ private class CacheKey(private val node: LatexNode, context: RenderContext) {
         fontFamily === other.fontFamily && fontVariant == other.fontVariant &&
         fontFamilies === other.fontFamilies && isVariantFontFamily == other.isVariantFontFamily && smallCaps == other.smallCaps &&
         inTextMode == other.inTextMode && layoutHints == other.layoutHints && mathFontProvider === other.mathFontProvider &&
-        textDirection == other.textDirection
+        textDirection == other.textDirection && images === other.images
 }
 
 private fun identityHash(value: Any?): Int = if (value == null) 0 else layoutIdentityHashCode(value)

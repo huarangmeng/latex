@@ -14,6 +14,19 @@ import kotlin.test.assertTrue
 class PlainTexCompatibilityTest {
 
     @Test
+    fun realLineBreaksEndCommentsAndWhitespaceDoesNotInterruptDimensions() {
+        val text = parse("\\text{hello% comment\nworld}")
+        assertEquals("helloworld", (text.children.single() as LatexNode.TextMode).text)
+        assertEquals("-1mu", parse("a\\mkern\t-\r1  \n mu\nb").children.filterIsInstance<LatexNode.HSpace>().single().dimension)
+        assertEquals("1em", parse("\\kern{1 %kern\nem}").children.filterIsInstance<LatexNode.HSpace>().single().dimension)
+        val modes = parse("""\tmspace+{3mu}{.1667em}\text{\tmspace-{3mu}{.1667em}}""")
+        val spaces = modes.fold(emptyList<String>()) { widths, node ->
+            if (node is LatexNode.HSpace) widths + node.dimension else widths
+        }
+        assertEquals(listOf("+3mu", "-.1667em"), spaces)
+    }
+
+    @Test
     fun characterCodesSupportBasesAndSupplementaryCodePoints() {
         val pairs = mapOf(
             """\char37""" to "%",

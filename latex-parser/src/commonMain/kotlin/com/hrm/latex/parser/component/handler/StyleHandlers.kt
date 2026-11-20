@@ -38,6 +38,7 @@ internal fun CommandRegistry.installStyleHandlers() {
         "boldsymbol" to LatexNode.Style.StyleType.BOLD_SYMBOL,
         "bm" to LatexNode.Style.StyleType.BOLD_SYMBOL,
         "mathit" to LatexNode.Style.StyleType.ITALIC,
+        "mathnormal" to LatexNode.Style.StyleType.MATH_NORMAL,
         "textit" to LatexNode.Style.StyleType.TEXT_ITALIC,
         "textsl" to LatexNode.Style.StyleType.TEXT_SLANTED,
         "emph" to LatexNode.Style.StyleType.TEXT_EMPHASIS,
@@ -179,6 +180,7 @@ internal fun CommandRegistry.installStyleHandlers() {
 
     val fontSizeMapping = mapOf(
         "tiny" to LatexNode.FontSize.SizeType.TINY,
+        "sixptsize" to LatexNode.FontSize.SizeType.SIX_POINT,
         "scriptsize" to LatexNode.FontSize.SizeType.SCRIPT_SIZE,
         "footnotesize" to LatexNode.FontSize.SizeType.FOOTNOTE_SIZE,
         "small" to LatexNode.FontSize.SizeType.SMALL,
@@ -194,6 +196,23 @@ internal fun CommandRegistry.installStyleHandlers() {
         register(cmd) { _, _, _ ->
             LatexNode.FontSize(emptyList(), sizeType)
         }
+    }
+
+    register("TeX", "LaTeX", "KaTeX") { name, _, stream ->
+        // 标志仍由普通文本字形构成，按字偶调整间距并升降 A、E。
+        stream.raw { stream.skipWhitespace() }
+        val tex = listOf(
+            LatexNode.TextMode("T"), LatexNode.HSpace("-.1667em"),
+            LatexNode.Layout(LatexNode.Layout.LayoutType.RAISE_BOX, listOf(LatexNode.TextMode("E")), shift = "-.5ex"),
+            LatexNode.HSpace("-.125em"), LatexNode.TextMode("X"),
+        )
+        val prefix = if (name == "TeX") emptyList() else listOf(
+            LatexNode.TextMode(name.take(1)), LatexNode.HSpace(if (name == "LaTeX") "-.36em" else "-.17em"),
+            LatexNode.Layout(LatexNode.Layout.LayoutType.RAISE_BOX,
+                listOf(LatexNode.MathStyle(listOf(LatexNode.TextMode("A")), LatexNode.MathStyle.MathStyleType.SCRIPT)), shift = ".2em"),
+            LatexNode.HSpace("-.15em"),
+        )
+        LatexNode.Style(prefix + tex, LatexNode.Style.StyleType.TEXT_ROMAN)
     }
 
     val textSymbols = mapOf(

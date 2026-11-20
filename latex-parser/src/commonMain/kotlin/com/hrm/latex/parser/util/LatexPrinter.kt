@@ -161,6 +161,18 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         return ""
     }
     
+    override fun visitHtml(node: LatexNode.Html): String {
+        output.append("Html(${node.attributes})[")
+        node.content.forEach { visit(it) }
+        output.append("]")
+        return ""
+    }
+
+    override fun visitInlineImage(node: LatexNode.InlineImage): String {
+        output.append("InlineImage(${node.source}, ${node.alt}, ${node.width}, ${node.height}, ${node.totalHeight})")
+        return ""
+    }
+
     override fun visitProofTree(node: LatexNode.ProofTree): String {
         output.append("ProofTree(rule=${node.rule}, rootAtTop=${node.rootAtTop}, premises=[")
         node.premises.forEach { visit(it) }

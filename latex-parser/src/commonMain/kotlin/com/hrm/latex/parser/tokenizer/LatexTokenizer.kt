@@ -39,6 +39,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
     private var tokens = ArrayList<LatexToken>(estimateTokenCount(input.length - startOffset))
 
     companion object {
+        private val urlCommands = setOf("href", "url", "includegraphics")
         private const val TAG = "LatexTokenizer"
 
         /**
@@ -94,9 +95,9 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
         return tokens
     }
 
-    private fun scan() {
+    private fun scan(readUrl: Boolean = true) {
         when (val char = peek()) {
-            '\\' -> handleBackslash()
+            '\\' -> handleBackslash(readUrl)
             '%' -> handleComment()
             '~' -> {
                 val start = position
@@ -267,7 +268,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
 
             else -> {
                 tokens.add(LatexToken.Command(commandName, SourceRange(start, position)))
-                if (readUrl && (commandName == "href" || commandName == "url")) scanUrlArgument()
+                if (readUrl && commandName in urlCommands) scanUrlArgument(commandName == "includegraphics")
             }
         }
     }
@@ -276,7 +277,25 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
      * 将超链接命令与第一个花括号参数作为一个词法单元。
      * 参数里的 %、$、# 等字符按普通文本读取，保留花括号和反斜杠命令供宏替换使用。
      */
-    private fun scanUrlArgument() {
+    private fun scanUrlArgument(readOptions: Boolean = false) {
+        scanUrlWhitespace()
+        if (readOptions && peek() == '[') {
+            // 可选参数也属于同一个分词单元，追加右括号后需要从命令处重新扫描。
+            var braces = 0
+            do {
+                val char = peek()
+                if (char == '{') braces++
+                if (char == '}') braces--
+                scan(readUrl = false)
+                if (char == ']' && braces == 0) break
+            } while (position < input.length)
+            scanUrlWhitespace()
+        }
+        if (peek() != '{') return
+        scanLiteralUrlGroup()
+    }
+
+    private fun scanUrlWhitespace() {
         while (position < input.length) {
             when (peek()) {
                 ' ', '\t' -> handleWhitespace()
@@ -285,7 +304,9 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                 else -> break
             }
         }
-        if (peek() != '{') return
+    }
+
+    private fun scanLiteralUrlGroup() {
         var depth = 0
         do {
             val start = position

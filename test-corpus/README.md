@@ -30,9 +30,14 @@ insertion, replacement and deletion against batch parsing.
 
 ## `baselines/`
 
-`unsupported.txt` records formulas that parse with an error diagnostic, an `Error` node
-or an unrecognized command. A test fails when a formula enters or leaves this list.
-Regenerate the baseline after intentional changes.
+`expected-diagnostics.tsv` lists inputs that must produce an error of the recorded
+category, including malformed input and `\errmessage`. The copied formula files
+retain literal backslash sequences such as `\n`. Separate tests exercise actual
+line breaks and tabs.
+
+`unsupported.txt` records unexpected errors, error nodes, and unrecognized commands
+in the remaining corpus. The test requires every entry in both files to match the
+current parser. Regenerate `unsupported.txt` after intentional changes.
 
 ```bash
 UPDATE_CORPUS_BASELINE=1 ./gradlew :latex-parser:jvmTest --tests "*CorpusTest*"

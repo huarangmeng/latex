@@ -65,6 +65,10 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
 
     override fun visitText(node: LatexNode.Text): String = node.content
 
+    override fun visitHtml(node: LatexNode.Html): String = node.content.joinToString(" ") { visit(it) }.collapseSpaces()
+
+    override fun visitInlineImage(node: LatexNode.InlineImage): String = node.alt
+
     override fun visitInlineMath(node: LatexNode.InlineMath): String = node.children.joinToString(" ") { visit(it) }.collapseSpaces()
     override fun visitDisplayMath(node: LatexNode.DisplayMath): String = node.children.joinToString(" ") { visit(it) }.collapseSpaces()
 
@@ -185,6 +189,15 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             LatexNode.Accent.AccentType.DDDDOT -> "quadruple dot"
             LatexNode.Accent.AccentType.CENTER_NOT -> "not"
             LatexNode.Accent.AccentType.SLASHED -> "slashed"
+            LatexNode.Accent.AccentType.OVER_RIGHT_DOUBLE -> "double right arrow over"
+            LatexNode.Accent.AccentType.OVER_LEFT_HARPOON -> "left harpoon over"
+            LatexNode.Accent.AccentType.OVER_RIGHT_HARPOON -> "right harpoon over"
+            LatexNode.Accent.AccentType.UNDER_BOTH_ARROWS -> "bidirectional arrow under"
+            LatexNode.Accent.AccentType.OVER_GROUP -> "grouped above"
+            LatexNode.Accent.AccentType.UNDER_GROUP -> "grouped below"
+            LatexNode.Accent.AccentType.OVER_SEGMENT -> "line segment above"
+            LatexNode.Accent.AccentType.UNDER_SEGMENT -> "line segment below"
+            LatexNode.Accent.AccentType.UNDER_TILDE -> "tilde under"
             LatexNode.Accent.AccentType.GRAVE -> "grave"
             LatexNode.Accent.AccentType.ACUTE -> "acute"
             LatexNode.Accent.AccentType.CHECK -> "check"
@@ -222,6 +235,8 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
             LatexNode.ExtensibleArrow.Direction.LEFT_HARPOON_DOWN -> "left harpoon down"
             LatexNode.ExtensibleArrow.Direction.RIGHT_LEFT_HARPOONS -> "right and left harpoons"
             LatexNode.ExtensibleArrow.Direction.LEFT_RIGHT_HARPOONS -> "left and right harpoons"
+            LatexNode.ExtensibleArrow.Direction.RIGHT_LEFT_ARROWS,
+            LatexNode.ExtensibleArrow.Direction.TO_FROM -> "right and left arrows"
             LatexNode.ExtensibleArrow.Direction.TWO_HEAD_RIGHT -> "two-headed right arrow"
             LatexNode.ExtensibleArrow.Direction.TWO_HEAD_LEFT -> "two-headed left arrow"
         }
@@ -439,7 +454,8 @@ class AccessibilityVisitor : BaseLatexVisitor<String>() {
     }
 
     override fun visitLayout(node: LatexNode.Layout): String = when (node.layoutType) {
-        LatexNode.Layout.LayoutType.RAISE_BOX, LatexNode.Layout.LayoutType.V_CENTER ->
+        LatexNode.Layout.LayoutType.RAISE_BOX, LatexNode.Layout.LayoutType.V_CENTER,
+        LatexNode.Layout.LayoutType.POOR_MANS_BOLD ->
             node.content.joinToString(" ") { visit(it) }.collapseSpaces()
         LatexNode.Layout.LayoutType.RULE -> "rule"
     }

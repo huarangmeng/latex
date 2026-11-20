@@ -31,6 +31,21 @@ class MathMLVisitorTest {
     private val parser = LatexParser()
 
     @Test
+    fun htmlAttributesAndImagesSurviveMathMlWithoutUntrustedAttributes() {
+        val source = """\htmlId{element}{\htmlClass{label}{\htmlData{entry=a&b}{\htmlStyle{color: red;}{x}}}}""" +
+            """\includegraphics[width=1em,height=.8em,totalheight=1em,alt={a, b}]{https://example.test/a%20b.png?x=1&y=2}"""
+        val result = parser.parseWithDiagnostics(source)
+        assertTrue(result.errors.isEmpty(), result.errors.toString())
+        val html = MathMLVisitor.convert(result.document)
+        assertTrue(html.contains("id=\"element\"") && html.contains("class=\"label\""))
+        assertTrue(html.contains("data-entry=\"a&amp;b\"") && html.contains("style=\"color: red;\""))
+        assertTrue(html.contains("src=\"https://example.test/a%20b.png?x=1&amp;y=2\""))
+        assertTrue(html.contains("alt=\"a, b\" height=\"1em\" width=\"1em\""))
+        assertTrue(parser.parseWithDiagnostics("""\includegraphics{javascript:invalid}""").errors.isNotEmpty())
+        assertTrue(parser.parseWithDiagnostics("""\htmlStyle{color: red; background: url(remote);}{x}""").errors.isNotEmpty())
+    }
+
+    @Test
     fun sourceWhitespaceDoesNotCreateMathMlGlue() {
         assertTrue(MathMLVisitor.convert(parser.parse(" a - b ")).contains("<mo>−</mo>"))
         kotlin.test.assertEquals(

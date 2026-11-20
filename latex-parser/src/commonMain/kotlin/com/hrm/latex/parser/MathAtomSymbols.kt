@@ -1,10 +1,10 @@
-package com.hrm.latex.renderer.utils
+package com.hrm.latex.parser
 
-import com.hrm.latex.parser.SymbolMap
+import com.hrm.latex.parser.model.LatexNode.MathClass.AtomClass
 
 /** Math-atom families of supported symbols, audited against KaTeX 0.16.22. */
-internal object MathAtomSymbols {
-    private val byName: Map<String, AtomType> = buildMap {
+object MathAtomSymbols {
+    private val byName: Map<String, AtomClass> = buildMap {
         listOf(
             "Alpha", "Bbbk", "Beta", "Chi", "Delta", "Epsilon",
             "Eta", "Finv", "Game", "Gamma", "Im", "Iota",
@@ -28,12 +28,12 @@ internal object MathAtomSymbols {
             "varXi", "varepsilon", "varkappa", "varnothing", "varphi", "varpi",
             "varrho", "varsigma", "vartheta", "vdots", "vert", "wp",
             "xi", "zeta", "surd", "triangledown",
-        ).forEach { put(it, AtomType.ORD) }
+        ).forEach { put(it, AtomClass.ORD) }
         listOf(
             "bigcap", "bigcup", "bigodot", "bigoplus", "bigotimes", "bigsqcup",
             "biguplus", "bigvee", "bigwedge", "coprod", "iiint", "iint",
             "int", "oiiint", "oiint", "oint", "prod", "sum", "smallint", "intop", "ointop",
-        ).forEach { put(it, AtomType.OP) }
+        ).forEach { put(it, AtomClass.OP) }
         listOf(
             "Cap", "Cup", "amalg", "ast", "barwedge", "bigcirc",
             "bigtriangledown", "bigtriangleup", "boxdot", "boxminus", "boxplus", "boxtimes",
@@ -46,7 +46,7 @@ internal object MathAtomSymbols {
             "setminus", "smallsetminus", "sqcap", "sqcup", "star", "times",
             "triangleleft", "triangleright", "uplus", "vee", "veebar", "wedge",
             "wr", "And", "lhd", "rhd", "unlhd", "unrhd", "minuso",
-        ).forEach { put(it, AtomType.BIN) }
+        ).forEach { put(it, AtomClass.BIN) }
         listOf(
             "Bumpeq", "Downarrow", "Leftarrow", "Leftrightarrow", "Lleftarrow", "Longleftarrow",
             "Longleftrightarrow", "Longrightarrow", "Lsh", "Rightarrow", "Rrightarrow", "Rsh",
@@ -88,34 +88,34 @@ internal object MathAtomSymbols {
             "gtreqqless", "subseteqq", "curlyeqprec", "curlyeqsucc", "preccurlyeq", "shortmid",
             "shortparallel", "nshortmid", "nshortparallel", "ngeqq", "nleqq", "notni", "vartriangle",
             "origof", "imageof", "downdownarrows", "impliedby",
-        ).forEach { put(it, AtomType.REL) }
+        ).forEach { put(it, AtomClass.REL) }
         listOf(
             "lVert", "langle", "lbrace", "lbrack", "lceil", "lfloor",
             "lgroup", "llbracket", "lmoustache", "lvert", "lparen", "ulcorner", "llcorner", "lBrace",
-        ).forEach { put(it, AtomType.OPEN) }
+        ).forEach { put(it, AtomClass.OPEN) }
         listOf(
             "rVert", "rangle", "rbrace", "rbrack", "rceil", "rfloor",
             "rgroup", "rmoustache", "rrbracket", "rvert", "rparen", "urcorner", "lrcorner", "rBrace",
-        ).forEach { put(it, AtomType.CLOSE) }
+        ).forEach { put(it, AtomClass.CLOSE) }
         listOf(
             "cdotp", "ldotp", "colon",
-        ).forEach { put(it, AtomType.PUNCT) }
+        ).forEach { put(it, AtomClass.PUNCT) }
         listOf(
             "cdots", "ddots", "dots", "ldots",
-        ).forEach { put(it, AtomType.INNER) }
+        ).forEach { put(it, AtomClass.INNER) }
     }
 
     // 这些命令的类别与同字形的 Unicode 字符不同，只按显式的命令名匹配。
     private val commandOnly = setOf("And", "lhd", "rhd", "unlhd", "unrhd", "vartriangle")
 
-    private val byUnicode: Map<String, AtomType> = buildMap {
+    private val byUnicode: Map<String, AtomClass> = buildMap {
         for ((name, type) in byName) {
-            if (type != AtomType.ORD && name !in commandOnly) {
+            if (type != AtomClass.ORD && name !in commandOnly) {
                 SymbolMap.getSymbol(name)?.let { if (it !in this) put(it, type) }
             }
         }
-        put("−", AtomType.BIN)
+        put("−", AtomClass.BIN)
     }
 
-    fun classify(name: String, unicode: String): AtomType = byName[name] ?: byUnicode[unicode] ?: AtomType.ORD
+    fun classify(name: String, unicode: String): AtomClass = byName[name] ?: byUnicode[unicode] ?: AtomClass.ORD
 }

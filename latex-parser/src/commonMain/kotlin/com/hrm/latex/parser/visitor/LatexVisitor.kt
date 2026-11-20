@@ -31,6 +31,8 @@ import com.hrm.latex.parser.model.LatexNode
  */
 interface LatexVisitor<T> {
     fun visitDocument(node: LatexNode.Document): T
+    fun visitHtml(node: LatexNode.Html): T = visitGroup(LatexNode.Group(node.content, node.sourceRange))
+    fun visitInlineImage(node: LatexNode.InlineImage): T = visitText(LatexNode.Text(node.alt, node.sourceRange))
     fun visitText(node: LatexNode.Text): T
     fun visitCommand(node: LatexNode.Command): T
     fun visitEnvironment(node: LatexNode.Environment): T
@@ -113,6 +115,13 @@ interface LatexVisitor<T> {
 abstract class BaseLatexVisitor<T> : LatexVisitor<T> {
     
     protected abstract fun defaultVisit(node: LatexNode): T
+
+    override fun visitHtml(node: LatexNode.Html): T {
+        node.content.forEach { visit(it) }
+        return defaultVisit(node)
+    }
+
+    override fun visitInlineImage(node: LatexNode.InlineImage): T = defaultVisit(node)
     
     override fun visitDocument(node: LatexNode.Document): T {
         node.children.forEach { visit(it) }
@@ -526,6 +535,8 @@ abstract class SimpleLatexVisitor<T> : LatexVisitor<T> {
 
     // 所有 visit 方法默认委托到 visitChildren（自动遍历 node.children()）
     override fun visitDocument(node: LatexNode.Document): T = visitChildren(node)
+    override fun visitHtml(node: LatexNode.Html): T = visitChildren(node)
+    override fun visitInlineImage(node: LatexNode.InlineImage): T = defaultVisit(node)
     override fun visitText(node: LatexNode.Text): T = visitChildren(node)
     override fun visitCommand(node: LatexNode.Command): T = visitChildren(node)
     override fun visitEnvironment(node: LatexNode.Environment): T = visitChildren(node)

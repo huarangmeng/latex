@@ -28,6 +28,25 @@ import com.hrm.latex.parser.model.LatexNode
  * 大型运算符命令：\sum, \prod, \int, \lim 等
  */
 internal fun CommandRegistry.installBigOperatorHandlers() {
+    val decoratedLimits = mapOf(
+        "varlimsup" to LatexNode.Accent.AccentType.OVERLINE, "varliminf" to LatexNode.Accent.AccentType.UNDERLINE,
+        "varinjlim" to LatexNode.Accent.AccentType.UNDERRIGHTARROW, "varprojlim" to LatexNode.Accent.AccentType.UNDERLEFTARROW,
+    )
+    register(*decoratedLimits.keys.toTypedArray()) { name, ctx, stream ->
+        val base = LatexNode.Accent(LatexNode.OperatorName("lim"), decoratedLimits.getValue(name))
+        val (sub, sup, mode) = ParseUtils.parseScriptsAndLimits(ctx, stream)
+        val content = if (sub == null && sup == null) base else {
+            val stack = LatexNode.Stack(base, above = sup, below = sub)
+            val upper = if (sup == null) base else LatexNode.Superscript(base, sup)
+            val side = if (sub == null) upper else LatexNode.Subscript(upper, sub)
+            when (mode) {
+                LatexNode.BigOperator.LimitsMode.LIMITS -> stack
+                LatexNode.BigOperator.LimitsMode.NOLIMITS -> side
+                LatexNode.BigOperator.LimitsMode.AUTO -> LatexNode.MathChoice(stack, side, side, side)
+            }
+        }
+        LatexNode.MathClass(listOf(content), LatexNode.MathClass.AtomClass.OP)
+    }
     val displayLimitOperators = setOf(
         "sum", "prod", "bigcup", "bigcap", "bigvee", "bigwedge",
         "coprod", "bigoplus", "bigotimes", "bigsqcup", "bigodot", "biguplus",

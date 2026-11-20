@@ -36,9 +36,11 @@ import com.hrm.latex.parser.tokenizer.LatexToken
 internal object ParseUtils {
 
     private val dimensionPattern = Regex(
-        """[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s*(?:em|ex|mu|pt|px|mm|cm|in|bp|pc|dd|cc|sp)""",
+        """[+-]?\s*(?:\d+(?:\.\d*)?|\.\d+)\s*(?:em|ex|mu|pt|px|mm|cm|in|bp|pc|dd|cc|sp)""",
         RegexOption.IGNORE_CASE
     )
+
+    fun isDimension(value: String): Boolean = dimensionPattern.matches(value)
 
     /**
      * 从节点中提取纯文本
@@ -158,26 +160,48 @@ internal object ParseUtils {
     }
 
     /**
-     * Parses a TeX dimension either in braces (`{1.2em}`) or in the usual
-     * unbraced form (`1.2em`). Leading whitespace is ignored.
+     * 读取花括号或裸尺寸。裸尺寸允许符号、数字和单位之间有空白，
+     * 单位后的源码属于下一项，即使它与单位共用同一个文本 token。
      */
     fun parseDimension(ctx: LatexParserContext, stream: LatexTokenStream): String {
         stream.skipWhitespace()
         if (stream.peek() is LatexToken.LeftBrace) {
             val arg = ctx.parseArgument() ?: return "0pt"
-            return extractText(listOf(arg)).trim().ifEmpty { "0pt" }
+            val raw = extractText(listOf(arg)).trim()
+            return if (isDimension(raw)) raw.filterNot { it.isWhitespace() } else raw.ifEmpty { "0pt" }
         }
 
         val raw = buildString {
-            while (true) {
-                val token = stream.peek()
-                if (token !is LatexToken.Text) break
-                append(token.content)
+            val sign = stream.peek() as? LatexToken.Text
+            if (sign?.content == "+" || sign?.content == "-") {
+                append(sign.content)
                 stream.advance()
-                if (dimensionPattern.matches(toString())) break
+                stream.skipWhitespace()
+            }
+            var hasDot = false
+            while (true) {
+                val token = stream.peek() as? LatexToken.Text ?: break
+                if (token.literal) break
+                var length = 0
+                for (char in token.content) {
+                    if (char == '.' && !hasDot) hasDot = true
+                    else if (char !in '0'..'9') break
+                    length++
+                }
+                if (length == 0) break
+                append(stream.consumeTextPrefix(token, length).content)
+                if (length < token.content.length) break
+            }
+            if (any { it in '0'..'9' }) {
+                stream.skipWhitespace()
+                val unitToken = stream.peek() as? LatexToken.Text
+                val unit = unitToken?.content?.take(2).orEmpty()
+                if (isDimension(toString() + unit) && unitToken != null) {
+                    append(stream.consumeTextPrefix(unitToken, unit.length).content)
+                }
             }
         }
-        return dimensionPattern.find(raw)?.value ?: raw.ifEmpty { "0pt" }
+        return raw.ifEmpty { "0pt" }
     }
 
     /**

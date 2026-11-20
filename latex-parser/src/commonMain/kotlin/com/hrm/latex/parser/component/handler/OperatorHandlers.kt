@@ -60,11 +60,15 @@ internal fun CommandRegistry.installOperatorHandlers() {
         "arcsin", "arccos", "arctan",
         "sinh", "cosh", "tanh", "coth",
         "ln", "log", "exp", "lg", "sgn", "lcm",
-        "arctg", "arcctg", "cosec", "cotg", "ctg", "cth", "tg"
+        "arctg", "arcctg", "cosec", "cotg", "ctg", "cth", "tg", "ch", "sh", "th"
     )
 
     register(*standardOps) { cmdName, _, _ ->
         LatexNode.Operator(cmdName)
+    }
+
+    register("dotsx") { _, _, _ ->
+        LatexNode.Group(listOf(LatexNode.Symbol("ldots", "…"), LatexNode.Space(LatexNode.Space.SpaceType.THIN)))
     }
 
     // \operatorname{Name} / \operatorname*{Name}

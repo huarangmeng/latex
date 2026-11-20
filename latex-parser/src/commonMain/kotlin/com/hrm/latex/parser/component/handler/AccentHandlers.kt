@@ -65,6 +65,15 @@ internal fun CommandRegistry.installAccentHandlers() {
         "underrightarrow" to LatexNode.Accent.AccentType.UNDERRIGHTARROW,
         "overparen" to LatexNode.Accent.AccentType.OVERPAREN,
         "underparen" to LatexNode.Accent.AccentType.UNDERPAREN,
+        "Overrightarrow" to LatexNode.Accent.AccentType.OVER_RIGHT_DOUBLE,
+        "overleftharpoon" to LatexNode.Accent.AccentType.OVER_LEFT_HARPOON,
+        "overrightharpoon" to LatexNode.Accent.AccentType.OVER_RIGHT_HARPOON,
+        "underleftrightarrow" to LatexNode.Accent.AccentType.UNDER_BOTH_ARROWS,
+        "overgroup" to LatexNode.Accent.AccentType.OVER_GROUP,
+        "undergroup" to LatexNode.Accent.AccentType.UNDER_GROUP,
+        "overlinesegment" to LatexNode.Accent.AccentType.OVER_SEGMENT,
+        "underlinesegment" to LatexNode.Accent.AccentType.UNDER_SEGMENT,
+        "utilde" to LatexNode.Accent.AccentType.UNDER_TILDE,
     )
 
     register("skew") { _, ctx, stream ->

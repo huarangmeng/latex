@@ -119,6 +119,14 @@ internal class ChemicalParser(private val context: LatexParserContext) {
                 }
 
                 is LatexToken.Command -> {
+                    if (token.name == "ca") {
+                        tokenStream.advance()
+                        tokenStream.skipWhitespace()
+                        nodes.add(LatexNode.Group(listOf(LatexNode.Symbol("sim", "∼", token.range)), token.range))
+                        if (singleToken) break
+                        expectCoefficient = false
+                        continue
+                    }
                     // 内部命令，如 \frac，转交给 context 处理
                     // 注意：不要在这里 advance，让 parseExpression 去消费
                     val node = context.parseExpression()

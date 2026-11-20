@@ -34,6 +34,8 @@ internal fun CommandRegistry.installArrowAndStackHandlers() {
         "xrightarrow" to LatexNode.ExtensibleArrow.Direction.RIGHT,
         "xleftarrow" to LatexNode.ExtensibleArrow.Direction.LEFT,
         "xleftrightarrow" to LatexNode.ExtensibleArrow.Direction.BOTH,
+        "xrightleftarrows" to LatexNode.ExtensibleArrow.Direction.RIGHT_LEFT_ARROWS,
+        "xtofrom" to LatexNode.ExtensibleArrow.Direction.TO_FROM,
         "xhookrightarrow" to LatexNode.ExtensibleArrow.Direction.HOOK_RIGHT,
         "xhookleftarrow" to LatexNode.ExtensibleArrow.Direction.HOOK_LEFT,
         "xRightarrow" to LatexNode.ExtensibleArrow.Direction.RIGHT_DOUBLE,

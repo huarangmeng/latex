@@ -33,6 +33,32 @@ import kotlin.test.assertTrue
 class NewCommandTest {
 
     @Test
+    fun conditionalHelpersExpandOnlyTheSelectedBranch() {
+        val parser = LatexParser()
+        val result = parser.parseWithDiagnostics(
+            """\@firstoftwo{a}{\undefined}\@secondoftwo{\undefined}{b}\@ifnextchar x{c}{\undefined}xy\@ifstar{d}{\undefined}*"""
+        )
+        assertTrue(result.errors.isEmpty(), result.errors.toString())
+        assertEquals("abcxyd", AccessibilityVisitor.describe(result.document).replace(" ", ""))
+    }
+
+    @Test
+    fun futureletBindsTheLookaheadAndKeepsBothTokensInTheInput() {
+        val result = LatexParser().parseWithDiagnostics("""\futurelet\foo\frac1{2+\foo}""")
+        assertTrue(result.errors.isEmpty(), result.errors.toString())
+        val fraction = result.document.children.filterIsInstance<LatexNode.Fraction>().single()
+        assertEquals("1", AccessibilityVisitor.describe(fraction.numerator))
+        assertEquals("2+1", AccessibilityVisitor.describe(fraction.denominator).replace(" ", ""))
+    }
+
+    @Test
+    fun messageCommandsReportExpandedTextWithTheExpectedSeverity() {
+        val result = LatexParser().parseWithDiagnostics("""\def\name{world}\message{Hello \name}\errmessage{Bad \name}""")
+        assertEquals(listOf(ParseDiagnostic.Severity.INFO, ParseDiagnostic.Severity.ERROR), result.diagnostics.map { it.severity })
+        assertEquals(listOf("Hello world", "Bad world"), result.diagnostics.map { it.message })
+    }
+
+    @Test
     fun should_parse_newcommand_without_arguments() {
         val parser = LatexParser()
         val input = "\\newcommand{\\R}{\\mathbb{R}}"

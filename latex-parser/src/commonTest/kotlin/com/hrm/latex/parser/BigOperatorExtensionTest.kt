@@ -25,6 +25,7 @@ package com.hrm.latex.parser
 import com.hrm.latex.parser.model.LatexNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.test.assertIs
 
 /**
@@ -34,6 +35,17 @@ import kotlin.test.assertIs
 class BigOperatorExtensionTest {
 
     private val parser = LatexParser()
+
+    @Test
+    fun decoratedLimitsPreserveLayoutAndExplicitLimitPlacement() {
+        val automatic = parser.parse("""\varlimsup_{n}""").children.single() as LatexNode.MathClass
+        assertEquals(LatexNode.MathClass.AtomClass.OP, automatic.atomClass)
+        val choice = automatic.content.single() as LatexNode.MathChoice
+        assertTrue(choice.display is LatexNode.Stack)
+        assertTrue(choice.text is LatexNode.Subscript)
+        val explicit = parser.parse("""\varinjlim\limits_{n}""").children.single() as LatexNode.MathClass
+        assertTrue(explicit.content.single() is LatexNode.Stack)
+    }
 
     @Test
     fun should_parse_coprod() {

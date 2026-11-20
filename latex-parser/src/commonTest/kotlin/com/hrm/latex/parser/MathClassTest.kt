@@ -31,6 +31,18 @@ class MathClassTest {
 
     private val parser = LatexParser()
 
+    @Test
+    fun compoundRelationsAndAtomMatchingKeepTheirMathClasses() {
+        val colon = assertIs<LatexNode.MathClass>(firstNode("""\equalscoloncolon"""))
+        assertEquals(LatexNode.MathClass.AtomClass.REL, colon.atomClass)
+        assertEquals("-1.2mu", assertIs<LatexNode.HSpace>(colon.content[1]).dimension)
+        val bin = assertIs<LatexNode.MathClass>(firstNode("""\@binrel\times{x}"""))
+        assertEquals(LatexNode.MathClass.AtomClass.BIN, bin.atomClass)
+        val bold = assertIs<LatexNode.MathClass>(firstNode("""\pmb{=}"""))
+        assertEquals(LatexNode.MathClass.AtomClass.REL, bold.atomClass)
+        assertEquals(LatexNode.Layout.LayoutType.POOR_MANS_BOLD, assertIs<LatexNode.Layout>(bold.content.single()).layoutType)
+    }
+
     private fun firstNode(input: String): LatexNode {
         val children = parser.parse(input).children
         assertEquals(1, children.size)

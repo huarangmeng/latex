@@ -73,10 +73,15 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
         val fontSizePx = with(density) { context.fontSize.toPx() }
         val isHarpoonPair = node.direction == Direction.RIGHT_LEFT_HARPOONS ||
             node.direction == Direction.LEFT_RIGHT_HARPOONS
+        val isArrowPair = node.direction == Direction.RIGHT_LEFT_ARROWS || node.direction == Direction.TO_FROM
         val hasTwoHeads = node.direction == Direction.TWO_HEAD_RIGHT || node.direction == Direction.TWO_HEAD_LEFT
         // KaTeX uses 0.04em shafts and separates paired harpoons by 0.194em.
-        val harpoonShaftOffset = if (isHarpoonPair) fontSizePx * 0.097f else 0f
-        val strokeWidth = if (isHarpoonPair || hasTwoHeads) {
+        val harpoonShaftOffset = when {
+            node.direction == Direction.RIGHT_LEFT_ARROWS -> fontSizePx * 0.17f
+            isHarpoonPair || isArrowPair -> fontSizePx * 0.097f
+            else -> 0f
+        }
+        val strokeWidth = if (isHarpoonPair || isArrowPair || hasTwoHeads) {
             fontSizePx * 0.04f
         } else {
             with(density) { MathConstants.EXTENSIBLE_ARROW_STROKE_DP.dp.toPx() }
@@ -90,7 +95,7 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
 
         // Path 的实际墨水高度由箭头头部决定，而不是中间横线的 strokeWidth。
         // 钩形箭头在数学轴下方多伸出 0.1 * headSize。
-        val arrowTopExtent = if (isHarpoonPair) harpoonShaftOffset + arrowHeadSize / 3f + strokeHalf
+        val arrowTopExtent = if (isHarpoonPair || isArrowPair) harpoonShaftOffset + arrowHeadSize / 3f + strokeHalf
             else arrowHeadSize / 2f
         val arrowBottomExtent = when (node.direction) {
             Direction.HOOK_RIGHT, Direction.HOOK_LEFT -> arrowHeadSize * 0.6f
@@ -129,7 +134,7 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
                 node.direction == LatexNode.ExtensibleArrow.Direction.LEFT_DOUBLE ||
                 node.direction == LatexNode.ExtensibleArrow.Direction.BOTH_DOUBLE ||
                 node.direction == Direction.EQUAL ||
-                isHarpoonPair
+                isHarpoonPair || isArrowPair
 
         return NodeLayout(totalWidth, vertical.totalHeight, vertical.baseline) { x, y ->
             // 绘制上方文字
@@ -211,6 +216,20 @@ internal class ExtensibleArrowMeasurer : NodeMeasurer {
                 })
                 harpoon(right = upperRight, up = true, y = centerY - harpoonShaftOffset)
                 harpoon(right = !upperRight, up = false, y = centerY + harpoonShaftOffset)
+            }
+            Direction.RIGHT_LEFT_ARROWS, Direction.TO_FROM -> {
+                val upperY = centerY - harpoonShaftOffset
+                val lowerY = centerY + harpoonShaftOffset
+                strokePaths.add(Path().apply {
+                    moveTo(startX, upperY)
+                    lineTo(endX, upperY)
+                    moveTo(endX, lowerY)
+                    lineTo(startX, lowerY)
+                })
+                for (up in listOf(true, false)) {
+                    harpoon(right = true, up = up, y = upperY)
+                    harpoon(right = false, up = up, y = lowerY)
+                }
             }
             Direction.TWO_HEAD_RIGHT, Direction.TWO_HEAD_LEFT -> {
                 val right = direction == Direction.TWO_HEAD_RIGHT

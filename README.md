@@ -189,6 +189,7 @@ Ordinary source spaces, tabs, and newlines do not add width in math mode; text c
 <summary><b>Advanced Annotations (6)</b> — hyperlinks, tensors, four-corner scripts</summary>
 
 - **Hyperlinks**: `\href{url}{text}`, `\url{url}` (blue underline, click callback, literal URL parameters such as `%20`)
+- **Media and metadata**: `\includegraphics[width=1em,height=.8em,alt=label]{icon.png}` looks up a decoded `ImageBitmap` in `LatexConfig.images` by source string and shows the alternative text when the image is unavailable. `\htmlClass`, `\htmlId`, and `\htmlData` preserve metadata in MathML. `\htmlStyle` supports the `color` declaration in Compose and MathML.
 - **Four-corner scripts**: `\sideset{_a^b}{_c^d}{\sum}`
 - **Pre-scripts**: `\prescript{A}{Z}{X}` (isotope notation)
 - **Tensor indices**: `\tensor{T}{^a_b^c}`, `\indices{^a_b}`

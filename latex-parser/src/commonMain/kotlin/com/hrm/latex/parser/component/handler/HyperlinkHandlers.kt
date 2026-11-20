@@ -28,6 +28,7 @@ import com.hrm.latex.parser.model.LatexNode
  * 超链接命令：\href, \url
  */
 internal fun CommandRegistry.installHyperlinkHandlers() {
+    installMediaHandlers()
     // \href{url}{text}
     register("href") { _, ctx, _ ->
         val urlArg = ctx.parseTextArgument() ?: return@register LatexNode.Text("")
