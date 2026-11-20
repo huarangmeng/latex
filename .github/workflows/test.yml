@@ -190,7 +190,7 @@ jobs:
           CHROME_BIN="$(command -v google-chrome)"
           export CHROME_BIN
           ./gradlew \
-            :latex-parser:compileTestKotlin${{ matrix.compiler }} \
+            :latex-parser:${{ matrix.target }} \
             :latex-renderer:${{ matrix.target }} \
             --console=plain
           # 确认关键跨平台测试确实执行，避免源集或运行器配置变化导致漏测。
@@ -198,16 +198,20 @@ jobs:
           from pathlib import Path
           import xml.etree.ElementTree as ET
           target = "${{ matrix.target }}"
-          reports = [ET.parse(report).getroot() for report in
-                     Path("latex-renderer/build/test-results", target).glob("TEST-*.xml")]
-          required = (("LayoutIdentityTest", 2), ("FontResourceCacheTest", 3),
-                      ("VerticalDelimiterGeometryTest", 2), ("SvgCanvasTest", 1))
-          for test_class, minimum in required:
-              count = sum(int(report.get("tests", 0)) for report in reports
-                          if test_class in report.get("name", ""))
-              if count < minimum:
-                  raise SystemExit(f"{target}: {test_class} 预期至少 {minimum} 项，实际 {count}")
-              print(f"{target}: {test_class} 已执行 {count} 项测试")
+          required = {
+              "latex-parser": (("NestingDepthTest", 8),),
+              "latex-renderer": (("LayoutIdentityTest", 2), ("FontResourceCacheTest", 3),
+                                 ("VerticalDelimiterGeometryTest", 2), ("SvgCanvasTest", 1)),
+          }
+          for module, classes in required.items():
+              reports = [ET.parse(report).getroot() for report in
+                         Path(module, "build/test-results", target).glob("TEST-*.xml")]
+              for test_class, minimum in classes:
+                  count = sum(int(report.get("tests", 0)) - int(report.get("skipped", 0))
+                              for report in reports if test_class in report.get("name", ""))
+                  if count < minimum:
+                      raise SystemExit(f"{module}:{target}: {test_class} 预期至少 {minimum} 项，实际 {count}")
+                  print(f"{module}:{target}: {test_class} 已执行 {count} 项测试")
           PY
 
       - name: 保存浏览器测试报告
@@ -216,6 +220,8 @@ jobs:
         with:
           name: browser-test-reports-${{ matrix.compiler }}
           path: |
+            latex-parser/build/reports/tests/${{ matrix.target }}/**
+            latex-parser/build/test-results/${{ matrix.target }}/**
             latex-renderer/build/reports/tests/${{ matrix.target }}/**
             latex-renderer/build/test-results/${{ matrix.target }}/**
           retention-days: 14

@@ -47,7 +47,7 @@ internal class CommandParser(
     val hasMathCodes: Boolean get() = context.mathCodes.isNotEmpty()
 
     fun isBuiltin(name: String): Boolean = registry.hasHandler(name) ||
-        SymbolMap.getSymbol(name) != null || name in expansionCommands || name == "ce" || name == "cf"
+        SymbolMap.getSymbol(name) != null || name in expansionCommands || name in chemicalCommands
 
     fun isDefined(name: String): Boolean {
         val macro = context.customCommands[name] ?: return isBuiltin(name)
@@ -59,6 +59,7 @@ internal class CommandParser(
 
 
     companion object {
+        private val chemicalCommands = setOf("ce", "cf")
         private val expansionCommands = setOf(
         "expandafter", "noexpand", "csname", "endcsname", "ifdefined", "ifx", "else", "fi", "mathpalette", "sp", "sb",
         "@firstoftwo", "@secondoftwo", "@ifstar", "@ifnextchar"
@@ -99,6 +100,8 @@ internal class CommandParser(
         }
 
         internal fun registeredCommands(): Set<String> = registry.registeredCommands()
+
+        internal fun syntaxCommands(): Set<String> = registeredCommands() + expansionCommands + chemicalCommands
     }
 
     /**
@@ -114,7 +117,7 @@ internal class CommandParser(
         }
 
         // 3. 化学公式（需要 chemicalParser 实例，不适合放入通用 handler）
-        if (cmdName == "ce" || cmdName == "cf") {
+        if (cmdName in chemicalCommands) {
             return chemicalParser.parseChemicalArgument()
         }
 
