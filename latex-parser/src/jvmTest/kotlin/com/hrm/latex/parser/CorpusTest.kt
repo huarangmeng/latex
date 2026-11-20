@@ -31,6 +31,12 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
+internal val testCorpusDirectory: File by lazy {
+    generateSequence(File("").absoluteFile) { it.parentFile }
+        .map { File(it, "test-corpus") }
+        .first { it.isDirectory }
+}
+
 /** 用 RaTeX 语料检查容错、不同切块方式的等价性和解析支持范围。 */
 class CorpusTest {
 
@@ -130,7 +136,7 @@ class CorpusTest {
     }
 
     private fun checkBaseline(name: String, actual: List<String>, added: String, resolved: String) {
-        val file = File(CORPUS, "baselines/$name")
+        val file = testCorpusDirectory.resolve("baselines/$name")
         if (System.getenv("UPDATE_CORPUS_BASELINE") == "1") {
             file.writeText(actual.sorted().joinToString("\n", postfix = if (actual.isEmpty()) "" else "\n"))
             return
@@ -154,15 +160,9 @@ class CorpusTest {
     private companion object {
         val FILES = listOf("main.txt", "parser.txt", "mhchem.txt", "centernot.txt", "prooftree.txt", "slashed.txt")
 
-        val CORPUS: File by lazy {
-            generateSequence(File("").absoluteFile) { it.parentFile }
-                .map { File(it, "test-corpus") }
-                .first { it.isDirectory }
-        }
-
         val formulas: List<String> by lazy {
             FILES.flatMap { name ->
-                File(CORPUS, "ratex/$name").readLines().filter {
+                testCorpusDirectory.resolve("ratex/$name").readLines().filter {
                     val line = it.trim()
                     line.isNotEmpty() && line[0] != '#'
                 }
@@ -170,7 +170,7 @@ class CorpusTest {
         }
 
         val expectedDiagnostics: Map<String, ParseDiagnostic.Category> by lazy {
-            val rows = File(CORPUS, "baselines/expected-diagnostics.tsv").readLines().filter { it.isNotBlank() }
+            val rows = testCorpusDirectory.resolve("baselines/expected-diagnostics.tsv").readLines().filter { it.isNotBlank() }
             rows.associate { row ->
                 val (category, formula) = row.split('\t', limit = 2)
                 formula to ParseDiagnostic.Category.valueOf(category)

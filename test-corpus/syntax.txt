@@ -1,0 +1,1291 @@
+@@ command/frac
+\frac{1}{2}
+@@ command/dfrac
+\dfrac{1}{2}
+@@ command/tfrac
+\tfrac{1}{2}
+@@ command/cfrac
+\cfrac{1}{2}
+@@ command/splitfrac
+\splitfrac{1}{2}
+@@ command/splitdfrac
+\splitdfrac{1}{2}
+@@ command/genfrac
+\genfrac{}{}{0.4pt}{0}{1}{2}
+@@ command/binom
+\binom{n}{k}
+@@ command/tbinom
+\tbinom{n}{k}
+@@ command/dbinom
+\dbinom{n}{k}
+@@ command/sqrt
+\sqrt[3]{x^2}
+@@ command/sum
+\sum_{i}^{n}
+@@ command/prod
+\prod_{i}^{n}
+@@ command/int
+\int_{i}^{n}
+@@ command/oint
+\oint_{i}^{n}
+@@ command/iint
+\iint_{i}^{n}
+@@ command/iiint
+\iiint_{i}^{n}
+@@ command/smallint
+\smallint_{i}^{n}
+@@ command/intop
+\intop_{i}^{n}
+@@ command/ointop
+\ointop_{i}^{n}
+@@ command/bigcup
+\bigcup_{i}^{n}
+@@ command/bigcap
+\bigcap_{i}^{n}
+@@ command/bigvee
+\bigvee_{i}^{n}
+@@ command/bigwedge
+\bigwedge_{i}^{n}
+@@ command/coprod
+\coprod_{i}^{n}
+@@ command/bigoplus
+\bigoplus_{i}^{n}
+@@ command/bigotimes
+\bigotimes_{i}^{n}
+@@ command/bigsqcup
+\bigsqcup_{i}^{n}
+@@ command/bigodot
+\bigodot_{i}^{n}
+@@ command/biguplus
+\biguplus_{i}^{n}
+@@ command/lim
+\lim_{i}^{n}
+@@ command/max
+\max_{i}^{n}
+@@ command/min
+\min_{i}^{n}
+@@ command/sup
+\sup_{i}^{n}
+@@ command/inf
+\inf_{i}^{n}
+@@ command/limsup
+\limsup_{i}^{n}
+@@ command/liminf
+\liminf_{i}^{n}
+@@ command/det
+\det_{i}^{n}
+@@ command/gcd
+\gcd_{i}^{n}
+@@ command/argmax
+\argmax_{i}^{n}
+@@ command/argmin
+\argmin_{i}^{n}
+@@ command/deg
+\deg_{i}^{n}
+@@ command/dim
+\dim_{i}^{n}
+@@ command/ker
+\ker_{i}^{n}
+@@ command/arg
+\arg_{i}^{n}
+@@ command/hom
+\hom_{i}^{n}
+@@ command/Pr
+\Pr_{i}^{n}
+@@ command/injlim
+\injlim_{i}^{n}
+@@ command/projlim
+\projlim_{i}^{n}
+@@ command/plim
+\plim_{i}^{n}
+@@ command/varlimsup
+\varlimsup_{n}
+@@ command/varliminf
+\varliminf_{n}
+@@ command/varinjlim
+\varinjlim_{n}
+@@ command/varprojlim
+\varprojlim_{n}
+@@ command/llbracket
+\llbracket
+@@ command/rrbracket
+\rrbracket
+@@ command/Set
+\Set{x|x>0}
+@@ command/set
+\set{x|x>0}
+@@ delimiter/left-middle-right
+\left\langle a \middle| b \right\rangle
+@@ command/big
+\big(
+@@ command/bigl
+\bigl(
+@@ command/bigr
+\bigr(
+@@ command/bigm
+\bigm(
+@@ command/Big
+\Big(
+@@ command/Bigl
+\Bigl(
+@@ command/Bigr
+\Bigr(
+@@ command/Bigm
+\Bigm(
+@@ command/bigg
+\bigg(
+@@ command/biggl
+\biggl(
+@@ command/biggr
+\biggr(
+@@ command/biggm
+\biggm(
+@@ command/Bigg
+\Bigg(
+@@ command/Biggl
+\Biggl(
+@@ command/Biggr
+\Biggr(
+@@ command/Biggm
+\Biggm(
+@@ command/mathbf
+\mathbf{Ab}
+@@ command/bold
+\bold{Ab}
+@@ command/textbf
+\textbf{Ab}
+@@ command/textmd
+\textmd{Ab}
+@@ command/boldsymbol
+\boldsymbol{Ab}
+@@ command/bm
+\bm{Ab}
+@@ command/symbf
+\symbf{Ab}
+@@ command/mathit
+\mathit{Ab}
+@@ command/symit
+\symit{Ab}
+@@ command/mathnormal
+\mathnormal{Ab}
+@@ command/textit
+\textit{Ab}
+@@ command/textsw
+\textsw{Ab}
+@@ command/textsl
+\textsl{Ab}
+@@ command/emph
+\emph{Ab}
+@@ command/textsc
+\textsc{Ab}
+@@ command/textssc
+\textssc{Ab}
+@@ command/mathrm
+\mathrm{Ab}
+@@ command/symrm
+\symrm{Ab}
+@@ command/textrm
+\textrm{Ab}
+@@ command/textnormal
+\textnormal{Ab}
+@@ command/textup
+\textup{Ab}
+@@ command/mathsf
+\mathsf{Ab}
+@@ command/symsf
+\symsf{Ab}
+@@ command/textsf
+\textsf{Ab}
+@@ command/mathtt
+\mathtt{Ab}
+@@ command/texttt
+\texttt{Ab}
+@@ command/mathbb
+\mathbb{Ab}
+@@ command/Bbb
+\Bbb{Ab}
+@@ command/mathfrak
+\mathfrak{Ab}
+@@ command/mathscr
+\mathscr{Ab}
+@@ command/mathcal
+\mathcal{Ab}
+@@ command/textulc
+\textulc{Ab}
+@@ command/N
+\N
+@@ command/natnums
+\natnums
+@@ command/Z
+\Z
+@@ command/R
+\R
+@@ command/Reals
+\Reals
+@@ command/reals
+\reals
+@@ command/Complex
+\Complex
+@@ command/cnums
+\cnums
+@@ command/bf
+\bf Ab
+@@ command/it
+\it Ab
+@@ command/rm
+\rm Ab
+@@ command/sf
+\sf Ab
+@@ command/tt
+\tt Ab
+@@ command/cal
+\cal Ab
+@@ command/frak
+\frak Ab
+@@ command/scr
+\scr Ab
+@@ command/sc
+\sc Ab
+@@ command/sl
+\sl Ab
+@@ command/em
+\em Ab
+@@ command/swshape
+\swshape Ab
+@@ command/sscshape
+\sscshape Ab
+@@ command/rmfamily
+\rmfamily Ab
+@@ command/sffamily
+\sffamily Ab
+@@ command/ttfamily
+\ttfamily Ab
+@@ command/bfseries
+\bfseries Ab
+@@ command/mdseries
+\mdseries Ab
+@@ command/itshape
+\itshape Ab
+@@ command/slshape
+\slshape Ab
+@@ command/upshape
+\upshape Ab
+@@ command/scshape
+\scshape Ab
+@@ command/ulcshape
+\ulcshape Ab
+@@ command/normalshape
+\normalshape Ab
+@@ command/normalfont
+\normalfont Ab
+@@ command/mathchoice
+\mathchoice{D}{T}{S}{SS}
+@@ command/displaystyle
+\displaystyle x
+@@ command/textstyle
+\textstyle x
+@@ command/scriptstyle
+\scriptstyle x
+@@ command/scriptscriptstyle
+\scriptscriptstyle x
+@@ command/crampeddisplaystyle
+\crampeddisplaystyle x
+@@ command/crampedtextstyle
+\crampedtextstyle x
+@@ command/crampedscriptstyle
+\crampedscriptstyle x
+@@ command/crampedscriptscriptstyle
+\crampedscriptscriptstyle x
+@@ command/cramped
+\cramped[\scriptstyle]{x}
+@@ command/tiny
+\tiny x
+@@ command/sixptsize
+\sixptsize x
+@@ command/scriptsize
+\scriptsize x
+@@ command/footnotesize
+\footnotesize x
+@@ command/small
+\small x
+@@ command/normalsize
+\normalsize x
+@@ command/large
+\large x
+@@ command/Large
+\Large x
+@@ command/LARGE
+\LARGE x
+@@ command/huge
+\huge x
+@@ command/Huge
+\Huge x
+@@ command/TeX
+\TeX
+@@ command/LaTeX
+\LaTeX
+@@ command/KaTeX
+\KaTeX
+@@ command/copyright
+\copyright
+@@ command/textcopyright
+\textcopyright
+@@ command/AA
+\AA
+@@ command/aa
+\aa
+@@ command/AE
+\AE
+@@ command/ae
+\ae
+@@ command/OE
+\OE
+@@ command/oe
+\oe
+@@ command/O
+\O
+@@ command/o
+\o
+@@ command/ss
+\ss
+@@ command/i
+\i
+@@ command/j
+\j
+@@ command/l
+\l
+@@ command/L
+\L
+@@ command/lq
+\lq
+@@ command/rq
+\rq
+@@ command/dag
+\dag
+@@ command/ddag
+\ddag
+@@ command/textdegree
+\textdegree
+@@ command/textemdash
+\textemdash
+@@ command/textendash
+\textendash
+@@ command/textbackslash
+\textbackslash
+@@ command/textasciitilde
+\textasciitilde
+@@ command/textasciicircum
+\textasciicircum
+@@ command/textbraceleft
+\textbraceleft
+@@ command/textbraceright
+\textbraceright
+@@ command/textbar
+\textbar
+@@ command/textbardbl
+\textbardbl
+@@ command/textunderscore
+\textunderscore
+@@ command/textdollar
+\textdollar
+@@ command/textless
+\textless
+@@ command/textgreater
+\textgreater
+@@ command/textellipsis
+\textellipsis
+@@ command/textquoteleft
+\textquoteleft
+@@ command/textquoteright
+\textquoteright
+@@ command/textquotedblleft
+\textquotedblleft
+@@ command/textquotedblright
+\textquotedblright
+@@ command/textdagger
+\textdagger
+@@ command/textdaggerdbl
+\textdaggerdbl
+@@ command/textregistered
+\textregistered
+@@ command/textsterling
+\textsterling
+@@ command/'
+\'{a}
+@@ command/`
+\`{a}
+@@ command/^
+\^{a}
+@@ command/~
+\~{a}
+@@ command/=
+\={a}
+@@ command/u
+\u{a}
+@@ command/.
+\.{a}
+@@ command/"
+\"{a}
+@@ command/r
+\r{a}
+@@ command/H
+\H{a}
+@@ command/v
+\v{a}
+@@ command/c
+\c{a}
+@@ command/d
+\d{a}
+@@ command/b
+\b{a}
+@@ command/t
+\t{oo}
+@@ command/text
+\text{Ab}
+@@ command/mbox
+\mbox{Ab}
+@@ command/hbox
+\hbox{Ab}
+@@ command/intertext
+\intertext{Ab}
+@@ command/shortintertext
+\shortintertext{Ab}
+@@ mode/TextOrMath-math
+\TextOrMath{text}{math}
+@@ mode/TextOrMath-text
+\text{\TextOrMath{text}{math}}
+@@ command/RLE
+\RLE{مرحبا}
+@@ command/textarabic
+\textarabic{مرحبا}
+@@ command/texthebrew
+\texthebrew{مرحبا}
+@@ command/LRE
+\LRE{left to right}
+@@ command/hat
+\hat{x}
+@@ command/tilde
+\tilde{x}
+@@ command/widetilde
+\widetilde{x}
+@@ command/bar
+\bar{x}
+@@ command/overline
+\overline{x}
+@@ command/underline
+\underline{x}
+@@ command/dot
+\dot{x}
+@@ command/ddot
+\ddot{x}
+@@ command/dddot
+\dddot{x}
+@@ command/ddddot
+\ddddot{x}
+@@ command/centernot
+\centernot{x}
+@@ command/slashed
+\slashed{x}
+@@ command/vec
+\vec{x}
+@@ command/overbrace
+\overbrace{x}
+@@ command/underbrace
+\underbrace{x}
+@@ command/widehat
+\widehat{x}
+@@ command/overrightarrow
+\overrightarrow{x}
+@@ command/overleftarrow
+\overleftarrow{x}
+@@ command/cancel
+\cancel{x}
+@@ command/bcancel
+\bcancel{x}
+@@ command/xcancel
+\xcancel{x}
+@@ command/grave
+\grave{x}
+@@ command/acute
+\acute{x}
+@@ command/check
+\check{x}
+@@ command/breve
+\breve{x}
+@@ command/ring
+\ring{x}
+@@ command/mathring
+\mathring{x}
+@@ command/overbracket
+\overbracket{x}
+@@ command/underbracket
+\underbracket{x}
+@@ command/widecheck
+\widecheck{x}
+@@ command/overleftrightarrow
+\overleftrightarrow{x}
+@@ command/underleftarrow
+\underleftarrow{x}
+@@ command/underrightarrow
+\underrightarrow{x}
+@@ command/overparen
+\overparen{x}
+@@ command/underparen
+\underparen{x}
+@@ command/Overrightarrow
+\Overrightarrow{x}
+@@ command/overleftharpoon
+\overleftharpoon{x}
+@@ command/overrightharpoon
+\overrightharpoon{x}
+@@ command/underleftrightarrow
+\underleftrightarrow{x}
+@@ command/overgroup
+\overgroup{x}
+@@ command/undergroup
+\undergroup{x}
+@@ command/overlinesegment
+\overlinesegment{x}
+@@ command/underlinesegment
+\underlinesegment{x}
+@@ command/utilde
+\utilde{x}
+@@ command/underbar
+\underbar{x}
+@@ command/skew
+\skew{4}{\hat}{x}
+@@ command/xrightarrow
+\xrightarrow[below]{above}
+@@ command/xleftarrow
+\xleftarrow[below]{above}
+@@ command/xleftrightarrow
+\xleftrightarrow[below]{above}
+@@ command/xrightleftarrows
+\xrightleftarrows[below]{above}
+@@ command/xtofrom
+\xtofrom[below]{above}
+@@ command/xhookrightarrow
+\xhookrightarrow[below]{above}
+@@ command/xhookleftarrow
+\xhookleftarrow[below]{above}
+@@ command/xRightarrow
+\xRightarrow[below]{above}
+@@ command/xLeftarrow
+\xLeftarrow[below]{above}
+@@ command/xLeftrightarrow
+\xLeftrightarrow[below]{above}
+@@ command/xmapsto
+\xmapsto[below]{above}
+@@ command/xlongequal
+\xlongequal[below]{above}
+@@ command/xrightharpoonup
+\xrightharpoonup[below]{above}
+@@ command/xrightharpoondown
+\xrightharpoondown[below]{above}
+@@ command/xleftharpoonup
+\xleftharpoonup[below]{above}
+@@ command/xleftharpoondown
+\xleftharpoondown[below]{above}
+@@ command/xrightleftharpoons
+\xrightleftharpoons[below]{above}
+@@ command/xleftrightharpoons
+\xleftrightharpoons[below]{above}
+@@ command/xtwoheadrightarrow
+\xtwoheadrightarrow[below]{above}
+@@ command/xtwoheadleftarrow
+\xtwoheadleftarrow[below]{above}
+@@ command/overset
+\overset{label}{=}
+@@ command/underset
+\underset{label}{=}
+@@ command/stackrel
+\stackrel{label}{=}
+@@ command/@binrel
+\@binrel{+}{x}
+@@ command/pmb
+\pmb{=}
+@@ command/ordinarycolon
+\ordinarycolon
+@@ command/vcentcolon
+\vcentcolon
+@@ command/ratio
+\ratio
+@@ command/thickapprox
+\thickapprox
+@@ command/thicksim
+\thicksim
+@@ command/Coloneqq
+\Coloneqq
+@@ command/coloncolonequals
+\coloncolonequals
+@@ command/Coloneq
+\Coloneq
+@@ command/coloncolonminus
+\coloncolonminus
+@@ command/Eqqcolon
+\Eqqcolon
+@@ command/equalscoloncolon
+\equalscoloncolon
+@@ command/Eqcolon
+\Eqcolon
+@@ command/minuscoloncolon
+\minuscoloncolon
+@@ command/colonapprox
+\colonapprox
+@@ command/Colonapprox
+\Colonapprox
+@@ command/coloncolonapprox
+\coloncolonapprox
+@@ command/colonsim
+\colonsim
+@@ command/Colonsim
+\Colonsim
+@@ command/coloncolonsim
+\coloncolonsim
+@@ command/approxcolon
+\approxcolon
+@@ command/approxcoloncolon
+\approxcoloncolon
+@@ command/simcolon
+\simcolon
+@@ command/simcoloncolon
+\simcoloncolon
+@@ command/joinrel
+\joinrel
+@@ command/mathord
+\mathord{x}
+@@ command/mathbin
+\mathbin{x}
+@@ command/mathrel
+\mathrel{x}
+@@ command/mathopen
+\mathopen{x}
+@@ command/mathclose
+\mathclose{x}
+@@ command/mathpunct
+\mathpunct{x}
+@@ command/mathinner
+\mathinner{x}
+@@ command/control-space
+\ x
+@@ command/space
+\space
+@@ command/nobreakspace
+\nobreakspace
+@@ command/,
+\,
+@@ command/thinspace
+\thinspace
+@@ command/:
+\:
+@@ command/>
+\>
+@@ command/medspace
+\medspace
+@@ command/;
+\;
+@@ command/thickspace
+\thickspace
+@@ command/quad
+\quad
+@@ command/qquad
+\qquad
+@@ command/!
+\!
+@@ command/negthinspace
+\negthinspace
+@@ command/enspace
+\enspace
+@@ command/enskip
+\enskip
+@@ command/negmedspace
+\negmedspace
+@@ command/negthickspace
+\negthickspace
+@@ command/allowbreak
+\allowbreak
+@@ command/nobreak
+\nobreak
+@@ command/hspace
+\hspace{1em}
+@@ command/kern
+\kern{1em}
+@@ command/hskip
+\hskip{1em}
+@@ command/mkern
+\mkern3mu
+@@ command/mskip
+\mskip3mu
+@@ command/tmspace
+\tmspace+{3mu}{.166em}
+@@ command/cr
+\cr
+@@ command/newline
+\newline
+@@ color/definitions
+\definecolor{brand}{HTML}{336699}\colorlet{chosen}{brand}\color{chosen}x
+@@ command/textcolor
+\textcolor{red}{x}
+@@ command/blue
+\blue{x}
+@@ command/orange
+\orange{x}
+@@ command/pink
+\pink{x}
+@@ command/red
+\red{x}
+@@ command/green
+\green{x}
+@@ command/purple
+\purple{x}
+@@ command/colorbox
+\colorbox{red}{x}
+@@ command/fcolorbox
+\fcolorbox{black}{red}{x}
+@@ command/mathstrut
+\mathstrut
+@@ command/circled
+\circled{x}
+@@ command/textcircled
+\textcircled{x}
+@@ command/sout
+\sout{x}
+@@ command/angl
+\angl{x}
+@@ command/phase
+\phase{x}
+@@ command/angln
+\angln
+@@ command/enclose
+\enclose{box}{x}
+@@ command/bbox
+\bbox[.2em,red]{x}
+@@ command/vcenter
+\vcenter{\frac12}
+@@ command/boxed
+\boxed{x}
+@@ command/Aboxed
+\Aboxed{x}
+@@ command/fbox
+\fbox{x}
+@@ command/phantom
+\phantom{x}
+@@ command/smash
+\smash[t]{x}
+@@ command/vphantom
+\vphantom{x}
+@@ command/hphantom
+\hphantom{x}
+@@ command/not
+\not=
+@@ command/mathclap
+\mathclap{x}
+@@ command/clap
+\clap{x}
+@@ command/mathllap
+\mathllap{x}
+@@ command/llap
+\llap{x}
+@@ command/mathrlap
+\mathrlap{x}
+@@ command/rlap
+\rlap{x}
+@@ command/raisebox
+\raisebox{.2em}{x}
+@@ command/rule
+\rule[.1em]{1em}{.1em}
+@@ command/MoveEqLeft
+\MoveEqLeft[2]
+@@ command/htmlClass
+\htmlClass{demo}{x}
+@@ command/htmlId
+\htmlId{demo}{x}
+@@ command/htmlData
+\htmlData{kind=demo}{x}
+@@ command/htmlStyle
+\htmlStyle{color: red;}{x}
+@@ command/includegraphics
+\includegraphics[width=1em,height=.8em,alt=sample]{a%20b.png}
+@@ command/href
+\href{https://example.test/a%20b}{x}
+@@ command/url
+\url{https://example.test/a%20b}
+@@ definition/newcommand
+\newcommand{\testmacro}[1]{#1+1}\testmacro{2}
+@@ definition/renewcommand
+\renewcommand{\testmacro}[1]{#1+1}\testmacro{2}
+@@ definition/providecommand
+\providecommand{\testmacro}[1]{#1+1}\testmacro{2}
+@@ definition/def
+\def\testmacro#1{#1+1}\testmacro{2}
+@@ definition/gdef
+\gdef\testmacro#1{#1+1}\testmacro{2}
+@@ definition/edef
+\edef\testmacro#1{#1+1}\testmacro{2}
+@@ definition/xdef
+\xdef\testmacro#1{#1+1}\testmacro{2}
+@@ definition/let
+\let\testmacro=\alpha\testmacro
+@@ definition/futurelet
+\futurelet\testmacro\frac1{2+\testmacro}
+@@ definition/global
+{\global\def\testmacro{x}}\testmacro
+@@ definition/relax
+\relax x
+@@ diagnostic/message
+\message{hello}x
+@@ diagnostic/errmessage
+\errmessage{hello}
+@@ definition/operator
+\DeclareMathOperator{\TestOp}{rank}\TestOp x
+@@ definition/paired-delimiter
+\DeclarePairedDelimiter{\TestAbs}{\lvert}{\rvert}\TestAbs*{x}
+@@ definition/paired-delimiter-with-arguments
+\DeclarePairedDelimiterX{\TestPair}[2]{(}{)}{#1,#2}\TestPair*{x}{y}
+@@ definition/environments
+\newenvironment{testenv}{a}{b}\renewenvironment{testenv}{c}{d}\begin{testenv}x\end{testenv}
+@@ command/char
+\char"263A
+@@ definition/mathcode
+\mathcode`;="8000\def;{x}a;b
+@@ group/explicit
+{\begingroup a\endgroup\bgroup b\egroup}
+@@ expansion/expandafter
+\expandafter\def\csname testmacro\endcsname{x}\testmacro
+@@ expansion/noexpand
+\def\source{x}\edef\target{\noexpand\source}\def\source{y}\target
+@@ expansion/conditional
+\def\a{x}\def\b{x}\ifdefined\a\ifx\a\b y\else x\fi\fi
+@@ expansion/mathpalette
+\def\test#1#2{{#1 #2}}\mathpalette\test{x}
+@@ expansion/helpers
+\@firstoftwo{a}{x}\@secondoftwo{x}{b}\@ifnextchar z{c}{x}z\@ifstar{d}{x}*
+@@ script/plain-aliases
+x\sb1\sp2
+@@ command/hline
+\hline
+@@ command/hdashline
+\hdashline
+@@ array/spacing
+\setlength{\arraycolsep}{2pt}\begin{array}{cc}a&b\end{array}
+@@ command/cline
+\cline{1-2}
+@@ command/multicolumn
+\multicolumn{2}{c}{x}
+@@ command/label
+\label{eq:demo}
+@@ command/ref
+\ref{eq:demo}
+@@ command/eqref
+\eqref{eq:demo}
+@@ command/tag
+\tag*{A}
+@@ command/notag
+\notag
+@@ command/nonumber
+\nonumber
+@@ command/substack
+\substack{a\\b}
+@@ command/sin
+\sin
+@@ command/cos
+\cos
+@@ command/tan
+\tan
+@@ command/cot
+\cot
+@@ command/sec
+\sec
+@@ command/csc
+\csc
+@@ command/arcsin
+\arcsin
+@@ command/arccos
+\arccos
+@@ command/arctan
+\arctan
+@@ command/sinh
+\sinh
+@@ command/cosh
+\cosh
+@@ command/tanh
+\tanh
+@@ command/coth
+\coth
+@@ command/ln
+\ln
+@@ command/log
+\log
+@@ command/exp
+\exp
+@@ command/lg
+\lg
+@@ command/sgn
+\sgn
+@@ command/lcm
+\lcm
+@@ command/arctg
+\arctg
+@@ command/arcctg
+\arcctg
+@@ command/cosec
+\cosec
+@@ command/cotg
+\cotg
+@@ command/ctg
+\ctg
+@@ command/cth
+\cth
+@@ command/tg
+\tg
+@@ command/ch
+\ch
+@@ command/sh
+\sh
+@@ command/th
+\th
+@@ command/sideset
+\sideset{_a}{^b}{\sum}
+@@ command/tensor
+\tensor{T}{^a_b}
+@@ command/indices
+\indices{^a_b}
+@@ command/prescript
+\prescript{14}{6}{C}
+@@ command/operatorname
+\operatorname{rank}
+@@ command/operatornamewithlimits
+\operatornamewithlimits{rank}
+@@ command/mathop
+\mathop{rank}_{i}
+@@ command/bmod
+\bmod
+@@ command/mod
+\mod
+@@ command/pmod
+\pmod{n}
+@@ command/pod
+\pod{n}
+@@ command/dotsb
+\dotsb
+@@ command/dotsm
+\dotsm
+@@ command/dotsc
+\dotsc
+@@ command/dotso
+\dotso
+@@ command/dotsx
+\dotsx
+@@ command/dotsi
+\dotsi
+@@ command/dots
+\dots
+@@ command/section
+\section{Title}
+@@ command/subsection
+\subsection{Title}
+@@ command/subsubsection
+\subsubsection{Title}
+@@ command/paragraph
+\paragraph{Title}
+@@ command/subparagraph
+\subparagraph{Title}
+@@ command/abs
+\abs{x}
+@@ command/norm
+\norm{x}
+@@ command/bra
+\bra{x}
+@@ command/ket
+\ket{x}
+@@ command/braket
+\braket{x}
+@@ command/Bra
+\Bra{x}
+@@ command/Ket
+\Ket{x}
+@@ command/Braket
+\Braket{x}
+@@ command/eval
+\eval{x}
+@@ command/quantity
+\quantity{x}
+@@ command/comm
+\comm{A}{B}
+@@ command/anticomm
+\anticomm{A}{B}
+@@ command/vb
+\vb{x}
+@@ command/va
+\va{x}
+@@ command/dv
+\dv[2]{f}{x}
+@@ command/pdv
+\pdv[2]{f}{x}
+@@ command/num
+\num{1e3}
+@@ command/si
+\si{\metre\per\second}
+@@ command/unit
+\unit{\metre\per\second}
+@@ command/SI
+\SI{3}{\metre}
+@@ command/qty
+\qty{3}{\metre}
+@@ command/numlist
+\numlist{1;2;3}
+@@ command/qtylist
+\qtylist{1;2;3}{\metre}
+@@ command/numrange
+\numrange{1}{3}
+@@ command/qtyrange
+\qtyrange{1}{3}{\metre}
+@@ command/ang
+\ang{30}
+@@ command/pu
+\pu{3 mol}
+@@ command/bond
+\bond{3}
+@@ command/metre
+\metre
+@@ command/meter
+\meter
+@@ command/second
+\second
+@@ command/gram
+\gram
+@@ command/kilogram
+\kilogram
+@@ command/ampere
+\ampere
+@@ command/kelvin
+\kelvin
+@@ command/mole
+\mole
+@@ command/candela
+\candela
+@@ command/hertz
+\hertz
+@@ command/newton
+\newton
+@@ command/pascal
+\pascal
+@@ command/joule
+\joule
+@@ command/watt
+\watt
+@@ command/coulomb
+\coulomb
+@@ command/volt
+\volt
+@@ command/farad
+\farad
+@@ command/ohm
+\ohm
+@@ command/siemens
+\siemens
+@@ command/weber
+\weber
+@@ command/tesla
+\tesla
+@@ command/henry
+\henry
+@@ command/lumen
+\lumen
+@@ command/lux
+\lux
+@@ command/becquerel
+\becquerel
+@@ command/gray
+\gray
+@@ command/sievert
+\sievert
+@@ command/katal
+\katal
+@@ command/litre
+\litre
+@@ command/liter
+\liter
+@@ command/degreeCelsius
+\degreeCelsius
+@@ command/kilo
+\kilo
+@@ command/mega
+\mega
+@@ command/giga
+\giga
+@@ command/centi
+\centi
+@@ command/milli
+\milli
+@@ command/micro
+\micro
+@@ command/nano
+\nano
+@@ command/per
+\per
+@@ command/squared
+\squared
+@@ command/cubed
+\cubed
+@@ command/ce
+\ce{H2O}
+@@ command/cf
+\cf{H2O}
+@@ chemistry/circa
+\ce{\ca Fe}
+@@ chemistry/in-text
+\text{Water: \ce{H2O}}
+@@ environment/matrix
+\begin{matrix}a&b\\c&d\end{matrix}
+@@ environment/pmatrix
+\begin{pmatrix}a&b\\c&d\end{pmatrix}
+@@ environment/bmatrix
+\begin{bmatrix}a&b\\c&d\end{bmatrix}
+@@ environment/Bmatrix
+\begin{Bmatrix}a&b\\c&d\end{Bmatrix}
+@@ environment/vmatrix
+\begin{vmatrix}a&b\\c&d\end{vmatrix}
+@@ environment/Vmatrix
+\begin{Vmatrix}a&b\\c&d\end{Vmatrix}
+@@ environment/matrix*
+\begin{matrix*}a&b\\c&d\end{matrix*}
+@@ environment/pmatrix*
+\begin{pmatrix*}a&b\\c&d\end{pmatrix*}
+@@ environment/bmatrix*
+\begin{bmatrix*}a&b\\c&d\end{bmatrix*}
+@@ environment/Bmatrix*
+\begin{Bmatrix*}a&b\\c&d\end{Bmatrix*}
+@@ environment/vmatrix*
+\begin{vmatrix*}a&b\\c&d\end{vmatrix*}
+@@ environment/Vmatrix*
+\begin{Vmatrix*}a&b\\c&d\end{Vmatrix*}
+@@ environment/smallmatrix
+\begin{smallmatrix}a&b\\c&d\end{smallmatrix}
+@@ environment/smallmatrix*
+\begin{smallmatrix*}a&b\\c&d\end{smallmatrix*}
+@@ environment/array
+\begin{array}{cc}a&b\\c&d\end{array}
+@@ environment/subarray
+\begin{subarray}{c}a\\b\end{subarray}
+@@ environment/tabular
+\begin{tabular}{cc}a&b\\c&d\end{tabular}
+@@ environment/align
+\begin{align}a&=b\\c&=d\end{align}
+@@ environment/aligned
+\begin{aligned}a&=b\\c&=d\end{aligned}
+@@ environment/align*
+\begin{align*}a&=b\\c&=d\end{align*}
+@@ environment/gather
+\begin{gather}a&=b\\c&=d\end{gather}
+@@ environment/gathered
+\begin{gathered}a&=b\\c&=d\end{gathered}
+@@ environment/gather*
+\begin{gather*}a&=b\\c&=d\end{gather*}
+@@ environment/flalign
+\begin{flalign}a&=b\\c&=d\end{flalign}
+@@ environment/flalign*
+\begin{flalign*}a&=b\\c&=d\end{flalign*}
+@@ environment/alignat
+\begin{alignat}{1}a&=b\\c&=d\end{alignat}
+@@ environment/alignat*
+\begin{alignat*}{1}a&=b\\c&=d\end{alignat*}
+@@ environment/alignedat
+\begin{alignedat}{1}a&=b\\c&=d\end{alignedat}
+@@ environment/split
+\begin{split}a&=b\\c&=d\end{split}
+@@ environment/multline
+\begin{multline}a+b\\+c\end{multline}
+@@ environment/multline*
+\begin{multline*}a+b\\+c\end{multline*}
+@@ environment/multlined
+\begin{multlined}a+b\\+c\end{multlined}
+@@ environment/eqnarray
+\begin{eqnarray}a&=&b\\c&=&d\end{eqnarray}
+@@ environment/eqnarray*
+\begin{eqnarray*}a&=&b\\c&=&d\end{eqnarray*}
+@@ environment/subequations
+\begin{subequations}\begin{equation}x=y\end{equation}\end{subequations}
+@@ environment/cases
+\begin{cases}a&x>0\\b&x<0\end{cases}
+@@ environment/cases*
+\begin{cases*}a&x>0\\b&x<0\end{cases*}
+@@ environment/dcases
+\begin{dcases}a&x>0\\b&x<0\end{dcases}
+@@ environment/dcases*
+\begin{dcases*}a&x>0\\b&x<0\end{dcases*}
+@@ environment/rcases
+\begin{rcases}a&x>0\\b&x<0\end{rcases}
+@@ environment/rcases*
+\begin{rcases*}a&x>0\\b&x<0\end{rcases*}
+@@ environment/equation
+\begin{equation}x=y\end{equation}
+@@ environment/equation*
+\begin{equation*}x=y\end{equation*}
+@@ environment/displaymath
+\begin{displaymath}x=y\end{displaymath}
+@@ environment/RTL
+\begin{RTL}text\end{RTL}
+@@ environment/LTR
+\begin{LTR}text\end{LTR}
+@@ environment/prooftree
+\begin{prooftree}\AXC{P}\AXC{Q}\RightLabel{rule}\dashedLine\BIC{R}\end{prooftree}
+@@ proof/UnaryInfC
+\begin{prooftree}\AxiomC{P}\LL{L}\RL{R}\rootAtTop\UnaryInfC{Q}\end{prooftree}
+@@ proof/UIC
+\begin{prooftree}\AxiomC{P}\LL{L}\RL{R}\rootAtTop\UIC{Q}\end{prooftree}
+@@ proof/BinaryInfC
+\begin{prooftree}\AxiomC{P}\AxiomC{P}\LL{L}\RL{R}\rootAtTop\BinaryInfC{Q}\end{prooftree}
+@@ proof/TrinaryInfC
+\begin{prooftree}\AxiomC{P}\AxiomC{P}\AxiomC{P}\LL{L}\RL{R}\rootAtTop\TrinaryInfC{Q}\end{prooftree}
+@@ proof/TIC
+\begin{prooftree}\AxiomC{P}\AxiomC{P}\AxiomC{P}\LL{L}\RL{R}\rootAtTop\TIC{Q}\end{prooftree}
+@@ proof/QuaternaryInfC
+\begin{prooftree}\AxiomC{P}\AxiomC{P}\AxiomC{P}\AxiomC{P}\LL{L}\RL{R}\rootAtTop\QuaternaryInfC{Q}\end{prooftree}
+@@ proof/QuinaryInfC
+\begin{prooftree}\AxiomC{P}\AxiomC{P}\AxiomC{P}\AxiomC{P}\AxiomC{P}\LL{L}\RL{R}\rootAtTop\QuinaryInfC{Q}\end{prooftree}
+@@ syntax/frac-unbraced
+\frac12
+@@ syntax/infix-over
+{1\over 2}
+@@ syntax/infix-atop
+{1\atop 2}
+@@ syntax/infix-above 1pt
+{1\above 1pt 2}
+@@ syntax/infix-above 0pt
+{1\above 0pt 2}
+@@ syntax/infix-choose
+{n\choose k}
+@@ syntax/infix-brack
+{1\brack 2}
+@@ syntax/infix-brace
+{1\brace 2}
+@@ syntax/scripts
+x_{1}^{2}
+@@ syntax/operator-limits
+\int\limits_0^1
+@@ syntax/operator-nolimits
+\sum\nolimits_0^1
+@@ syntax/verb
+\verb!a_b%!
+@@ syntax/verb-star
+\verb*!a b!
+@@ syntax/comment-newline
+\text{a% comment
+b}
+@@ syntax/inline-dollar
+$x+1$
+@@ syntax/inline-parentheses
+\(x+1\)
+@@ syntax/display-dollar
+$$x+1$$
+@@ syntax/display-brackets
+\[x+1\]
+@@ syntax/line-break
+a\\b
+@@ diagnostic/unknown-command
+\fracx
+@@ diagnostic/missing-brace
+\frac{1
+@@ diagnostic/unexpected-environment
+\end

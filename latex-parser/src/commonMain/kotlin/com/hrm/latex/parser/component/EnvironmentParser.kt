@@ -33,7 +33,38 @@ import com.hrm.latex.parser.tokenizer.LatexToken
 internal class EnvironmentParser(private val context: LatexParserContext) {
     private val tokenStream get() = context.tokenStream
 
+    private enum class Kind(vararg val names: String) {
+        MATRIX(
+            "matrix", "pmatrix", "bmatrix", "Bmatrix", "vmatrix", "Vmatrix",
+            "matrix*", "pmatrix*", "bmatrix*", "Bmatrix*", "vmatrix*", "Vmatrix*",
+        ),
+        SMALL_MATRIX("smallmatrix", "smallmatrix*"),
+        ARRAY("array"),
+        SUBARRAY("subarray"),
+        TABULAR("tabular"),
+        ALIGN("align", "aligned", "align*", "gather", "gathered", "gather*", "flalign", "flalign*"),
+        ALIGNAT("alignat", "alignat*", "alignedat"),
+        SPLIT("split"),
+        PROOF("prooftree"),
+        MULTLINE("multline", "multline*", "multlined"),
+        EQNARRAY("eqnarray", "eqnarray*"),
+        SUBEQUATIONS("subequations"),
+        CASES("cases", "cases*"),
+        DISPLAY_CASES("dcases", "dcases*"),
+        RIGHT_CASES("rcases", "rcases*"),
+        EQUATION("equation", "equation*", "displaymath"),
+        RTL("RTL"),
+        LTR("LTR"),
+    }
+
     companion object {
+        // 环境分发与覆盖检查来自同一份入口表。
+        private val kindsByName = buildMap {
+            for (kind in Kind.entries) for (name in kind.names) put(name, kind)
+        }
+
+        internal fun supportedEnvironments(): Set<String> = kindsByName.keys
+
         private const val TAG = "EnvironmentParser"
         private val ROW_GAP_PATTERN =
             Regex("""([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*(em|ex|mu|pt|mm|cm|in|bp|pc|dd|cc|sp)""")
@@ -56,45 +87,25 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
 
         context.pushScope()
         val result = try {
-            when (envName) {
-                "matrix", "pmatrix", "bmatrix", "Bmatrix", "vmatrix", "Vmatrix",
-                "matrix*", "pmatrix*", "bmatrix*", "Bmatrix*", "vmatrix*", "Vmatrix*" ->
-                    parseMatrix(envName, isSmall = false)
-
-                "smallmatrix", "smallmatrix*" -> parseMatrix(envName, isSmall = true)
-                "array" -> parseArray()
-                "subarray" -> parseSubarray()
-                "tabular" -> parseTabular()
-                "align", "aligned", "align*", "gather", "gathered", "gather*",
-                "flalign", "flalign*" -> parseAligned(envName)
-                "alignat", "alignat*", "alignedat" -> parseAlignat(envName)
-                "split" -> parseSplit()
-                "prooftree" -> parseProofTree(context).withSourceRange(tokenStream.rangeFrom(startOffset))
-                "multline", "multline*", "multlined" -> parseMultline(envName)
-                "eqnarray", "eqnarray*" -> parseEqnarray(envName)
-                "subequations" -> parseSubequations()
-                "cases", "cases*" -> parseCases(envName, LatexNode.Cases.CasesStyle.NORMAL)
-                "dcases", "dcases*" -> parseCases(envName, LatexNode.Cases.CasesStyle.DISPLAY)
-                "rcases", "rcases*" -> parseCases(envName, LatexNode.Cases.CasesStyle.RIGHT)
-                "equation", "equation*", "displaymath" -> {
-                    val content = parseEnvironmentContent(envName)
-                    LatexNode.Environment(envName, content)
-                }
-
-                "RTL" -> {
-                    val content = parseEnvironmentContent("RTL")
-                    LatexNode.TextDirection(content, LatexNode.TextDirection.Direction.RTL)
-                }
-
-                "LTR" -> {
-                    val content = parseEnvironmentContent("LTR")
-                    LatexNode.TextDirection(content, LatexNode.TextDirection.Direction.LTR)
-                }
-
-                else -> {
-                    val content = parseEnvironmentContent(envName)
-                    LatexNode.Environment(envName, content)
-                }
+            when (kindsByName[envName]) {
+                Kind.MATRIX -> parseMatrix(envName, isSmall = false)
+                Kind.SMALL_MATRIX -> parseMatrix(envName, isSmall = true)
+                Kind.ARRAY -> parseArray()
+                Kind.SUBARRAY -> parseSubarray()
+                Kind.TABULAR -> parseTabular()
+                Kind.ALIGN -> parseAligned(envName)
+                Kind.ALIGNAT -> parseAlignat(envName)
+                Kind.SPLIT -> parseSplit()
+                Kind.PROOF -> parseProofTree(context).withSourceRange(tokenStream.rangeFrom(startOffset))
+                Kind.MULTLINE -> parseMultline(envName)
+                Kind.EQNARRAY -> parseEqnarray(envName)
+                Kind.SUBEQUATIONS -> parseSubequations()
+                Kind.CASES -> parseCases(envName, LatexNode.Cases.CasesStyle.NORMAL)
+                Kind.DISPLAY_CASES -> parseCases(envName, LatexNode.Cases.CasesStyle.DISPLAY)
+                Kind.RIGHT_CASES -> parseCases(envName, LatexNode.Cases.CasesStyle.RIGHT)
+                Kind.RTL -> LatexNode.TextDirection(parseEnvironmentContent(envName), LatexNode.TextDirection.Direction.RTL)
+                Kind.LTR -> LatexNode.TextDirection(parseEnvironmentContent(envName), LatexNode.TextDirection.Direction.LTR)
+                Kind.EQUATION, null -> LatexNode.Environment(envName, parseEnvironmentContent(envName))
             }
         } finally { context.popScope() }
 
