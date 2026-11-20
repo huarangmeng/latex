@@ -71,6 +71,11 @@ kotlin {
     }
 }
 
+tasks.matching { it.name == "jsBrowserTest" || it.name == "wasmJsBrowserTest" }.configureEach {
+    // Karma 配置变化时重新生成浏览器启动配置并执行测试。
+    inputs.dir("karma.config.d").withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 tasks.withType<Test>().configureEach {
     // CorpusTest reads these; declared so that changing one reruns the task.
     inputs.dir(rootProject.file("test-corpus")).withPathSensitivity(PathSensitivity.RELATIVE)
