@@ -1,0 +1,813 @@
+# Kept in sync with tools/lexer_compare/test_cases.txt. Parser skips # lines; lexer skips # lines and decodes \n/\t.
+# Sources: KaTeX test/katex-spec.ts, unicode-spec.ts, and additional cases.
+
+# ========== Aligned with KaTeX test/katex-spec.ts: basics, superscripts/subscripts, groups ==========
+
+x
+x^2
+a_i
+x^2_i
+a+b
+{a+b}
+\frac{a}{b}
+\dfrac{x}{y}
+\tfrac{1}{2}
+\binom{n}{k}
+\sqrt{x}
+\sqrt[3]{x}
+\frac{\sqrt{a^2+b^2}}{c}
+\sum_{i=1}^{n} x_i
+\int_0^1 f(x)\,dx
+\lim_{x\to 0} \frac{\sin x}{x}
+\sin^2\theta + \cos^2\theta = 1
+\hat{x}
+\vec{v}
+\widehat{ABC}
+\bar{z}
+\dot{x}
+\mathbf{v}
+\mathrm{d}x
+\mathbb{R}
+\mathcal{F}
+\mathfrak{g}
+\text{hello world}
+\textbf{bold}
+\left( \frac{a}{b} \right)
+\left[ x \right]
+\left\{ a \right\}
+\big( x \big)
+\Big[ y \Big]
+\color{red}{x}
+\textcolor{blue}{y}
+\displaystyle \sum x
+\textstyle \int x
+\overline{AB}
+\underline{x}
+\kern{1em}
+\phantom{x}
+e^{i\pi} + 1 = 0
+\frac{1}{1+\frac{1}{x}}
+a^2 + b^2 = c^2
+\begin{matrix} a & b \\ c & d \end{matrix}
+\begin{pmatrix} a & b \\ c & d \end{pmatrix}
+\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}
+\begin{vmatrix} a & b \\ c & d \end{vmatrix}
+\begin{Bmatrix} a \\ b \end{Bmatrix}
+\begin{Vmatrix} a & b \\ c & d \end{Vmatrix}
+\begin{cases} x & \text{if } x > 0 \\ -x & \text{otherwise} \end{cases}
+\begin{aligned} x &= 1 \\ y &= 2 \end{aligned}
+\begin{gathered} a \\ b \\ c \end{gathered}
+\mathord{x}
+\mathbin{+}
+\mathrel{=}
+\overset{?}{=}
+\underset{n}{x}
+\stackrel{!}{=}
+\overbrace{a+b+c}
+\underbrace{x+y}
+\xrightarrow{f}
+\xleftarrow[below]{above}
+\cancel{x}
+\fbox{text}
+\rule{1em}{2pt}
+\mathllap{x}
+\mathrlap{y}
+\vcenter{x}
+\raisebox{1em}{x}
+\href{https://example.com}{link}
+\hbox{text}
+\pmb{x}
+\mathchoice{D}{T}{S}{SS}
+\rm{test}
+\bf{bold}
+\def\foo{bar}\foo
+\gdef\myop{+}\myop
+\let\myeq==\myeq
+\begin{alignedat}{2} x &= 1 & y &= 2 \\ a &= 3 & b &= 4 \end{alignedat}
+\begin{alignedat}{1} x &= 1 \\ y &= 2 \end{alignedat}
+\begin{subarray}{c} a \\ b \\ c \end{subarray}
+\operatorname{lim}_{x \to 0}
+\sum\limits_{i=1}^{n}
+\sum\nolimits_{i=1}^{n}
+# ========== Fractions, radicals, genfrac, over/atop ==========
+
+    x    y
+    x   ^ y
+1234|/@."`abcdefgzABCDEFGZ
++-*\cdot\pm\div
+=<>\leq\geq\neq\nleq\ngeq\cong
+\not=\not<\not>\not\leq\not\geq\not\in
+\mathinner{\langle{\psi}\rangle}
+\frac 1 {\mathinner{\langle{\psi}\rangle}}
+,;
+([ )]?!
+\KaTeX
+^3
+_2
+^3_2
+_2^3
+x^\relax 2
+x_\relax 2
+\begingroup xy \endgroup
+\Large x
+\sqrt[\small 3]{x}
+\sqrt[\color{red} 3]{x}
+\frac 1 2
+\frac12
+\genfrac ( ] {0.06em}{0}{a}{b+c}
+\genfrac ( ] {0.8pt}{}{a}{b+c}
+\genfrac {} {} {0.8pt}{}{a}{b+c}
+x \atop y
+1 \over x
+1+2i \over 3+4i
+\over x
+1 \over
+\textstyle 1 \over 2
+{\textstyle 1} \over 2
+{1 \over 2} \over 3
+a+b \brace c+d
+a+b \brack c+d
+\Huge{x}\small{x}
+\text{a b}
+\text x
+\text{  a \  }
+\text {moo}
+\text{sin}^2
+\text{graph: $y = mx + b$}
+\text{a \vdots b ⋮ d}
+\blue{x}
+\textcolor{#fA6}{x}
+\textcolor{#fA6fA6}{x}
+\textcolor{fA6fA6}{x}
+\textcolor{#ff000080}{x}
+\color{#fA6}xy
+a~b
+\text{a~ b}
+\bigl |
+\Biggr \langle
+\rlap{\,/}{=}
+\mathrlap{\,/}{=}
+{=}\llap{/\,}
+\sum_{\clap{ABCDEFG}}
+\rule{1em}{2em}
+\rule{1ex}{2em}
+\rule{-1em}{- 0.2em}
+\kern{1em}
+\kern1em
+\mkern 1mu
+a\mkern1mub
+\kern-1em
+\left( \dfrac{x}{y} \right)
+\left( \dfrac{x}{y} \right.
+\left( \dfrac{x}{y} \middle| \dfrac{y}{z} \right)
+\left\langle \right\rangle
+\left< \right>
+\left\lparen \right\rparen
+\begin{array}{cc}a&b\\c&d\end{array}
+\begin{matrix}\hline a&b\\ \hline c&d\end{matrix}
+\begin{matrix}a&b\cr c&d\end{matrix}
+\begin{matrix*}[r] a & -1 \\ -1 & d \end{matrix*}
+\sqrt[3]{2}
+\sqrt{2}
+\int\limits_2^2 3
+# ========== Left/right delimiters, array/matrix, limits ==========
+
+\sum\nolimits_3^4 4
+\int_2^2\limits
+\displaystyle x
+\scriptstyle x
+\scriptscriptstyle x
+\mathbb{R \neq \mathrm{R}}
+\mathbf{a\mathrm{b}c}
+e^\mathbf{x}
+\rm xyz
+\bf xyz
+\it xyz
+\cal xyz
+\pmb{\mu}
+\pmb{=}
+\pmb{\frac{x^2}{x_1}}
+\pmb{}
+\raisebox{5pt}{text}
+\raisebox{-5pt}{text}
+\phantom{x}
+\hphantom{x}
+\smash{x}
+\smash[b]{x}
+\smash[]{x}
+\frac[1]{2}{3}
+\rule[0.2em]{1em}{1em}
+\begin{array}r1\\20\end{array}
+\begin{array}{|l||c:r::}\end{array}
+\begin{subarray}{c}a \\ b\end{subarray}
+\sum_{\substack{ 0<i<m \\ 0<j<n }}  P(i,j)
+\begin{smallmatrix} a & b \\ c & d \end{smallmatrix}
+\vec{x}^2
+\underbar{X}
+\widehat{x}
+\widecheck{x}
+\overrightarrow{x}
+\underrightarrow{x}
+\xrightarrow{x}
+\xrightarrow[under]{over}
+\overbrace{x}^2
+\underbrace{x}_2
+\boxed{x}
+\colorbox{red}{a b}
+\fcolorbox{blue}{yellow}{a b}
+\cancel{x}
+\sout{x}
+\operatorname{x*Π∑\Pi\sum\frac a b}
+\operatorname*{x*Π∑\Pi\sum\frac a b}_y x
+\href{http://example.com/}{\sin}
+\url{http://example.com/}
+\href{}{example here}
+\url{}
+\limsup
+\liminf
+\plim
+\argmin
+\argmax
+\bra{\phi}
+\ket{\psi}
+\braket{\phi|\psi}
+\left<\frac{1}{x}\right>
+\text{\i\j}
+\minuso
+\text{\ae\AE\oe\OE\o\O\ss}
+\emph{foo \emph{bar}}
+\char37
+\@firstoftwo{yes}{no}
+\@ifstar{yes}{no}*
+\newcommand\foo{x^2}\foo+\foo
+\renewcommand{\foo}{x^2}\foo+\foo
+\providecommand\foo{x^2}\foo+\foo
+\hspace{1em}
+\hskip{1em}
+A² + B²⁺³ + ¹²C + E₂³ + F₂₊₃
+x^{x^x}
+x_{x_x}
+\begin{rcases} a &\text{if } b \\ c &\text{if } d \end{rcases}
+f(a,b)=\begin{cases}a+1&\text{if }b\text{ is odd}\\a&\text{if }b=0\\a-1&\text{otherwise}\end{cases}
+\begin{aligned}[a]&[b]\\ [c]&[d]\end{aligned}
+\mathstrut
+hello \\ world
+hello \newline world
+M\not=N
+M\neq N
+\acute{x}
+\grave{x}
+# ========== Accents, fonts, pmb, phantom, smash ==========
+
+\ddot{x}
+\tilde{x}
+\breve{x}
+\check{x}
+\mathring{x}
+\widetilde{ABC}
+\overleftarrow{AB}
+\Overrightarrow{AB}
+\overleftrightarrow{AB}
+\overgroup{AB}
+\underleftarrow{AB}
+\underleftrightarrow{AB}
+\undergroup{AB}
+\utilde{AB}
+\'e
+\`e
+\^o
+\~n
+\=a
+\u{a}
+\.z
+\"u
+\c{c}
+\r{a}
+\H{o}
+\v{s}
+\textcircled{a}
+\mathit{xyz}
+\mathsf{xyz}
+\mathtt{xyz}
+\mathnormal{xyz}
+\boldsymbol{xyz}
+\bm{xyz}
+\Bbb{R}
+\bold{x}
+\frak{g}
+\sf xyz
+\tt xyz
+\cfrac{1}{1+\cfrac{1}{x}}
+\dbinom{n}{k}
+\tbinom{n}{k}
+x \choose y
+x \above 1pt y
+\coprod_{i} A_i
+\bigvee_{i} x_i
+\bigwedge_{i} x_i
+\biguplus_{i} A_i
+\bigcap_{i} A_i
+\bigcup_{i} A_i
+\prod_{i=1}^{n} x_i
+\bigotimes V
+\bigoplus V
+\bigodot V
+\bigsqcup V
+\smallint f
+\intop_0^1 f
+\arcsin x
+\arccos x
+\arctan x
+\cot x
+\csc x
+\sec x
+\sinh x
+\cosh x
+\tanh x
+\deg f
+\dim V
+\exp x
+\hom(A,B)
+\ker f
+\lg x
+\ln x
+\log x
+\det A
+\gcd(a,b)
+\inf S
+\max S
+\min S
+\Pr(X)
+\sup S
+\iint f
+\iiint f
+\oint f
+\oiint f
+\oiiint f
+\mathop{abc}
+\Bigl( x \Bigr)
+\biggl( x \biggr)
+\Biggl( x \Biggr)
+\bigg( x \bigg)
+# ========== Delimiter sizes, spacing, size commands ==========
+
+\Bigg( x \Bigg)
+\bigm| x
+\Bigm| x
+\biggm| x
+\Biggm| x
+\quad x \qquad y
+\thinspace x
+\medspace x
+\thickspace x
+\enspace x
+\negthinspace x
+\negmedspace x
+\negthickspace x
+\nobreakspace x
+\tiny x
+\scriptsize x
+\footnotesize x
+\normalsize x
+\large x
+\LARGE x
+\bcancel{x}
+\xcancel{x}
+\phase{90}
+\angl
+\xLeftarrow{text}
+\xRightarrow{text}
+\xleftrightarrow{text}
+\xLeftrightarrow{text}
+\xhookleftarrow{text}
+\xhookrightarrow{text}
+\xmapsto{text}
+\xrightharpoondown{text}
+\xrightharpoonup{text}
+\xleftharpoondown{text}
+\xleftharpoonup{text}
+\xrightleftharpoons{text}
+\xleftrightharpoons{text}
+\xlongequal{text}
+\xtwoheadrightarrow{text}
+\xtwoheadleftarrow{text}
+\xtofrom{text}
+\xrightleftarrows{text}
+\mathopen{[}x\mathclose{]}
+\mathpunct{,}
+\vphantom{x}
+\bgroup x \egroup
+\lq x \rq
+\lbrack x \rbrack
+\aa
+\AA
+\notin
+\le x
+\ge x
+\iff
+\implies
+\impliedby
+\varGamma
+\varDelta
+\varTheta
+\varLambda
+\varXi
+\varPi
+\varSigma
+\varUpsilon
+\varPhi
+\varPsi
+\varOmega
+\colon
+\dotsb
+\cdots
+\ldots
+\ddots
+\dotsm
+\dotsi
+\dotsx
+\dddot{x}
+\ddddot{x}
+a \bmod b
+a \pmod{b}
+a \pod{b}
+a \mod{b}
+\TeX
+\LaTeX
+\injlim
+\projlim
+\varlimsup
+\varliminf
+\varinjlim
+\varprojlim
+\ordinarycolon
+# ========== Symbols, Greek, arrows, operators ==========
+
+\vcentcolon
+\dblcolon
+\coloneqq
+\Coloneqq
+\coloneq
+\Coloneq
+\eqqcolon
+\Eqqcolon
+\eqcolon
+\Eqcolon
+\colonapprox
+\Colonapprox
+\colonsim
+\Colonsim
+\Bra{\phi}
+\Ket{\psi}
+\orange{x}
+\pink{x}
+\red{x}
+\green{x}
+\gray{x}
+\purple{x}
+\darr
+\dArr
+\lang x \rang
+\uarr
+\N
+\R
+\Z
+\alef
+\clubs
+\diamonds
+\hearts
+\spades
+\infin
+\isin
+\exist
+\harr
+\larr
+\rarr
+\lArr
+\rArr
+\sub A
+\sube A
+\supe A
+\plusmn
+\sdot
+\Alpha
+\Beta
+\@secondoftwo{no}{yes}
+\@ifnextchar x{yes}{no}x
+\TextOrMath{text}{math}
+\begin{darray}{cc}a&b\\c&d\end{darray}
+\begin{dcases}a&b\\c&d\end{dcases}
+\begin{drcases}a&b\\c&d\end{drcases}
+\begin{pmatrix*}[r] a & -1 \\ -1 & d \end{pmatrix*}
+x \cdot y
+x \times y
+x \cup y
+x \cap y
+x \setminus y
+x \circ y
+x \oplus y
+x \otimes y
+\forall x \exists y
+\neg p \land q \lor r
+\partial f
+\nabla f
+\hbar
+\ell
+\imath
+\jmath
+\infty
+\aleph
+\beth
+\gimel
+\daleth
+\alpha\beta\gamma\delta\epsilon\zeta\eta\theta
+\iota\kappa\lambda\mu\nu\xi\pi\rho
+\sigma\tau\upsilon\phi\chi\psi\omega
+\varepsilon\vartheta\varpi\varrho\varsigma\varphi
+\Gamma\Delta\Theta\Lambda\Xi\Pi\Sigma\Upsilon\Phi\Psi\Omega
+\leftarrow\rightarrow\uparrow\downarrow
+\Leftarrow\Rightarrow\Uparrow\Downarrow
+\leftrightarrow\Leftrightarrow\updownarrow\Updownarrow
+\longleftarrow\longrightarrow\Longleftarrow\Longrightarrow
+\longleftrightarrow\Longleftrightarrow
+\hookrightarrow\hookleftarrow
+\mapsto\longmapsto
+\nearrow\nwarrow\searrow\swarrow
+# ========== Combined and long expressions ==========
+
+\leq\geq\ll\gg\prec\succ\preceq\succeq
+\subset\supset\subseteq\supseteq
+\in\ni\notin
+\equiv\sim\simeq\approx\cong
+\propto\perp\parallel\asymp
+\vdash\dashv\models
+\lfloor x \rfloor
+\lceil x \rceil
+\langle x \rangle
+\lvert x \rvert
+\lVert x \rVert
+{a \atop b}
+{a \brace b}
+{a \brack b}
+\underset{x \to 0}{\lim} f(x)
+\overset{n}{\overbrace{a+b+c}}
+x'^2
+x''^2
+f'(x)
+f'''(x)
+\sqrt[n]{x}
+\frac{d}{dx}f(x)
+\int_a^b f(x)\,dx
+\sum_{n=0}^{\infty} a_n x^n
+\prod_{i=1}^{n} (1+x_i)
+\binom{n}{k} = \frac{n!}{k!(n-k)!}
+\left\| x \right\|
+\left. \frac{d}{dx}f(x) \right|_{x=0}
+\lim_{n\to\infty} \left(1+\frac{1}{n}\right)^n
+\begin{array}{lcr} a & b & c \\ d & e & f \end{array}
+\begin{matrix} \hline a & b \\ \hline c & d \\ \hline \end{matrix}
+\begin{cases} x & x > 0 \\ 0 & x = 0 \\ -x & x < 0 \end{cases}
+\begin{aligned} a &= b + c \\ &= d + e \\ &= f \end{aligned}
+\begin{gathered} a = b \\ c = d \end{gathered}
+\begin{smallmatrix} 1 & 0 \\ 0 & 1 \end{smallmatrix}
+\begin{Vmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{Vmatrix}
+a_1, a_2, \ldots, a_n
+a_1 + a_2 + \cdots + a_n
+\det\begin{pmatrix} a & b \\ c & d \end{pmatrix}
+\sqrt{x^2 + y^2}
+e^{i\theta} = \cos\theta + i\sin\theta
+\nabla \times \vec{F}
+\frac{\partial f}{\partial x}
+x \in \mathbb{R}
+f: A \to B
+A \cup B = B \cup A
+|x| = \begin{cases} x & x \geq 0 \\ -x & x < 0 \end{cases}
+\Bbbk
+\angln
+\operatorname{Hom}(A,B)
+\operatorname*{max}_{x \in S} f(x)
+\text{for all } x \in \mathbb{R}
+\textit{italic}
+\textsf{sans-serif}
+\texttt{monospace}
+\text{\LaTeX\ is fun}
+\overlinesegment{AB}
+\underlinesegment{AB}
+x\,y
+x\:y
+x\;y
+x\!y
+\left( \frac{a}{b} \middle| \frac{c}{d} \right)
+
+# ========== Lexer-specific: comments, newlines, \verb, Unicode, macros ==========
+
+a
+abc
+123
+\frac
+\alpha
+\frac x
+\fracx
+\frac{}
+\,
+\;
+\
+\\
+\@ifstar
+\foo@bar
+a   b
+a\nb
+a\tb
+\frac  x
+a%comment\nb
+a%comment
+\alpha%skip\n\beta
+{x}
+a^2_3
+a&b
+\frac{a^2}{b}
+\frac{a + b}{c - d}
+\sum_{i=0}^{n}
+a & b \\ c & d
+α
+x + α
+ x y
+ x ^ y
+a^2 + b^2 = c^2 % Pythagoras' Theorem\n
+% comment\n
+% comment 1\n% comment 2\n
+x_3 %comment\n^2
+x^ %comment\n{2}
+x^ %comment\n\frac{1}{2}
+\kern{1 %kern\nem}
+\kern1 %kern\nem
+\color{#f00%red\n}
+%comment\n{2}
+hello% comment 1\nworld
+hello% comment\n\nworld
+5 % comment\n
+x%y
+\ \t\r \n \t\r
+á
+á̃
+áb
+\verb|hello|
+\verb*|hello world|
+\verb!\frac{a}{b}!
+x + \verb|y| + z
+\frac{-b \pm \sqrt{b^2-4ac}}{2a}
+x^2 + y^2 = z^2
+\lim_{n\to\infty}
+\sqrt{\frac{a}{b}}
+\left( \frac{1}{2} \right)
+\sin\theta
+\alpha,\beta,\gamma
+\text{hello}
+\equiv
+\neq
+\leq
+\geq
+\approx
+\times
+\div
+\sum_{k=1}^n k
+\prod_{i=1}^n i
+\overline{x}
+\underline{y}
+\lim
+\rightarrow
+\leftarrow
+\Rightarrow
+\Leftarrow
+\Leftrightarrow
+\neg
+\land
+\lor
+\text{ÀÁÂÃÄÅÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåèéêëìíîïñòóôõöùúûüýÿÆÇÐØÞßæçðøþ}
+\text{\`A\'A\^A\~A\"A\r A\`E\'E\^E\"E\`I\'I\^I\"I\~N\`O\'O\^O\~O\"O\`U\'U\^U\"U\'Y\`a\'a\^a\~a\"a\r a\`e\'e\^e\"e\`ı\'ı\^ı\"ı\~n\`o\'o\^o\~o\"o\`u\'u\^u\"u\'y\"y\c C\c c}
+ÀÁÂÃÄÅÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåèéêëìíîïñòóôõöùúûüýÿÇÐÞçþ
+αβγδεϵζηθϑικλμνξοπϖρϱςστυφϕχψω
+ΓΔΘΛΞΠΣΥΦΨΩ
+\text{БГДЖЗЙЛФЦШЫЮЯ}
+БГДЖЗЙЛФЦШЫЮЯ
+\text{私はバナナです}
+\text{여보세요}
+私はバナナです
+여보세요
+\text{नमस्ते}
+नमस्ते
+\text{გამარჯობა}
+გამარჯობა
+ԱԲԳաբգ
+\text{ԱԲԳաբգ}
+\text{ěščřžůřťďňőİı}
+ěščřžůřťďňőİı
+✌
+\text{✌}
+\verb||
+\verb##
+\verb11
+\verb++x++
+\!
+\:
+\'
+\"
+\#
+\$
+\`
+\quad
+\qquad
+\|
+\!\!\,
+\,\;\;
+\color{#ff0000}
+\color{#abcdef}
+\n\n
+3.14
+0.5
+\begin
+\end
+|a|
+\|x\|
+`x`
+👋
+🎯
+\redx
+\red x
+\;x
+\text{\ \t\r \n \t\r  }
+\text{hello% comment 1\nworld}
+\text{hello% comment\n\nworld}
+\def\foo{1\n2}\nx %\foo\n
+\def\foo{1 %}\n2}\n\foo
+\char`a
+\char`\%
+\char'45
+\char"25
+\char"1d7d9
+\textstyle 3
+\color{#abc8}
+\rule{   01.24ex}{2.450   em   }
+\kern   01.24em
+a\mkern\t-\r1  \n mu\nb
+\begin{matrix}a&b\\ [c]&d\end{matrix}
+a\\ [b]
+\begin{matrix}a&b\cr[c]&d\end{matrix}
+\begin{matrix}a&b\\ c&d \\ \end{matrix}
+\tag{hi}x+y
+\not=
+\not<
+\not\in
+\operatorname*{arg\,min}
+\href{http://example.org/~bar/#top?foo=$foo&bar=ba^r_boo%20baz}{\alpha}
+\url{http://example.org/{{}t{oo}}}
+\relax
+\hskip1em\relax^2
+x''''
+x_2''
+x''_2
+\text{\textit{R}}
+\text{\textup{R}}
+\textsf{\textit{R}G\textbf{B}}
+L\@binrel+xR
+L\@binrel{+}{x}R
+hello \newline[w]orld
+\text{graph: \(y = mx + b\)}
+\text{hello $x + \text{world $y$} + z$}
+\text{\textellipsis !}
+\text{\sect}\sdot\sub\sube\supe
+\lang\N\darr\R\dArr
+\cfrac[x]{a}{b}
+{}
+\frac{}{}
+\sqrt{}
+\kern{-1em}
+\int\limits_2^2
+\int\nolimits\limits_2^2
+\gdef\foo#1{#1^2}\foo x
+\def\foo#1#2{(#1,#2)}\foo 1 2
+\expandafter\foo\bar
+\noexpand\foo y
+\futurelet\foo\frac1{2+\foo}
+ÁĆ
+ấā́ắ
+íȷ́
+∉∤∦≁≆≠≨≩≮≯≰≱⊀⊁⊈⊉⊊⊋
+𝟙
+𝐀
+
+# ========== katex-spec.ts supplemental ==========
+\frac 2 3
+\message{Hello, world}
+\errmessage{Hello, world}
+\@ifnextchar!{yes}{no}!!
+\set{x|x<5|S|}
+\Set{ x | x<\frac 1 2 |S| }
+\begin{equation}a=b+c\end{equation}
+\begin{split}a &=b+c\\&=e+f\end{split}
+\begin{gather}a+b\\c+d\end{gather}
+\begin{align}a&=b+c\\d+e&=f\end{align}
+\begin{CD}A @<a<< B @>>b> C @>>> D\\@. @| @AcAA @VVdV \\@. E @= F @>>> G\end{CD}
+\newcommand\foo[1]{#1^2}\foo x+\foo{y}
+\gdef\foo#1{#1^2}\foo x
+\def\foo#1#2{(#1,#2)}\foo 1 2

@@ -1,0 +1,370 @@
+(i\slashed{\partial}-m)\psi=0
+A\centernot{\rightarrow\rightarrow}B
+A\centernot{\xleftrightarrow[below]{above}}B
+A\centernot{\xrightarrow{long label}}B
+L\@binrel+xR
+L\@binrel{+}{x}R
+P\impliedby Q
+\
+\ \t\r \n \t\r
+\@firstoftwo{yes}{no}
+\@ifnextchar x{yes}{no}x
+\@ifnextchar!{yes}{no}!!
+\@ifstar
+\@ifstar{yes}{no}*
+\@secondoftwo{no}{yes}
+\And
+\Box
+\Colonapprox
+\Coloneq
+\Coloneqq
+\Colonsim
+\Complex
+\Dagger
+\Darr
+\Diamond
+\Doteq
+\Eqcolon
+\Eqqcolon
+\Harr
+\Join
+\KaTeX
+\LaTeX
+\Larr
+\Lrarr
+\N
+\Overrightarrow{AB}
+\Pr
+\Pr(X)
+\R
+\Rarr
+\Reals
+\Set{ x | x<\frac 1 2 |S| }
+\Set{ x | x<\frac 1 2 }
+\TeX
+\TextOrMath{text}{math}
+\Uarr
+\Z
+\alef
+\alefsym
+\angl
+\angln
+\approxcolon
+\approxcoloncolon
+\approxeq
+\arcctg
+\arctg
+\begin
+\begin{prooftree}\AXC{P}\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{A\fCenter{}B}\LeftLabel{cut}\RightLabel{alpha}\UnaryInfC{C\fCenter{}D}\end{prooftree}
+\begin{prooftree}\AxiomC{A\fCenter{}B}\UnaryInfC{C}\end{prooftree}
+\begin{prooftree}\AxiomC{A}\AxiomC{B}\AxiomC{C}\TIC{D}\AxiomC{E}\AxiomC{F}\BIC{G}\BinaryInfC{H}\end{prooftree}
+\begin{prooftree}\AxiomC{A}\AxiomC{B}\AxiomC{C}\TIC{D}\AxiomC{E}\dashedLine\BinaryInfC{F}\rootAtTop\UnaryInfC{G}\end{prooftree}
+\begin{prooftree}\AxiomC{A}\UnaryInfC{A1}\UnaryInfC{A2}\AxiomC{B}\BinaryInfC{C}\end{prooftree}
+\begin{prooftree}\AxiomC{Gamma\fCenter{}Delta}\AxiomC{Sigma\fCenter{}Pi}\BinaryInfC{Theta\fCenter{}Omega}\end{prooftree}
+\begin{prooftree}\AxiomC{P1}\AxiomC{P2}\AxiomC{P3}\AxiomC{P4}\AxiomC{P5}\QuinaryInfC{C1}\UnaryInfC{C2}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\AxiomC{Q}\AxiomC{R}\AxiomC{S}\AxiomC{T}\QuinaryInfC{U}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\AxiomC{Q}\AxiomC{R}\AxiomC{S}\QuaternaryInfC{T}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\AxiomC{Q}\AxiomC{R}\TIC{S}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\AxiomC{Q}\AxiomC{R}\TrinaryInfC{S}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\AxiomC{Q}\BIC{R}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\AxiomC{Q}\BinaryInfC{R}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\AxiomC{Q}\RightLabel{r1}\BIC{R}\AxiomC{S}\LeftLabel{l}\BinaryInfC{T}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\LL{L}\RL{R}\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\LeftLabel{L}\RightLabel{R}\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\LeftLabel{very-long-left-label}\RightLabel{very-long-right-label}\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\RightLabel{r1}\UnaryInfC{Q}\LeftLabel{l2}\RightLabel{r2}\UnaryInfC{R}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\UIC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\dashedLine\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\noLine\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\noLine\UnaryInfC{Q}\rootAtTop\dashedLine\UnaryInfC{R}\rootAtBottom\solidLine\UnaryInfC{S}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\rootAtTop\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\rootAtTop\UnaryInfC{Q}\rootAtBottom\UnaryInfC{R}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\singleLine\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\AxiomC{P}\solidLine\UnaryInfC{Q}\end{prooftree}
+\begin{prooftree}\alwaysDashedLine\AxiomC{A}\AxiomC{B}\BIC{AandB}\AxiomC{AimpliesC}\singleLine\BinaryInfC{C}\end{prooftree}
+\begin{prooftree}\alwaysDashedLine\AxiomC{P}\UnaryInfC{Q}\UnaryInfC{R}\end{prooftree}
+\begin{prooftree}\alwaysNoLine\AxiomC{P}\AxiomC{Q}\BIC{R}\dashedLine\UnaryInfC{S}\singleLine\UnaryInfC{T}\end{prooftree}
+\begin{prooftree}\alwaysNoLine\AxiomC{P}\UnaryInfC{Q}\solidLine\UnaryInfC{R}\end{prooftree}
+\begin{prooftree}\alwaysRootAtBottom\AxiomC{P}\rootAtTop\UnaryInfC{Q}\UnaryInfC{R}\end{prooftree}
+\begin{prooftree}\alwaysRootAtTop\AxiomC{P}\UnaryInfC{Q}\AxiomC{R}\BinaryInfC{S}\rootAtBottom\UnaryInfC{T}\end{prooftree}
+\begin{prooftree}\alwaysRootAtTop\AxiomC{P}\UnaryInfC{Q}\UnaryInfC{R}\end{prooftree}
+\begin{prooftree}\alwaysRootAtTop\AxiomC{P}\UnaryInfC{Q}\rootAtBottom\UnaryInfC{R}\rootAtTop\UnaryInfC{S}\end{prooftree}
+\begin{prooftree}\alwaysSingleLine\AxiomC{P}\UnaryInfC{Q}\dashedLine\UnaryInfC{R}\end{prooftree}
+\begin{prooftree}\alwaysSolidLine\AxiomC{P}\UnaryInfC{Q}\noLine\UnaryInfC{R}\end{prooftree}
+\blue{x}
+\boldsymbol{\slashed{p}}
+\bold{AaBb123}
+\bold{x}
+\bull
+\centernot\Longrightarrow\quad\centernot\Longleftarrow\quad\centernot\Longleftrightarrow
+\centernot{\frac{a}{b}}\quad\centernot{\sum_{i=1}^n x_i}
+\centernot{\mathbf{A}}\quad\centernot{\mathit{ab}}
+\centernot{\rightarrow}\quad\centernot{=}\quad\centernot{\parallel}\quad\centernot{\mid}
+\centernot{\textcolor{blue}{\implies}}
+\centernot{}\quad\centernot{\centernot{\implies}}
+\ce{ZnS(\ca$c$)}
+\ce{\ca Fe}
+\ch
+\char"1d7d9
+\char"25
+\char"263a
+\char'45
+\char37
+\char`\%
+\char`a
+\circledR
+\clubs
+\cnums
+\colonapprox
+\coloncolon
+\coloncolonapprox
+\coloncolonequals
+\coloncolonminus
+\coloncolonsim
+\colonequals
+\colonminus
+\colonsim
+\color{#f00%red\n}
+\copyright
+\cosec
+\cotg
+\ctg
+\cth
+\curlyeqprec
+\curlyeqsucc
+\dArr
+\darr
+\ddddot x
+\ddddot{x}
+\dddot{x}\quad\ddddot{x}
+\def\foo{1 %}\n2}\n\foo
+\def\foo{1\n2}\nx %\foo\n
+\diamonds
+\dotsx
+\doublecap
+\doublecup
+\downdownarrows
+\empty
+\end
+\eqsim
+\equalscolon
+\equalscoloncolon
+\errmessage{Hello, world}
+\exist
+\expandafter\foo\bar
+\foo@bar
+\fracx
+\frac{1}{\slashed{p}-m}
+\futurelet\foo\frac1{2+\foo}
+\geqq
+\gggtr
+\gnapprox
+\gneqq
+\green{x}
+\gtreqqless
+\gvertneqq
+\hArr
+\harr
+\hbox{$x^2$}
+\hbox{text}
+\hearts
+\href{http://example.org/~bar/#top?foo=$foo&bar=ba^r_boo%20baz}{\alpha}
+\href{https://katex.org/}{\KaTeX}
+\hskip1em\relax^2
+\hskip{1em}
+\htmlClass{foo}{x}
+\htmlData{foo=a, bar=b}{x}
+\htmlId{bar}{x}
+\htmlStyle{color: red;}{x}
+\htmlStyle{color: red;}{x}^2
+\image
+\imageof
+\impliedby
+\includegraphics[height=0.8em, totalheight=0.9em, width=0.9em, alt=KA logo]{https://cdn.kastatic.org/images/apple-touch-icon-57x57-precomposed.new.png}
+\infin
+\injlim
+\isin
+\kern{1 %kern\nem}
+\lArr
+\lBrace
+\lang A\rangle
+\lang x \rang
+\lang\N\darr\R\dArr
+\langle A\rang
+\larr
+\leadsto
+\left( \htmlStyle{color: red;}{x \middle| y} \right)
+\left(\slashed{\partial}\right)
+\lesseqgtr
+\lesseqqgtr
+\lhd
+\llcorner
+\llless
+\lnapprox
+\lneqq
+\lparen
+\lrArr
+\lrarr
+\lrcorner
+\lt
+\maltese
+\mathbf{\slashed{p}}
+\mathellipsis
+\mathit{\slashed{D}}
+\mathnormal{AaBb}
+\mathnormal{xyz}
+\mathrel{\vcentcolon =}
+\message{Hello, world}
+\minuscolon
+\minuscoloncolon
+\minuso
+\n\n
+\natnums
+\ngeqq
+\nleqq
+\nobreakspace x
+\notni
+\nshortmid
+\nshortparallel
+\nsucceq
+\operatornamewithlimits{asin}\limits_y x
+\orange{x}
+\ordinarycolon
+\origof
+\overgroup{AB}
+\overleftharpoon{AB}
+\overlinesegment{AB}
+\overrightharpoon{ac}
+\phase{-78^\circ}
+\phase{90}
+\pink{x}
+\plim
+\plusmn
+\pmb{=}
+\pmb{\frac{x^2}{x_1}}
+\pmb{\mu}
+\pmb{x}
+\pmb{}
+\pounds
+\preccurlyeq
+\precnapprox
+\precneqq
+\projlim
+\purple{x}
+\rArr
+\rBrace
+\rarr
+\ratio
+\real
+\reals
+\red x
+\redx
+\red{x}
+\restriction
+\rhd
+\rparen
+\scriptscriptstyle a\centernot{\implies}b
+\scriptscriptstyle\slashed{p}\quad\slashed{D}\quad\slashed{\partial}
+\scriptstyle a\centernot{\implies}b
+\scriptstyle\dddot{x}\quad\scriptscriptstyle\ddddot{x}
+\scriptstyle\slashed{p}\quad\slashed{D}\quad\slashed{\partial}
+\sdot
+\set{x|x<5|S|}
+\set{x|x<5}
+\sh
+\shortmid
+\shortparallel
+\simcolon
+\simcoloncolon
+\sixptsize sixptsize
+\slashed p
+\slashed1
+\slashed\partial
+\slashed{A}\quad\slashed{k}\quad\slashed{f}
+\slashed{D}
+\slashed{D}x
+\slashed{\mathbf{p}}
+\slashed{\partial}
+\slashed{f}_i
+\slashed{i}
+\slashed{p+q}
+\slashed{p}
+\slashed{p}^{\,2}
+\slashed{p}_\mu
+\sout{abc}
+\sout{x^2}
+\sout{x}
+\spades
+\sub
+\sub A
+\sube
+\sube A
+\subseteqq
+\supe A
+\textcircled{a}
+\textcolor{red}{a\centernot{\iff}b}
+\textcopyright
+\textstyle a\centernot{\implies}b
+\text{\ \t\r \n \t\r  }
+\text{\(\frac a b\)}
+\text{\LaTeX\ is fun}
+\text{\sect}
+\text{\sect}\sdot\sub\sube\supe
+\text{\sout{abc}}
+\text{graph: \(y = mx + b\)}
+\text{hello% comment 1\nworld}
+\text{hello% comment\n\nworld}
+\tg
+\th
+\thetasym
+\thickapprox
+\thicksim
+\tmspace+{3mu}{.1667em}a
+\triangledown
+\uArr
+\uarr
+\ulcorner
+\underbar{X}
+\undergroup{AB}
+\underleftrightarrow{AB}
+\underlinesegment{AB}
+\unlhd
+\unrhd
+\urcorner
+\utilde{AB}
+\utilde{EF} + \widehat{GH}
+\varinjlim
+\varliminf
+\varlimsup
+\varprojlim
+\vartriangle
+\vcentcolon
+\vcenter{x}
+\weierp
+\xrightleftarrows{text}
+\xtofrom{abc}
+\xtofrom{text}
+\yen
+a + (b\mathclose\gt + c
+a \gt b
+a \htmlStyle{color: red;}{+} b
+a \pod{b}
+a+\left(\vcenter{\frac{\frac a b}c}\right)
+a\centernot\implies b
+a\centernot{=}b
+a\centernot{\Longrightarrow}_i^2 b
+a\centernot{\iff}b
+a\centernot{\impliedby}b
+a\mkern\t-\r1  \n mu\nb
+a\mskip{10mu}b
+a\nb
+a\nobreakspace b
+a\tb
+a_{\angl n}
+w\hskip1em i\hskip2em d
+x \pod a
+x_{\dddot{y}}\quad x_{\ddddot{y}}
+x_{\slashed{p}}\quad x_{y_{\slashed{p}}}
+x_{a\centernot{\implies}b}
