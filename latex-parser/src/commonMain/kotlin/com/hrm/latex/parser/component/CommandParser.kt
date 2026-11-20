@@ -42,6 +42,7 @@ internal class CommandParser(
     private val tokenStream get() = expansionStream ?: context.tokenStream
     private var expandedTokenCount = 0
     private var expansionCount = 0
+    internal val hasExpanded get() = expansionCount != 0
 
     val hasMathCodes: Boolean get() = context.mathCodes.isNotEmpty()
 

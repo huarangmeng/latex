@@ -25,6 +25,7 @@ package com.hrm.latex.parser
 import com.hrm.latex.parser.incremental.IncrementalTokenizer
 import com.hrm.latex.parser.incremental.TextEdit
 import com.hrm.latex.parser.tokenizer.LatexToken
+import com.hrm.latex.parser.tokenizer.LatexTokenizer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -259,6 +260,38 @@ class IncrementalTokenizerTest {
     /**
      * 断言两个 token 列表等价（类型和内容相同，位置相同）
      */
+    @Test
+    fun scannerCheckpointsFollowCommentsVerbatimAndUrlArguments() {
+        val cases = listOf(
+            """a + \verb*|x % {${'$'}} y| + z""",
+            "a%skip\r\nb",
+            """a + \href {https://example.org/a%20b?x=${'$'}v#top}{z}""",
+            """x+\begin {matrix} a \\ b \end {matrix}""",
+            ("x% skipped\r\n" + "% ignored\n".repeat(2_000) + "y"),
+        )
+        for (source in cases) {
+            val incremental = IncrementalTokenizer()
+            val steps = if (source.length > 500) listOf(source.substringBeforeLast("y"), "y") else source.chunked(1)
+            var prefix = ""
+            for (step in steps) {
+                val updated = prefix + step
+                val actual = incremental.update(updated, TextEdit.fromAppend(prefix.length, updated.length))
+                assertEquals(LatexTokenizer(updated).tokenize(), actual, updated.takeLast(80))
+                prefix = updated
+            }
+        }
+        for ((before, after) in listOf(
+            "a%skip\nb" to "a%body\r\nb",
+            "a%skip\nb" to "a+skip\nb",
+            """a \verb|x| b""" to """a \verb*|x y| b""",
+            """\href{https://example.org/%20}{old}""" to """\href {https://example.org/%23}{new}""",
+        )) {
+            val incremental = IncrementalTokenizer()
+            incremental.tokenize(before)
+            assertEquals(LatexTokenizer(after).tokenize(), incremental.update(after, TextEdit.diff(before, after)))
+        }
+    }
+
     private fun assertTokensEquivalent(expected: List<LatexToken>, actual: List<LatexToken>) {
         assertEquals(
             expected.size, actual.size,

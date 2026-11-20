@@ -94,6 +94,17 @@ class LatexParser {
     class ParseException(message: String) : Exception(message)
 }
 
+/** 顶层表达式的解析检查点，记录已消费位置、最远前瞻位置和已构建的节点。 */
+internal class ExpressionCheckpoint(
+    val node: LatexNode?,
+    val startIndex: Int,
+    val previousAtStart: LatexToken?,
+    val nextIndex: Int,
+    val previous: LatexToken?,
+    val observedThrough: Int,
+    val deepestLevel: Int,
+)
+
 /**
  * 解析会话：封装单次解析的所有可变状态。
  *
@@ -104,6 +115,8 @@ internal class ParseSession(
     tokens: List<LatexToken>,
     private val inputLength: Int,
     private val source: String? = null,
+    private val checkpoints: MutableList<ExpressionCheckpoint>? = null,
+    private val preservedSuffix: List<ExpressionCheckpoint> = emptyList(),
 ) : LatexParserContext {
 
     companion object {
@@ -253,7 +266,7 @@ internal class ParseSession(
 
     fun parse(): LatexNode.Document {
         val children = try {
-            parseMathList { false }
+            parseMathList(checkpoints) { false }
         } catch (_: NestingTooDeep) {
             return tooDeep()
         }
@@ -578,13 +591,23 @@ internal class ParseSession(
         }
     }
 
-    private fun parseMathList(isTerminator: (LatexToken?) -> Boolean): List<LatexNode> {
+    private fun parseMathList(
+        checkpoints: MutableList<ExpressionCheckpoint>? = null,
+        isTerminator: (LatexToken?) -> Boolean,
+    ): List<LatexNode> {
+        if (checkpoints != null) tokenStream.trackLookahead = true
         val listStart = tokenStream.currentSourceOffset()
         val children = mutableListOf<LatexNode>()
+        checkpoints?.lastOrNull()?.let { last ->
+            for (checkpoint in checkpoints) checkpoint.node?.let(children::add)
+            tokenStream.resumeAt(last.nextIndex, last.previous, last.observedThrough)
+            deepestLevel = last.deepestLevel
+        }
         var infixNumerator: List<LatexNode>? = null
         var infixRange: SourceRange? = null
         var infixCommand: String? = null
         var aboveDimension: String? = null
+        var suffixIndex = 0
 
         while (!tokenStream.isEOF() && !isTerminator(tokenStream.peek())) {
             val token = tokenStream.peek()
@@ -592,9 +615,10 @@ internal class ParseSession(
                 token.name in infixCommands &&
                 infixNumerator == null
             ) {
+                // 中缀命令依赖整个数学列表，分母的解析状态不能作为顶层恢复点。
+                if (checkpoints != null) tokenStream.trackLookahead = false
                 tokenStream.advance()
-                // The fraction wraps the numerator parsed so far and the rest of the list in up to
-                // three levels; the caller's frame releases them.
+                // 分数最多给当前数学列表增加三层，由调用方离开解析帧时恢复。
                 deepestLevel += 3
                 levels += 3
                 infixNumerator = normalizeStyleDeclarations(children.toList())
@@ -606,9 +630,43 @@ internal class ParseSession(
                 children.clear()
                 continue
             }
+            val start = tokenStream.sourceIndex
+            val previousAtStart = tokenStream.previousToken
+            if (checkpoints != null && tokenStream.trackLookahead && suffixIndex < preservedSuffix.size) {
+                while (suffixIndex < preservedSuffix.size && preservedSuffix[suffixIndex].startIndex < start) suffixIndex++
+                val suffix = preservedSuffix.getOrNull(suffixIndex)
+                if (suffix?.startIndex == start && suffix.previousAtStart == previousAtStart &&
+                    canSaveCheckpoint()
+                ) {
+                    // 等长编辑后，后缀的 token 和源码位置都保持一致。只有解析器状态也与
+                    // 原检查点一致时才接回后缀，后续仍由同一数学列表处理。
+                    for (index in suffixIndex until preservedSuffix.size) {
+                        val checkpoint = preservedSuffix[index]
+                        checkpoint.node?.let(children::add)
+                        checkpoints.add(checkpoint)
+                    }
+                    val last = preservedSuffix.last()
+                    tokenStream.resumeAt(last.nextIndex, last.previous, maxOf(last.observedThrough, tokenStream.observedThrough))
+                    deepestLevel = maxOf(last.deepestLevel, deepestLevel)
+                    suffixIndex = preservedSuffix.size
+                    continue
+                }
+            }
+
             val node = parseExpression()
-            if (node != null) {
-                children.add(node)
+            if (node != null) children.add(node)
+            if (checkpoints != null && tokenStream.trackLookahead) {
+                // 检查点只保存可独立复用的顶层表达式。出现宏展开、定义或尚未消费的
+                // 插入 token 时停止记录，避免复用时漏掉这些状态。外层数学列表仍负责
+                // 中缀运算和样式声明归一化，复用节点与新解析节点一起参与这些处理。
+                if (!canSaveCheckpoint()) {
+                    tokenStream.trackLookahead = false
+                } else {
+                    checkpoints.add(ExpressionCheckpoint(
+                        node, start, previousAtStart, tokenStream.sourceIndex,
+                        tokenStream.previousToken, tokenStream.observedThrough, deepestLevel,
+                    ))
+                }
             }
         }
 
@@ -670,6 +728,12 @@ internal class ParseSession(
             listOf(combined)
         } ?: normalizedChildren
     }
+
+    private fun canSaveCheckpoint(): Boolean =
+        !commandParser.hasExpanded && commandValues == null && environmentValues == null &&
+            colorValues == null && lengthValues == null && mathCodeValues == null &&
+            !tokenStream.hasPendingTokens && !globalAssignment && scopeDepth == 0 && !inTextMode
+
 
     override fun parseArgument(): LatexNode? {
         while (tokenStream.peek() is LatexToken.Whitespace) {

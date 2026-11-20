@@ -57,6 +57,8 @@ import com.hrm.latex.renderer.model.resolveFontFamilies
 import com.hrm.latex.renderer.model.resolveThemeColors
 import com.hrm.latex.renderer.model.toContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 private const val TAG = "Latex"
@@ -101,6 +103,7 @@ fun Latex(
 
     // 复用解析器实例以支持真正的增量解析
     val parser = remember { IncrementalLatexParser() }
+    val parserMutex = remember { Mutex() }
 
     // 使用 State 来保存解析结果
     var document by remember { mutableStateOf(LatexNode.Document(emptyList())) }
@@ -120,20 +123,11 @@ fun Latex(
         // 切换到 Default 调度器执行解析
         val result = withContext(Dispatchers.Default) {
             try {
-                // 优化：计算增量部分
-                val currentInput = parser.getCurrentInput()
-
-                if (latex.startsWith(currentInput) && latex.length > currentInput.length) {
-                    // 增量追加：只解析新增部分
-                    val delta = latex.substring(currentInput.length)
-                    parser.append(delta)
-                } else {
-                    // 完全替换：清空后重新解析
-                    parser.clear()
-                    parser.append(latex)
+                // 输入更新可能在不同的后台线程执行，串行使用同一个分词和 AST 缓存。
+                parserMutex.withLock {
+                    parser.setInput(latex)
+                    parser.getPreviewDocument()
                 }
-
-                parser.getCurrentDocument()
             } catch (e: Exception) {
                 HLog.e(TAG, "增量解析失败", e)
                 // 解析失败时返回空文档

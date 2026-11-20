@@ -42,6 +42,22 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
     internal var commandParser: CommandParser? = null
     private var readingRaw = false
 
+    /** 增量解析记录实际前瞻过的最远源码 token，EOF 也可能影响解析决定。 */
+    internal var trackLookahead = false
+    internal var observedThrough = -1
+        private set
+    internal val sourceIndex get() = position
+    internal val hasPendingTokens get() = pending?.isNotEmpty() == true
+    internal val previousToken get() = previous
+
+    internal fun resumeAt(index: Int, previousToken: LatexToken?, lookahead: Int) {
+        position = index
+        head = initialTokens.getOrNull(index)
+        previous = previousToken
+        observedThrough = lookahead
+        invalidateExpansion()
+    }
+
     internal fun <T> raw(block: () -> T): T {
         val previous = readingRaw
         readingRaw = true
@@ -140,13 +156,18 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
 
     fun peek(): LatexToken? {
         if (!headNormalized && !readingRaw) normalizeHead()
+        if (trackLookahead) observedThrough = maxOf(observedThrough, position.coerceAtMost(initialTokens.lastIndex))
         return head
     }
 
     fun peek(offset: Int): LatexToken? {
         if (offset < 0) return lookBehind(offset)
         val current = peek()
-        return if (offset == 0) current else rawPeek(offset)
+        if (offset == 0) return current
+        if (trackLookahead) observedThrough = maxOf(
+            observedThrough, (position + offset).coerceAtMost(initialTokens.lastIndex)
+        )
+        return rawPeek(offset)
     }
 
     private fun rawPeek(offset: Int): LatexToken? {

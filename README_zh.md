@@ -184,7 +184,7 @@
 <details>
 <summary><b>高级标注（6）</b> — 超链接、张量、四角标</summary>
 
-- **超链接**：`\href{url}{text}`, `\url{url}`（蓝色下划线，支持点击回调）
+- **超链接**：`\href{url}{text}`, `\url{url}`（蓝色下划线，支持点击回调和 `%20` 等 URL 字面字符）
 - **四角标注**：`\sideset{_a^b}{_c^d}{\sum}`
 - **前置上下标**：`\prescript{A}{Z}{X}`（同位素标记）
 - **张量指标**：`\tensor{T}{^a_b^c}`, `\indices{^a_b}`

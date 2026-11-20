@@ -22,19 +22,16 @@
 
 package com.hrm.latex.parser
 
+import com.hrm.latex.parser.incremental.IncrementalTokenizer
+import com.hrm.latex.parser.incremental.TextEdit
 import com.hrm.latex.parser.model.LatexNode
+import com.hrm.latex.parser.tokenizer.LatexTokenizer
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
-/**
- * The RaTeX formula corpus in `test-corpus/ratex` (see its README) through the parser: every
- * formula and every prefix of it parses without throwing, and streaming a formula one character
- * at a time ends like a batch parse. Two baselines under `test-corpus/baselines` record the
- * formulas that do not parse cleanly yet and those that stream differently; each test fails when
- * its baseline is out of date in either direction, and `UPDATE_CORPUS_BASELINE=1` rewrites it.
- */
+/** 用 RaTeX 语料检查容错、不同切块方式的等价性和解析支持范围。 */
 class CorpusTest {
 
     @Test
@@ -53,14 +50,52 @@ class CorpusTest {
     fun streamingAFormulaEndsLikeABatchParse() {
         val parser = LatexParser()
         val mismatched = formulas.filter { formula ->
-            val incremental = IncrementalLatexParser()
-            formula.forEach { incremental.append(it.toString()) }
-            incremental.getCurrentDocument() != parser.parse(formula)
+            val expected = parser.parse(formula)
+            val expectedTokens = LatexTokenizer(formula).tokenize()
+            listOf(1, 2, 3, 5, 8, 16, formula.length).distinct().any { size ->
+                val incremental = IncrementalLatexParser()
+                val tokenizer = IncrementalTokenizer()
+                for (chunk in formula.chunked(size)) {
+                    incremental.append(chunk)
+                    val previous = tokenizer.getTextLength()
+                    val length = tokenizer.appendText(chunk)
+                    tokenizer.update(tokenizer.getCurrentText(), TextEdit.fromAppend(previous, length))
+                }
+                expectedTokens != tokenizer.getCurrentTokens() || expected != incremental.getCurrentDocument()
+            }
         }
-        checkBaseline(
-            "incremental-mismatch.txt", mismatched,
-            added = "stream differently from a batch parse", resolved = "stream like a batch parse",
+        assertTrue(
+            mismatched.isEmpty(),
+            "${mismatched.size} 条公式的流式分词或 AST 与整式解析不同\n" + mismatched.take(25).joinToString("\n"),
         )
+    }
+
+    @Test
+    fun editingAFormulaMatchesBatchTokenizationAndParsing() {
+        val parser = LatexParser()
+        val failures = mutableListOf<String>()
+        for (formula in formulas) {
+            val incremental = IncrementalLatexParser()
+            val tokenizer = IncrementalTokenizer()
+            incremental.setInput(formula)
+            tokenizer.tokenize(formula)
+            val offset = formula.length / 2
+            var previous = formula
+            for (edited in listOf(
+                formula.replaceRange(offset, offset, "x"),
+                formula.replaceRange(offset, offset + 1, "%a\n"),
+                formula.removeRange(offset, offset + 1),
+                formula,
+            )) {
+                val actualTokens = tokenizer.update(edited, TextEdit.diff(previous, edited))
+                incremental.setInput(edited)
+                if (LatexTokenizer(edited).tokenize() != actualTokens || parser.parse(edited) != incremental.getCurrentDocument()) {
+                    failures.add("$previous → $edited")
+                }
+                previous = edited
+            }
+        }
+        assertTrue(failures.isEmpty(), "${failures.size} 条编辑结果与整式解析不同\n" + failures.take(25).joinToString("\n"))
     }
 
     @Test

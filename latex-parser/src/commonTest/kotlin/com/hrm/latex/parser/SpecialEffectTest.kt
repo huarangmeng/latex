@@ -317,6 +317,22 @@ class SpecialEffectTest {
         assertEquals("", hyperlink.url)
     }
 
+    @Test
+    fun should_preserve_literal_url_characters_and_expand_url_macros() {
+        val url = """https://example.org/~u/a%20b?x=${'$'}v&n=a_b#top"""
+        val link = parser.parseWithDiagnostics("""\href{$url}{\alpha+1}""")
+        val node = assertIs<LatexNode.Hyperlink>(link.document.children.single())
+        assertEquals(url, node.url)
+        assertIs<LatexNode.Symbol>(node.content.first())
+        assertTrue(link.errors.isEmpty())
+
+        val escaped = parser.parse("""\url{https://example.org/\~x\%20b\#top}""")
+        assertEquals("https://example.org/~x%20b#top", assertIs<LatexNode.Hyperlink>(escaped.children.single()).url)
+
+        val macro = parser.parse("""\newcommand{\mylink}[1]{\href{https://example.org/#1%20b}{x}}\mylink{a}""")
+        assertEquals("https://example.org/a%20b", macro.children.filterIsInstance<LatexNode.Hyperlink>().single().url)
+    }
+
     // ============ \colorbox / \fcolorbox 背景色 ============
 
     @Test
