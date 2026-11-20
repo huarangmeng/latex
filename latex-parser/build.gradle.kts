@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.mavenPublish)
 }
 
+val karmaConfig = layout.projectDirectory.dir("karma.config.d")
+
 kotlin {
     jvmToolchain(21)
 
@@ -51,13 +53,21 @@ kotlin {
     }
 
     js {
-        browser()
+        browser {
+            testTask {
+                inputs.dir(karmaConfig).withPathSensitivity(PathSensitivity.RELATIVE)
+            }
+        }
         binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        browser()
+        browser {
+            testTask {
+                inputs.dir(karmaConfig).withPathSensitivity(PathSensitivity.RELATIVE)
+            }
+        }
         binaries.executable()
     }
 
@@ -71,19 +81,14 @@ kotlin {
     }
 }
 
-tasks.matching { it.name == "jsBrowserTest" || it.name == "wasmJsBrowserTest" }.configureEach {
-    // Karma 配置变化时重新生成浏览器启动配置并执行测试。
-    inputs.dir("karma.config.d").withPathSensitivity(PathSensitivity.RELATIVE)
+tasks.named<Test>("jvmTest") {
+    inputs.dir(rootProject.file("test-corpus")).withPathSensitivity(PathSensitivity.RELATIVE)
+    if (providers.environmentVariable("UPDATE_CORPUS_BASELINE").orNull == "1") {
+        doNotTrackState("更新语料基线会写入测试输入目录")
+    }
 }
 
 tasks.withType<Test>().configureEach {
-    // CorpusTest reads these; declared so that changing one reruns the task.
-    inputs.dir(rootProject.file("test-corpus")).withPathSensitivity(PathSensitivity.RELATIVE)
-    inputs.property("updateCorpusBaseline", providers.environmentVariable("UPDATE_CORPUS_BASELINE").orElse(""))
-    // Rewriting a baseline must run the test even when its inputs are unchanged.
-    val updatingBaselines = providers.environmentVariable("UPDATE_CORPUS_BASELINE").map { it == "1" }.orElse(false)
-    outputs.upToDateWhen { !updatingBaselines.get() }
-    outputs.doNotCacheIf("UPDATE_CORPUS_BASELINE=1 rewrites the corpus baselines") { updatingBaselines.get() }
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = true
