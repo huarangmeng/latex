@@ -59,7 +59,8 @@ internal fun CommandRegistry.installOperatorHandlers() {
         "sin", "cos", "tan", "cot", "sec", "csc",
         "arcsin", "arccos", "arctan",
         "sinh", "cosh", "tanh", "coth",
-        "ln", "log", "exp", "lg", "sgn", "lcm"
+        "ln", "log", "exp", "lg", "sgn", "lcm",
+        "arctg", "arcctg", "cosec", "cotg", "ctg", "cth", "tg"
     )
 
     register(*standardOps) { cmdName, _, _ ->
@@ -67,28 +68,28 @@ internal fun CommandRegistry.installOperatorHandlers() {
     }
 
     // \operatorname{Name} / \operatorname*{Name}
-    register("operatorname") { _, ctx, stream ->
-        val starred = stream.peek().let {
+    register("operatorname", "operatornamewithlimits") { name, ctx, stream ->
+        val hasStar = stream.peek().let {
             it is LatexToken.Text && it.content == "*"
         }
-        if (starred) stream.advance()
+        if (hasStar) stream.advance()
 
         val arg = ctx.parseArgument() ?: return@register LatexNode.Text("\\operatorname")
-        val name = ParseUtils.extractArgumentText(arg) ?: ""
-        if (name.isEmpty()) return@register LatexNode.Text("\\operatorname")
+        val operator = ParseUtils.extractArgumentText(arg) ?: ""
+        if (operator.isEmpty()) return@register LatexNode.Text("\\operatorname")
 
         val (sub, sup, limitsMode) = ParseUtils.parseScriptsAndLimits(ctx, stream)
 
         if (sub != null || sup != null) {
             LatexNode.BigOperator(
-                operator = name,
+                operator = operator,
                 subscript = sub,
                 superscript = sup,
                 limitsMode = limitsMode,
-                limitsInDisplay = starred
+                limitsInDisplay = hasStar || name == "operatornamewithlimits"
             )
         } else {
-            LatexNode.OperatorName(name)
+            LatexNode.OperatorName(operator)
         }
     }
 
@@ -141,9 +142,10 @@ internal fun CommandRegistry.installOperatorHandlers() {
     register("bmod") { _, _, _ ->
         LatexNode.ModOperator(null, LatexNode.ModOperator.ModStyle.BMOD)
     }
-    register("pmod") { _, ctx, _ ->
+    register("pmod", "pod") { command, ctx, _ ->
         val arg = ctx.parseArgument()
-        LatexNode.ModOperator(arg, LatexNode.ModOperator.ModStyle.PMOD)
+        val style = if (command == "pmod") LatexNode.ModOperator.ModStyle.PMOD else LatexNode.ModOperator.ModStyle.POD
+        LatexNode.ModOperator(arg, style)
     }
     register("mod") { _, _, _ ->
         LatexNode.ModOperator(null, LatexNode.ModOperator.ModStyle.MOD)

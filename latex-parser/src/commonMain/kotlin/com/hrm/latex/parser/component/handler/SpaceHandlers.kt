@@ -30,6 +30,7 @@ import com.hrm.latex.parser.model.LatexNode
 internal fun CommandRegistry.installSpaceHandlers() {
     register(" ") { _, _, _ -> LatexNode.Space(LatexNode.Space.SpaceType.NORMAL) }
     register("space") { _, _, _ -> LatexNode.Space(LatexNode.Space.SpaceType.NORMAL) }
+    register("nobreakspace") { _, _, _ -> LatexNode.Space(LatexNode.Space.SpaceType.NON_BREAKING) }
     register(",") { _, _, _ -> LatexNode.Space(LatexNode.Space.SpaceType.THIN) }
     register("thinspace") { _, _, _ -> LatexNode.Space(LatexNode.Space.SpaceType.THIN) }
     register(":") { _, _, _ -> LatexNode.Space(LatexNode.Space.SpaceType.MEDIUM) }
@@ -51,7 +52,7 @@ internal fun CommandRegistry.installSpaceHandlers() {
         LatexNode.HSpace(dimension)
     }
 
-    register("kern", "mkern") { _, ctx, stream ->
+    register("kern", "mkern", "hskip", "mskip") { _, ctx, stream ->
         LatexNode.HSpace(ParseUtils.parseDimension(ctx, stream))
     }
     register("allowbreak") { _, _, _ -> LatexNode.HSpace("0pt", breakHint = LatexNode.HSpace.BreakHint.ALLOW) }

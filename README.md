@@ -55,6 +55,10 @@ Plain TeX support includes `\surd`, `\smallint`, `\intop`, `\ointop`, `\ldotp`, 
 - **Ellipsis**: `\ldots`, `\cdots`, `\vdots`, `\ddots`, `\dots` (auto-adaptive)
 - **Negation**: `\not=`, `\not\in`, `\nleq`, `\ngeq`, `\ncong`, `\nmid`, … (30+ AMS negated relations)
 - **AMS extras**: `\checkmark`, `\complement`, `\blacksquare`, `\aleph`, `\measuredangle`, geometric symbols, double-headed arrows, …
+- **Compatibility aliases**: `\N`, `\Z`, `\R`, `\Complex` for number sets, `\sube` for `\subseteq`, `\rarr` for `\rightarrow`, and `\lang` / `\rang` for angle delimiters.
+- **Plain TeX characters and spacing**: `\char`, `\hbox`, `\hskip`, `\mskip`, and `\nobreakspace`.
+- **Proof trees**: `prooftree` with one to five premises, optional labels, rule styles, and top or bottom conclusions.
+- **Layout notation**: `\set`, `\Set`, `\vcenter`, `\angl`, `\angln`, and `\phase`.
 </details>
 
 <details>

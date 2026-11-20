@@ -83,6 +83,7 @@ internal interface LatexParserContext {
     fun defineColor(name: String, value: String)
 
     fun parseExpression(): LatexNode?
+    fun accountForTreeDepth(depth: Int)
     fun parseFactor(): LatexNode?
     fun parseArgument(): LatexNode?
     fun parseTextArgument(): LatexNode?

@@ -41,6 +41,26 @@ internal fun CommandRegistry.installDelimiterHandlers() {
         LatexNode.ManualSizedDelimiter(ParseUtils.delimiterFromName(name), 1f)
     }
 
+    register("Set", "set") { command, ctx, _ ->
+        val argument = ctx.parseArgument() ?: LatexNode.Text("")
+        val content = (argument as? LatexNode.Group)?.children ?: listOf(argument)
+        val stretch = command == "Set"
+        fun isBar(node: LatexNode): Boolean = node is LatexNode.Text && node.content == "|"
+        val separator = content.indexOfFirst { isBar(it) || (stretch && it is LatexNode.Symbol && it.symbol == "|") }
+        val normalized = if (separator < 0) content else {
+            val explicitDouble = content[separator] is LatexNode.Symbol
+            val adjacentBars = stretch && !explicitDouble && content.getOrNull(separator + 1)?.let(::isBar) == true
+            val range = content[separator].sourceRange
+            // 仅替换首个分隔符，使条件里的绝对值和范数保留原义。
+            val middle = if (stretch) {
+                LatexNode.ManualSizedDelimiter(if (explicitDouble || adjacentBars) "‖" else "|", 1.8f, true, range)
+            } else LatexNode.Symbol("mid", "∣", range)
+            content.take(separator) + middle + content.drop(separator + if (adjacentBars) 2 else 1)
+        }
+        if (stretch) LatexNode.Delimited("{", "}", normalized)
+        else LatexNode.Group(listOf(LatexNode.Symbol("lbrace", "{")) + normalized + LatexNode.Symbol("rbrace", "}"))
+    }
+
     // \left...\right 自动伸缩
     register("left") { _, ctx, stream ->
         val leftToken = stream.consumeDelimiterToken()
@@ -48,25 +68,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
             is LatexToken.Text -> if (leftToken.content == ".") "" else leftToken.content
             is LatexToken.LeftBrace -> "{"
             is LatexToken.LeftBracket -> "["
-            is LatexToken.Command -> when (leftToken.name) {
-                "langle" -> "⟨"
-                "lfloor" -> "⌊"
-                "lceil" -> "⌈"
-                "llbracket" -> "⟦"
-                "lgroup" -> "⟮"
-                "lmoustache" -> "⎰"
-                "lvert" -> "|"
-                "lVert" -> "‖"
-                // \left\vert and \left\Vert are common in set-builder / absolute-value notation.
-                // Without this mapping they would be treated as literal text "vert"/"Vert".
-                "vert" -> "|"
-                "Vert" -> "‖"
-                "|" -> "‖"
-                "lbrace" -> "{"
-                "{" -> "{"
-                "." -> ""
-                else -> leftToken.name
-            }
+            is LatexToken.Command -> if (leftToken.name == "|") "‖" else ParseUtils.delimiterFromName(leftToken.name)
             else -> "("
         }
 
@@ -91,23 +93,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
             is LatexToken.Text -> if (rightToken.content == ".") "" else rightToken.content
             is LatexToken.RightBrace -> "}"
             is LatexToken.RightBracket -> "]"
-            is LatexToken.Command -> when (rightToken.name) {
-                "rangle" -> "⟩"
-                "rfloor" -> "⌋"
-                "rceil" -> "⌉"
-                "rrbracket" -> "⟧"
-                "rgroup" -> "⟯"
-                "rmoustache" -> "⎱"
-                "rvert" -> "|"
-                "rVert" -> "‖"
-                "vert" -> "|"
-                "Vert" -> "‖"
-                "|" -> "‖"
-                "rbrace" -> "}"
-                "}" -> "}"
-                "." -> ""
-                else -> rightToken.name
-            }
+            is LatexToken.Command -> if (rightToken.name == "|") "‖" else ParseUtils.delimiterFromName(rightToken.name)
             else -> ")"
         }
 
@@ -146,31 +132,7 @@ internal fun CommandRegistry.installDelimiterHandlers() {
             is LatexToken.RightBrace -> "}"
             is LatexToken.LeftBracket -> "["
             is LatexToken.RightBracket -> "]"
-            is LatexToken.Command -> when (delimiterToken.name) {
-                "langle" -> "⟨"
-                "rangle" -> "⟩"
-                "lfloor" -> "⌊"
-                "rfloor" -> "⌋"
-                "lceil" -> "⌈"
-                "rceil" -> "⌉"
-                "llbracket" -> "⟦"
-                "lgroup" -> "⟮"
-                "rrbracket" -> "⟧"
-                "rgroup" -> "⟯"
-                "lmoustache" -> "⎰"
-                "rmoustache" -> "⎱"
-                "lvert", "rvert" -> "|"
-                "lVert", "rVert" -> "‖"
-                "vert" -> "|"
-                "Vert" -> "‖"
-                "lbrace" -> "{"
-                "rbrace" -> "}"
-                "|" -> "‖"
-                "\\" -> "\\"
-                "{" -> "{"
-                "}" -> "}"
-                else -> delimiterToken.name
-            }
+            is LatexToken.Command -> if (delimiterToken.name == "|") "‖" else ParseUtils.delimiterFromName(delimiterToken.name)
             else -> "("
         }
 

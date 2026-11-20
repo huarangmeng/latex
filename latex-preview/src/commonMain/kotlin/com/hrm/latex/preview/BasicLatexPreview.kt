@@ -99,6 +99,14 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("6", "dots (ldots)", "a_1, a_2, \\dots, a_n"),
             PreviewItem("7", "dots (cdots)", "a_1 + a_2 + \\dots + a_n"),
             PreviewItem("8", "Named operators and parentheses", """\sin x\quad\sin(x)\quad\log_b x\quad a\sum_i b"""),
+            PreviewItem("9", "Symbol and number set aliases",
+                """\N \sube \Z \sube \R \sube \Complex \qquad a \lhd b \gggtr c \qquad \left\lang \frac{x}{y} \right\rang"""),
+            PreviewItem("10", "Plain TeX character codes and spacing",
+                """\hbox{a\nobreakspace b}\hskip1em\char"263a\mskip{6mu}\char"1d7d9"""),
+            PreviewItem("11", "Proof tree with a labeled inference",
+                """\begin{prooftree}\AxiomC{P\Rightarrow Q}\AxiomC{P}\RightLabel{modus ponens}\BinaryInfC{Q}\end{prooftree}"""),
+            PreviewItem("12", "Set builder and angle notation",
+                """\Set{x|x<\frac12|S|}\quad a_{\angl n}\quad\phase{-78^\circ}\quad a+\vcenter{\frac{a}{b}}\pod n"""),
         )
     ),
     PreviewGroup(
@@ -448,6 +456,8 @@ val basicLatexPreviewGroups = listOf(
             PreviewItem("30", "Breve accent", "\\breve{u}"),
             PreviewItem("31", "Ring accent", "\\ring{A}"),
             PreviewItem("32", "Triple-dot accent", "\\dddot{x}"),
+            PreviewItem("33", "Quadruple dots, centered slashes and strike-through",
+                """\ddddot{x} \quad A\centernot{\xrightarrow{label}}B \quad \slashed{\partial} \quad \textcircled{a}\sout{x^2}"""),
             PreviewItem("33", "Overbracket", "\\overbracket{x + y}"),
             PreviewItem("34", "Underbracket", "\\underbracket{a + b}"),
             PreviewItem("35", "Nested brackets", "\\overbracket{\\frac{a}{b} + c}"),

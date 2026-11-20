@@ -23,13 +23,38 @@
 
 package com.hrm.latex.parser
 
+import com.hrm.latex.parser.model.LatexNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SymbolMapTest {
+
+    @Test
+    fun compatibilityAliasesUseTheCanonicalSymbol() {
+        val parser = LatexParser()
+        for ((alias, canonical) in mapOf(
+            "lang" to "langle", "hArr" to "Leftrightarrow", "doublecap" to "Cap",
+            "Box" to "square", "weierp" to "wp", "sube" to "subseteq",
+        )) {
+            val expected = assertIs<LatexNode.Symbol>(parser.parse("\\$canonical").children.single())
+            val actual = assertIs<LatexNode.Symbol>(parser.parse("\\$alias").children.single())
+            assertEquals(expected.symbol, actual.symbol)
+            assertEquals(expected.unicode, actual.unicode)
+        }
+        assertEquals("right arrow", SymbolMap.getAccessibleName("rarr"))
+    }
+
+    @Test
+    fun numberSetAliasesReuseBlackboardStyle() {
+        val parser = LatexParser()
+        val node = assertIs<LatexNode.Style>(parser.parse("\\Reals").children.single())
+        assertEquals(LatexNode.Style.StyleType.BLACKBOARD_BOLD, node.styleType)
+        assertEquals("R", assertIs<LatexNode.Text>(node.content.single()).content)
+    }
 
     // ========== 希腊字母测试 ==========
 

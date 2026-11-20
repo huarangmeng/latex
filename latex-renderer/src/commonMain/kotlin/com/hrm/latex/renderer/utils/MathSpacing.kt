@@ -229,7 +229,7 @@ object MathSpacing {
             is LatexNode.ManualSizedDelimiter -> classifyDelimiterString(node.delimiter)
             is LatexNode.Space, is LatexNode.HSpace -> AtomType.ORD
             is LatexNode.Group -> AtomType.ORD
-            is LatexNode.Accent -> AtomType.ORD
+            is LatexNode.Accent -> if (node.accentType == LatexNode.Accent.AccentType.CENTER_NOT) AtomType.REL else AtomType.ORD
             is LatexNode.Stack -> {
                 val base = (node.base as? LatexNode.Group)?.children?.firstOrNull() ?: node.base
                 classifyNode(base).takeIf { it == AtomType.BIN || it == AtomType.REL } ?: AtomType.ORD

@@ -27,7 +27,7 @@ internal object MathAtomSymbols {
             "varPhi", "varPi", "varPsi", "varSigma", "varTheta", "varUpsilon",
             "varXi", "varepsilon", "varkappa", "varnothing", "varphi", "varpi",
             "varrho", "varsigma", "vartheta", "vdots", "vert", "wp",
-            "xi", "zeta", "surd",
+            "xi", "zeta", "surd", "triangledown",
         ).forEach { put(it, AtomType.ORD) }
         listOf(
             "bigcap", "bigcup", "bigodot", "bigoplus", "bigotimes", "bigsqcup",
@@ -45,7 +45,7 @@ internal object MathAtomSymbols {
             "oslash", "otimes", "plus", "pm", "rightthreetimes", "rtimes",
             "setminus", "smallsetminus", "sqcap", "sqcup", "star", "times",
             "triangleleft", "triangleright", "uplus", "vee", "veebar", "wedge",
-            "wr",
+            "wr", "And", "lhd", "rhd", "unlhd", "unrhd", "minuso",
         ).forEach { put(it, AtomType.BIN) }
         listOf(
             "Bumpeq", "Downarrow", "Leftarrow", "Leftrightarrow", "Lleftarrow", "Longleftarrow",
@@ -83,14 +83,19 @@ internal object MathAtomSymbols {
             "upharpoonright", "upuparrows", "vDash", "varpropto", "varsubsetneq", "varsubsetneqq",
             "varsupsetneq", "varsupsetneqq", "vartriangleleft", "vartriangleright", "vdash",
             "doteq", "relbar", "Relbar",
+            "lt", "gt", "eqsim", "approxeq", "geqq", "gneqq", "lneqq", "gvertneqq",
+            "lnapprox", "gnapprox", "precnapprox", "precneqq", "nsucceq", "lesseqgtr", "lesseqqgtr",
+            "gtreqqless", "subseteqq", "curlyeqprec", "curlyeqsucc", "preccurlyeq", "shortmid",
+            "shortparallel", "nshortmid", "nshortparallel", "ngeqq", "nleqq", "notni", "vartriangle",
+            "origof", "imageof", "downdownarrows", "impliedby",
         ).forEach { put(it, AtomType.REL) }
         listOf(
             "lVert", "langle", "lbrace", "lbrack", "lceil", "lfloor",
-            "lgroup", "llbracket", "lmoustache", "lvert",
+            "lgroup", "llbracket", "lmoustache", "lvert", "lparen", "ulcorner", "llcorner", "lBrace",
         ).forEach { put(it, AtomType.OPEN) }
         listOf(
             "rVert", "rangle", "rbrace", "rbrack", "rceil", "rfloor",
-            "rgroup", "rmoustache", "rrbracket", "rvert",
+            "rgroup", "rmoustache", "rrbracket", "rvert", "rparen", "urcorner", "lrcorner", "rBrace",
         ).forEach { put(it, AtomType.CLOSE) }
         listOf(
             "cdotp", "ldotp", "colon",
@@ -100,9 +105,14 @@ internal object MathAtomSymbols {
         ).forEach { put(it, AtomType.INNER) }
     }
 
+    // 这些命令的类别与同字形的 Unicode 字符不同，只按显式的命令名匹配。
+    private val commandOnly = setOf("And", "lhd", "rhd", "unlhd", "unrhd", "vartriangle")
+
     private val byUnicode: Map<String, AtomType> = buildMap {
         for ((name, type) in byName) {
-            if (type != AtomType.ORD) SymbolMap.getSymbol(name)?.let { if (it !in this) put(it, type) }
+            if (type != AtomType.ORD && name !in commandOnly) {
+                SymbolMap.getSymbol(name)?.let { if (it !in this) put(it, type) }
+            }
         }
         put("−", AtomType.BIN)
     }

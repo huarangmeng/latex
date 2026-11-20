@@ -41,6 +41,26 @@ import kotlin.test.assertTrue
 class DelimiterTest {
     
     private val parser = LatexParser()
+
+    @Test
+    fun namedDelimitersWorkInAutomaticAndManualSizing() {
+        val automatic = parser.parse("""\left\lang x \right\rang""").children.single() as LatexNode.Delimited
+        assertEquals("⟨", automatic.left)
+        assertEquals("⟩", automatic.right)
+
+        val manual = parser.parse("""\bigl\lparen x \bigr\rparen""").children
+        assertEquals("(", (manual.first() as LatexNode.ManualSizedDelimiter).delimiter)
+        assertEquals(")", (manual.last() as LatexNode.ManualSizedDelimiter).delimiter)
+    }
+
+    @Test
+    fun setBuilderKeepsBarsAfterTheFirstSeparator() {
+        val node = parser.parse("""\Set{x|x<\frac12|S|}""").children.single() as LatexNode.Delimited
+        assertEquals("{", node.left)
+        assertEquals("}", node.right)
+        assertEquals(1, node.content.count { it is LatexNode.ManualSizedDelimiter && it.isMiddle })
+        assertEquals(2, node.content.count { it is LatexNode.Text && it.content == "|" })
+    }
     
     // ========== 自动伸缩括号测试 ==========
     

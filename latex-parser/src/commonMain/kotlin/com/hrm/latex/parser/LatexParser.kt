@@ -306,6 +306,11 @@ internal class ParseSession(
     internal var deepestLevel = 0
         private set
 
+    override fun accountForTreeDepth(depth: Int) {
+        if (depth > MAX_TREE_DEPTH) throw NestingTooDeep()
+        deepestLevel += depth
+    }
+
     override fun parseExpression(): LatexNode? = nested { parseExpressionAtDepth() }
 
     private fun parseExpressionAtDepth(): LatexNode? {

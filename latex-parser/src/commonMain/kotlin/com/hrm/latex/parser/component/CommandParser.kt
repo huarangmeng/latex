@@ -137,7 +137,7 @@ internal class CommandParser(
 
         val unicode = SymbolMap.getSymbol(cmdName)
         if (unicode != null) {
-            return LatexNode.Symbol(cmdName, unicode)
+            return LatexNode.Symbol(SymbolMap.canonicalName(cmdName), unicode)
         }
 
         val arguments = mutableListOf<LatexNode>()

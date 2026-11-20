@@ -12,6 +12,30 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class PlainTexCompatibilityTest {
+
+    @Test
+    fun characterCodesSupportBasesAndSupplementaryCodePoints() {
+        val pairs = mapOf(
+            """\char37""" to "%",
+            """\char'45""" to "%",
+            """\char"263a""" to "☺",
+            """\char`\%""" to "%",
+            """\char"1d7d9""" to "𝟙",
+        )
+        for ((formula, expected) in pairs) {
+            val node = assertIs<LatexNode.TextMode>(parse(formula).children.single())
+            assertEquals(expected, node.text, formula)
+        }
+        assertTrue(LatexParser().parseWithDiagnostics("""\char"d800""").errors.isNotEmpty())
+    }
+
+    @Test
+    fun skipsAndNonBreakingSpaceUseExistingSpacingNodes() {
+        val skips = parse("""\hskip1em \mskip{2mu}""").children.filterIsInstance<LatexNode.HSpace>()
+        assertEquals(listOf("1em", "2mu"), skips.map { it.dimension })
+        val space = assertIs<LatexNode.Space>(parse("""\nobreakspace""").children.single())
+        assertEquals(LatexNode.Space.SpaceType.NON_BREAKING, space.type)
+    }
     private val parser = LatexParser()
 
     @Test

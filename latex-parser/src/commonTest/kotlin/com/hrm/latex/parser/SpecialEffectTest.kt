@@ -318,6 +318,26 @@ class SpecialEffectTest {
     }
 
     @Test
+    fun textCircledAndStrikeThroughUseEnclosureNotations() {
+        val circle = assertIs<LatexNode.Enclose>(parser.parse("""\textcircled{a}""").children.single())
+        assertEquals(listOf(LatexNode.Enclose.Notation.CIRCLE), circle.notations)
+        val strike = assertIs<LatexNode.Enclose>(parser.parse("""\sout{x^2}""").children.single())
+        assertEquals(listOf(LatexNode.Enclose.Notation.HORIZONTALSTRIKE), strike.notations)
+        assertIs<LatexNode.Superscript>(strike.content.single())
+    }
+
+    @Test
+    fun centeredSlashesPreserveTheirArgumentAndSemanticType() {
+        val negated = assertIs<LatexNode.Accent>(parser.parse("""\centernot{\xrightarrow{label}}""").children.single())
+        assertEquals(LatexNode.Accent.AccentType.CENTER_NOT, negated.accentType)
+        assertIs<LatexNode.ExtensibleArrow>(assertIs<LatexNode.Group>(negated.content).children.single())
+
+        val slashed = assertIs<LatexNode.Accent>(parser.parse("""\slashed\partial""").children.single())
+        assertEquals(LatexNode.Accent.AccentType.SLASHED, slashed.accentType)
+        assertEquals("partial", assertIs<LatexNode.Symbol>(slashed.content).symbol)
+    }
+
+    @Test
     fun should_preserve_literal_url_characters_and_expand_url_macros() {
         val url = """https://example.org/~u/a%20b?x=${'$'}v&n=a_b#top"""
         val link = parser.parseWithDiagnostics("""\href{$url}{\alpha+1}""")

@@ -32,6 +32,7 @@ internal fun CommandRegistry.installStyleHandlers() {
     // 字体样式
     val styleCommandMapping = mapOf(
         "mathbf" to LatexNode.Style.StyleType.BOLD,
+        "bold" to LatexNode.Style.StyleType.BOLD,
         "textbf" to LatexNode.Style.StyleType.TEXT_BOLD,
         "textmd" to LatexNode.Style.StyleType.TEXT_MEDIUM,
         "boldsymbol" to LatexNode.Style.StyleType.BOLD_SYMBOL,
@@ -75,6 +76,30 @@ internal fun CommandRegistry.installStyleHandlers() {
             )
         }
     }
+
+    // 常用数集简写与 \mathbb 共用黑板粗体样式，仍可被文档中的宏定义覆盖。
+    val blackboardLetters = mapOf(
+        "N" to "N", "natnums" to "N", "Z" to "Z",
+        "R" to "R", "Reals" to "R", "reals" to "R",
+        "Complex" to "C", "cnums" to "C",
+    )
+    register(*blackboardLetters.keys.toTypedArray()) { name, _, _ ->
+        LatexNode.Style(listOf(LatexNode.Text(blackboardLetters.getValue(name))), LatexNode.Style.StyleType.BLACKBOARD_BOLD)
+    }
+
+    register("TextOrMath") { _, ctx, stream ->
+        // 按当前模式处理所选参数；另一分支只读取 token，避免展开宏或执行定义。
+        if (ctx.inTextMode) {
+            val text = ctx.parseArgument()
+            stream.readArgumentTokens()
+            text ?: LatexNode.Text("")
+        } else {
+            stream.readArgumentTokens()
+            ctx.parseArgument() ?: LatexNode.Text("")
+        }
+    }
+
+    register("copyright", "textcopyright") { _, _, _ -> LatexNode.TextMode("©") }
 
     val styleDeclarationMapping = mapOf(
         "bf" to LatexNode.Style.StyleType.LEGACY_BOLD,
@@ -203,7 +228,7 @@ internal fun CommandRegistry.installStyleHandlers() {
     }
 
     // Preserve structured text, converting only text-mode leaves; inline math keeps math semantics.
-    register("text", "mbox") { _, ctx, _ ->
+    register("text", "mbox", "hbox") { _, ctx, _ ->
         val argument = ctx.parseTextArgument() ?: LatexNode.Text("")
         val content = (if (argument is LatexNode.Group) argument.children else listOf(argument)).map(::asTextContent)
         val plain = content.all { it is LatexNode.TextMode && it.content.isEmpty() }

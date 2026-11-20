@@ -50,8 +50,12 @@ internal fun CommandRegistry.installColorHandlers() {
         val color = readColor(ctx) ?: return@register LatexNode.Text("")
         LatexNode.Color(emptyList(), color, isDeclaration = true)
     }
-    val colorHandler = CommandHandler { _, ctx, _ ->
-        val colorName = readColor(ctx)
+    val colorAliases = mapOf(
+        "blue" to "#6495ed", "orange" to "#ffa500", "pink" to "#ff00af",
+        "red" to "#df0030", "green" to "#28ae7b", "purple" to "#9d38bd",
+    )
+    val colorHandler = CommandHandler { name, ctx, _ ->
+        val colorName = if (name == "textcolor") readColor(ctx) else colorAliases.getValue(name)
 
         val contentArg = ctx.parseArgument() ?: return@CommandHandler LatexNode.Text("")
         val content = when (contentArg) {
@@ -62,7 +66,7 @@ internal fun CommandRegistry.installColorHandlers() {
         if (colorName != null) LatexNode.Color(content, colorName) else LatexNode.Group(content)
     }
 
-    register("textcolor", handler = colorHandler)
+    register("textcolor", *colorAliases.keys.toTypedArray(), handler = colorHandler)
 
     // \colorbox{color}{text}
     register("colorbox") { _, ctx, _ ->

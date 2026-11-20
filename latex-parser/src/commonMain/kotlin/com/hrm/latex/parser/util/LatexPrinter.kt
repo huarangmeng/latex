@@ -161,6 +161,23 @@ class LatexPrinter : BaseLatexVisitor<String>() {
         return ""
     }
     
+    override fun visitProofTree(node: LatexNode.ProofTree): String {
+        output.append("ProofTree(rule=${node.rule}, rootAtTop=${node.rootAtTop}, premises=[")
+        node.premises.forEach { visit(it) }
+        output.append("], conclusion=")
+        visit(node.conclusion)
+        node.leftLabel?.let {
+            output.append(", leftLabel=")
+            visit(it)
+        }
+        node.rightLabel?.let {
+            output.append(", rightLabel=")
+            visit(it)
+        }
+        output.append(")")
+        return ""
+    }
+
     override fun visitAccent(node: LatexNode.Accent): String {
         output.append("Accent(${node.accentType}, skewMu=${node.skewMu})[")
         visit(node.content)

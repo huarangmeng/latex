@@ -60,6 +60,32 @@ sealed class LatexNode {
     /** 双分派：将访问者分派到对应的 visit 方法 */
     abstract fun <T> accept(visitor: LatexVisitor<T>): T
 
+    /** 由有序前提推导出结论，左右标签贴在本层推理线上。叶子只有结论。 */
+    data class ProofTree(
+        val conclusion: LatexNode,
+        val premises: List<LatexNode> = emptyList(),
+        val leftLabel: LatexNode? = null,
+        val rightLabel: LatexNode? = null,
+        val rule: Rule = Rule.SOLID,
+        val rootAtTop: Boolean = false,
+        override val sourceRange: SourceRange? = null,
+    ) : LatexNode() {
+        enum class Rule { NONE, SOLID, DASHED, DOTTED, DOUBLE }
+
+        override fun children() = premises + listOfNotNull(conclusion, leftLabel, rightLabel)
+        override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
+        override fun withChildren(newChildren: List<LatexNode>): LatexNode {
+            val i = premises.size
+            return copy(
+                premises = newChildren.take(i),
+                conclusion = newChildren[i],
+                leftLabel = if (leftLabel != null) newChildren[i + 1] else null,
+                rightLabel = if (rightLabel != null) newChildren.last() else null,
+            )
+        }
+        override fun <T> accept(visitor: LatexVisitor<T>) = visitor.visitProofTree(this)
+    }
+
     // ====================================================================
     // 函数式遍历 API
     // ====================================================================
@@ -453,7 +479,7 @@ sealed class LatexNode {
             GRAVE, ACUTE, CHECK, BREVE, RING,
             OVERBRACKET, UNDERBRACKET,
             WIDECHECK, OVERLEFTRIGHTARROW, UNDERLEFTARROW, UNDERRIGHTARROW,
-            OVERPAREN, UNDERPAREN
+            OVERPAREN, UNDERPAREN, DDDDOT, CENTER_NOT, SLASHED
         }
 
         override fun children() = listOf(content)
@@ -1291,7 +1317,7 @@ sealed class LatexNode {
         val modStyle: ModStyle,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        enum class ModStyle { BMOD, PMOD, MOD }
+        enum class ModStyle { BMOD, PMOD, MOD, POD }
 
         override fun children() = listOfNotNull(content)
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)
@@ -1427,7 +1453,7 @@ sealed class LatexNode {
         val shift: String? = null,
         override val sourceRange: SourceRange? = null
     ) : LatexNode() {
-        enum class LayoutType { RAISE_BOX, RULE }
+        enum class LayoutType { RAISE_BOX, RULE, V_CENTER }
 
         override fun children() = content
         override fun withSourceRange(range: SourceRange) = copy(sourceRange = range)

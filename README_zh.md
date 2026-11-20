@@ -50,6 +50,10 @@
 - **运算符**：`+`, `-`, `\times`, `\div`, `\pm`, `\mp`, `\cdot`, `\oplus`, `\otimes` 等
 - **关系符**：`=`, `\neq`, `<`, `>`, `\leq`, `\geq`, `\approx`, `\equiv`, `\sim`, `\coloneqq`, `\eqqcolon` 等
 - **集合论**：`\in`, `\notin`, `\subset`, `\cup`, `\cap`, `\emptyset`, `\mathbb{R}` 等
+- **兼容简写**：数集 `\N`, `\Z`, `\R`, `\Complex`，关系 `\sube`，箭头 `\rarr`，角括号 `\lang` / `\rang`。
+- **Plain TeX 字符与间距**：`\char`, `\hbox`, `\hskip`, `\mskip`, `\nobreakspace`。
+- **证明树**：`prooftree` 支持一至五个前提、左右标签、推理线样式和结论方向。
+- **布局记号**：`\set`, `\Set`, `\vcenter`, `\angl`, `\angln`, `\phase`。
 - **逻辑**：`\land`, `\lor`, `\neg`, `\Rightarrow`, `\Leftrightarrow`, `\forall`, `\exists`
 - **箭头**：`\to`, `\rightarrow`, `\leftarrow`, `\leftrightarrow`, `\Rightarrow`, `\hookrightarrow`, 鱼叉箭头等
 - **省略号**：`\ldots`, `\cdots`, `\vdots`, `\ddots`, `\dots`（自适应）
