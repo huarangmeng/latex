@@ -271,6 +271,7 @@ class IncrementalLatexParser {
             HLog.d(TAG) { "追加增量: 尾部解析失败" }
             return null
         }
+        if (tailDoc.isRejectedWhole()) return parseWhole(newText)
 
         // 调整 sourceRange 到全局坐标
         val tailChildren = if (reparseStart > 0) {
@@ -375,7 +376,7 @@ class IncrementalLatexParser {
         }
 
         val newDirtyChildren = if (dirtyText.isNotEmpty()) {
-            parseSafe(dirtyText, dirtyStart)
+            parseSafe(dirtyText, dirtyStart) ?: return parseWhole(newText)
         } else {
             emptyList()
         }
@@ -402,12 +403,13 @@ class IncrementalLatexParser {
      *
      * @param text 待解析的文本片段
      * @param globalOffset 该片段在完整文本中的起始偏移（用于 sourceRange 调整）
-     * @return 解析出的节点列表
+     * @return 解析出的节点列表；片段因嵌套过深被整体拒绝时为 null
      */
-    private fun parseSafe(text: String, globalOffset: Int): List<LatexNode> {
+    private fun parseSafe(text: String, globalOffset: Int): List<LatexNode>? {
         // 先尝试完整解析
         val doc = tryParse(text)
         if (doc != null) {
+            if (doc.isRejectedWhole()) return null
             return adjustSourceRanges(doc.children, globalOffset)
         }
 
@@ -416,6 +418,7 @@ class IncrementalLatexParser {
         if (truncated.isNotEmpty() && truncated != text) {
             val truncDoc = tryParse(truncated)
             if (truncDoc != null) {
+                if (truncDoc.isRejectedWhole()) return null
                 return adjustSourceRanges(truncDoc.children, globalOffset)
             }
         }
@@ -432,6 +435,18 @@ class IncrementalLatexParser {
         } else {
             emptyList()
         }
+    }
+
+    /**
+     * The parser rejects a formula nested too deep as one [LatexNode.Error] (the only place it
+     * builds one). A fragment rejected that way rejects the whole text, as a batch parse does.
+     */
+    private fun LatexNode.Document.isRejectedWhole(): Boolean = children.singleOrNull() is LatexNode.Error
+
+    private fun parseWhole(text: String): LatexNode.Document {
+        val document = tryParseFromTokens() ?: return fullParse(text)
+        lastSuccessfulPosition = text.length
+        return document
     }
 
     /**
@@ -453,7 +468,7 @@ class IncrementalLatexParser {
             val tokens = tokenizer.getCurrentTokens()
             val text = tokenizer.getCurrentText()
             if (tokens.isNotEmpty() && text.isNotEmpty()) {
-                baseParser.parse(tokens, text.length)
+                baseParser.parse(tokens, text.length, text)
             } else {
                 null
             }

@@ -169,6 +169,9 @@ internal fun measureNode(
 
         is LatexNode.Group -> measureGroup(node.children, context, measurer, density, cache = cache)
         is LatexNode.Document -> measureGroup(node.children, context, measurer, density, cache = cache)
+        is LatexNode.Error -> measureGroup(
+            node.recovered, context.copy(color = context.errorColor), measurer, density, cache = cache
+        )
 
         is LatexNode.Style -> {
             val legacyTextStyle = node.styleType.legacyTextStyle?.takeIf { context.inTextMode }

@@ -112,6 +112,30 @@ class SkiaPlatformRenderingTest {
         }
     }
 
+    @Test
+    fun formulaNestedTooDeepRendersItsSourceInTheErrorColor() = runTest {
+        val density = Density(1f)
+        val exporter = LatexExporterState(
+            density,
+            TextMeasurer(createFontFamilyResolver(), density, LayoutDirection.Ltr),
+            loadKatexFonts { readResourceBytes(it) },
+        )
+        val formula = "\\sqrt{".repeat(300) + "x" + "}".repeat(300)
+        val result = assertNotNull(exporter.export(formula, LatexConfig(fontSize = 24.sp)))
+        Image.makeFromEncoded(assertNotNull(result.bytes)).use { image ->
+            Bitmap().use { bitmap ->
+                assertTrue(bitmap.allocN32Pixels(image.width, image.height))
+                assertTrue(image.readPixels(bitmap))
+                var errorInk = 0
+                for (y in 0 until bitmap.height) for (x in 0 until bitmap.width) {
+                    val pixel = bitmap.getColor(x, y)
+                    if (Color.getR(pixel) > 150 && Color.getG(pixel) < 100 && Color.getB(pixel) < 100) errorInk++
+                }
+                assertTrue(errorInk > 20, "Expected the source in the error color, found $errorInk pixels")
+            }
+        }
+    }
+
     /** Decode and inspect actual ink; nonempty XML/encoded bytes cannot prove rendering. */
     private fun assertFormulaPixels(image: Image) {
         Bitmap().use { bitmap ->

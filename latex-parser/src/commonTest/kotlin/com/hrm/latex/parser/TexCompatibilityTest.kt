@@ -179,6 +179,39 @@ class TexCompatibilityTest {
         val result = parser.parseWithDiagnostics("""\def\loop{\frac{1}{\loop}}\loop+x""")
         assertTrue(result.errors.any { it.category == ParseDiagnostic.Category.MACRO_ERROR })
         assertIs<LatexNode.Text>(result.document.children.last())
+        // Recursion through an active character, split out of the macro's own text.
+        for (active in listOf("""\mathcode`b="8000\def b{{ab}}b+y""", """\mathcode`;="8000\def\a#1.{#1}\def;{{\a;.}};+y""")) {
+            val split = parser.parseWithDiagnostics(active)
+            assertEquals(listOf(ParseDiagnostic.Category.MACRO_ERROR), split.errors.map { it.category }.distinct())
+            assertEquals("y", (split.document.children.last() as LatexNode.Text).content, active)
+        }
+    }
+
+    @Test fun nonRecursiveMacrosExpandInsideDeepGroups() {
+        val loop = "{".repeat(43) + """\def\f#1{\ifx#1\relax\else{#1}\expandafter\f\fi}\f abc\relax""" + "}".repeat(43) + "+y"
+        assertTrue(parser.parseWithDiagnostics(loop).errors.isEmpty())
+        assertEquals("abc+y", visible(loop))
+        val defaultArgument = """\newcommand\g{}\def\f{\renewcommand\g[1][\f]{(#1)}}\f""" + "{".repeat(43) + """\g""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(defaultArgument).errors.isEmpty())
+        val deep = """\def\A{m}""" + "{".repeat(43) + """\A""" + "}".repeat(43) + "+y"
+        assertTrue(parser.parseWithDiagnostics(deep).errors.isEmpty())
+        assertEquals("m+y", visible(deep))
+        val nested = """\def\A{m}""" + """{\A""".repeat(60) + "}".repeat(60)
+        assertTrue(parser.parseWithDiagnostics(nested).errors.isEmpty())
+        assertEquals("m".repeat(60), visible(nested))
+        val environment = """\newenvironment{e}{[}{]}""" + "{".repeat(43) + """\begin{e}x\end{e}""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(environment).errors.isEmpty())
+        assertEquals("[x]", visible(environment))
+        val siblings = """\def\A{m}\def\B{\A\A}""" + "{".repeat(43) + """\B""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(siblings).errors.isEmpty())
+        assertEquals("mm", visible(siblings))
+        val inItsArgument = """\def\B#1{(#1)}""" + "{".repeat(43) + """\B{\B{x}}""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(inItsArgument).errors.isEmpty())
+        assertEquals("((x))", visible(inItsArgument))
+        val nestedEnvironments = """\newenvironment{e}{[}{]}""" + "{".repeat(43) +
+            """\begin{e}\begin{e}x\end{e}\end{e}""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(nestedEnvironments).errors.isEmpty())
+        assertEquals("[[x]]", visible(nestedEnvironments))
     }
 
     @Test fun invalidGlobalPrefixCannotLeakToALaterAssignment() {

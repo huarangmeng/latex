@@ -62,7 +62,7 @@ class LatexParser {
     fun parse(input: String): LatexNode.Document {
         HLog.d(TAG) { "开始解析 LaTeX: $input" }
         val tokens = LatexTokenizer(input).tokenize()
-        return ParseSession(tokens, input.length).parse()
+        return ParseSession(tokens, input.length, input).parse()
     }
 
     /**
@@ -74,17 +74,21 @@ class LatexParser {
     fun parseWithDiagnostics(input: String): ParseResult {
         HLog.d(TAG) { "开始解析 LaTeX (带诊断): $input" }
         val tokens = LatexTokenizer(input).tokenize()
-        val session = ParseSession(tokens, input.length)
+        val session = ParseSession(tokens, input.length, input)
         val document = session.parse()
         return ParseResult(document, session.diagnostics.toList())
     }
 
     /**
      * 从 token 列表直接解析（供增量解析器使用，避免二次分词）
+     *
+     * Without the source text, a formula rejected for nesting too deep is an empty [LatexNode.Error].
      */
-    fun parse(tokens: List<LatexToken>, inputLength: Int): LatexNode.Document {
+    fun parse(tokens: List<LatexToken>, inputLength: Int): LatexNode.Document = parse(tokens, inputLength, null)
+
+    internal fun parse(tokens: List<LatexToken>, inputLength: Int, source: String?): LatexNode.Document {
         HLog.d(TAG) { "从 token 列表解析, token 数: ${tokens.size}" }
-        return ParseSession(tokens, inputLength).parse()
+        return ParseSession(tokens, inputLength, source).parse()
     }
 
     class ParseException(message: String) : Exception(message)
@@ -98,12 +102,64 @@ class LatexParser {
  */
 internal class ParseSession(
     tokens: List<LatexToken>,
-    private val inputLength: Int
+    private val inputLength: Int,
+    private val source: String? = null,
 ) : LatexParserContext {
 
     companion object {
         private const val TAG = "ParseSession"
         private val infixCommands = setOf("over", "atop", "choose", "brack", "brace", "above")
+
+        /**
+         * Deepest tree a parse returns, so renderers and visitors that recurse over it fit a
+         * 512 KiB thread stack, the iOS secondary-thread default (measured on the JVM). Plain groups
+         * nest 126 deep; `\frac`, `\sqrt`, braced scripts and environments 63, fewer when every
+         * level also has scripts.
+         */
+        internal const val MAX_TREE_DEPTH = 128
+
+        /** Parser recursion cap; a braced group costs two frames ([parseExpression], [parseFactor]). */
+        private const val MAX_RECURSION = 2 * MAX_TREE_DEPTH
+
+        /** Tree levels charged per frame: a frame builds at most a node and its argument group. */
+        private const val LEVELS_PER_FRAME = 2
+
+        /**
+         * Groups a macro may expand inside its own expansion. Low enough that a macro recursing
+         * through groups (`\def\loop{\frac{1}{\loop}}`) stops with a macro error, which keeps the
+         * rest of the formula, before [MAX_TREE_DEPTH] rejects the whole formula.
+         */
+        internal const val MAX_MACRO_GROUP_DEPTH = MAX_TREE_DEPTH / 3
+
+        /** Levels [deepestLevel] leaves out, such as the document root. */
+        internal const val UNCOUNTED_LEVELS = 8
+
+        /** Whether any node lies [limit] or more levels below [root]; iterative, so safe at any depth. */
+        internal fun treeDepthExceeds(root: LatexNode, limit: Int): Boolean {
+            var nodes = arrayOfNulls<LatexNode>(64)
+            var depths = IntArray(64)
+            nodes[0] = root
+            var size = 1
+            while (size > 0) {
+                size--
+                val node = nodes[size]!!
+                val depth = depths[size]
+                nodes[size] = null
+                if (depth >= limit) return true
+                val children = node.children()
+                if (size + children.size > nodes.size) {
+                    val capacity = maxOf(nodes.size * 2, size + children.size)
+                    nodes = nodes.copyOf(capacity)
+                    depths = depths.copyOf(capacity)
+                }
+                for (child in children) {
+                    nodes[size] = child
+                    depths[size] = depth + 1
+                    size++
+                }
+            }
+            return false
+        }
     }
 
     override val tokenStream = LatexTokenStream(tokens)
@@ -196,20 +252,53 @@ internal class ParseSession(
     }
 
     fun parse(): LatexNode.Document {
-        val children = parseMathList { false }
+        val children = try {
+            parseMathList { false }
+        } catch (_: NestingTooDeep) {
+            return tooDeep()
+        }
 
         val document = LatexNode.Document(
             children,
             sourceRange = SourceRange(0, inputLength)
         )
+        if (deepestLevel + UNCOUNTED_LEVELS > MAX_TREE_DEPTH && treeDepthExceeds(document, MAX_TREE_DEPTH)) {
+            return tooDeep()
+        }
         HLog.d(TAG) { "解析成功，生成 ${children.size} 个节点, 诊断: ${diagnostics.size} 条" }
         return document
     }
 
-    override fun parseExpression(): LatexNode? {
+    /**
+     * Rejects the whole input, as KaTeX does with `throwOnError: false`: the source is shown as
+     * text in the error colour. Never a partial tree, which would silently drop input.
+     */
+    private fun tooDeep(): LatexNode.Document {
+        val range = SourceRange(0, inputLength)
+        val message = "Nesting deeper than $MAX_TREE_DEPTH levels"
+        diagnostics.add(ParseDiagnostic(range, message, ParseDiagnostic.Severity.ERROR))
+        val recovered = source?.let { listOf(LatexNode.TextMode(it, sourceRange = range)) } ?: emptyList()
+        return LatexNode.Document(listOf(LatexNode.Error(message, recovered, range)), sourceRange = range)
+    }
+
+    private class NestingTooDeep : RuntimeException()
+
+    /** Tree levels above the current parse position; at least [LEVELS_PER_FRAME] per parse frame. */
+    private var levels = 0
+
+    /**
+     * An upper bound on the depth of the tree built so far, less [UNCOUNTED_LEVELS]. Typical
+     * formulas stay far below [MAX_TREE_DEPTH], so the exact [treeDepthExceeds] walk is skipped.
+     */
+    internal var deepestLevel = 0
+        private set
+
+    override fun parseExpression(): LatexNode? = nested { parseExpressionAtDepth() }
+
+    private fun parseExpressionAtDepth(): LatexNode? {
         val startOffset = tokenStream.currentSourceOffset()
         var node = parseFactor() ?: return null
-
+        var wraps = 0
         while (true) {
             val token = tokenStream.peek()
             if (token is LatexToken.Prime) {
@@ -221,6 +310,7 @@ internal class ParseSession(
                 if (node.hasSuperscript()) {
                     reportDoubleSuperscript(token.range)
                 } else {
+                    chargeScript(++wraps)
                     node = LatexNode.Superscript(
                         node,
                         LatexNode.Group(primes),
@@ -237,6 +327,7 @@ internal class ParseSession(
                         reportDoubleSuperscript(token.range)
                         node
                     } else {
+                        chargeScript(++wraps)
                         LatexNode.Superscript(
                             node,
                             exponent,
@@ -246,6 +337,7 @@ internal class ParseSession(
             } else if (token is LatexToken.Subscript) {
                 tokenStream.advance()
                 val index = parseScriptContent()
+                chargeScript(++wraps)
                 node = LatexNode.Subscript(
                     node, index,
                     sourceRange = tokenStream.rangeFrom(startOffset)
@@ -254,7 +346,43 @@ internal class ParseSession(
                 break
             }
         }
+        if (wraps > 1) requireShallow(node)
         return node
+    }
+
+    /**
+     * This frame's levels cover one script; each further one (`x_1_1…`) wraps the whole node one
+     * level deeper. A chain longer than the tree limit is rejected before anything recurses down it.
+     */
+    private fun chargeScript(wraps: Int) {
+        if (wraps > MAX_TREE_DEPTH) throw NestingTooDeep()
+        if (wraps > 1) deepestLevel++
+    }
+
+    override fun noteScriptWrap(base: LatexNode) {
+        var node = base
+        var wraps = 1
+        while (true) {
+            node = when (node) {
+                is LatexNode.Subscript -> node.base
+                is LatexNode.Superscript -> node.base
+                else -> break
+            }
+            if (++wraps > MAX_TREE_DEPTH) throw NestingTooDeep()
+        }
+        deepestLevel++
+        if (wraps > 1) requireShallow(base)
+    }
+
+    /**
+     * A chain of scripts adds levels without recursing, over arguments that may hold chains too,
+     * so once [deepestLevel] allows a tree that deep, the chain is checked before a command walks
+     * it. A single script needs no check: its frame's levels cover it.
+     */
+    private fun requireShallow(node: LatexNode) {
+        if (deepestLevel + UNCOUNTED_LEVELS > MAX_TREE_DEPTH && treeDepthExceeds(node, MAX_TREE_DEPTH)) {
+            throw NestingTooDeep()
+        }
     }
 
     private fun LatexNode.hasSuperscript(): Boolean =
@@ -292,7 +420,27 @@ internal class ParseSession(
         )
     }
 
-    override fun parseFactor(): LatexNode? {
+    override fun parseFactor(): LatexNode? = nested { parseFactorAtDepth() }
+
+    /**
+     * Every recursive parse passes through [parseExpression] (groups, scripts) or [parseFactor]
+     * (commands, unbraced arguments, environments), so counting both bounds the parser's stack.
+     * The tree can still outgrow the recursion (script chains, declarations), so [deepestLevel]
+     * also charges the levels built without recursing.
+     */
+    private inline fun nested(parse: () -> LatexNode?): LatexNode? {
+        val outerLevels = levels
+        if (outerLevels >= LEVELS_PER_FRAME * MAX_RECURSION) throw NestingTooDeep()
+        levels = outerLevels + LEVELS_PER_FRAME
+        if (levels > deepestLevel) deepestLevel = levels
+        try {
+            return parse()
+        } finally {
+            levels = outerLevels
+        }
+    }
+
+    private fun parseFactorAtDepth(): LatexNode? {
         when (val token = tokenStream.peek()) {
             is LatexToken.Text -> {
                 tokenStream.advance()
@@ -445,6 +593,10 @@ internal class ParseSession(
                 infixNumerator == null
             ) {
                 tokenStream.advance()
+                // The fraction wraps the numerator parsed so far and the rest of the list in up to
+                // three levels; the caller's frame releases them.
+                deepestLevel += 3
+                levels += 3
                 infixNumerator = normalizeStyleDeclarations(children.toList())
                 infixRange = token.range
                 infixCommand = token.name
@@ -603,8 +755,9 @@ internal class ParseSession(
         }
     }
 
+    /** A braced script recurses through one [parseExpression] per level, so it counts a second frame here. */
     private fun parseScriptContent(): LatexNode {
-        return parseArgument() ?: LatexNode.Text("")
+        return nested { parseArgument() } ?: LatexNode.Text("")
     }
 
     override fun normalizeStyleDeclarations(nodes: List<LatexNode>): List<LatexNode> {
@@ -618,6 +771,8 @@ internal class ParseSession(
             if (activeDeclarations.isEmpty()) {
                 result.addAll(segment)
             } else {
+                // Each declaration wraps the segment in up to two levels (a style and its group).
+                deepestLevel += 2 * activeDeclarations.size
                 result.add(wrapWithDeclarations(segment.toList(), activeDeclarations))
             }
             segment.clear()

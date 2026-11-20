@@ -25,11 +25,14 @@ package com.hrm.latex.parser.component
 
 import com.hrm.latex.base.log.HLog
 import com.hrm.latex.parser.ParseDiagnostic
+import com.hrm.latex.parser.ParseSession
 import com.hrm.latex.parser.SymbolMap
 import com.hrm.latex.parser.component.handler.*
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.SourceRange
+import com.hrm.latex.parser.tokenizer.Expansion
 import com.hrm.latex.parser.tokenizer.LatexToken
+import com.hrm.latex.parser.tokenizer.inheritExpansion
 
 internal class CommandParser(
     private val context: LatexParserContext,
@@ -92,6 +95,8 @@ internal class CommandParser(
             installTextDirectionHandlers()
             installPackageCommandHandlers()
         }
+
+        internal fun registeredCommands(): Set<String> = registry.registeredCommands()
     }
 
     /**
@@ -166,8 +171,9 @@ internal class CommandParser(
         if (token is LatexToken.BeginEnvironment) {
             val environment = context.customEnvironments[token.name] ?: return false
             stream.advance()
-            if (rejectNestedExpansion(token.range)) return true
-            val args = readArguments(environment.numArgs, environment.defaultTokens)
+            if (rejectRecursiveExpansion(environment, token)) return true
+            val origin = Expansion(environment, token.expansion, context.scopeDepth)
+            val args = readArguments(environment.numArgs, environment.defaultTokens, origin)
             val body = mutableListOf<LatexToken>()
             var depth = 1
             while (!stream.isEOF()) {
@@ -179,8 +185,8 @@ internal class CommandParser(
             }
             if (depth != 0) macroError(token.range, "Missing \\end{${token.name}}")
             emit(listOf(LatexToken.LeftBrace(token.range)) +
-                substitute(environment.beginTokens, args, token.range) + body +
-                substitute(environment.endTokens, args, token.range) +
+                substitute(environment.beginTokens, args, token.range, origin) + body +
+                substitute(environment.endTokens, args, token.range, origin) +
                 LatexToken.RightBrace(stream.peek(-1)?.range ?: token.range), token.range)
             return true
         }
@@ -198,7 +204,7 @@ internal class CommandParser(
                 character.toString() in context.customCommands -> character.toString()
                 else -> return false
             }
-            token = LatexToken.Command(name, token.range)
+            token = LatexToken.Command(name, token.range).also { it.expansion = token.expansion }
             activeCharacter = true
         }
         if (!token.expandable) return false
@@ -206,13 +212,14 @@ internal class CommandParser(
         if (macro?.isAlias == true) {
             val original = macro.tokens.singleOrNull() as? LatexToken.Command
             if (original != null && original.name in expansionCommands) {
-                token = original.copy(range = token.range)
+                token = original.copy(range = token.range).also { it.expansion = token.expansion }
                 macro = null
             }
         }
         if (macro != null) {
             if (activeCharacter) stream.readAtom() else stream.advance()
-            if (rejectNestedExpansion(token.range)) return true
+            if (rejectRecursiveExpansion(macro, token)) return true
+            val origin = Expansion(macro, token.expansion, context.scopeDepth)
             val paired = macro.pairedDelimiters
             if (paired != null) {
                 stream.skipWhitespace()
@@ -232,16 +239,16 @@ internal class CommandParser(
                 val replacement = buildList {
                     if (!starred) add(LatexToken.LeftBrace(range))
                     leftSize?.let { add(LatexToken.Command(it, range, builtin = true)) }
-                    addAll(paired.first.map { it.withRange(range) })
+                    addAll(paired.first.map { it.withRange(range).also { copy -> copy.expansion = origin } })
                     // Replace only the definition's delimsize commands, before parameter substitution.
                     val body = macro.tokens.flatMap {
                         if (it is LatexToken.Command && it.name == "delimsize") {
                             listOfNotNull(middleSize?.let { name -> LatexToken.Command(name, range, builtin = true) })
                         } else listOf(it)
                     }
-                    addAll(substitute(body, args, range))
+                    addAll(substitute(body, args, range, origin))
                     rightSize?.let { add(LatexToken.Command(it, range, builtin = true)) }
-                    addAll(paired.second.map { it.withRange(range) })
+                    addAll(paired.second.map { it.withRange(range).also { copy -> copy.expansion = origin } })
                     if (!starred) add(LatexToken.RightBrace(range))
                 }
                 emit(replacement, token.range)
@@ -252,9 +259,9 @@ internal class CommandParser(
                 if ((stream.peek() as? LatexToken.Text)?.content?.startsWith("*") == true) stream.readAtom()
                 stream.readOptionalTokens()
             }
-            val args = if (macro.parameterText.isEmpty()) readArguments(macro.numArgs, macro.defaultTokens)
+            val args = if (macro.parameterText.isEmpty()) readArguments(macro.numArgs, macro.defaultTokens, origin)
                 else readDelimitedArguments(macro.parameterText, macro.numArgs, token.range)
-            emit(substitute(macro.tokens, args, stream.rangeFrom(token.range.start)), token.range)
+            emit(substitute(macro.tokens, args, stream.rangeFrom(token.range.start), origin), token.range)
             return true
         }
         when (token.name) {
@@ -268,10 +275,11 @@ internal class CommandParser(
                 val next = stream.readAtom()
                 if (next != null) {
                     val frozen = if (next is LatexToken.Command) {
-                        if (expansionStream == null && (!isBuiltin(next.name) ||
+                        val copy = if (expansionStream == null && (!isBuiltin(next.name) ||
                             (!next.builtin && context.customCommands.containsKey(next.name)) || next.name in expansionCommands))
                             LatexToken.Command("relax", next.range, builtin = true)
                         else next.copy(expandable = false)
+                        copy.also { it.expansion = next.expansion }
                     } else next
                     emit(listOf(frozen), token.range)
                 }
@@ -301,7 +309,9 @@ internal class CommandParser(
                 if (!context.isCommandDefined(commandName)) {
                     context.defineCommand(CustomCommand(commandName, 0, listOf(LatexToken.Command("relax", builtin = true)), isAlias = true))
                 }
-                emit(listOf(LatexToken.Command(commandName, stream.rangeFrom(token.range.start))), token.range)
+                val named = LatexToken.Command(commandName, stream.rangeFrom(token.range.start))
+                named.expansion = token.expansion
+                emit(listOf(named), token.range)
             }
             "ifdefined", "ifx" -> {
                 stream.advance()
@@ -365,7 +375,7 @@ internal class CommandParser(
                 (token.range.start + start).coerceAtMost(token.range.end),
                 (token.range.start + end).coerceAtMost(token.range.end)
             )
-        )
+        ).inheritExpansion(token)
 
         val fragments = mutableListOf<LatexToken.Text>()
         var start = 0
@@ -380,9 +390,18 @@ internal class CommandParser(
         return true
     }
 
-    private fun rejectNestedExpansion(range: SourceRange): Boolean {
-        if (context.scopeDepth < 128) return false
-        macroError(range, "Macro expansion group nesting limit exceeded")
+    /**
+     * A macro or environment expanding inside its own expansion, with groups opened since then
+     * still open, stops at [ParseSession.MAX_MACRO_GROUP_DEPTH] groups. Other calls, such as one in
+     * its own argument or a loop that closes its groups before calling itself again, expand as usual.
+     */
+    private fun rejectRecursiveExpansion(definition: Any, token: LatexToken): Boolean {
+        if (context.scopeDepth <= ParseSession.MAX_MACRO_GROUP_DEPTH) return false
+        var expansion = token.expansion
+        while (expansion != null &&
+            (expansion.definition !== definition || expansion.scopeDepth >= context.scopeDepth)) expansion = expansion.parent
+        if (expansion == null) return false
+        macroError(token.range, "Macro expansion group nesting limit exceeded")
         return true
     }
 
@@ -401,10 +420,12 @@ internal class CommandParser(
         context.diagnostics.add(ParseDiagnostic(range, message, ParseDiagnostic.Severity.ERROR, ParseDiagnostic.Category.MACRO_ERROR))
     }
 
-    private fun readArguments(count: Int, default: List<LatexToken>?): List<List<LatexToken>> =
+    /** A default argument is part of the call's expansion, [origin]. */
+    private fun readArguments(count: Int, default: List<LatexToken>?, origin: Expansion? = null): List<List<LatexToken>> =
         (0 until count).map { index ->
-            if (index == 0 && default != null) tokenStream.readOptionalTokens() ?: default
-            else tokenStream.readArgumentTokens()
+            if (index == 0 && default != null) {
+                tokenStream.readOptionalTokens() ?: default.map { it.withRange(it.range).also { copy -> copy.expansion = origin } }
+            } else tokenStream.readArgumentTokens()
         }
 
     private fun readDelimitedArguments(pattern: List<LatexToken>, count: Int, range: SourceRange): List<List<LatexToken>> {
@@ -435,7 +456,7 @@ internal class CommandParser(
                         val next = if (text != null) {
                             val end = offset + if (text[offset].isHighSurrogate() &&
                                 offset + 1 < text.length && text[offset + 1].isLowSurrogate()) 2 else 1
-                            LatexToken.Text(text.substring(offset, end), token.range).also { offset = end }
+                            LatexToken.Text(text.substring(offset, end), token.range).inheritExpansion(token).also { offset = end }
                         } else token
                         argument.add(next)
                         if (next is LatexToken.LeftBrace) depth++
@@ -444,7 +465,7 @@ internal class CommandParser(
                             delimiter.indices.all { sameToken(argument[argument.size - delimiter.size + it], delimiter[it]) }) {
                             repeat(delimiter.size) { argument.removeAt(argument.lastIndex) }
                             if (text != null && offset < text.length) {
-                                tokenStream.insert(listOf(LatexToken.Text(text.substring(offset), token.range)))
+                                tokenStream.insert(listOf(LatexToken.Text(text.substring(offset), token.range).inheritExpansion(token)))
                             }
                             found = true
                         }
@@ -468,20 +489,26 @@ internal class CommandParser(
         return depth == 0
     }
 
-    internal fun substitute(tokens: List<LatexToken>, args: List<List<LatexToken>>, range: SourceRange): List<LatexToken> {
+    /** Copies of [tokens] stamped with [origin]; argument tokens keep the expansion they came from. */
+    internal fun substitute(
+        tokens: List<LatexToken>,
+        args: List<List<LatexToken>>,
+        range: SourceRange,
+        origin: Expansion?,
+    ): List<LatexToken> {
         val result = mutableListOf<LatexToken>()
         var index = 0
         while (index < tokens.size) {
             val token = tokens[index++]
             if (token is LatexToken.Text && token.content == "#") {
                 val next = tokens.getOrNull(index) as? LatexToken.Text
-                if (next?.content == "#") { result.add(token.withRange(range)); index++; continue }
+                if (next?.content == "#") { result.add(token.withRange(range).also { it.expansion = origin }); index++; continue }
                 val number = next?.content?.toIntOrNull()
                 if (number != null && number in 1..args.size) {
-                    result.addAll(args[number - 1].map { it.withRange(range) }); index++; continue
+                    result.addAll(args[number - 1].map { arg -> arg.withRange(range).also { it.expansion = arg.expansion } }); index++; continue
                 }
             }
-            result.add(token.withRange(range))
+            result.add(token.withRange(range).also { it.expansion = origin })
         }
         return result
     }
