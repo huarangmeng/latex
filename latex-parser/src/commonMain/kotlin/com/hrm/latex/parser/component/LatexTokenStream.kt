@@ -26,6 +26,7 @@ package com.hrm.latex.parser.component
 import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.ParseDiagnostic
 import com.hrm.latex.parser.tokenizer.LatexToken
+import com.hrm.latex.parser.tokenizer.inheritExpansion
 
 /**
  * 封装 Token 流的操作，如 peek, advance, expect
@@ -224,11 +225,11 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         val atom = LatexToken.Text(
             token.content.substring(0, length),
             SourceRange(token.range.start, atomEnd)
-        )
+        ).inheritExpansion(token)
 
         advance()
         if (length < token.content.length) {
-            insert(listOf(token.copy(content = token.content.substring(length), range = SourceRange(atomEnd, token.range.end))))
+            insert(listOf(token.copy(content = token.content.substring(length), range = SourceRange(atomEnd, token.range.end)).inheritExpansion(token)))
         }
         previous = atom
         consumed?.let { if (it.isNotEmpty()) it[it.lastIndex] = atom }

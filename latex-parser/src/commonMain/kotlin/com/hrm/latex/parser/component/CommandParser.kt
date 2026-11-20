@@ -32,6 +32,7 @@ import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.Expansion
 import com.hrm.latex.parser.tokenizer.LatexToken
+import com.hrm.latex.parser.tokenizer.inheritExpansion
 
 internal class CommandParser(
     private val context: LatexParserContext,
@@ -171,8 +172,8 @@ internal class CommandParser(
             val environment = context.customEnvironments[token.name] ?: return false
             stream.advance()
             if (rejectRecursiveExpansion(environment, token)) return true
-            val origin = Expansion(environment, token.expansion)
-            val args = readArguments(environment.numArgs, environment.defaultTokens)
+            val origin = Expansion(environment, token.expansion, context.scopeDepth)
+            val args = readArguments(environment.numArgs, environment.defaultTokens, origin)
             val body = mutableListOf<LatexToken>()
             var depth = 1
             while (!stream.isEOF()) {
@@ -218,7 +219,7 @@ internal class CommandParser(
         if (macro != null) {
             if (activeCharacter) stream.readAtom() else stream.advance()
             if (rejectRecursiveExpansion(macro, token)) return true
-            val origin = Expansion(macro, token.expansion)
+            val origin = Expansion(macro, token.expansion, context.scopeDepth)
             val paired = macro.pairedDelimiters
             if (paired != null) {
                 stream.skipWhitespace()
@@ -258,7 +259,7 @@ internal class CommandParser(
                 if ((stream.peek() as? LatexToken.Text)?.content?.startsWith("*") == true) stream.readAtom()
                 stream.readOptionalTokens()
             }
-            val args = if (macro.parameterText.isEmpty()) readArguments(macro.numArgs, macro.defaultTokens)
+            val args = if (macro.parameterText.isEmpty()) readArguments(macro.numArgs, macro.defaultTokens, origin)
                 else readDelimitedArguments(macro.parameterText, macro.numArgs, token.range)
             emit(substitute(macro.tokens, args, stream.rangeFrom(token.range.start), origin), token.range)
             return true
@@ -374,7 +375,7 @@ internal class CommandParser(
                 (token.range.start + start).coerceAtMost(token.range.end),
                 (token.range.start + end).coerceAtMost(token.range.end)
             )
-        )
+        ).inheritExpansion(token)
 
         val fragments = mutableListOf<LatexToken.Text>()
         var start = 0
@@ -390,14 +391,15 @@ internal class CommandParser(
     }
 
     /**
-     * A macro or environment expanding inside its own expansion stops at
-     * [ParseSession.MAX_MACRO_GROUP_DEPTH] groups; other calls, such as one in its own argument,
-     * expand as usual.
+     * A macro or environment expanding inside its own expansion, with groups opened since then
+     * still open, stops at [ParseSession.MAX_MACRO_GROUP_DEPTH] groups. Other calls, such as one in
+     * its own argument or a loop that closes its groups before calling itself again, expand as usual.
      */
     private fun rejectRecursiveExpansion(definition: Any, token: LatexToken): Boolean {
         if (context.scopeDepth <= ParseSession.MAX_MACRO_GROUP_DEPTH) return false
         var expansion = token.expansion
-        while (expansion != null && expansion.definition !== definition) expansion = expansion.parent
+        while (expansion != null &&
+            (expansion.definition !== definition || expansion.scopeDepth >= context.scopeDepth)) expansion = expansion.parent
         if (expansion == null) return false
         macroError(token.range, "Macro expansion group nesting limit exceeded")
         return true
@@ -418,10 +420,12 @@ internal class CommandParser(
         context.diagnostics.add(ParseDiagnostic(range, message, ParseDiagnostic.Severity.ERROR, ParseDiagnostic.Category.MACRO_ERROR))
     }
 
-    private fun readArguments(count: Int, default: List<LatexToken>?): List<List<LatexToken>> =
+    /** A default argument is part of the call's expansion, [origin]. */
+    private fun readArguments(count: Int, default: List<LatexToken>?, origin: Expansion? = null): List<List<LatexToken>> =
         (0 until count).map { index ->
-            if (index == 0 && default != null) tokenStream.readOptionalTokens() ?: default
-            else tokenStream.readArgumentTokens()
+            if (index == 0 && default != null) {
+                tokenStream.readOptionalTokens() ?: default.map { it.withRange(it.range).also { copy -> copy.expansion = origin } }
+            } else tokenStream.readArgumentTokens()
         }
 
     private fun readDelimitedArguments(pattern: List<LatexToken>, count: Int, range: SourceRange): List<List<LatexToken>> {
@@ -452,7 +456,7 @@ internal class CommandParser(
                         val next = if (text != null) {
                             val end = offset + if (text[offset].isHighSurrogate() &&
                                 offset + 1 < text.length && text[offset + 1].isLowSurrogate()) 2 else 1
-                            LatexToken.Text(text.substring(offset, end), token.range).also { offset = end }
+                            LatexToken.Text(text.substring(offset, end), token.range).inheritExpansion(token).also { offset = end }
                         } else token
                         argument.add(next)
                         if (next is LatexToken.LeftBrace) depth++
@@ -461,7 +465,7 @@ internal class CommandParser(
                             delimiter.indices.all { sameToken(argument[argument.size - delimiter.size + it], delimiter[it]) }) {
                             repeat(delimiter.size) { argument.removeAt(argument.lastIndex) }
                             if (text != null && offset < text.length) {
-                                tokenStream.insert(listOf(LatexToken.Text(text.substring(offset), token.range)))
+                                tokenStream.insert(listOf(LatexToken.Text(text.substring(offset), token.range).inheritExpansion(token)))
                             }
                             found = true
                         }

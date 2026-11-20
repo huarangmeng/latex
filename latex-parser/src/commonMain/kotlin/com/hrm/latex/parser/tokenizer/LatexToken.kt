@@ -94,5 +94,11 @@ sealed class LatexToken {
     }
 }
 
-/** One macro or environment expansion: the definition expanded and the expansion its call came from. */
-internal class Expansion(val definition: Any, val parent: Expansion?)
+/**
+ * One macro or environment expansion: the definition expanded, the expansion its call came from,
+ * and the group depth it started at.
+ */
+internal class Expansion(val definition: Any, val parent: Expansion?, val scopeDepth: Int)
+
+/** This token, carrying the expansion of [source], the token it was split or copied from. */
+internal fun <T : LatexToken> T.inheritExpansion(source: LatexToken): T = also { expansion = source.expansion }

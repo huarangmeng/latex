@@ -179,9 +179,20 @@ class TexCompatibilityTest {
         val result = parser.parseWithDiagnostics("""\def\loop{\frac{1}{\loop}}\loop+x""")
         assertTrue(result.errors.any { it.category == ParseDiagnostic.Category.MACRO_ERROR })
         assertIs<LatexNode.Text>(result.document.children.last())
+        // Recursion through an active character, split out of the macro's own text.
+        for (active in listOf("""\mathcode`b="8000\def b{{ab}}b+y""", """\mathcode`;="8000\def\a#1.{#1}\def;{{\a;.}};+y""")) {
+            val split = parser.parseWithDiagnostics(active)
+            assertEquals(listOf(ParseDiagnostic.Category.MACRO_ERROR), split.errors.map { it.category }.distinct())
+            assertEquals("y", (split.document.children.last() as LatexNode.Text).content, active)
+        }
     }
 
     @Test fun nonRecursiveMacrosExpandInsideDeepGroups() {
+        val loop = "{".repeat(43) + """\def\f#1{\ifx#1\relax\else{#1}\expandafter\f\fi}\f abc\relax""" + "}".repeat(43) + "+y"
+        assertTrue(parser.parseWithDiagnostics(loop).errors.isEmpty())
+        assertEquals("abc+y", visible(loop))
+        val defaultArgument = """\newcommand\g{}\def\f{\renewcommand\g[1][\f]{(#1)}}\f""" + "{".repeat(43) + """\g""" + "}".repeat(43)
+        assertTrue(parser.parseWithDiagnostics(defaultArgument).errors.isEmpty())
         val deep = """\def\A{m}""" + "{".repeat(43) + """\A""" + "}".repeat(43) + "+y"
         assertTrue(parser.parseWithDiagnostics(deep).errors.isEmpty())
         assertEquals("m+y", visible(deep))
