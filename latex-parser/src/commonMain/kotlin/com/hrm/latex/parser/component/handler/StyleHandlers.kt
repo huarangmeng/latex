@@ -232,9 +232,7 @@ internal fun CommandRegistry.installStyleHandlers() {
     for ((name, text) in textSymbols) {
         register(name) { _, _, stream ->
             // Ordinary whitespace terminates a control word. Explicit spaces remain separate tokens.
-            stream.raw {
-                while ((stream.peek() as? LatexToken.Whitespace)?.content == " ") stream.advance()
-            }
+            stream.skipControlWordWhitespace()
             LatexNode.TextMode(text)
         }
     }
