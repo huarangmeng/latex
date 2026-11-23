@@ -54,6 +54,10 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         private set
     internal var hasIncompleteStructure = false
     internal var canDeferPreview = false
+    internal var progressivePreview = false
+    internal var unfinishedPreviewUnitStart: Int? = null
+    internal var omittedPreviewCommand = false
+        private set
     private var sourceClosers: Map<LatexToken, Int>? = null
 
     internal object PreviewDeferred : RuntimeException()
@@ -103,6 +107,19 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         if (token != null && token !is LatexToken.EOF) return token
         hasIncompleteStructure = true
         return null
+    }
+
+    /** 仅略过源码末尾仍可能补全的命令。宏展开生成的 token 仍走正常诊断。 */
+    internal inline fun omitTrailingPreviewCommand(canComplete: () -> Boolean): Boolean {
+        if (!progressivePreview || hasPendingTokens || position != initialTokens.lastIndex) return false
+        val token = previous as? LatexToken.Command ?: return false
+        if (initialTokens.getOrNull(position - 1) !== token || (head as? LatexToken.EOF)?.range?.start != token.range.end) {
+            return false
+        }
+        if (token.range.start != unfinishedPreviewUnitStart && !canComplete()) return false
+        omittedPreviewCommand = true
+        hasIncompleteStructure = true
+        return true
     }
 
     /**

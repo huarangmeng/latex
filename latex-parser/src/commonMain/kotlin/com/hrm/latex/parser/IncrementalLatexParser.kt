@@ -35,10 +35,20 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  * 解析器仅复用已消费和已前瞻的 token 都保持相同的顶层表达式，从最后一个有效检查点
  * 继续解析。等长编辑的后缀若在原检查点重新对齐，也可以复用。
  * 预览的闭合状态来自词法单元和解析规则，当前 AST 仍保留未闭合输入的容错结果。
- * [getCurrentDocument] 返回当前源码的解析结果，[getPreviewDocument] 在结构未闭合时
- * 保留上一次完整的预览。
+ * [getCurrentDocument] 返回当前源码的解析结果。[getPreviewDocument] 按所选策略提供完整
+ * 或逐步更新的预览。
  */
-class IncrementalLatexParser {
+class IncrementalLatexParser(private val previewMode: PreviewMode) {
+
+    enum class PreviewMode {
+        /** 结构未闭合时保留上一次完整预览。 */
+        COMPLETE_ONLY,
+
+        /** 使用语法容错展示已输入的内容，略去末尾仍可补全的命令片段。 */
+        PROGRESSIVE,
+    }
+
+    constructor() : this(PreviewMode.COMPLETE_ONLY)
 
     private val tokenizer = IncrementalTokenizer()
     private var parsedTokens: List<LatexToken> = emptyList()
@@ -73,17 +83,20 @@ class IncrementalLatexParser {
     private fun updateDocument(source: String, tokens: List<LatexToken>) {
         cachedDocument = null
         val unfinishedLexeme = tokenizer.unfinishedUnitStart
+        val progressive = previewMode == PreviewMode.PROGRESSIVE
         // 词法单元在文件末尾尚未结束，已有预览可以直接保留，当前 AST 按需解析。
-        if (unfinishedLexeme != null && previewDocument != null) return
+        if (!progressive && unfinishedLexeme != null && previewDocument != null) return
 
-        val parsed = parse(source, tokens, preview = true)
-        cachedDocument = parsed?.document
-        if (parsed == null) return
-        if (parsed.document != null && !parsed.incomplete && unfinishedLexeme == null) {
-            updatePreview(parsed.document, source.length)
+        val parsed = parse(source, tokens, preview = true) ?: return
+        // 逐步预览可能隐藏命令片段，当前 AST 仍须按原始输入解析。
+        if (!parsed.omittedPreviewCommand) cachedDocument = parsed.document
+        val complete = !parsed.incomplete && unfinishedLexeme == null
+        val end = if (complete) source.length
+            else minOf(parsed.completePrefixEnd, unfinishedLexeme ?: source.length)
+        if (parsed.document != null && (complete || progressive)) {
+            updatePreview(parsed.document, end)
         } else if (previewDocument == null) {
             // 首个不完整结果只预览解析器确认闭合的前缀，当前输入的检查点仍供后续编辑使用。
-            val end = minOf(parsed.completePrefixEnd, unfinishedLexeme ?: source.length)
             if (end > 0) parseSafely { LatexParser().parse(source.substring(0, end)) }?.let { updatePreview(it, end) }
         }
     }
@@ -93,7 +106,12 @@ class IncrementalLatexParser {
         lastSuccessfulPosition = end
     }
 
-    private data class ParsedDocument(val document: LatexNode.Document?, val incomplete: Boolean, val completePrefixEnd: Int)
+    private data class ParsedDocument(
+        val document: LatexNode.Document?,
+        val incomplete: Boolean,
+        val completePrefixEnd: Int,
+        val omittedPreviewCommand: Boolean,
+    )
 
     private fun parse(source: String, tokens: List<LatexToken>, preview: Boolean = false): ParsedDocument? {
         var unchanged = 0
@@ -112,10 +130,22 @@ class IncrementalLatexParser {
         val suffix = reusableSuffix(tokens, unchanged)
         return parseSafely {
             val session = ParseSession(tokens, source.length, source, reused, suffix)
-            val document = if (preview) session.parsePreview() else session.parse()
-            parsedTokens = tokens
-            checkpoints = if (document?.children?.singleOrNull() is LatexNode.Error) emptyList() else reused
-            ParsedDocument(document, session.hasIncompleteStructure, session.completePrefixEnd)
+            val document = when {
+                !preview -> session.parse()
+                previewMode == PreviewMode.PROGRESSIVE -> session.parseProgressivePreview(tokenizer.unfinishedUnitStart)
+                else -> session.parsePreview()
+            }
+            // 整式 AST 可包含预览忽略的末尾命令，不能把这样的检查点写回逐步预览。
+            if (preview || previewMode == PreviewMode.COMPLETE_ONLY) {
+                parsedTokens = tokens
+                checkpoints = if (document?.children?.singleOrNull() is LatexNode.Error) emptyList() else reused
+            }
+            ParsedDocument(
+                document,
+                session.hasIncompleteStructure,
+                session.completePrefixEnd,
+                session.tokenStream.omittedPreviewCommand,
+            )
         }
     }
 
@@ -154,7 +184,7 @@ class IncrementalLatexParser {
         return document ?: LatexNode.Document(emptyList())
     }
 
-    /** 返回用于实时显示的结果，输入尚未闭合时保持上一次完整预览。 */
+    /** 返回所选预览策略的显示结果。 */
     fun getPreviewDocument(): LatexNode.Document = previewDocument ?: LatexNode.Document(emptyList())
 
     fun getCurrentInput(): String = tokenizer.getCurrentText()

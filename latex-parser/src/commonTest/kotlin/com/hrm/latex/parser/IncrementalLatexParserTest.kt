@@ -24,6 +24,7 @@ package com.hrm.latex.parser
 
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.SourceRange
+import com.hrm.latex.parser.visitor.MathMLVisitor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -503,6 +504,82 @@ class IncrementalLatexParserTest {
         incremental.append("}{b}")
         assertEquals(LatexParser().parse(incomplete + "}{b}"), incremental.getCurrentDocument())
         assertEquals(incremental.getCurrentDocument(), incremental.getPreviewDocument())
+    }
+
+    @Test
+    fun progressivePreviewRendersEachPartOfTheQuadraticFormulaWhileItArrives() {
+        val parser = IncrementalLatexParser(IncrementalLatexParser.PreviewMode.PROGRESSIVE)
+        val batch = LatexParser()
+        val formula = """x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}"""
+        val radicandStart = formula.indexOf("b^")
+        val denominatorStart = formula.indexOf("2a")
+        formula.forEachIndexed { index, char ->
+            parser.append(char.toString())
+            val source = formula.take(index + 1)
+            val preview = parser.getPreviewDocument()
+            val mathMl = MathMLVisitor.convert(preview)
+
+            assertEquals(batch.parse(source), parser.getCurrentDocument(), source)
+            assertFalse(preview.fold(false) { found, node -> found || node is LatexNode.Command || node is LatexNode.Error }, source)
+            if (index >= formula.indexOf("-b") + 1) {
+                val fraction = preview.children.filterIsInstance<LatexNode.Fraction>().single()
+                assertTrue(MathMLVisitor.convert(fraction.numerator).contains("<mi>b</mi>"), source)
+            }
+            if (index >= radicandStart) {
+                assertTrue(mathMl.contains("<msqrt>"), source)
+            }
+            if (index >= denominatorStart) {
+                val fraction = preview.children.filterIsInstance<LatexNode.Fraction>().single()
+                assertTrue(MathMLVisitor.convert(fraction.denominator).contains("<mn>2</mn>"), source)
+            }
+        }
+        assertEquals(batch.parse(formula), parser.getPreviewDocument())
+        assertEquals(1f, parser.getProgress())
+    }
+
+    @Test
+    fun progressivePreviewHidesOnlyAnExtendableTrailingCommand() {
+        val parser = IncrementalLatexParser(IncrementalLatexParser.PreviewMode.PROGRESSIVE)
+        val batch = LatexParser()
+        for ((input, prefix) in listOf(
+            "x+\\" to "x+",
+            """x+\fra""" to "x+",
+            """y+\fra""" to "y+",
+            """y+\begin{mat""" to "y+",
+            """\def\myword{a}y+\myw""" to """\def\myword{a}y+""",
+        )) {
+            parser.setInput(input)
+            assertEquals(batch.parse(input), parser.getCurrentDocument(), input)
+            assertEquals(batch.parse(prefix).children, parser.getPreviewDocument().children, input)
+            assertEquals(input.removePrefix(prefix), parser.getUnparsedContent())
+        }
+        for (input in listOf("""y+\fra """, """y+\fraq""", """\def\bad{\fra}y+\bad""")) {
+            parser.setInput(input)
+            val current = batch.parse(input)
+            assertTrue(current.children.any { it is LatexNode.Command }, input)
+            assertEquals(current, parser.getPreviewDocument(), input)
+        }
+        for (input in listOf("""y+\pi""", """y+\theta""", """y+\to""")) {
+            parser.setInput(input)
+            assertEquals(batch.parse(input), parser.getPreviewDocument(), input)
+        }
+    }
+
+    @Test
+    fun progressivePreviewUsesGrammarRecoveryBeforeStructuresClose() {
+        val batch = LatexParser()
+        for ((input, fragment) in listOf(
+            """a+\sqrt[3""" to "<mroot>",
+            """a+\left(x""" to "<mi>x</mi>",
+            """a+\begin{matrix}x&y""" to "<mtable",
+            "a+\$x^2" to "<msup",
+        )) {
+            val parser = IncrementalLatexParser(IncrementalLatexParser.PreviewMode.PROGRESSIVE)
+            parser.setInput(input)
+            val preview = parser.getPreviewDocument()
+            assertEquals(batch.parse(input), preview, input)
+            assertTrue(MathMLVisitor.convert(preview).contains(fragment), input)
+        }
     }
 
     @Test

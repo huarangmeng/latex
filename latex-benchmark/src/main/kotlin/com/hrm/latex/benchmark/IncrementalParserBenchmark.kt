@@ -128,7 +128,7 @@ open class StreamingParserBenchmark {
         val expected = BenchmarkInputs.validatedDocument(input)
         chunks = source.chunked(chunkSize)
         check(chunks.joinToString("") == source)
-        val probe = IncrementalLatexParser()
+        val probe = IncrementalLatexParser(IncrementalLatexParser.PreviewMode.PROGRESSIVE)
         val full = LatexParser()
         val accumulated = StringBuilder(source.length)
         for (chunk in chunks) {
@@ -143,7 +143,7 @@ open class StreamingParserBenchmark {
 
     @Benchmark
     fun incremental(bh: Blackhole) {
-        val parser = IncrementalLatexParser()
+        val parser = IncrementalLatexParser(IncrementalLatexParser.PreviewMode.PROGRESSIVE)
         for (chunk in chunks) {
             parser.append(chunk)
             bh.consume(parser.getPreviewDocument())

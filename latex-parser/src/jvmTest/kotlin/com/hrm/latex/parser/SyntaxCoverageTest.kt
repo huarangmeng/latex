@@ -55,10 +55,13 @@ class SyntaxCoverageTest {
         val parser = LatexParser()
         forEachCase { case ->
             if (case.error == null) {
-                val incremental = IncrementalLatexParser()
-                incremental.setInput("a+b")
-                incremental.setInput(case.source)
-                assertEquals(parser.parse(case.source), incremental.getPreviewDocument())
+                val expected = parser.parse(case.source)
+                for (mode in IncrementalLatexParser.PreviewMode.entries) {
+                    val incremental = IncrementalLatexParser(mode)
+                    incremental.setInput("a+b")
+                    incremental.setInput(case.source)
+                    assertEquals(expected, incremental.getPreviewDocument(), mode.name)
+                }
             }
         }
     }

@@ -103,6 +103,8 @@ internal class CommandParser(
         internal fun registeredCommands(): Set<String> = registry.registeredCommands()
 
         internal fun syntaxCommands(): Set<String> = registeredCommands() + expansionCommands + chemicalCommands
+
+        private val previewCommandNames by lazy { (syntaxCommands() + SymbolMap.getAllSymbols().keys).sorted() }
     }
 
     /**
@@ -126,7 +128,13 @@ internal class CommandParser(
         return parseSymbolOrGenericCommand(cmdName)
     }
 
-    private fun parseSymbolOrGenericCommand(cmdName: String): LatexNode {
+    private fun parseSymbolOrGenericCommand(cmdName: String): LatexNode? {
+        val unicode = SymbolMap.getSymbol(cmdName)
+        if (unicode != null) {
+            return LatexNode.Symbol(SymbolMap.canonicalName(cmdName), unicode)
+        }
+
+        if (tokenStream.omitTrailingPreviewCommand { canCompleteCommand(cmdName) }) return null
         if (cmdName.isEmpty()) {
             val range = tokenStream.peek(-1)?.range ?: SourceRange(0, 0)
             context.diagnostics.add(
@@ -138,11 +146,6 @@ internal class CommandParser(
                 )
             )
             return LatexNode.Text("\\")
-        }
-
-        val unicode = SymbolMap.getSymbol(cmdName)
-        if (unicode != null) {
-            return LatexNode.Symbol(SymbolMap.canonicalName(cmdName), unicode)
         }
 
         val range = tokenStream.peek(-1)?.range ?: SourceRange.EMPTY
@@ -164,6 +167,14 @@ internal class CommandParser(
         }
 
         return LatexNode.Command(cmdName, arguments)
+    }
+
+    private fun canCompleteCommand(prefix: String): Boolean {
+        if (prefix.isEmpty() || !prefix.all { it.isLetter() || it == '@' }) return false
+        val index = previewCommandNames.binarySearch(prefix)
+        val next = if (index < 0) -index - 1 else index + 1
+        return previewCommandNames.getOrNull(next)?.startsWith(prefix) == true ||
+            context.customCommands.keys.any { it.length > prefix.length && it.startsWith(prefix) }
     }
 
 
