@@ -279,6 +279,12 @@ internal class ParseSession(
         }
     }
 
+    internal fun parseProgressivePreview(unfinishedUnitStart: Int?): LatexNode.Document {
+        tokenStream.progressivePreview = true
+        tokenStream.unfinishedPreviewUnitStart = unfinishedUnitStart
+        return parse()
+    }
+
     fun parse(): LatexNode.Document {
         val children = try {
             parseMathList(checkpoints) { false }

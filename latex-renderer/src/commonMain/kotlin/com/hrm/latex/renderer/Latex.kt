@@ -102,7 +102,7 @@ fun Latex(
     }
 
     // 复用解析器实例以支持真正的增量解析
-    val parser = remember { IncrementalLatexParser() }
+    val parser = remember { IncrementalLatexParser(IncrementalLatexParser.PreviewMode.PROGRESSIVE) }
     val parserMutex = remember { Mutex() }
 
     // 使用 State 来保存解析结果
