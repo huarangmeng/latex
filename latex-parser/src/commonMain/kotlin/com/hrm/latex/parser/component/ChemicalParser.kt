@@ -24,6 +24,7 @@
 package com.hrm.latex.parser.component
 
 import com.hrm.latex.parser.SymbolMap
+import com.hrm.latex.parser.component.handler.ParseUtils
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.tokenizer.LatexToken
 
@@ -42,26 +43,17 @@ internal class ChemicalParser(private val context: LatexParserContext) {
 
     fun parseChemicalArgument(): LatexNode {
         // \ce 命令的参数通常用 {} 包裹
-        if (tokenStream.peek() is LatexToken.LeftBrace) {
-            tokenStream.advance() // eat {
-            val content = parseChemicalContent(stopAtRightBrace = true)
-            if (tokenStream.peek() is LatexToken.RightBrace) {
-                tokenStream.advance() // eat }
-            }
-            return LatexNode.Group(content)
-        } else {
-            // 如果没有 {}，则只解析下一个 token (不太常见，但兼容标准 LaTeX 命令行为)
-            // 但 \ce 通常必须带 {} 因为内部语法复杂。
-            // 简单处理：如果只是单个 token，尝试解析它
-            val content = parseChemicalContent(stopAtRightBrace = false, singleToken = true)
-            return LatexNode.Group(content)
+        val grouped = tokenStream.peekRequiredToken() is LatexToken.LeftBrace
+        if (grouped) tokenStream.advance()
+        // 保留未加花括号时只取一个化学片段的行为。
+        val content = parseChemicalContent(singleToken = !grouped)
+        if (grouped) {
+            tokenStream.consumeClosing { it is LatexToken.RightBrace }
         }
+        return LatexNode.Group(content)
     }
 
-    private fun parseChemicalContent(
-        stopAtRightBrace: Boolean,
-        singleToken: Boolean = false
-    ): List<LatexNode> {
+    private fun parseChemicalContent(singleToken: Boolean): List<LatexNode> {
         val nodes = mutableListOf<LatexNode>()
         // 跟踪上一个添加的节点，用于附着上下标
         // 注意：由于 nodes 列表可变，我们可以直接操作 nodes.last()
@@ -71,9 +63,7 @@ internal class ChemicalParser(private val context: LatexParserContext) {
         while (!tokenStream.isEOF()) {
             val token = tokenStream.peek()
 
-            if (stopAtRightBrace && token is LatexToken.RightBrace) {
-                break
-            }
+            if (token.isScopeCloser()) break
 
             when (token) {
                 is LatexToken.Text -> {
@@ -177,7 +167,8 @@ internal class ChemicalParser(private val context: LatexParserContext) {
 
     private fun parseChemicalScriptContent(): LatexNode {
         // 化学脚本内容也可能包含化学语法？mhchem 中 ^{2+} 是合法的。
-        return when (tokenStream.peek()) {
+        return when (val token = tokenStream.peekRequiredToken()) {
+            null -> LatexNode.Text("")
             is LatexToken.LeftBrace -> context.parseGroup()
             is LatexToken.Text -> {
                 val first = tokenStream.advance() as LatexToken.Text
@@ -196,7 +187,10 @@ internal class ChemicalParser(private val context: LatexParserContext) {
                 }
                 LatexNode.Text(content)
             }
-            else -> context.parseExpression() ?: LatexNode.Text("")
+            else -> {
+                val content = if (token.isScopeCloser()) null else context.parseExpression()
+                content ?: LatexNode.Text("")
+            }
         }
     }
 
@@ -412,13 +406,8 @@ internal class ChemicalParser(private val context: LatexParserContext) {
     }
 
     private fun parseChemicalAnnotation(): LatexNode {
-        tokenStream.advance() // [
-        val content = mutableListOf<LatexNode>()
-        while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
-            context.parseExpression()?.let(content::add)
-        }
-        if (tokenStream.peek() is LatexToken.RightBracket) tokenStream.advance()
-        return if (content.size == 1) content[0] else LatexNode.Group(content)
+        val content = checkNotNull(ParseUtils.parseBracketedArgument(context, tokenStream))
+        return content.singleOrNull() ?: LatexNode.Group(content)
     }
 
     private fun arrowDirection(symbol: LatexNode.Symbol): LatexNode.ExtensibleArrow.Direction? =

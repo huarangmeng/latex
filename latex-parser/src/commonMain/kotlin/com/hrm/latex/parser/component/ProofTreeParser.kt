@@ -31,8 +31,7 @@ internal fun parseProofTree(context: LatexParserContext): LatexNode {
     var leftLabel: LatexNode? = null
     var rightLabel: LatexNode? = null
 
-    fun failure(message: String, range: SourceRange, category: ParseDiagnostic.Category): LatexNode.Error {
-        context.diagnostics.add(ParseDiagnostic(range, message, ParseDiagnostic.Severity.ERROR, category))
+    fun recover(message: String, range: SourceRange): LatexNode.Error {
         context.accountForTreeDepth(stack.maxOfOrNull { it.depth } ?: 0)
         return LatexNode.Error(message, stack.map { it.proof }, range)
     }
@@ -49,17 +48,19 @@ internal fun parseProofTree(context: LatexParserContext): LatexNode {
 
     while (!stream.isEOF()) {
         val token = stream.peek() ?: break
+        if (token.isScopeCloser() && token !is LatexToken.EndEnvironment) break
         when (token) {
             is LatexToken.EndEnvironment -> {
                 if (token.name != "prooftree") break
-                stream.advance()
                 val branch = stack.singleOrNull()
                 if (branch != null && leftLabel == null && rightLabel == null) {
                     context.accountForTreeDepth(branch.depth)
                     return branch.proof
                 }
-                return failure("Proof tree must end with one conclusion and no unused labels", token.range,
-                    ParseDiagnostic.Category.INVALID_ARGUMENT)
+                val message = "Proof tree must end with one conclusion and no unused labels"
+                context.diagnostics.add(ParseDiagnostic(token.range, message, ParseDiagnostic.Severity.ERROR,
+                    ParseDiagnostic.Category.INVALID_ARGUMENT))
+                return recover(message, token.range)
             }
             is LatexToken.Whitespace, is LatexToken.NewLine -> stream.advance()
             is LatexToken.Command -> {
@@ -112,6 +113,5 @@ internal fun parseProofTree(context: LatexParserContext): LatexNode {
             }
         }
     }
-    return failure("Missing \\end{prooftree}", stream.peek()?.range ?: SourceRange.EMPTY,
-        ParseDiagnostic.Category.MISMATCHED_ENVIRONMENT)
+    return recover("Missing \\end{prooftree}", stream.peek()?.range ?: SourceRange.EMPTY)
 }

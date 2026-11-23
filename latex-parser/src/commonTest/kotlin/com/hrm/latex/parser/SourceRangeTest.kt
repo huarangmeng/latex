@@ -22,6 +22,7 @@
 
 package com.hrm.latex.parser
 
+import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
@@ -225,6 +226,27 @@ class SourceRangeTest {
         assertNotNull(frac.sourceRange, "Fraction node should have sourceRange")
         assertEquals(0, frac.sourceRange!!.start)
         assertEquals(input.length, frac.sourceRange!!.end)
+    }
+
+    @Test
+    fun unfinishedOptionalArgumentKeepsTheConsumedSourceRange() {
+        val input = "a\\xrightarrow[below"
+        val arrow = LatexParser().parse(input).children.filterIsInstance<LatexNode.ExtensibleArrow>().single()
+        assertEquals(SourceRange(1, input.length), arrow.sourceRange)
+    }
+
+    @Test
+    fun resettingAnExhaustedTokenStreamRestoresTheFirstToken() {
+        val tokens = LatexTokenizer("x+y").tokenize()
+        val stream = LatexTokenStream(tokens)
+        repeat(tokens.size) { stream.advance() }
+        assertNull(stream.peek())
+
+        stream.reset()
+
+        assertEquals(tokens.first(), stream.peek())
+        assertEquals(0, stream.currentSourceOffset())
+        assertNull(stream.peek(-1))
     }
 
     @Test

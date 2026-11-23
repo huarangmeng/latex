@@ -40,6 +40,8 @@ class IncrementalTokenizer {
 
     private var lexemes: List<Lexeme> = emptyList()
     private var eofRestart = 0
+    internal var unfinishedUnitStart: Int? = null
+        private set
     private val textBuffer = StringBuilder()
     private var cachedResult: List<LatexToken>? = null
 
@@ -54,7 +56,12 @@ class IncrementalTokenizer {
 
         // 编辑点可能扩展前一个文本或命令 token，必须包含结束位置恰好等于编辑点的 token。
         var prefix = firstAffected(edit.startOffset)
-        val restart = lexemes.getOrNull(prefix)?.restart ?: eofRestart
+        var restart = lexemes.getOrNull(prefix)?.restart ?: eofRestart
+        if (prefix > 0 && restart >= edit.startOffset) {
+            // URL 命令的扫描单元可能消费尾部注释而不产出 token。
+            // 编辑落在这个空隙或紧随其后的边界时，要从该单元重新判断参数。
+            restart = lexemes[prefix - 1].restart
+        }
         while (prefix > 0 && lexemes[prefix - 1].restart >= restart) prefix--
         val suffix = firstCheckpointAtOrAfter(edit.oldEndOffset, prefix)
         return collect(newText, restart, prefix, edit, suffix)
@@ -78,6 +85,7 @@ class IncrementalTokenizer {
             val checkpoint = scanner.restartOffset
             if (token is LatexToken.EOF) {
                 eofRestart = checkpoint
+                unfinishedUnitStart = scanner.unfinishedUnitStart
                 break
             }
             if (scanner.firstInUnit && checkpoint >= edit.newEndOffset) {
@@ -94,6 +102,7 @@ class IncrementalTokenizer {
                         ))
                     }
                     eofRestart += edit.delta
+                    unfinishedUnitStart = unfinishedUnitStart?.plus(edit.delta)
                     break
                 }
             }

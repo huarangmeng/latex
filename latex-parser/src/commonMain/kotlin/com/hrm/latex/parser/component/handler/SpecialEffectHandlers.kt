@@ -23,6 +23,7 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.ParseDiagnostic
+import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
@@ -122,20 +123,13 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
     }
 
     register("smash") { _, ctx, stream ->
-        val smashType = if (stream.peek() is LatexToken.LeftBracket) {
-            stream.advance() // consume [
-            val typeStr = StringBuilder()
-            while (!stream.isEOF() && stream.peek() !is LatexToken.RightBracket) {
-                val t = stream.peek()
-                if (t is LatexToken.Text) {
-                    typeStr.append(t.content)
+        val smashType = if (stream.openOptionalArgument() != null) {
+            val type = buildString {
+                stream.readBracketContent { token ->
+                    if (token is LatexToken.Text) append(token.content)
                 }
-                stream.advance()
             }
-            if (stream.peek() is LatexToken.RightBracket) {
-                stream.advance() // consume ]
-            }
-            when (typeStr.toString().trim()) {
+            when (type.trim()) {
                 "t" -> LatexNode.Smash.SmashType.TOP
                 "b" -> LatexNode.Smash.SmashType.BOTTOM
                 else -> LatexNode.Smash.SmashType.BOTH
@@ -196,13 +190,7 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
         val shift = ParseUtils.extractText(
             listOf(ctx.parseArgument() ?: LatexNode.Text("0pt"))
         ).trim()
-        repeat(2) {
-            if (stream.peek() is LatexToken.LeftBracket) {
-                stream.advance()
-                ParseUtils.parseUntil(ctx, stream) { token -> token is LatexToken.RightBracket }
-                if (stream.peek() is LatexToken.RightBracket) stream.advance()
-            }
-        }
+        repeat(2) { ParseUtils.parseBracketedArgument(ctx, stream) }
         val arg = ctx.parseArgument() ?: LatexNode.Text("")
         LatexNode.Layout(
             layoutType = LatexNode.Layout.LayoutType.RAISE_BOX,
@@ -212,12 +200,8 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
     }
 
     register("rule") { _, ctx, stream ->
-        val raise = if (stream.peek() is LatexToken.LeftBracket) {
-            stream.advance()
-            val nodes = ParseUtils.parseUntil(ctx, stream) { token -> token is LatexToken.RightBracket }
-            if (stream.peek() is LatexToken.RightBracket) stream.advance()
-            ParseUtils.extractText(nodes).trim()
-        } else "0pt"
+        val raise = ParseUtils.parseBracketedArgument(ctx, stream)
+            ?.let { ParseUtils.extractText(it).trim() } ?: "0pt"
         val width = ParseUtils.extractText(
             listOf(ctx.parseArgument() ?: LatexNode.Text("0pt"))
         ).trim()
@@ -234,12 +218,8 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
 
     // mathtools alignment helper: default shift is two ems to the left.
     register("MoveEqLeft") { _, ctx, stream ->
-        val amount = if (stream.peek() is LatexToken.LeftBracket) {
-            stream.advance()
-            val nodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
-            if (stream.peek() is LatexToken.RightBracket) stream.advance()
-            ParseUtils.extractText(nodes).trim().toFloatOrNull() ?: 2f
-        } else 2f
+        val amount = ParseUtils.parseBracketedArgument(ctx, stream)
+            ?.let { ParseUtils.extractText(it).trim().toFloatOrNull() } ?: 2f
         LatexNode.HSpace("${-amount}em")
     }
 }
@@ -251,12 +231,10 @@ private fun unwrapContent(arg: LatexNode): List<LatexNode> {
     }
 }
 
-private fun parseOptionalBracketText(stream: com.hrm.latex.parser.component.LatexTokenStream): String? {
-    if (stream.peek() !is LatexToken.LeftBracket) return null
-    stream.advance()
+private fun parseOptionalBracketText(stream: LatexTokenStream): String? {
+    if (stream.openOptionalArgument() == null) return null
     val builder = StringBuilder()
-    while (!stream.isEOF() && stream.peek() !is LatexToken.RightBracket) {
-        val token = stream.peek()
+    stream.readBracketContent { token ->
         when (token) {
             is LatexToken.Text -> builder.append(token.content)
             is LatexToken.Command -> builder.append("\\").append(token.name)
@@ -273,10 +251,6 @@ private fun parseOptionalBracketText(stream: com.hrm.latex.parser.component.Late
             is LatexToken.MathShift -> builder.append("$".repeat(token.count))
             else -> Unit
         }
-        stream.advance()
-    }
-    if (stream.peek() is LatexToken.RightBracket) {
-        stream.advance()
     }
     return builder.toString().trim().ifEmpty { null }
 }

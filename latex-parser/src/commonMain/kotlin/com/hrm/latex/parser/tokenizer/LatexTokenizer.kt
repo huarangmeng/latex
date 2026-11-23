@@ -37,6 +37,9 @@ import com.hrm.latex.parser.model.SourceRange
 class LatexTokenizer(private val input: String, startOffset: Int = 0) {
     private var position = startOffset
     private var tokens = ArrayList<LatexToken>(estimateTokenCount(input.length - startOffset))
+    /** 文件末尾仍在读取的词法单元，供预览保留上一次完整结果。 */
+    internal var unfinishedUnitStart: Int? = null
+        private set
 
     companion object {
         private val urlCommands = setOf("href", "url", "includegraphics")
@@ -226,6 +229,7 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                 // \ 后跟 EOF — 产生一个空命令 token 以确保反斜杠位置被覆盖。
                 // 对增量分词至关重要：如果此处不产生 token，反斜杠的位置会成为"空洞"，
                 // 后续追加的字符（如 \+i → \i）不会被正确关联为 Command token。
+                unfinishedUnitStart = start
                 tokens.add(LatexToken.Command("", SourceRange(start, position)))
             }
             return
@@ -242,27 +246,22 @@ class LatexTokenizer(private val input: String, startOffset: Int = 0) {
                 while (position < input.length && input[position] != delimiter && input[position] != '\n') advance()
                 val text = input.substring(contentStart, position)
                 if (position < input.length && input[position] == delimiter) advance()
+                else if (position == input.length) unfinishedUnitStart = start
                 tokens.add(LatexToken.Text(if (starred) text.replace(" ", "␣") else text, SourceRange(start, position), literal = true))
-            }
+            } else unfinishedUnitStart = start
             return
         }
 
         when (commandName) {
-            "begin" -> {
+            "begin", "end" -> {
                 val envName = readEnvironmentName()
+                val range = SourceRange(start, position)
                 if (envName != null) {
-                    tokens.add(LatexToken.BeginEnvironment(envName, SourceRange(start, position)))
+                    tokens.add(if (commandName == "begin") LatexToken.BeginEnvironment(envName, range)
+                        else LatexToken.EndEnvironment(envName, range))
                 } else {
-                    tokens.add(LatexToken.Command(commandName, SourceRange(start, position)))
-                }
-            }
-
-            "end" -> {
-                val envName = readEnvironmentName()
-                if (envName != null) {
-                    tokens.add(LatexToken.EndEnvironment(envName, SourceRange(start, position)))
-                } else {
-                    tokens.add(LatexToken.Command(commandName, SourceRange(start, position)))
+                    if (position == input.length) unfinishedUnitStart = start
+                    tokens.add(LatexToken.Command(commandName, range))
                 }
             }
 

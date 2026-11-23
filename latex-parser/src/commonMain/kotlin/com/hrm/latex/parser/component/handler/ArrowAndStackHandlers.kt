@@ -23,7 +23,6 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.model.LatexNode
-import com.hrm.latex.parser.tokenizer.LatexToken
 
 /**
  * 可扩展箭头 & 堆叠命令：\xrightarrow, \overset, \underset, \stackrel
@@ -56,14 +55,8 @@ internal fun CommandRegistry.installArrowAndStackHandlers() {
     for ((cmd, direction) in arrowMapping) {
         register(cmd) { _, ctx, stream ->
             // 可选参数（下方文字）
-            val below = if (stream.peek() is LatexToken.LeftBracket) {
-                stream.advance() // 消费 [
-                val nodes = ParseUtils.parseUntil(ctx, stream) { it is LatexToken.RightBracket }
-                stream.advance() // 消费 ]
-                if (nodes.isEmpty()) null else LatexNode.Group(nodes)
-            } else {
-                null
-            }
+            val below = ParseUtils.parseBracketedArgument(ctx, stream)
+                ?.takeIf { it.isNotEmpty() }?.let(LatexNode::Group)
 
             // 必选参数（上方文字）
             val above = ctx.parseArgument() ?: LatexNode.Text("")

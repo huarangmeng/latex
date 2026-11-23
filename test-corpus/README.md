@@ -44,6 +44,11 @@ KaTeX's tests and documentation, and `mhchem.txt` examples from the mhchem manua
 for every tested chunk size, including source ranges. The edit test independently compares
 insertion, replacement and deletion against batch parsing.
 
+The stability tests combine the RaTeX and project syntax fixtures. Each character-by-character
+prefix and each step of a reproducible edit sequence is compared with a fresh parse.
+The checks include UTF-16 boundaries and source ranges in nodes and diagnostics.
+MathML output is also read by an independent XML parser.
+
 ## `baselines/`
 
 `expected-diagnostics.tsv` lists inputs that must produce an error of the recorded

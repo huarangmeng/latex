@@ -37,6 +37,9 @@ object BenchmarkInputs {
 
     const val MULTILINE = "\\begin{aligned} x+y &= 1 \\\\ x-y &= \\frac{1}{2} \\\\ z &= \\sqrt{x^2+y^2} \\end{aligned}"
 
+    private val LONG_ENVIRONMENT =
+        "\\begin{aligned}" + "\\frac{x_i}{y}+z&=u^2\\\\".repeat(62) + "\\end{aligned}"
+
     const val MALFORMED = "a + \\unknownbenchmark{x} + \\frac{x+1}{\\sqrt{y"
 
     fun formula(name: String): String = when (name) {
@@ -49,6 +52,7 @@ object BenchmarkInputs {
         "deep" -> DEEP
         "text" -> TEXT
         "multiline" -> MULTILINE
+        "environment" -> LONG_ENVIRONMENT
         "malformed" -> MALFORMED
         else -> error("未知性能测试语料：$name")
     }
