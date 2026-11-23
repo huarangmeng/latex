@@ -97,6 +97,14 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         while (peek() is LatexToken.Whitespace) advance()
     }
 
+    /** 必需参数在输入末尾仍可补齐。记录未完成状态，让调用方继续生成容错结果。 */
+    internal fun peekRequiredToken(): LatexToken? {
+        val token = peek()
+        if (token != null && token !is LatexToken.EOF) return token
+        hasIncompleteStructure = true
+        return null
+    }
+
     /**
      * 只检查必须来自原始 token 的结束标记。遍历整份源码，宏定义里可被展开的结束标记也算候选。
      * 找不到候选才暂停预览，找到后由正常解析决定是否真正闭合。
@@ -128,6 +136,27 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         return opening
     }
 
+    /**
+     * 读取已打开的方括号参数。花括号组内的右方括号是参数内容，外层结束标记留给外层处理。
+     * 原样保存宏参数时，环境和显式分组命令只是 token，可在之后的宏展开中参与配对。
+     */
+    internal inline fun readBracketContent(stopAtNamedClosers: Boolean = true, accept: (LatexToken) -> Unit): Boolean {
+        var braceDepth = 0
+        while (true) {
+            val token = peek() ?: break
+            if (token is LatexToken.EOF) break
+            if (braceDepth == 0) {
+                if (token is LatexToken.RightBracket || token is LatexToken.RightBrace) break
+                if (stopAtNamedClosers && token.isScopeCloser()) break
+            }
+            advance()
+            if (token is LatexToken.LeftBrace) braceDepth++
+            if (token is LatexToken.RightBrace) braceDepth--
+            accept(token)
+        }
+        return consumeClosing { it is LatexToken.RightBracket }
+    }
+
     /** 语法解析器已经消费起始标记时，统一确认结束标记；不匹配的 token 留给外层处理。 */
     internal inline fun consumeClosing(matches: (LatexToken?) -> Boolean): Boolean {
         if (matches(peek())) {
@@ -153,8 +182,9 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
     /** Balanced, unexpanded argument. Delimiters are consumed, not returned. */
     internal fun readArgumentTokens(): List<LatexToken> = raw {
         skipWhitespace()
-        if (peek() !is LatexToken.LeftBrace) {
-            if (isEOF() || peek() is LatexToken.RightBrace) {
+        val opening = peekRequiredToken()
+        if (opening !is LatexToken.LeftBrace) {
+            if (opening == null || opening is LatexToken.RightBrace) {
                 reportMissing("Missing macro argument", ParseDiagnostic.Category.INVALID_ARGUMENT)
                 return@raw emptyList()
             }
@@ -181,17 +211,8 @@ class LatexTokenStream(private val initialTokens: List<LatexToken>) {
         skipWhitespace()
         if (openOptionalArgument() == null) return@raw null
         val result = mutableListOf<LatexToken>()
-        var depth = 0
-        var closed = false
-        while (!isEOF()) {
-            val token = advance() ?: break
-            if (token is LatexToken.RightBracket && depth == 0) { closed = true; break }
-            if (token is LatexToken.LeftBrace) depth++
-            if (token is LatexToken.RightBrace) depth--
-            appendReplacementToken(result, token)
-        }
+        val closed = readBracketContent(stopAtNamedClosers = false) { appendReplacementToken(result, it) }
         if (!closed) {
-            hasIncompleteStructure = true
             reportMissing("Missing ] in macro argument", ParseDiagnostic.Category.MISSING_BRACKET)
         }
         result

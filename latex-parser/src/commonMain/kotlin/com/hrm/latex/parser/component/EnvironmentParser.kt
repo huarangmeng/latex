@@ -559,16 +559,15 @@ internal class EnvironmentParser(private val context: LatexParserContext) {
 
     private fun parseOptionalBracketText(): String? {
         if (tokenStream.openOptionalArgument() == null) return null
-        val result = StringBuilder()
-        while (!tokenStream.isEOF() && tokenStream.peek() !is LatexToken.RightBracket) {
-            when (val token = tokenStream.advance()) {
-                is LatexToken.Text -> result.append(token.content)
-                is LatexToken.Command -> result.append(token.name)
-                else -> Unit
+        return buildString {
+            tokenStream.readBracketContent { token ->
+                when (token) {
+                    is LatexToken.Text -> append(token.content)
+                    is LatexToken.Command -> append(token.name)
+                    else -> Unit
+                }
             }
-        }
-        tokenStream.consumeClosing { it is LatexToken.RightBracket }
-        return result.toString().trim().ifEmpty { null }
+        }.trim().ifEmpty { null }
     }
 
     /**

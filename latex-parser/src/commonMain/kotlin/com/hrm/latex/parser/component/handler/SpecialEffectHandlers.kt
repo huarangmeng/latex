@@ -23,6 +23,7 @@
 package com.hrm.latex.parser.component.handler
 
 import com.hrm.latex.parser.ParseDiagnostic
+import com.hrm.latex.parser.component.LatexTokenStream
 import com.hrm.latex.parser.model.LatexNode
 import com.hrm.latex.parser.model.SourceRange
 import com.hrm.latex.parser.tokenizer.LatexToken
@@ -123,16 +124,12 @@ internal fun CommandRegistry.installSpecialEffectHandlers() {
 
     register("smash") { _, ctx, stream ->
         val smashType = if (stream.openOptionalArgument() != null) {
-            val typeStr = StringBuilder()
-            while (!stream.isEOF() && stream.peek() !is LatexToken.RightBracket) {
-                val t = stream.peek()
-                if (t is LatexToken.Text) {
-                    typeStr.append(t.content)
+            val type = buildString {
+                stream.readBracketContent { token ->
+                    if (token is LatexToken.Text) append(token.content)
                 }
-                stream.advance()
             }
-            stream.consumeClosing { it is LatexToken.RightBracket }
-            when (typeStr.toString().trim()) {
+            when (type.trim()) {
                 "t" -> LatexNode.Smash.SmashType.TOP
                 "b" -> LatexNode.Smash.SmashType.BOTTOM
                 else -> LatexNode.Smash.SmashType.BOTH
@@ -234,11 +231,10 @@ private fun unwrapContent(arg: LatexNode): List<LatexNode> {
     }
 }
 
-private fun parseOptionalBracketText(stream: com.hrm.latex.parser.component.LatexTokenStream): String? {
+private fun parseOptionalBracketText(stream: LatexTokenStream): String? {
     if (stream.openOptionalArgument() == null) return null
     val builder = StringBuilder()
-    while (!stream.isEOF() && stream.peek() !is LatexToken.RightBracket) {
-        val token = stream.peek()
+    stream.readBracketContent { token ->
         when (token) {
             is LatexToken.Text -> builder.append(token.content)
             is LatexToken.Command -> builder.append("\\").append(token.name)
@@ -255,9 +251,7 @@ private fun parseOptionalBracketText(stream: com.hrm.latex.parser.component.Late
             is LatexToken.MathShift -> builder.append("$".repeat(token.count))
             else -> Unit
         }
-        stream.advance()
     }
-    stream.consumeClosing { it is LatexToken.RightBracket }
     return builder.toString().trim().ifEmpty { null }
 }
 

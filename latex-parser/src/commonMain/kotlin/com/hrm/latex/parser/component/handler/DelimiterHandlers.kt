@@ -32,10 +32,11 @@ import com.hrm.latex.parser.tokenizer.LatexToken
  */
 internal fun CommandRegistry.installDelimiterHandlers() {
     fun LatexTokenStream.consumeDelimiterToken(): LatexToken? {
-        while (peek() is LatexToken.Whitespace) {
-            advance()
-        }
-        return if (!isEOF()) advance() else null
+        skipWhitespace()
+        val token = peekRequiredToken() ?: return null
+        // 裸右花括号仍可作为定界符。环境和显式分组的结束标记由外层解析器消费。
+        if (token.isScopeCloser() && token !is LatexToken.RightBrace) return null
+        return advance()
     }
 
     register("llbracket", "rrbracket") { name, _, _ ->

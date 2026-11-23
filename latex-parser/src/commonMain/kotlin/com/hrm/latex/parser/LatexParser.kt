@@ -762,10 +762,8 @@ internal class ParseSession(
 
 
     override fun parseArgument(): LatexNode? {
-        while (tokenStream.peek() is LatexToken.Whitespace) {
-            tokenStream.advance()
-        }
-        val token = tokenStream.peek()
+        tokenStream.skipWhitespace()
+        val token = tokenStream.peekRequiredToken() ?: return null
         if (token.isScopeCloser()) return null
         return when (token) {
             is LatexToken.LeftBrace -> parseGroup()

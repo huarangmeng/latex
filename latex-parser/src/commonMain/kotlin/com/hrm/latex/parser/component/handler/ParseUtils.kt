@@ -292,37 +292,11 @@ internal object ParseUtils {
      * 解析脚本组 {_a^b}，返回 (sub, sup)
      */
     fun parseScriptGroup(ctx: LatexParserContext, stream: LatexTokenStream): Pair<LatexNode?, LatexNode?> {
-        if (stream.peek() !is LatexToken.LeftBrace) {
-            return Pair(null, null)
-        }
-        stream.advance() // consume '{'
-
         var sub: LatexNode? = null
         var sup: LatexNode? = null
-
-        while (!stream.isEOF() && stream.peek() !is LatexToken.RightBrace) {
-            when (stream.peek()) {
-                is LatexToken.Subscript -> {
-                    stream.advance()
-                    sub = ctx.parseFactor()
-                }
-                is LatexToken.Superscript -> {
-                    stream.advance()
-                    sup = ctx.parseFactor()
-                }
-                is LatexToken.Whitespace -> {
-                    stream.advance()
-                }
-                else -> {
-                    stream.advance()
-                }
-            }
+        readScriptGroup(ctx, stream) { superscript, content ->
+            if (superscript) sup = content else sub = content
         }
-
-        if (!stream.isEOF()) {
-            stream.advance() // consume '}'
-        }
-
         return Pair(sub, sup)
     }
 
@@ -330,42 +304,28 @@ internal object ParseUtils {
      * 从花括号 token 流中解析张量指标列表
      */
     fun parseTensorIndicesGroup(ctx: LatexParserContext, stream: LatexTokenStream): List<Pair<Boolean, LatexNode>> {
-        if (stream.peek() !is LatexToken.LeftBrace) {
-            return emptyList()
-        }
-        stream.advance() // consume '{'
-
         val indices = mutableListOf<Pair<Boolean, LatexNode>>()
+        readScriptGroup(ctx, stream) { superscript, content ->
+            if (content != null) indices.add(superscript to content)
+        }
+        return indices
+    }
 
-        while (!stream.isEOF() && stream.peek() !is LatexToken.RightBrace) {
-            when (stream.peek()) {
-                is LatexToken.Superscript -> {
-                    stream.advance()
-                    val content = ctx.parseFactor()
-                    if (content != null) {
-                        indices.add(Pair(true, content))
-                    }
-                }
-                is LatexToken.Subscript -> {
-                    stream.advance()
-                    val content = ctx.parseFactor()
-                    if (content != null) {
-                        indices.add(Pair(false, content))
-                    }
-                }
-                is LatexToken.Whitespace -> {
-                    stream.advance()
-                }
-                else -> {
-                    stream.advance()
-                }
+    /** 指标组只读取上下标项，遇到结束标记时交回拥有该标记的解析器。 */
+    private inline fun readScriptGroup(
+        ctx: LatexParserContext,
+        stream: LatexTokenStream,
+        accept: (superscript: Boolean, content: LatexNode?) -> Unit,
+    ) {
+        if (stream.peek() !is LatexToken.LeftBrace) return
+        stream.advance()
+        while (!stream.isEOF() && !stream.peek().isScopeCloser()) {
+            val marker = stream.advance()
+            if (marker is LatexToken.Superscript || marker is LatexToken.Subscript) {
+                val content = if (stream.peek().isScopeCloser()) null else ctx.parseFactor()
+                accept(marker is LatexToken.Superscript, content)
             }
         }
-
-        if (!stream.isEOF()) {
-            stream.advance() // consume '}'
-        }
-
-        return indices
+        stream.consumeClosing { it is LatexToken.RightBrace }
     }
 }

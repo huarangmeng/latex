@@ -511,14 +511,25 @@ class IncrementalLatexParserTest {
         val incompleteInputs = listOf(
             """\left(x""" to """\right)""",
             """\left(x\right""" to ")",
+            """\big""" to "(",
+            """\frac{1}""" to "{2}",
+            "x^" to "2",
+            "x_" to "1",
             """\sqrt[3""" to "]{x}",
+            """\sqrt[3]""" to "{x}",
             """\xrightarrow[below""" to "]{above}",
             """\smash[t""" to "]{x}",
+            """\tensor{T}{^x""" to "}",
+            """\indices{_i""" to "}",
+            """\ce""" to "{H2O}",
+            """\ce{H2""" to "O}",
+            """\ce{A ->[heat""" to "] B}",
             """\begingroup x""" to """\endgroup""",
             """\ifdefined\alpha x""" to """\fi""",
             """\begin{matrix}\begin{matrix}x\end{matrix}""" to """\end{matrix}""",
             """\begin{matrix""" to """}x\end{matrix}""",
             "\\def\\f#1{#1}\\f{x" to "}",
+            """\def\f#1{#1}\f""" to "{x}",
             "\$x" to "\$",
             "\$\$x" to "\$\$",
             """\verb""" to "|a|",
@@ -564,6 +575,7 @@ class IncrementalLatexParserTest {
         val batch = LatexParser()
         for (source in listOf(
             """\def\finish{\end{matrix}}\begin{matrix}x\finish""",
+            """\newcommand{\finish}[1][\end{matrix}]{#1}\begin{matrix}x\finish+z""",
             """\def\finish{]}\sqrt[3\finish{x}""",
             "\\def\\shift{\$}\\shift x\\shift",
         )) {
@@ -633,9 +645,22 @@ class IncrementalLatexParserTest {
         val parser = LatexParser()
         for (wrapped in listOf(
             """{\sqrt[3}""",
+            """{\smash[t}""",
+            """{\bbox[red}""",
+            """{\textcolor[rgb}""",
             """{\left(x}""",
             "{\$x}",
             """{\begin{matrix}x}""",
+            """\begingroup x\big\endgroup""",
+            """\begin{matrix}x\left(y\right\end{matrix}""",
+            """\begin{matrix}x\big\end{matrix}""",
+            """\begin{matrix}x\smash[t\end{matrix}""",
+            """\begin{matrix}x\indices{^1\end{matrix}""",
+            """\begin{matrix}x\indices{^\end{matrix}""",
+            """\begin{matrix}x\ce{H2\end{matrix}""",
+            """\begin{matrix}x\ce\end{matrix}""",
+            """\ce{A ->[heat}""",
+            """\ce{H_}""",
         )) {
             val result = parser.parse(wrapped + "+z")
             assertEquals(SourceRange(0, wrapped.length), result.children.first().sourceRange, wrapped)
